@@ -34,3 +34,7 @@ Signed booking snapshots, confirmation PDF import and controlled CRM operations 
 See [delivery status](booking-platform/DELIVERY-STATUS.md), [UAT readiness](booking-platform/UAT-READINESS.md) and [security controls](booking-platform/SECURITY.md). Real TripJack/Razorpay UAT, deployed CRM acceptance, physical-device validation, production configuration and signing remain pending.
 
 Root GitHub Actions workflows validate both projects separately using their individual dependency lockfiles. Credentials, databases, dependencies and generated builds are excluded from Git.
+
+## CRM security and workflow release
+
+The separate CRM repository now includes staff MFA/revocable sessions, sensitive-field encryption, sales proposals, incoming Meta documents, applicant checklists, customer import and whole-advance allocation. See [CRM rollout and remaining scope](https://github.com/alpesh15gb/MaxTravel/blob/6626ee35153be31b93bb0e50639be0f649dd8113/docs/crm-completion-2026-10-18.md) before updating it. Its new migrations, private encryption key, backfill and scanner configuration belong to the CRM deployment. Booking runtime code is unchanged by that CRM release; live provider/deployed acceptance remains pending.
