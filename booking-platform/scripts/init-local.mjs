@@ -1,0 +1,5 @@
+import { randomBytes } from "node:crypto";
+import { readFile,writeFile } from "node:fs/promises";
+const password=randomBytes(32).toString("hex");const values={POSTGRES_PASSWORD:password,DATABASE_URL:`postgresql://maxtravel:${password}@127.0.0.1:55439/maxtravel`,BETTER_AUTH_URL:"http://127.0.0.1:3000",BETTER_AUTH_SECRET:randomBytes(32).toString("hex"),TRAVELLER_ENCRYPTION_KEY:randomBytes(32).toString("hex"),SMTP_HOST:"127.0.0.1",SMTP_PORT:"11025",SMTP_SECURE:"false",MAIL_FROM:"Max Travel <noreply@example.test>"};
+const template=await readFile(new URL("../.env.example",import.meta.url),"utf8");let text=template;for(const [name,value]of Object.entries(values)){const pattern=new RegExp(`^${name}=.*$`,"m");text=pattern.test(text)?text.replace(pattern,`${name}=${value}`):text+`\n${name}=${value}\n`;}
+try{await writeFile(new URL("../.env.local",import.meta.url),text,{flag:"wx",mode:0o600});console.log("Local configuration created with random private secrets. No provider credentials were generated or printed.");}catch(e){if(e?.code==="EEXIST")console.log("Existing .env.local preserved; no secrets changed.");else throw e;}

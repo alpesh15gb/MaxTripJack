@@ -1,0 +1,55 @@
+name: Booking platform checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: booking-platform
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: maxtravel_ci
+          POSTGRES_USER: maxtravel
+          POSTGRES_PASSWORD: ephemeral-ci-database-only
+        ports: ['55439:5432']
+        options: --health-cmd 'pg_isready -U maxtravel -d maxtravel_ci' --health-interval 5s --health-timeout 5s --health-retries 20
+      mail:
+        image: axllent/mailpit:latest
+        ports: ['11025:1025', '18025:8025']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: booking-platform/package-lock.json
+      - run: npm ci
+      - name: Generate isolated fixture configuration
+        run: |
+          node --input-type=module <<'JS'
+          import {randomBytes} from 'node:crypto';
+          import {writeFileSync} from 'node:fs';
+          const value=`DATABASE_URL=postgresql://maxtravel:ephemeral-ci-database-only@127.0.0.1:55439/maxtravel_ci\nBETTER_AUTH_URL=http://127.0.0.1:3000\nBETTER_AUTH_SECRET=${randomBytes(32).toString('hex')}\nTRAVELLER_ENCRYPTION_KEY=${randomBytes(32).toString('hex')}\nSMTP_HOST=127.0.0.1\nSMTP_PORT=11025\nSMTP_SECURE=false\nMAIL_FROM=Max Travel <ci@example.test>\n`;
+          writeFileSync('.env.local',value,{mode:0o600});
+          JS
+      - run: npm run db:migrate && npm run db:auth
+      - run: npm run lint && npm test && npm run test:refunds && npm run test:cancellations && npm run build && npm run build:workers
+      - name: Start fixture server and check flows
+        run: |
+          npm run start > /tmp/booking-ci.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && break || sleep 2; done
+          npm run test:integration
+          # Keep real authentication limits enabled between independent fixture identities.
+          sleep 60
+          npm run test:providers
+          sleep 60
+          npm run test:checkout
+          sleep 60
+          npm run test:crm-commands
+          sleep 60
+          npm run test:flight-services
+      - run: npm audit --omit=dev --audit-level=high

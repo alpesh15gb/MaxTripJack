@@ -1,0 +1,3 @@
+"use client";
+import { useEffect,useState } from "react";
+export default function NationalitySelect(){const [rows,setRows]=useState([{countryId:"106",name:"India"}]),[message,setMessage]=useState("");useEffect(()=>{const controller=new AbortController();fetch("/api/travel/nationalities",{signal:controller.signal}).then(async r=>{const data=await r.json();if(!r.ok)throw Error(data.error);setRows(data.nationalities);}).catch(e=>{if(!controller.signal.aborted)setMessage(e.message);});return()=>controller.abort();},[]);return <label>Guest nationality<select name="nationality" defaultValue="106">{rows.map(row=><option key={row.countryId} value={row.countryId}>{row.name}</option>)}</select>{message&&<small role="status">{message}</small>}</label>;}

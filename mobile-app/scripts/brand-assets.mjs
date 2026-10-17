@@ -1,0 +1,11 @@
+import sharp from 'sharp';
+import {writeFile,mkdir} from 'node:fs/promises';
+const mark='<path d="M260 694V360l252 228 252-228v334" fill="none" stroke="white" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"/><path d="m670 263 170-82-77 180-35-73z" fill="#ffd34e"/>';
+const svg=background=>`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">${background?'<rect width="1024" height="1024" rx="0" fill="#073eac"/>':''}${mark}</svg>`;
+await writeFile('assets/maxtravel-mark.svg',svg(true));
+await sharp(Buffer.from(svg(true))).png().toFile('assets/maxtravel-icon.png');
+await sharp(Buffer.from(svg(false))).png().toFile('assets/maxtravel-adaptive.png');
+await sharp(Buffer.from(svg(false).replace('#ffd34e','white'))).png().toFile('assets/maxtravel-monochrome.png');
+await mkdir('../booking-platform/public/brand',{recursive:true});
+await sharp(Buffer.from(svg(true))).resize(64).png().toFile('../booking-platform/public/brand/favicon.png');
+console.log('Max Travel icon assets generated from the SVG master.');

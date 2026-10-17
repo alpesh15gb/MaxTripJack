@@ -1,0 +1,9 @@
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import { principal } from "@/lib/access";
+import { owned } from "@/lib/supplier-flow";
+import { database,transaction } from "@/lib/db";
+import { body,sameOrigin,json,failure,HttpError } from "@/lib/http";
+type Context={params:Promise<{id:string}>};
+export async function GET(request:Request,context:Context){try{const actor=await principal(request);const id=z.string().uuid().parse((await context.params).id);await owned("orders",id,actor);const result=await database().query("SELECT id,status,is_partial,scope,review_note,refund_offer_minor::text,penalty_minor::text,offer_version,offer_expires_at,accepted_at FROM cancellation_requests WHERE order_id=$1 ORDER BY created_at DESC",[id]);return json({requests:result.rows});}catch(e){return failure(e);}}
+export async function POST(request:Request,context:Context){try{sameOrigin(request);const actor=await principal(request);const id=z.string().uuid().parse((await context.params).id);await owned("orders",id,actor);const input=await body(request,z.object({offerVersion:z.string().uuid()}).strict());await transaction(async tx=>{const updated=await tx.query("UPDATE cancellation_requests SET accepted_at=now() WHERE order_id=$1 AND offer_version=$2 AND status='AWAITING_ACCEPTANCE' AND offer_expires_at>now() RETURNING id",[id,input.offerVersion]);if(!updated.rowCount)throw new HttpError(409,"Cancellation offer expired or changed. Ask operations for a fresh offer.");await tx.query("INSERT INTO audit_events(id,actor_id,action,entity_id,detail) VALUES($1,$2,'CANCELLATION_OFFER_ACCEPTED',$3,$4)",[randomUUID(),actor.userId,id,{offerVersion:input.offerVersion}]);});return json({message:"Cancellation terms accepted. The booking stays active until the supplier confirms cancellation."});}catch(e){return failure(e);}}

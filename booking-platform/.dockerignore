@@ -1,0 +1,12 @@
+node_modules
+.next
+.env*
+!.env.example
+.git
+*.log
+dist
+coverage
+
+audit-*.json
+lint-report.json
+*.dump

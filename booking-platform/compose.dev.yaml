@@ -1,0 +1,27 @@
+name: max-travel-booking-dev
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: maxtravel
+      POSTGRES_USER: maxtravel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:55439:5432"
+    volumes:
+      - booking-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U maxtravel -d maxtravel"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:11025:1025"
+      - "127.0.0.1:18025:8025"
+    restart: unless-stopped
+volumes:
+  booking-postgres:
+

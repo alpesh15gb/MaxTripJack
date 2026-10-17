@@ -1,0 +1,11 @@
+export const resources={
+ bookings:{permission:"bookings:read",sql:"SELECT id,reference,parent_order_id,service_kind,product,status,user_id,company_id,total_minor::text,supplier_minor::text,supplier_booking_id,created_at FROM orders ORDER BY created_at DESC"},
+ companies:{permission:"companies:manage",sql:"SELECT c.id,c.name,c.gst_number,c.status,a.user_id,c.created_at FROM companies c LEFT JOIN customer_accounts a ON a.company_id=c.id ORDER BY c.created_at DESC"},
+ pricing:{permission:"pricing:manage",sql:"SELECT p.id,p.product,p.company_id,c.name AS company_name,p.markup_minor::text,p.markup_basis_points,p.service_fee_minor::text,p.active,p.created_at FROM pricing_rules p LEFT JOIN companies c ON c.id=p.company_id ORDER BY p.created_at DESC"},
+ cancellations:{permission:"cancellations:manage",sql:"SELECT c.id,o.reference,o.product,c.status,c.poll_attempts,c.is_partial,c.scope,c.reason,c.review_note,c.reviewed_by,c.created_at FROM cancellation_requests c JOIN orders o ON o.id=c.order_id ORDER BY c.created_at DESC"},
+ payments:{permission:"finance:read",sql:"SELECT p.id,o.reference,p.gateway_order_id,p.gateway_payment_id,p.amount_minor::text,p.status,p.created_at FROM payments p JOIN orders o ON o.id=p.order_id ORDER BY p.created_at DESC"},
+ refunds:{permission:"refunds:manage",sql:"SELECT r.id,o.reference,r.payment_id,r.amount_minor::text,r.status,r.reason,r.requested_by,r.approved_by,r.gateway_refund_id,r.created_at FROM refunds r JOIN payments p ON p.id=r.payment_id JOIN orders o ON o.id=p.order_id ORDER BY r.created_at DESC"},
+ sync:{permission:"integrations:manage",sql:"SELECT id,aggregate_id,event_type,attempts,next_attempt,lease_until,delivered_at,created_at FROM outbox_events ORDER BY created_at DESC"},
+ audit:{permission:"audit:read",sql:"SELECT id,actor_id,action,entity_id,detail,created_at FROM audit_events ORDER BY created_at DESC"}
+} as const;
+export type Resource=keyof typeof resources;

@@ -1,0 +1,22 @@
+import "server-only";
+import { transaction } from "./db";
+import { unseal } from "./vault";
+import { supplierConfirmation } from "./supplier-confirmation";
+import { cancellationOptions } from "./cancellation-scope";
+export async function crmSnapshot(orderId:string){return transaction(async tx=>{
+ await tx.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+ const found=await tx.query('SELECT o.*,u.name AS customer_name,u.email AS customer_email,c.name AS company_name,c.gst_number FROM orders o JOIN "user" u ON u.id=o.user_id LEFT JOIN companies c ON c.id=o.company_id WHERE o.id=$1',[orderId]);const order=found.rows[0];if(!order)throw Error("Order snapshot unavailable");
+ const guests=order.guests_encrypted?unseal(order.guests_encrypted,order.id):{};
+ const stored=await tx.query("SELECT encrypted_payload FROM supplier_booking_payloads WHERE order_id=$1",[orderId]);const supplier=stored.rows[0]?unseal(stored.rows[0].encrypted_payload,orderId):{};const confirmation=supplierConfirmation(supplier);
+ const payments=await tx.query("SELECT id,gateway_payment_id,method,amount_minor::text,status,created_at FROM payments WHERE order_id=$1 ORDER BY created_at",[orderId]);
+ const refunds=await tx.query("SELECT r.id,r.gateway_refund_id,r.amount_minor::text,r.status FROM refunds r JOIN payments p ON p.id=r.payment_id WHERE p.order_id=$1 ORDER BY r.created_at",[orderId]);
+ const cancellation=await tx.query("SELECT COALESCE(sum(refund_offer_minor),0)::text AS refund_offer_minor FROM cancellation_requests WHERE order_id=$1 AND status='CONFIRMED'",[orderId]);
+ const scopes=await tx.query("SELECT scope,is_partial FROM cancellation_requests WHERE order_id=$1 AND status='CONFIRMED' ORDER BY created_at",[orderId]);
+ const replacements=await tx.query("SELECT o.reference,q.service_payload FROM orders o JOIN supplier_quotes q ON q.id=o.quote_id WHERE o.parent_order_id=$1 AND o.service_kind='REISSUE' AND o.status='TICKETED'",[orderId]);
+ const options=cancellationOptions({},guests,order.itinerary_summary);
+ return {replacementBookings:replacements.rows.map(row=>row.reference),serviceKind:order.service_kind??null,parentBookingId:order.parent_order_id??null,cancellations:scopes.rows.map(row=>({partial:row.is_partial,trips:row.scope?.trips??[]})),bookingId:order.id,reference:order.reference,revision:order.revision,product:order.product,status:order.status,supplierBookingId:order.supplier_booking_id,totalMinor:Number(order.total_minor),supplierMinor:Number(order.supplier_minor),currency:"INR",createdAt:order.created_at,
+  customer:{platformId:order.company_id?`company:${order.company_id}`:`user:${order.user_id}`,name:order.company_name||order.customer_name,email:order.customer_email,phone:guests.phone||"",type:order.company_id?"CORPORATE":"INDIVIDUAL",gstNumber:order.gst_number||null},
+  travellers:(guests.travellers||[]).map((t:{fN:string;lN:string})=>{const name=`${t.fN} ${t.lN}`;const matching=confirmation.passengers.filter(p=>p.name.trim().toLowerCase()===name.trim().toLowerCase());const ticketStatuses:Record<string,"VOID"|"REISSUED">={};if(matching.length===1){const person=matching[0];const travellerIndex=(guests.travellers||[]).findIndex((g:{fN:string;lN:string})=>`${g.fN} ${g.lN}`===name);for(const ticket of person.tickets){const routes=Object.entries(person.ticketRoutes).filter(([,number])=>number===ticket).map(([route])=>route);if(routes.length&&routes.every(route=>scopes.rows.some(row=>row.scope?.trips?.some((trip:{src:string;dest:string;travellers:{fn:string;ln:string}[]})=>`${trip.src}-${trip.dest}`===route&&trip.travellers.some(t=>`${t.fn} ${t.ln}`===name)))))ticketStatuses[ticket]="VOID";else if(routes.length&&routes.every(route=>options.trips.some((trip,i)=>`${trip.src}-${trip.dest}`===route&&replacements.rows.some(row=>row.service_payload.units?.includes(`${i}:${travellerIndex}`)))))ticketStatuses[ticket]="REISSUED";}}
+return {name,ticketStatuses,tickets:matching.length===1?matching[0].tickets:[]};}),confirmation:{pnrs:confirmation.pnrs,hotelName:supplier.itemInfos?.HOTEL?.hInfo?.name??null},itinerary:order.itinerary_summary,
+  payments:payments.rows.map(p=>({id:p.id,reference:p.gateway_payment_id,method:p.method,amountMinor:Number(p.amount_minor),status:p.status,createdAt:p.created_at})),refunds:refunds.rows.map(r=>({id:r.id,reference:r.gateway_refund_id,amountMinor:Number(r.amount_minor),status:r.status})),cancellationRefundMinor:Number(cancellation.rows[0]?.refund_offer_minor||0)};
+ });}

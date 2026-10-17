@@ -1,0 +1,25 @@
+name: Native app checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_API_URL: https://booking.example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint && npm run typecheck
+      - run: npx expo export --platform android --output-dir dist-android
+      - run: npx expo export --platform ios --output-dir dist-ios
+      - name: Dependency review report
+        run: npm audit --json > audit-report.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-build-dependency-report
+          path: audit-report.json

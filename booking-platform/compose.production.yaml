@@ -1,0 +1,100 @@
+name: max-travel-booking
+x-runtime-security: &runtime-security
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 45s
+  pids_limit: 128
+  mem_limit: 768m
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+    - /app/.next/cache:size=64m,uid=10001,gid=10001,mode=0700
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+services:
+  app:
+    <<: *runtime-security
+    build: .
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - "127.0.0.1:3108:3000"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+  booking-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/booking-worker.mjs]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  refund-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/refund-worker.mjs]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  maintenance-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/maintenance-worker.mjs]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  cancellation-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/cancellation-worker.mjs]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  notification-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/notification-worker.mjs]
+    profiles: [notifications]
+  crm-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/crm-worker.mjs]
+    profiles: [crm]
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: maxtravel
+      POSTGRES_USER: maxtravel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Provide production database password}
+    volumes:
+      - booking-production-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U maxtravel -d maxtravel"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  booking-production-data:

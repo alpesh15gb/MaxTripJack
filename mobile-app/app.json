@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Max Travel",
+    "slug": "max-travel",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/maxtravel-icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maxtravel.booking",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#073eac",
+        "foregroundImage": "./assets/maxtravel-adaptive.png",
+        "monochromeImage": "./assets/maxtravel-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.maxtravel.booking",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.READ_CONTACTS",
+        "android.permission.READ_SMS",
+        "android.permission.RECEIVE_SMS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/maxtravel-icon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#073eac",
+          "image": "./assets/maxtravel-icon.png",
+          "imageWidth": 180
+        }
+      ]
+    ],
+    "scheme": "maxtravel"
+  }
+}
