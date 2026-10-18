@@ -7,6 +7,7 @@ import "./reference-theme.css";
 import "./flight-results.css";
 import "./account.css";
 import "./live-booking.css";
+import "./booking-ui.css";
 import "./operations.css";
 
 const geistSans = Geist({
