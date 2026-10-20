@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SITE_NAME, SITE_ORIGIN, siteRobots } from "@/lib/seo";
 import "./globals.css";
 import "./refinement.css";
 import "./reference-theme.css";
@@ -22,9 +23,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_ORIGIN),
   icons: {icon:"/brand/favicon.png",apple:"/brand/favicon.png"},
-  title: "Max Travel — Your next adventure",
-  description: "Discover flights and thoughtful stays with Max Travel. Book flights and hotels, manage your trips and travel for business.",
+  title: { default: `${SITE_NAME} | Flight and hotel booking`, template: `%s | ${SITE_NAME}` },
+  description: "Explore flights and hotels with MaxTravel. Review total prices and supplier rules before payment, and follow your booking confirmation in My trips.",
+  robots: siteRobots(),
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

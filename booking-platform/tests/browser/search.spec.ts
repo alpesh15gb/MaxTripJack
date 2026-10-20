@@ -2,7 +2,7 @@ import { test, expect, capture, departure, returning, expectNoHorizontalOverflow
 
 test('homepage carries canonical airports and selected adults into exactly one search', async ({ page, provider }, testInfo) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Go somewhere');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^Flights & stays\.\s*Real people to help\.$/);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'homepage');
   const form = page.locator('.home-search-form');

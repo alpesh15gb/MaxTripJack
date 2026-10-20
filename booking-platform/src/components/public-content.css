@@ -1,0 +1,90 @@
+/* Public editorial pages: server-rendered text, deliberate hierarchy and useful links. */
+.public-site { background: #fff; color: var(--ink); }
+.public-main { max-width: 1224px; margin: auto; padding: 0 32px; }
+.public-breadcrumbs { padding: 22px 0; color: #586c7a; font-size: 12px; }
+.public-breadcrumbs ol { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.public-breadcrumbs li + li::before { content: "/"; margin-right: 8px; color: #80909c; }
+.public-breadcrumbs a { color: #465e70; text-underline-offset: 3px; }
+.public-hero { padding: 48px 54px; border-radius: 18px; background: #eef3f4; border: 1px solid #e2e9eb; position: relative; overflow: hidden; }
+.public-eyebrow { margin: 0 0 16px; color: #4b665c; font-size: 10px; font-weight: 750; letter-spacing: 1.3px; line-height: 1.6; }
+.public-hero h1 { max-width: 840px; color: var(--travel-navy); font-size: clamp(31px, 3.7vw, 50px); font-weight: 600; line-height: 1.13; letter-spacing: -1.6px; margin: 0 0 22px; }
+.public-intro { max-width: 790px; font-size: 16px; line-height: 1.85; color: #486171; margin: 0; }
+.public-button { margin-top: 26px; display: inline-flex; align-items: center; justify-content: center; gap: 14px; min-height: 48px; border-radius: 9px; background: var(--blue); color: white; padding: 12px 21px; font-size: 13px; font-weight: 650; text-decoration: none; }
+.public-button:hover { background: #1844c6; }
+.public-cta-note { font-size: 11px; color: #526978; margin: 14px 0 0; line-height: 1.7; }
+.public-layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 58px; padding-top: 38px; align-items: start; }
+.public-article { min-width: 0; }
+.public-section { padding: 28px 0; border-bottom: 1px solid #e3e9ed; }
+.public-section h2, .public-questions > h2, .public-sources > h2, .public-related > h2 { color: var(--travel-navy); font-size: 23px; letter-spacing: -.55px; font-weight: 650; line-height: 1.35; margin: 0 0 17px; }
+.public-section p, .public-section li, .public-questions p, .public-sources p { font-size: 14px; line-height: 1.95; color: #4e6474; }
+.public-section p { margin: 0 0 15px; }
+.public-section p:last-child { margin-bottom: 0; }
+.public-section ul { padding-left: 21px; margin: 16px 0 0; }
+.public-section li { padding-left: 3px; margin: 0 0 11px; }
+.public-section li::marker { color: #718876; }
+.public-section a, .public-sources a, .public-related a { color: #174ac8; text-decoration: underline; text-underline-offset: 4px; }
+.public-section .public-inline-links { list-style: none; margin: 19px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.public-inline-links li { padding: 0; margin: 0; font-size: 12px; font-weight: 650; }
+.public-notice { display: flex; align-items: flex-start; gap: 12px; border: 1px solid #eadfbc; background: #fcfaf3; border-radius: 11px; padding: 17px 19px; }
+.public-notice > svg { flex-shrink: 0; margin-top: 3px; color: #78643d; }
+.public-notice p { color: #665a43; font-size: 12px; line-height: 1.85; margin: 0; }
+.public-notice strong { display: block; }
+.public-rail { display: grid; gap: 22px; }
+.public-office-card { background: #f4f7f6; border: 1px solid #e0e8e3; border-radius: 14px; padding: 26px 24px; }
+.public-icon { width: 44px; height: 44px; display: grid; place-items: center; background: #e5eddf; border-radius: 12px; color: #456348; margin-bottom: 22px; }
+.public-office-card .public-eyebrow { font-size: 8px; letter-spacing: 1px; margin-bottom: 10px; }
+.public-office-card h2 { font-size: 20px; letter-spacing: -.5px; font-weight: 650; margin: 0 0 14px; }
+.public-office-card address { font-size: 13px; font-style: normal; color: #50675b; line-height: 1.9; }
+.public-hours { color: #526557; font-size: 12px; line-height: 1.8; margin: 15px 0; }
+.public-hours strong { font-weight: 550; }
+.public-contact-links { display: grid; gap: 4px; margin: 17px 0; }
+.public-contact-links a { display: flex; align-items: center; gap: 7px; color: #244a37; min-height: 36px; font-size: 12px; font-weight: 650; text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.public-directions, .public-office-link { display: inline-block; color: #315d45; font-size: 12px; line-height: 1.8; text-underline-offset: 4px; }
+.public-office-card .public-fineprint { margin-top: 8px; }
+.public-fineprint, .public-section .public-fineprint { font-size: 11px; line-height: 1.8; color: #5c707b; }
+.public-social { display: flex; flex-wrap: wrap; gap: 16px; border-top: 1px solid #dce5df; padding-top: 18px; margin-top: 18px; }
+.public-social a { font-size: 11px; color: #375843; text-underline-offset: 4px; }
+.public-rail-note { padding: 22px 24px; border: 1px solid #e4e9ed; border-radius: 12px; }
+.public-rail-note h2 { font-size: 15px; font-weight: 650; margin: 0 0 10px; }
+.public-rail-note p { color: #61717e; font-size: 12px; line-height: 1.9; }
+.public-rail-note a { display: inline-block; color: #174ac8; font-size: 12px; margin-top: 5px; text-underline-offset: 4px; }
+.public-route-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-top: 24px; }
+.public-route-card, .public-section .public-route-card { display: flex; flex-direction: column; min-width: 0; padding: 23px; border: 1px solid #dfe7ea; border-radius: 12px; background: white; color: var(--ink); text-decoration: none; }
+.public-route-card:hover { border-color: #89a1b4; background: #f9fbfc; }
+.public-route-codes { display: flex; align-items: center; gap: 13px; color: #4f7062; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.public-route-card h3 { font-size: 17px; line-height: 1.4; font-weight: 650; letter-spacing: -.3px; margin: 20px 0 12px; }
+.public-route-card p, .public-section .public-route-card p { color: #5a6e7b; font-size: 12px; line-height: 1.85; margin: 0 0 20px; }
+.public-route-action { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; color: #2455c5; font-size: 11px; font-weight: 650; }
+.public-table-wrap { overflow-x: auto; border: 1px solid #dfe6eb; border-radius: 10px; }
+.public-airport-table { width: 100%; border-collapse: collapse; color: #425c6e; font-size: 12px; line-height: 1.8; }
+.public-airport-table caption { text-align: left; font-size: 11px; padding: 12px 17px; background: #fafbfc; }
+.public-airport-table th, .public-airport-table td { text-align: left; padding: 15px 17px; border-top: 1px solid #e3e8ed; vertical-align: top; }
+.public-airport-table thead th { background: #f2f6f8; font-weight: 650; }
+.public-airport-table tbody th { min-width: 120px; font-weight: 600; }
+.public-questions { padding: 30px 0; }
+.public-questions details { padding: 18px 0; border-bottom: 1px solid #e1e7eb; }
+.public-questions summary { cursor: pointer; color: #29495f; font-size: 14px; line-height: 1.6; font-weight: 600; }
+.public-questions p { margin: 14px 0 0; }
+.public-sources { padding-top: 28px; border-top: 1px solid #dfe6eb; }
+.public-sources ul { display: grid; gap: 10px; padding-left: 18px; }
+.public-sources li { color: #637683; font-size: 12px; line-height: 1.8; }
+.public-reviewed { color: #687c87; font-size: 11px; line-height: 1.7; margin: 27px 0 0; }
+.public-related { margin: 52px 0 60px; padding: 28px 32px; background: #f5f8fa; border-radius: 13px; }
+.public-related h2 { font-size: 18px; margin-bottom: 15px; }
+.public-related > div { display: flex; flex-wrap: wrap; gap: 15px 28px; }
+.public-related a { font-size: 12px; line-height: 1.8; }
+.home-public-intro { max-width: 1160px; margin: 68px auto; padding: 0; }
+.home-public-heading { display: grid; grid-template-columns: minmax(0, 1fr) 310px; align-items: center; gap: 70px; }
+.home-public-heading > div > h2 { font-size: clamp(27px, 3vw, 39px); line-height: 1.2; letter-spacing: -1.3px; color: var(--travel-navy); margin: 12px 0 23px; font-weight: 550; }
+.home-public-heading > div > p:not(.public-eyebrow) { max-width: 610px; color: #566c79; font-size: 14px; line-height: 1.9; }
+.home-public-heading > div > .public-fineprint { font-size: 11px !important; }
+.home-public-links { display: flex; flex-wrap: wrap; gap: 12px; padding: 30px 0; margin-top: 20px; border-bottom: 1px solid #e0e7ed; }
+.home-public-links a { display: inline-flex; align-items: center; min-height: 44px; border: 1px solid #dce4e9; border-radius: 8px; padding: 10px 15px; font-size: 12px; color: #244e7f; text-decoration: none; background: #fafcfd; }
+.home-public-links a:hover { border-color: #90a7bb; }
+.home-public-routes-heading { font-size: 23px; font-weight: 550; letter-spacing: -.6px; margin: 35px 0 0; }
+.home-public-intro > .public-route-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.home-hero-photo { object-fit: cover; object-position: center 52%; }
+.home-hero-shade { position: absolute; inset: 0; background: linear-gradient(90deg,rgba(9,32,47,.82),rgba(9,32,47,.3) 59%,rgba(9,32,47,.04)); pointer-events: none; }
+@media (max-width: 1200px) { .home-public-intro { margin: 60px 5%; } .public-layout { gap: 34px; grid-template-columns: minmax(0, 1fr) 280px; } }
+@media (max-width: 850px) { .public-main { padding: 0 22px; } .public-hero { padding: 35px 30px; } .public-layout { grid-template-columns: minmax(0, 1fr); } .public-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); } .home-public-heading { grid-template-columns: minmax(0, 1fr) 270px; gap: 32px; } .home-public-intro > .public-route-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .public-main { padding: 0 16px; } .public-breadcrumbs { font-size: 10px; line-height: 1.8; padding: 18px 0; } .public-hero { padding: 29px 23px; border-radius: 13px; } .public-hero h1 { letter-spacing: -1px; } .public-intro { font-size: 14px; line-height: 1.9; } .public-eyebrow { font-size: 9px; } .public-layout { padding-top: 25px; gap: 28px; } .public-section h2 { font-size: 21px; } .public-section p, .public-section li { font-size: 13px; } .public-rail { grid-template-columns: minmax(0, 1fr); } .public-route-grid, .home-public-intro > .public-route-grid { grid-template-columns: minmax(0, 1fr); } .public-related { margin: 32px 0; padding: 23px; } .public-related > div { flex-direction: column; gap: 13px; } .home-public-intro { margin: 42px 20px; } .home-public-heading { grid-template-columns: minmax(0, 1fr); gap: 25px; } .home-public-links { gap: 9px; } .home-public-links a { font-size: 11px; padding: 9px 12px; } .public-airport-table th, .public-airport-table td { padding: 12px 10px; } .public-airport-table tbody th { min-width: 90px; } }

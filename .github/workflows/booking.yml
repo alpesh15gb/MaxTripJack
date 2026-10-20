@@ -71,6 +71,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run build
+      - name: Verify public SEO and private crawl boundaries in real HTML
+        run: npm run test:seo:http
       - name: Exercise real production UI with intercepted supplier and payment fixtures
         run: npm run test:browser
       - name: Preserve UI screenshots, failure traces and browser report

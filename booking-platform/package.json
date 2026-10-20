@@ -28,7 +28,8 @@
     "test:checkout": "node --env-file=.env.local --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/checkout-flow.mts",
     "test:crm-commands": "node --env-file=.env.local --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/crm-commands-flow.mts",
     "test:browser": "playwright test",
-    "test:browser:report": "playwright show-report"
+    "test:browser:report": "playwright show-report",
+    "test:seo:http": "node --import tsx scripts/verify-seo-http.mjs"
   },
   "dependencies": {
     "@better-auth/expo": "^1.7.7",
