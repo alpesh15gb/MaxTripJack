@@ -70,6 +70,7 @@ export type ProviderFixture = {
   calls: Call[];
   unexpected: string[];
   searchDelay: number;
+  bookingsPages: Record<string, unknown>;
   requests: (path: string) => Call[];
 };
 
@@ -97,7 +98,7 @@ const syntheticGateway = `
 export const test = base.extend<{ provider: ProviderFixture }>({
   provider: [async ({ page }, use, testInfo) => {
     const provider: ProviderFixture = {
-      session: syntheticSession(), search: flightResults(), quote: reviewedQuote(), overrides: {}, calls: [], unexpected: [], searchDelay: 0,
+      session: syntheticSession(), search: flightResults(), quote: reviewedQuote(), overrides: {}, calls: [], unexpected: [], searchDelay: 0, bookingsPages: {},
       requests(path) { return this.calls.filter(call => call.path === path); },
     };
     const pageErrors: string[] = [];
@@ -143,7 +144,7 @@ export const test = base.extend<{ provider: ProviderFixture }>({
           bookingId, orderId: 'order_SYNTHETICONLY', amount: 654000, currency: 'INR', keyId: 'rzp_test_SYNTHETICONLY',
         } }; break;
         case 'POST /api/payments/verify': reply = { body: { bookingId, status: 'PAYMENT_VERIFIED', message: 'Supplier booking is processing.' } }; break;
-        case 'GET /api/bookings': reply = { body: { bookings: [], hasMore: false } }; break;
+        case 'GET /api/bookings': reply = { body: provider.bookingsPages[url.searchParams.get('page') ?? '1'] ?? { bookings: [], hasMore: false } }; break;
         case 'GET /api/payments/status': reply = { body: {
           found: true, bookingId, status: 'PAYMENT_PENDING', canResume: true, checkoutResolved: false,
           orderId: 'order_SYNTHETICONLY', amount: 654000,
@@ -183,4 +184,24 @@ export async function capture(page: Page, testInfo: TestInfo, name: string) {
 export async function expectNoHorizontalOverflow(page: Page) {
   const widths = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
   expect(widths.document, 'Mobile and desktop screens must not scroll horizontally').toBeLessThanOrEqual(widths.viewport + 1);
+}
+
+export async function expectFlightToolbarValuesFit(page: Page) {
+  for (const label of ['Sort by', 'Stops']) {
+    const select = page.getByRole('combobox', { name: label, exact: true });
+    const size = await select.evaluate(element => {
+      const input = element as HTMLSelectElement;
+      const style = getComputedStyle(input);
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d')!;
+      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      return {
+        label: input.selectedOptions[0]?.label ?? '',
+        text: context.measureText(input.selectedOptions[0]?.label ?? '').width,
+        available: input.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 20,
+      };
+    });
+    expect(size.label).not.toBe('');
+    expect(size.available, `${label} must show the selected value rather than clip it`).toBeGreaterThanOrEqual(size.text);
+  }
 }

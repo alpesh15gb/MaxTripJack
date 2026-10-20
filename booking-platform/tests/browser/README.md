@@ -20,13 +20,18 @@ production-security checks; this suite does not replace or relax them.
 - Fare comparison, ordered outbound/return selection, unknown local-time
   duration and complete-journey (COMBO) treatment.
 - Optional versus supplier-required documents, stale-price refresh retaining
-  traveller fields, and explicit reviewed-total acceptance.
+  traveller fields, explicit reviewed-total acceptance, and friendly required
+  details rather than raw supplier flags disguised as cancellation terms.
 - Payment dismissal, same-order resume with a fresh server status check,
   captured/expired-order lockout, 409/503 uncertainty and pending My trips.
 - Interrupted/reloaded checkout recovery, no-order-yet and inaccessible-401/404 lockout,
   and opaque identifier-only session storage with no traveller/contact data.
 - Synthetic session identity changes clear private in-memory drafts without
   losing the unresolved-payment marker or contacting a real authentication service.
+- Populated My trips itinerary and guest counts, per-record inline confirmations,
+  truthful pending/failed states, and automatic refresh across older loaded pages.
+- Narrow-screen result controls keep their selected values readable, alongside
+  the existing full-page horizontal-overflow checks.
 
 ## Run on a machine allowed to launch Chromium
 

@@ -1,4 +1,4 @@
-import { test, expect, capture, departure, returning, expectNoHorizontalOverflow, openFlightSearch, reviewedQuote, searchId } from './fixtures';
+import { test, expect, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, openFlightSearch, reviewedQuote, searchId } from './fixtures';
 
 test('homepage carries canonical airports and selected adults into exactly one search', async ({ page, provider }, testInfo) => {
   await page.goto('/');
@@ -20,6 +20,7 @@ test('homepage carries canonical airports and selected adults into exactly one s
     product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: 3, children: 0, infants: 0, cabin: 'ECONOMY',
   });
   await expectNoHorizontalOverflow(page);
+  await expectFlightToolbarValuesFit(page);
   await capture(page, testInfo, 'flight-results');
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });

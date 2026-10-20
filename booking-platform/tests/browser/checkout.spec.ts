@@ -86,6 +86,17 @@ test('supplier-required documents, GST and emergency details are visible and req
     await expect(form.locator(`[name="${name}"]`)).toBeVisible();
     await expect(form.locator(`[name="${name}"]`)).toHaveAttribute('required', '');
   }
+  await expect(form.getByText('Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.', { exact: true })).toBeVisible();
+  const policyLabels = await form.locator('.supplier-policy dt').allTextContents();
+  expect(policyLabels.filter(label => /^(pcs|pm|pped|dob|adobr|ipa|gst|igm|iecr)$/i.test(label.trim())),
+    'Internal supplier condition flags must not be presented as cancellation terms').toEqual([]);
+  await expect(form.getByRole('region', { name: 'Required booking details', exact: true }).getByRole('listitem')).toHaveText([
+    'Passport number, nationality and expiry date for every traveller.',
+    'Date of birth for each adult.',
+    'PAN for each adult.',
+    'GST number and registered business name.',
+    'Emergency contact name, email address and phone number.',
+  ]);
   await fillDomesticTraveller(page);
   await page.getByRole('button', { name: 'Continue to payment', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your total, before you pay.', exact: true })).toHaveCount(0);

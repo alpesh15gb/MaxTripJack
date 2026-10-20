@@ -101,6 +101,17 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
   const expiryRequired=passportRequired||Boolean(quote?.review.conditions?.pcs?.pped);
   const gstRequired=Boolean(quote?.review.conditions?.gst?.igm||['PASSTHROUGH','RESELLER'].includes(quote?.review.option?.compliance?.gstType??''));
   const emergencyRequired=Boolean(quote?.review.conditions?.iecr);
+  const cancellationTerms=quote?.review.option?.cancellation??quote?.review.fareRules;
+  const hasCancellationTerms=cancellationTerms!==null&&cancellationTerms!==undefined&&(typeof cancellationTerms==='object'?Object.keys(cancellationTerms).length>0:typeof cancellationTerms==='string'?cancellationTerms.trim().length>0:true);
+  const requiredBookingDetails=[
+    passportRequired?'Passport number, nationality and expiry date for every traveller.':expiryRequired?'Passport expiry date for every traveller.':null,
+    party.includes('ADULT')&&quote?.review.conditions?.dob?.adobr?'Date of birth for each adult.':null,
+    party.includes('CHILD')?'Date of birth for each child.':null,
+    party.includes('INFANT')?'Date of birth for each infant.':null,
+    party.includes('ADULT')&&(quote?.review.conditions?.ipa||quote?.review.option?.compliance?.panRequired)?'PAN for each adult.':null,
+    gstRequired?'GST number and registered business name.':null,
+    emergencyRequired?'Emergency contact name, email address and phone number.':null,
+  ].filter((detail):detail is string=>detail!==null);
   const remaining=quote&&now!==null?quoteRemaining(quote.expiresAt,now):null;
   const expired=remaining!==null&&remaining<=0;
   const groups=results?.results.searchResult?.tripInfos??{};
@@ -276,7 +287,7 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
       {quote&&<form ref={checkoutForm} id="booking-review" aria-label="Review and travellers" className="white-card booking-review" onSubmit={event=>{event.preventDefault();void submitCheckout(event.currentTarget);}}>
         <div className="page-heading"><div><div className="eyebrow">{checkoutStep==='payment'?'ONE LAST LOOK':'YOUR TRIP IS TAKING SHAPE'}</div><h2>{checkoutStep==='payment'?'Ready when you are.':'Who’s coming along?'}</h2><h3>{summaryTitle}</h3><p>{quote.summary?.date||quote.summary?.checkIn}{(quote.summary?.returnDate||quote.summary?.checkOut)?` — ${quote.summary?.returnDate||quote.summary?.checkOut}`:''} · {party.length} traveller{party.length===1?'':'s'}{quote.product==='HOTEL'?` · ${reviewedRooms.length} room${reviewedRooms.length===1?'':'s'}`:''}</p></div><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{setQuote(null);setExtrasPending(false);setCheckoutStep('travellers');scrollToSection('booking-results');}}>Change selection</button></div>
         <div className={`booking-expiry${expired||needsReview?' is-expired':''}`} role={expired||needsReview?'alert':undefined}><div><strong>{payment?'Payment order created':expired||needsReview?'A fresh price review is required':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':expired||needsReview?'Keep your traveller details. Refresh the price and rules before continuing.':'Fares can change. We’ll ask you to accept any new total before payment.'}</p></div>{!payment&&!paymentUncertain&&selection&&<button type="button" className="secondary" disabled={busy} onClick={()=>void review(selection,true)}>Refresh reviewed price</button>}</div>
-        <details open><summary>Fare conditions, cancellation & documents</summary><SupplierPolicy title="Cancellation and fare rules" value={quote.review.option?.cancellation??quote.review.fareRules??quote.review.conditions}/>{quote.review.option?.compliance&&<SupplierPolicy title="Required documents" value={quote.review.option.compliance}/>}</details>
+        <details open><summary>Fare conditions, cancellation & documents</summary>{hasCancellationTerms?<SupplierPolicy title="Cancellation and fare rules" value={cancellationTerms}/>:<section className="supplier-policy" aria-label="Cancellation and fare rules"><h4>Cancellation and fare rules</h4><p className="policy-note">Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.</p></section>}<section className="supplier-policy" aria-label="Required booking details"><h4>Required booking details</h4>{requiredBookingDetails.length?<ul className="fare-features">{requiredBookingDetails.map(detail=><li key={detail}>{detail}</li>)}</ul>:<p className="policy-note">No additional documents are requested in this review. Traveller names must match their travel documents.</p>}</section></details>
         {Boolean(quote.review.alerts)&&<div className="info-message"><strong>Supplier update</strong><SupplierPolicy title="Review these fare alerts" value={quote.review.alerts}/></div>}
         <fieldset className="booking-traveller-fields" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} hidden={checkoutStep==='payment'}>
           {party.map((pt,index)=>{

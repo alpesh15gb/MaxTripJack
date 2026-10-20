@@ -35,7 +35,7 @@ Actual TripJack UAT, Razorpay test checkout/webhook delivery, physical Android/i
 
 - Web: 59 deterministic tests passed using `node --import tsx --test tests/*.test.ts`; full ESLint passed. Final production build and worker bundles also passed.
 - Native: 40 offline state/recovery tests, TypeScript and Expo lint passed. Android and iOS Hermes exports passed; these are bundles, not signed releases or device-interaction acceptance.
-- Browser: 52 cases across 1440px desktop and 390px mobile are authored and discover successfully. They have **not executed** in this runtime; screenshots have **not been produced**. GitHub Actions adds an isolated synthetic browser job without replacing existing database/provider checks.
+- Browser: 52 cases across 1440px desktop and 390px mobile are authored and discover successfully. All 52 subsequently passed in GitHub Actions, and actual browser screenshots with synthetic data were inspected and shared. Two My trips flows per viewport are added for a final 56-case run; that added coverage awaits its own CI result. GitHub Actions adds an isolated synthetic browser job without replacing existing database/provider checks.
 - Production dependency audit at this checkpoint reported zero vulnerabilities. This is not a security certification.
 - Independent source review checked payment no-downgrade locking, per-phase Fare Validate crash handling, native identity/restart guards and fail-closed unknown status handling. It does not replace database/browser/device execution.
 
@@ -45,4 +45,4 @@ Web recovery stores only opaque quote/booking references in sessionStorage and c
 
 Migration `015-fare-validation` intentionally invalidates historical initial-flight review quotes. Follow [the safety rollout instructions](BOOKING-SAFETY-2026-10-20.md): reconcile existing payment operations and paid/unattempted bookings instead of collecting another payment. Do not enable this code against an unmigrated database.
 
-Publication and CI results remain pending user approval. Do not describe this checkpoint as merged, deployed, provider-certified or end-to-end browser verified.
+The owner approved publication. Review commit 3cf7a164f3e0f5d9ec1f0fbb0877837df942bb4c passed database/provider fixture integration and 52 browser checks in [Booking platform checks](https://github.com/alpesh15gb/MaxTripJack/actions/runs/39504128510), plus [Native app checks](https://github.com/alpesh15gb/MaxTripJack/actions/runs/39504128582). Post-screenshot mobile-filter/document-label polish and the additional My trips cases require the next run. No production deployment or real-provider certification is claimed.

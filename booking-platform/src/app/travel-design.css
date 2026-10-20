@@ -678,6 +678,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
   .travel-header .travel-business-nav { font-size: 11px; }
   .booking-progress li { font-size: 11px; }
   .live-booking .results-heading h2 { font-size: 23px; }
+  .live-booking .results-toolbar { grid-template-columns: 1fr; }
   .live-booking .results-heading .muted { font-size: 12px; }
   .live-booking .results-heading { flex-wrap: wrap; }
   .live-booking .results-count { margin-top: -3px; font-size: 11px; }

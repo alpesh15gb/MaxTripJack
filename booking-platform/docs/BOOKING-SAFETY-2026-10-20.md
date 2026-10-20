@@ -1,6 +1,6 @@
 # Booking safety audit and local changes — 20 October 2026
 
-This is source review and deterministic fixture coverage, not TripJack/Razorpay certification. No real provider requests, charges, reservations, cancellations, refunds, customer messages, deployment or publication were performed in this work.
+This is source review and deterministic fixture coverage, not TripJack/Razorpay certification. No real provider requests, charges, reservations, cancellations, refunds, customer messages, or deployment were performed in this work. Review changes were published after the owner approved the push.
 
 ## Required migration and rollout handling
 
@@ -31,7 +31,7 @@ No schema fields contain raw passenger documents; the validation binding is a SH
 - New deterministic unit fixtures cover stale/known-uncertain gateway recovery, current-state rechecks, conflicting links, late creator outcomes, fresh/terminal resume eligibility, Fare Validate phase isolation, provider/persistence loss, concurrent checkout, changed passenger/extras payloads, stale PREBOOK success, passenger multiplicity and exact fare pairing.
 - Local `node --import tsx --test tests/*.test.ts`, TypeScript and focused ESLint checks passed at the implementation checkpoint. The ordinary `tsx --test` CLI attempted a denied Unix IPC listener in this execution environment; the supported Node loader runs the same tests without that listener.
 - New real-PostgreSQL synthetic regressions are included in the existing `test:providers` and `test:checkout` scripts, already invoked by CI. These cover actual transaction serialization and worker decisions as well as the no-network fixtures.
-- **The PostgreSQL integration regressions were not run locally:** the disposable database server could not create its Unix socket under the execution policy. CI/database-backed completion must be established separately. Do not describe unit mocks as a successful database integration test.
+- **The PostgreSQL integration regressions were not run locally:** the disposable database server could not create its Unix socket under the execution policy. The isolated GitHub PostgreSQL run subsequently passed these regressions: https://github.com/alpesh15gb/MaxTripJack/actions/runs/39504128510 . Provider HTTP responses remained synthetic; this is database-backed integration coverage, not real provider UAT.
 
 ## Remaining operational boundaries
 
