@@ -26,7 +26,9 @@
     "test:cancellations": "node --env-file=.env.local --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/cancellation-flow.mts",
     "test:flight-services": "node --env-file=.env.local --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/flight-services-flow.mts",
     "test:checkout": "node --env-file=.env.local --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/checkout-flow.mts",
-    "test:crm-commands": "node --env-file=.env.local --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/crm-commands-flow.mts"
+    "test:crm-commands": "node --env-file=.env.local --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/crm-commands-flow.mts",
+    "test:browser": "playwright test",
+    "test:browser:report": "playwright show-report"
   },
   "dependencies": {
     "@better-auth/expo": "^1.7.7",
@@ -41,6 +43,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",

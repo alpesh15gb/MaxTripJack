@@ -1,17 +1,112 @@
 "use client";
+
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-type View = "home" | "results" | "trips" | "corporate" | "admin";
-type Product = "Flights" | "Hotels";
-const photo = { hero: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&w=1800&q=85", goa: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=700&q=80", dubai: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=700&q=80", bali: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=700&q=80", hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80" };
-function Icon({ name, size = 20 }: { name: string; size?: number }) { const paths: Record<string, string> = { plane: "m22 2-7 20-4-9-9-4L22 2ZM11 13l6-6", hotel: "M3 21V3h12v18M15 9h6v12M7 7h4M7 11h4M7 15h4M7 21v-3h4v3M19 13v2M19 17v2", arrow: "M5 12h14m-6-6 6 6-6 6", shield: "M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Zm-4 9 3 3 5-6", home: "m3 10 9-7 9 7v11h-6v-7H9v7H3V10Z", bag: "M4 7h16v14H4V7Zm4 0V3h8v4M8 11v5m8-5v5", user: "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-3a8 8 0 0 1 16 0v3", search: "M16 10a6 6 0 1 1-12 0 6 6 0 0 1 12 0Zm-2 4 7 7", heart: "M12 21 3 12C-2 5 6 0 12 6c6-6 14-1 9 6l-9 9Z", pin: "M19 9c0 6-7 12-7 12S5 15 5 9a7 7 0 1 1 14 0ZM12 6v6", check: "m5 12 4 4L19 6" }; return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name] || paths.arrow} /></svg>; }
-export default function Home() {
- const router=useRouter();
- const view:View="home"; const [product, setProduct] = useState<Product>("Flights"), [from, setFrom] = useState("Mumbai (BOM)"), [to, setTo] = useState("New Delhi (DEL)"), [date, setDate] = useState(()=>new Date(Date.now()+7*86400000).toISOString().slice(0,10)), [end, setEnd] = useState(()=>new Date(Date.now()+10*86400000).toISOString().slice(0,10)), [city, setCity] = useState("Goa"), [count, setCount] = useState(1), [round, setRound] = useState(false), [notice, setNotice] = useState("");
- const nights = Math.max(1, Math.round((new Date(end).getTime() - new Date(date).getTime()) / 86400000));
- function go(v: View) { if(v === "results") { const airport=(value:string)=>value.match(/\(([A-Z]{3})\)/)?.[1]||value.trim().toUpperCase();const params=new URLSearchParams({product:product==="Flights"?"FLIGHT":"HOTEL",from:airport(from),to:airport(to),date,end,adults:String(count),city,...(round?{returnDate:end}:{})});router.push(`/book?${params}`);return; } if (v === "corporate" || v === "admin" || v === "trips") { router.push(v === "corporate" ? "/account" : v === "admin" ? "/operations" : "/my-trips"); return; } setNotice(""); window.scrollTo({ top: 0, behavior: "smooth" }); }
- return <><div className="demo-strip"><i /> TEST ENVIRONMENT <span>TripJack UAT · Razorpay test payments</span></div><header className="header"><button className="logo" onClick={() => go("home")} aria-label="Max Travel home"><b><Icon name="plane" size={23} /></b>max<span>travel</span><i>.</i></button><nav aria-label="Main navigation">{(["Flights", "Hotels"] as Product[]).map(p => <button className={product === p && ["home", "results"].includes(view) ? "active" : ""} key={p} onClick={() => { setProduct(p); go("home"); }}>{p}</button>)}<button onClick={() => router.push("/book")}>Book a trip</button><button onClick={() => go("trips")}>My trips</button><button onClick={() => go("corporate")}>For business ↗</button></nav><div className="header-actions"><span>INR · ₹</span><button className="avatar" aria-label="Your account" onClick={() => go("corporate")}><Icon name="user" size={19} /></button><button className="admin-link" onClick={() => go("admin")}>Operations</button></div></header><main>
- {view === "home" && <><section className="hero" style={{ backgroundImage: `linear-gradient(90deg,#05265ded,#06345d99,transparent),url(${photo.hero})` }}><div className="hero-copy"><div className="pill">TIME TO EXPLORE</div><h1>Travel beyond limits.<br />Create <em>memories.</em></h1><p>From the first flight to the perfect stay,<br />make every part of your journey feel right.</p><button className="hero-cta" onClick={() => document.querySelector(".search-panel")?.scrollIntoView({ behavior: "smooth", block: "center" })}>Find your next journey <Icon name="plane" size={17} /></button><div className="hero-location"><Icon name="pin" size={14} /> Somewhere you’d rather be · Maldives</div></div><span className="hero-index">01 <span>/ 03</span></span></section><section className="search-panel"><div className="product-tabs">{(["Flights", "Hotels"] as Product[]).map(p => <button className={product === p ? "selected" : ""} key={p} onClick={() => setProduct(p)}><Icon name={p === "Flights" ? "plane" : "hotel"} />{p}</button>)}<span>Less planning. More going.</span></div><form onSubmit={e => { e.preventDefault(); if (product === "Flights" && from.trim().toLowerCase() === to.trim().toLowerCase()) { setNotice("Choose different departure and arrival airports."); return; } if ((product === "Hotels" || round) && end <= date) { setNotice("Return/check-out must be after departure/check-in."); return; } go("results"); }}><div className="search-options">{product === "Flights" ? <><label><input type="radio" checked={!round} onChange={() => setRound(false)} /> One way</label><label><input type="radio" checked={round} onChange={() => setRound(true)} /> Round trip</label><span>Economy ⌄</span></> : <span>Find your kind of stay · 1 room</span>}<span className="search-note"><Icon name="shield" size={14} /> Clear prices, always</span></div><div className="search-fields">{product === "Flights" ? <><label className="search-field"><small>FROM</small><input aria-label="Departure airport" value={from} onChange={e => setFrom(e.target.value)} required /><span>Departure airport</span></label><button type="button" className="swap" aria-label="Swap airports" onClick={() => { setFrom(to); setTo(from); }}>⇄</button><label className="search-field"><small>TO</small><input aria-label="Arrival airport" value={to} onChange={e => setTo(e.target.value)} required /><span>Arrival airport</span></label></> : <label className="search-field destination"><small>WHERE ARE YOU HEADING?</small><input aria-label="Hotel destination" required value={city} onChange={e => setCity(e.target.value)} /><span>City or destination</span></label>}<label className="search-field"><small>{product === "Flights" ? "DEPARTURE" : "CHECK-IN"}</small><input aria-label="Departure or check-in date" type="date" required min={new Date().toISOString().slice(0,10)} value={date} onChange={e => setDate(e.target.value)} /><span>Your journey starts here</span></label>{(product === "Hotels" || round) && <label className="search-field"><small>{product === "Hotels" ? "CHECK-OUT" : "RETURN"}</small><input aria-label="Return or check-out date" type="date" required min={date} value={end} onChange={e => setEnd(e.target.value)} /><span>{product === "Hotels" ? `${nights} nights` : "Heading home"}</span></label>}<label className="search-field"><small>{product === "Flights" ? "TRAVELLERS" : "GUESTS"}</small><select aria-label="Number of adults" value={count} onChange={e => setCount(Number(e.target.value))}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} adult{n > 1 ? "s" : ""}</option>)}</select><span>{product === "Flights" ? "Economy class" : "1 room"}</span></label><button className="primary search-button"><Icon name="search" />Search {product.toLowerCase()}</button></div>{notice && <p className="error" role="alert">{notice}</p>}</form></section><div className="trust-row"><span><Icon name="shield" />Secure payment experience</span><span><Icon name="check" />Every detail, in one place</span><span><Icon name="user" />A little help, whenever you need it</span></div><section className="content-section"><div className="section-title"><div><div className="eyebrow">YOUR NEXT CHAPTER</div><h2>Popular destinations</h2><p>A change of scenery. A fresh perspective. A story worth telling.</p></div><span>A little inspiration for your next escape ↗</span></div><div className="destination-grid">{[{ name: "Goa", line: "Slow down by the sea", image: photo.goa, tag: "THE COAST IS CALLING" }, { name: "Dubai", line: "A city beyond the ordinary", image: photo.dubai, tag: "BIG CITY ENERGY" }, { name: "Bali", line: "Find a different rhythm", image: photo.bali, tag: "YOUR ISLAND MOMENT" }].map(d => <button className="destination-card" key={d.name} onClick={() => { router.push(`/book?product=HOTEL&city=${encodeURIComponent(d.name)}`); }} style={{ backgroundImage: `linear-gradient(0deg,#081924c9,transparent 75%),url(${d.image})` }}><span className="destination-tag">{d.tag}</span><div><h3>{d.name}</h3><p>{d.line}</p></div><span className="round-arrow"><Icon name="arrow" /></span></button>)}</div></section><section className="why-section"><div className="inspiration-panel" style={{backgroundImage: `linear-gradient(90deg,#072c62dc,#072c6240),url(${photo.bali})`}}><span>Your next chapter</span><h2>Adventure awaits.<br />Make it your own.</h2><p>From a quick escape to a journey across the world. Start with a flight. Stay somewhere special.</p><button className="hero-cta" onClick={() => {router.push("/book?product=HOTEL&city=Bali");}}>Explore stays <Icon name="arrow" size={17}/></button></div><div className="why-panel"><h2>A better way to get away.</h2><div className="why-grid">{[{icon:"plane",title:"Flights that fit",text:"Compare timings, baggage and fares before choosing."},{icon:"hotel",title:"Your kind of stay",text:"Find rooms, meal plans and policies that suit your trip."},{icon:"bag",title:"Trips, together",text:"Keep your travel details and booking updates in one place."},{icon:"shield",title:"Clear before checkout",text:"Review the full price and rules before you pay."}].map(x=><div key={x.title}><span><Icon name={x.icon}/></span><div><h3>{x.title}</h3><p>{x.text}</p></div></div>)}</div></div></section><section className="business-banner"><div className="business-icon"><Icon name="bag" size={31} /></div><div><div className="eyebrow">MAX TRAVEL FOR BUSINESS</div><h2>Business trips. A better experience.</h2><p>Your company pricing, your travellers, all your bookings. One simple account.</p></div><button className="secondary" onClick={() => go("corporate")}>Explore corporate travel <Icon name="arrow" size={17} /></button></section></>}
- </main><footer className="site-footer"><div className="footer-top"><div className="footer-identity"><div className="footer-brand">maxtravel<span>.</span></div><p>A little less planning.<br/>A lot more living.</p><small>Flights & stays · India & beyond</small></div><div><h3>Explore</h3><button onClick={()=>{setProduct("Flights");go("home");}}>Book flights</button><button onClick={()=>{setProduct("Hotels");go("home");}}>Discover hotels</button><button onClick={()=>go("trips")}>My trips</button></div><div><h3>For business</h3><button onClick={()=>go("corporate")}>Corporate travel</button><button onClick={()=>go("corporate")}>Company account</button><span>Pay per booking</span></div><div><h3>Plan with confidence</h3><span>Full price before payment</span><span>Cancellation rules at review</span><span>INR payments</span></div></div><div className="footer-bottom"><span>© 2026 Max Travel</span><span>Test environment · Supplier confirmation required</span><button onClick={()=>go("admin")}>Operations ↗</button></div></footer><nav className="mobile-nav" aria-label="Mobile navigation">{[{ v: "home", icon: "home", label: "Home" }, { v: "results", icon: "search", label: "Explore" }, { v: "trips", icon: "bag", label: "My trips" }, { v: "corporate", icon: "user", label: "Account" }].map(n => <button key={n.v} className={view === n.v ? "active" : ""} onClick={() => go(n.v as View)}><Icon name={n.icon} /><span>{n.label}</span></button>)}</nav></>;
+import { useRef, useState, useTransition } from "react";
+import AirportPicker from "@/components/airport-picker";
+import HotelDestination from "@/components/hotel-destination";
+import { indiaToday } from "@/lib/booking-presentation";
+import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
+
+type Product = "FLIGHT" | "HOTEL";
+const photos = {
+  hero: "/travel/maldives.jpg",
+  goa: "/travel/goa.jpg",
+  dubai: "/travel/dubai.jpg",
+  bali: "/travel/bali.jpg",
+};
+
+function dateAfter(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return indiaToday(date);
 }
 
+export default function Home() {
+  const router = useRouter();
+  const form = useRef<HTMLFormElement>(null);
+  const [product, setProduct] = useState<Product>("FLIGHT");
+  const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
+  const [airportRevision, setAirportRevision] = useState(0);
+  const [date, setDate] = useState(() => dateAfter(7));
+  const [end, setEnd] = useState(() => dateAfter(10));
+  const [adults, setAdults] = useState(1);
+  const [roundTrip, setRoundTrip] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [navigating, startNavigation] = useTransition();
+  const nights = Math.round((Date.parse(end) - Date.parse(date)) / 86400000);
+
+  function changeProduct(next: Product) {
+    setProduct(next);
+    setAdults(current => next === "HOTEL" ? Math.min(4, current) : current);
+    setNotice("");
+  }
+
+  function swapAirports() {
+    if (!form.current) return;
+    const data = new FormData(form.current);
+    setAirports({ from: String(data.get("to") || ""), to: String(data.get("from") || "") });
+    setAirportRevision(value => value + 1);
+  }
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (navigating) return;
+    const data = new FormData(event.currentTarget);
+    const from = String(data.get("from") || "").toUpperCase();
+    const to = String(data.get("to") || "").toUpperCase();
+    if (date < dateAfter(0)) { setNotice("Choose today or a future date for your trip."); return; }
+    if (product === "FLIGHT" && (!/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to))) { setNotice("Select a departure and arrival airport, or enter their three-letter airport codes."); return; }
+    if (product === "FLIGHT" && from === to) { setNotice("Choose different departure and arrival airports."); return; }
+    if (product === "HOTEL" && (!end || end <= date)) { setNotice("Check-out must be after check-in. Choose at least one night."); return; }
+    if (product === "FLIGHT" && roundTrip && (!end || end < date)) { setNotice("Your return date cannot be before your departure."); return; }
+    const hotelIds = String(data.get("hotelIds") || "");
+    if (product === "HOTEL" && !hotelIds) { setNotice("Choose a destination from the available suggestions before searching."); return; }
+    const params = new URLSearchParams({ product, autoSearch: "1", date, adults: String(adults) });
+    if (product === "FLIGHT") {
+      params.set("from", from); params.set("to", to); params.set("cabin", "ECONOMY");
+      if (roundTrip) params.set("returnDate", end);
+    } else {
+      params.set("end", end); params.set("hotelIds", hotelIds);
+      params.set("city", String(data.get("city") || "")); params.set("nationality", "106");
+    }
+    setNotice("");
+    startNavigation(() => router.push(`/book?${params}`));
+  }
+
+  return <div className="trip-home">
+    <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={changeProduct} />
+    <main id="main-content">
+      <section className="home-hero" style={{ backgroundImage: `linear-gradient(90deg,rgba(9,32,47,.82),rgba(9,32,47,.3) 59%,rgba(9,32,47,.04)),url(${photos.hero})` }} aria-labelledby="home-title">
+        <div className="home-hero-copy"><p className="home-kicker"><span /> A LITTLE FURTHER. A LITTLE FREER.</p><h1 id="home-title">Go somewhere<br /><em>that stays with you.</em></h1><p>Beautiful beginnings. Thoughtful stays.<br />Your next great story starts with a trip.</p></div>
+        <div className="home-hero-caption"><TravelIcon name="pin" size={16} /><span>Somewhere worth slowing down<br /><strong>The Maldives</strong></span></div>
+        <div className="home-hero-stamp" aria-hidden="true"><TravelIcon name="globe" size={22} /><span>MORE WORLD.<br />MORE YOU.</span></div>
+      </section>
+
+      <section className="home-search-card" aria-label="Plan your trip">
+        <div className="home-search-top"><div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div><span><TravelIcon name="shield" size={16} /> Your next trip, a little simpler.</span></div>
+        <form ref={form} className="home-search-form" onSubmit={submit}>
+          <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><span className="home-economy">Economy</span></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<Link href={`/book?product=${product}`}>{product === "FLIGHT" ? "Multi-city, children or another cabin" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></Link></div>
+          <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
+            {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} /><small>City or airport code</small></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} /><small>Where to next?</small></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery="" /><small>Select an available destination</small></div>}
+            <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Departure" : "Check-in"}</span><input aria-label={product === "FLIGHT" ? "Departure" : "Check-in"} type="date" name="date" value={date} required min={dateAfter(0)} onChange={event => setDate(event.target.value)} /><small>{product === "FLIGHT" ? "Your journey begins" : "Time to check in"}</small></label>
+            {(product === "HOTEL" || roundTrip) && <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Return" : "Check-out"}</span><input aria-label={product === "FLIGHT" ? "Return" : "Check-out"} type="date" name="end" value={end} required min={date} onChange={event => setEnd(event.target.value)} /><small>{product === "HOTEL" && nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : "Your journey home"}</small></label>}
+            <label className="home-search-input home-guests"><span>{product === "FLIGHT" ? "Travellers" : "Guests"}</span><select aria-label={product === "FLIGHT" ? "Travellers" : "Guests"} value={adults} onChange={event => setAdults(Number(event.target.value))}>{Array.from({ length: product === "FLIGHT" ? 9 : 4 }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value} adult{value === 1 ? "" : "s"}</option>)}</select><small>{product === "FLIGHT" ? "12 years & above" : "1 room"}</small></label>
+            <button className="home-search-submit" disabled={navigating} type="submit"><TravelIcon name="search" size={19} /><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
+          </div>
+          {notice && <p className="home-search-error" role="alert">{notice}</p>}
+        </form>
+        <p className="home-search-footnote"><TravelIcon name="check" size={14} />Compare first. Review the full price and rules before you pay.</p>
+      </section>
+
+      <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Full total, without the guesswork</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Booking updates & documents</small></span></div></section>
+
+      <section className="home-discover" aria-labelledby="discover-heading"><div className="home-section-heading"><div><p className="home-kicker">A CHANGE OF SCENERY</p><h2 id="discover-heading">Where will you go next?</h2><p>For a long weekend, a fresh perspective, or no reason at all.</p></div><Link href="/book?product=HOTEL">Find your kind of stay<TravelIcon name="arrow" size={18} /></Link></div><div className="home-destinations">{[{ name: "Goa", image: photos.goa, mood: "SALT IN THE AIR", detail: "Slow days. Sea views. Your pace.", number: "01" }, { name: "Dubai", image: photos.dubai, mood: "A DIFFERENT PERSPECTIVE", detail: "Big city lights, bigger possibilities.", number: "02" }, { name: "Bali", image: photos.bali, mood: "FIND YOUR OWN RHYTHM", detail: "A little green. A little getaway.", number: "03" }].map(destination => <Link className="home-destination" href={`/book?product=HOTEL&city=${encodeURIComponent(destination.name)}`} key={destination.name} style={{ backgroundImage: `linear-gradient(0deg,rgba(8,26,37,.88),transparent 75%),url(${destination.image})` }} aria-label={`Explore stays in ${destination.name}`}><span className="home-destination-mood">{destination.mood}</span><span className="home-destination-number">{destination.number}</span><div><h3>{destination.name}</h3><p>{destination.detail}</p></div><span className="home-destination-arrow"><TravelIcon name="arrow" /></span></Link>)}</div></section>
+
+      <section className="home-how"><div className="home-how-intro"><p className="home-kicker">GOOD TRIPS START WITH CLARITY</p><h2>Less second-guessing.<br /><em>More looking forward.</em></h2><p>A booking flow that makes room for the details, so you can focus on the destination.</p><Link href="/book" className="home-text-link">Let’s get you going<TravelIcon name="arrow" size={18} /></Link></div><ol className="home-how-steps"><li><span>01</span><div><h3>Find what fits</h3><p>Compare flight timings and fare options, or choose a room that suits your stay.</p></div></li><li><span>02</span><div><h3>Know what you’re booking</h3><p>Review the final price, inclusions and supplier rules before making a payment.</p></div></li><li><span>03</span><div><h3>Keep every detail together</h3><p>Follow confirmation updates and find your travel documents in My trips.</p></div></li></ol></section>
+
+      <section className="home-business"><span className="home-business-icon"><TravelIcon name="bag" size={27} /></span><div><p className="home-kicker">MAX TRAVEL FOR BUSINESS</p><h2>A work trip. Not more work.</h2><p>Your company account, travellers and bookings. Together.</p></div><Link href="/account">Explore business travel<TravelIcon name="arrow" size={18} /></Link></section>
+    </main>
+    <TravelFooter />
+  </div>;
+}

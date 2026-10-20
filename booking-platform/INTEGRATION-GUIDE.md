@@ -199,3 +199,7 @@ Run the latest database migrations and rebuild the app/workers. Multi-city, part
 ## CRM staff commands and automatic confirmation PDFs
 
 Apply SQL migration 014-crm-commands with `npm run db:migrate`, then rebuild the website and workers. Configure optional CRM_COMMAND_KEYS and CRM_STAFF_ACTORS only after setting up distinct per-staff mapped administrator grants. CRM setup, permissions, unknown-outcome recovery and BOOKING_DOCUMENT template automation are documented in ../crm-review/TWO-WAY-BOOKING-INTEGRATION.md. Real deployed acceptance remains required.
+
+## Booking safety update — 20 October 2026
+
+Apply migration `015-fare-validation` before this app/worker version. It intentionally blocks historical initial-flight quotes because previous Fare Validate dispatches cannot be proved: unpaid checkouts require an explicit fresh review only after any existing payment operation is reconciled; paid/unattempted orders require operations review, not a retry or second charge. PREPAYMENT and PREBOOK validation are separate durable phases. See [booking safety and rollout notes](docs/BOOKING-SAFETY-2026-10-20.md) for recovery contracts and the local/database verification boundary.

@@ -9,6 +9,7 @@ import "./account.css";
 import "./live-booking.css";
 import "./booking-ui.css";
 import "./operations.css";
+import "./travel-design.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

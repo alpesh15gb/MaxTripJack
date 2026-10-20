@@ -4,6 +4,7 @@ import { database,transaction } from "./db";
 import { tripjack,paths } from "./providers/tripjack";
 import { bookingBody,guestSchema } from "./providers/contracts";
 import { seal,unseal } from "./vault";
+import { passengerIdentitiesMatch } from "./passenger-identity";
 // Internal database rows and supplier response data are validated before mutation.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row=Record<string,any>;
@@ -16,7 +17,7 @@ export async function runFlightServiceJob(job:Row,order:Row,lease:string){
   if(!paid)throw Error("No verified service payment");
   const guests=guestSchema.parse(unseal(order.guests_encrypted,order.id));let payload:Row;
   if(product==="ANCILLARY")payload={paymentInfos:[{amount:Number(order.supplier_minor)/100}],sI:order.service_payload.sI};
-  else{payload=bookingBody("FLIGHT",order.reviewed_booking_id,Number(order.supplier_minor),guests);const supplied=order.review.travellerInfo??order.review.travellerInfos;if(!Array.isArray(supplied)||supplied.length!==guests.travellers.length||supplied.some(p=>!guests.travellers.some(g=>g.fN===p.fN&&g.lN===p.lN&&g.pt===p.pt)))throw Error("Original passenger data missing from reissue review");payload.travellerInfo=supplied;payload.oldBookingId=order.service_payload.oldBookingId;payload.paymentInfos=[{amount:Number(order.supplier_minor)/100,bookingId:order.reviewed_booking_id}];}
+  else{payload=bookingBody("FLIGHT",order.reviewed_booking_id,Number(order.supplier_minor),guests);const supplied=order.review.travellerInfo??order.review.travellerInfos;if(!passengerIdentitiesMatch(guests.travellers,supplied))throw Error("Original passenger data missing from reissue review");payload.travellerInfo=supplied;payload.oldBookingId=order.service_payload.oldBookingId;payload.paymentInfos=[{amount:Number(order.supplier_minor)/100,bookingId:order.reviewed_booking_id}];}
   await transaction(async tx=>{const marked=await tx.query("UPDATE booking_jobs SET attempted=true,state='POLLING' WHERE order_id=$1 AND lease_token=$2 AND attempted=false RETURNING order_id",[order.id,lease]);if(!marked.rowCount)throw Error("Lease lost");await tx.query("UPDATE orders SET status='BOOKING_PENDING',supplier_booking_id=$1 WHERE id=$2",[order.reviewed_booking_id,order.id]);});job.attempted=true;
   try{const submitted=await tripjack("FLIGHT",product==="ANCILLARY"?"/oms/v1/air/amendment/add/ssr":"/oms/v1/air/amendment/auto-reissue",payload,true);if(product==="ANCILLARY"&&Array.isArray(submitted.amendmentids)&&submitted.amendmentids.length&&submitted.amendmentids.every((id:unknown)=>typeof id==="string"&&id.length<200)){job.amendment_ids=submitted.amendmentids;await database().query("UPDATE booking_jobs SET amendment_ids=$1 WHERE order_id=$2 AND lease_token=$3",[JSON.stringify(job.amendment_ids),order.id,lease]);}}
   catch{/* Submission outcome may be unknown. Never submit the paid operation twice. */}

@@ -10,7 +10,8 @@ export function orderedFlightSelection(groups:Record<string,unknown>,ids:string[
  const selected=ordered.map(id=>valid.get(id)!);
  if(selected.some(p=>p.fareIdentifier==="SPECIAL_RETURN")){
   const onward=selected.find(p=>p.group==="ONWARD"),back=selected.find(p=>p.group==="RETURN");
-  if(!onward||!back||selected.some(p=>p.fareIdentifier!=="SPECIAL_RETURN")||!onward.sri||!back.msri?.includes(onward.sri))throw Error("Special return fares must be a matching pair.");
+  const matches=onward?.sri&&(Array.isArray(back?.msri)?back.msri.includes(onward.sri):back?.msri===onward.sri);
+  if(!onward||!back||selected.some(p=>p.fareIdentifier!=="SPECIAL_RETURN")||!matches)throw Error("Special return fares must be a matching pair.");
  }
  return ordered;
 }

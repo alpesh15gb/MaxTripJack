@@ -18,7 +18,7 @@ jobs:
           cache: npm
           cache-dependency-path: mobile-app/package-lock.json
       - run: npm ci
-      - run: npm run lint && npm run typecheck
+      - run: npm run lint && npm run typecheck && npm test
       - run: npx expo export --platform android --output-dir dist-android
       - run: npx expo export --platform ios --output-dir dist-ios
       - name: Dependency review report

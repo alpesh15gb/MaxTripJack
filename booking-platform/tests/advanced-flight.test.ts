@@ -22,6 +22,8 @@ test("return and special-return validation cannot mix unrelated fares",()=>{
  assert.deepEqual(orderedFlightSelection({ONWARD:trips("a"),RETURN:trips("b")},["b","a"],{returnDate:"2027-01-05"}),["a","b"]);
  const groups={ONWARD:[{totalPriceList:[{id:"a",fareIdentifier:"SPECIAL_RETURN",sri:"pair"}]}],RETURN:[{totalPriceList:[{id:"b",fareIdentifier:"SPECIAL_RETURN",msri:["other"]}]}]};
  assert.throws(()=>orderedFlightSelection(groups,["a","b"],{returnDate:"2027-01-05"}));
+ for(const msri of ["unrelated-pair",["unrelated-pair"],"pair,other"]){const unrelated={...groups,RETURN:[{totalPriceList:[{...groups.RETURN[0].totalPriceList[0],msri}]}]};assert.throws(()=>orderedFlightSelection(unrelated,["a","b"],{returnDate:"2027-01-05"}));}
+ for(const msri of ["pair",["other","pair"]]){const matching={...groups,RETURN:[{totalPriceList:[{...groups.RETURN[0].totalPriceList[0],msri}]}]};assert.deepEqual(orderedFlightSelection(matching,["a","b"],{returnDate:"2027-01-05"}),["a","b"]);}
 });
 const options=cancellationOptions({}, {travellers:[{fN:"Asha",lN:"Shah"},{fN:"Ravi",lN:"Shah"}]}, {...flight,returnDate:"2027-01-05"});
 test("partial cancellation uses stored names/routes and excludes previously cancelled units",()=>{

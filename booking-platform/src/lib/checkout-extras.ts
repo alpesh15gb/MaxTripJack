@@ -8,6 +8,7 @@ import { checkoutCatalogue, selectCheckoutExtras, type CheckoutChoice } from "./
 import { customerTotal } from "./customer-pricing";
 import { HttpError } from "./http";
 import { requestLimit } from "./request-limit";
+import { validateFareOnce,type FareValidationPhase } from "./fare-validation";
 export async function extrasCatalogue(quoteId:string,actor:Actor){
  await requestLimit(actor.userId,"checkout-extras",30);const quote=await owned("supplier_quotes",quoteId,actor);assertFresh(quote.expires_at);
  if(quote.product!=="FLIGHT"||quote.service_kind)throw new HttpError(400,"Choose an initial flight quote.");
@@ -29,7 +30,7 @@ export async function saveCheckoutExtras(quoteId:string,choices:CheckoutChoice[]
  const base=Number(quote.selection.checkoutBaseSupplierMinor??quote.supplier_minor),supplierMinor=base+selected.amountMinor;
  const totalMinor=customerTotal(supplierMinor,await pricingRule("FLIGHT",actor));assertFresh(quote.expires_at);
  const selection={...quote.selection,checkoutBaseSupplierMinor:base,checkoutExtras:{...selected,choices}};
- await transaction(async tx=>{const locked=await tx.query("SELECT * FROM supplier_quotes WHERE id=$1 FOR UPDATE",[quote.id]);if(!isDeepStrictEqual(locked.rows[0].selection,quote.selection))throw new HttpError(409,"Another extras update was saved. Reload the selection.");const orders=await tx.query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(orders.rowCount)throw new HttpError(409,"Checkout already started. Extras cannot be changed.");await tx.query("UPDATE supplier_quotes SET selection=$2,supplier_minor=$3,total_minor=$4 WHERE id=$1",[quote.id,selection,supplierMinor,totalMinor]);});
+ await transaction(async tx=>{const locked=await tx.query("SELECT * FROM supplier_quotes WHERE id=$1 FOR UPDATE",[quote.id]);if(locked.rows[0].fare_validation_state)throw new HttpError(409,"Fare validation has already started. Review a new quote to change extras.");if(!isDeepStrictEqual(locked.rows[0].selection,quote.selection))throw new HttpError(409,"Another extras update was saved. Reload the selection.");const orders=await tx.query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(orders.rowCount)throw new HttpError(409,"Checkout already started. Extras cannot be changed.");await tx.query("UPDATE supplier_quotes SET selection=$2,supplier_minor=$3,total_minor=$4 WHERE id=$1",[quote.id,selection,supplierMinor,totalMinor]);});
  return {quoteId,totalMinor,extrasMinor:selected.amountMinor,summary:selected.summary,expiresAt:quote.expires_at};
 }
 type ExtrasTraveller={pt:string;ssrBaggageInfos:{key:string;code:string}[];ssrMealInfos:{key:string;code:string}[];ssrSeatInfos:{key:string;code:string}[]};
@@ -39,9 +40,14 @@ export function initialFlightBody(bookingId:string,amount:number,guests:Guests,e
  if(extras.travellers.length!==guests.travellers.length||extras.travellers.some((t,i)=>t.pt!==guests.travellers[i].pt))throw new HttpError(400,"Keep passengers in the reviewed order when selecting extras.");
  return {...payload,travellerInfo:guests.travellers.map((t,i)=>({...t,...Object.fromEntries(Object.entries(extras.travellers[i]).filter(([k,v])=>k!=="pt"&&Array.isArray(v)&&v.length))}))};
 }
-export async function validateInitialExtras(quote:{supplier_booking_id:string;supplier_minor:number|string;selection:{checkoutExtras?:{travellers:ExtrasTraveller[]}}},guests:Guests){
- const result=await tripjack("FLIGHT",paths.FLIGHT.validate,initialFlightBody(quote.supplier_booking_id,Number(quote.supplier_minor),guests,quote.selection.checkoutExtras),true);
+export async function validateFlightFare(quoteId:string,payload:ReturnType<typeof initialFlightBody>,supplierMinor:number,phase:FareValidationPhase){
+ await validateFareOnce({quoteId,phase,payload,transaction,validate:async()=>{
+ const result=await tripjack("FLIGHT",paths.FLIGHT.validate,payload,true);
  if(result.alerts?.length)throw new HttpError(409,"Fare, class or seat conditions changed. Review the flight again before paying.");
  const total=result.totalPriceInfo?.totalFareDetail?.fC?.TF??result.totalPriceInfo?.fc?.TF;
- if(total!==undefined&&minor(total)!==Number(quote.supplier_minor))throw new HttpError(409,"Supplier total changed. Review the flight again.");
+ if(total!==undefined&&minor(total)!==supplierMinor)throw new HttpError(409,"Supplier total changed. Review the flight again.");
+ }});
+}
+export async function validateInitialExtras(quote:{id:string;supplier_booking_id:string;supplier_minor:number|string;selection:{checkoutExtras?:{travellers:ExtrasTraveller[]}}},guests:Guests){
+ await validateFlightFare(quote.id,initialFlightBody(quote.supplier_booking_id,Number(quote.supplier_minor),guests,quote.selection.checkoutExtras),Number(quote.supplier_minor),"PREPAYMENT");
 }

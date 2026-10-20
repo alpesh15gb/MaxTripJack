@@ -11,6 +11,8 @@ import { razorpay,razorpayKey } from "@/lib/providers/razorpay";
 import { seal,unseal } from "@/lib/vault";
 import { validateParty } from "@/lib/guest-validation";
 import { tripjack } from "@/lib/providers/tripjack";
+import { markGatewayIntentUnknown, persistGatewayOrder } from "@/lib/payment-intent";
+import { FareValidationBlockedError } from "@/lib/fare-validation";
 export async function POST(request:Request){try{
  sameOrigin(request);const actor=await principal(request);const input=await body(request,z.object({quoteId:z.string().uuid(),guests:guestSchema.optional(),acceptedTotalMinor:z.number().int().nonnegative()}).strict());const key=razorpayKey();
  const quote=await owned("supplier_quotes",input.quoteId,actor);assertFresh(quote.expires_at);
@@ -25,6 +27,7 @@ export async function POST(request:Request){try{
  if((conditions.gst?.igm||["PASSTHROUGH","RESELLER"].includes(compliance.gstType))&&!guests.gstInfo)throw new HttpError(400,"GST information required for this option.");if(conditions.iecr&&!guests.contactInfo)throw new HttpError(400,"Emergency contact required.");
  if(Number(quote.total_minor)===0){const freeExisting=await database().query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(freeExisting.rowCount)return json({bookingId:freeExisting.rows[0].id,free:true,amount:0,currency:"INR"});}
  const existingIntent=await database().query("SELECT o.id,o.guests_encrypted FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.quote_id=$1",[quote.id]);
+ if(quote.product==="FLIGHT"&&!quote.service_kind&&((quote.fare_validation_state&&quote.fare_validation_state!=="SUCCEEDED")||quote.booking_validation_state)){if(existingIntent.rowCount)throw new HttpError(409,"Existing checkout requires reconciliation. Check My trips and do not pay again.");throw new FareValidationBlockedError();}
  if(existingIntent.rowCount&&!isDeepStrictEqual(unseal(existingIntent.rows[0].guests_encrypted,existingIntent.rows[0].id),guests))throw new HttpError(409,"Checkout already contains different traveller or contact details. Review the original order in My trips before paying.");
  if(quote.selection.checkoutExtras&&!existingIntent.rowCount)await validateInitialExtras(quote,guests);
  if(!existingIntent.rowCount){const account=await tripjack(quote.product,"/ums/v1/user-detail",undefined,false,"GET");const wallet=Number(account.walletBalance);if(!Number.isFinite(wallet)||wallet*100<Number(quote.supplier_minor))throw new HttpError(503,"Booking is temporarily unavailable. Please contact Max Travel before making payment.");assertFresh(quote.expires_at);}
@@ -41,7 +44,7 @@ export async function POST(request:Request){try{
  if(!intent.created){if(!intent.gateway_order_id)throw new HttpError(409,"Payment order creation is pending reconciliation. Do not create another payment.");return json({bookingId:intent.id,orderId:intent.gateway_order_id,keyId:key.id,amount:Number(quote.total_minor),currency:"INR"});}
  try{const gateway=await razorpay("/orders",{amount:Number(quote.total_minor),currency:"INR",receipt:intent.id,partial_payment:false});
   if(!gateway.id||gateway.amount!==Number(quote.total_minor)||gateway.currency!=="INR")throw new Error("Gateway contract mismatch");
-  await transaction(async tx=>{await tx.query("INSERT INTO payments(id,order_id,gateway_order_id,amount_minor) VALUES($1,$2,$3,$4)",[randomUUID(),intent.id,gateway.id,quote.total_minor]);await tx.query("UPDATE gateway_intents SET state='CREATED',gateway_order_id=$1 WHERE order_id=$2",[gateway.id,intent.id]);});
+  await transaction(tx=>persistGatewayOrder(tx,intent.id,gateway,"CREATE"));
   return json({bookingId:intent.id,orderId:gateway.id,keyId:key.id,amount:gateway.amount,currency:"INR"});
- }catch(e){await database().query("UPDATE gateway_intents SET state='UNKNOWN' WHERE order_id=$1",[intent.id]);await database().query("UPDATE orders SET status='MANUAL_REVIEW' WHERE id=$1",[intent.id]);throw e;}
+ }catch(e){await transaction(tx=>markGatewayIntentUnknown(tx,intent.id));throw e;}
 }catch(e){return failure(e);}}

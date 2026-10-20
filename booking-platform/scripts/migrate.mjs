@@ -7,7 +7,7 @@ try {
   await client.query("BEGIN");
   await client.query("SELECT pg_advisory_xact_lock(71266301)");
   await client.query("CREATE TABLE IF NOT EXISTS schema_migrations(name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
-  for (const name of ["001-booking-platform", "002-provider-integration", "003-booking-details", "004-operations", "005-cancellation-offers", "006-flight-amendments", "007-delivery", "008-catalogue", "009-security-operations", "010-cancellation-polling", "011-payment-method", "012-partial-cancellation", "013-flight-services", "014-crm-commands"]) {
+  for (const name of ["001-booking-platform", "002-provider-integration", "003-booking-details", "004-operations", "005-cancellation-offers", "006-flight-amendments", "007-delivery", "008-catalogue", "009-security-operations", "010-cancellation-polling", "011-payment-method", "012-partial-cancellation", "013-flight-services", "014-crm-commands", "015-fare-validation"]) {
   const existing = await client.query("SELECT name FROM schema_migrations WHERE name=$1", [name]);
   if (!existing.rowCount) {
     await client.query(await readFile(new URL(`../db/${name}.sql`, import.meta.url), "utf8"));

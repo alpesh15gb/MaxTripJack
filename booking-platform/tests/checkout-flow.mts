@@ -1,4 +1,6 @@
-import { extrasCatalogue,saveCheckoutExtras } from "../src/lib/checkout-extras";
+import { extrasCatalogue,saveCheckoutExtras,validateInitialExtras } from "../src/lib/checkout-extras";
+import { guestSchema } from "../src/lib/providers/contracts";
+import { seal } from "../src/lib/vault";
 import assert from "node:assert/strict";
 import { randomBytes,randomUUID } from "node:crypto";
 import { Pool } from "pg";
@@ -13,7 +15,7 @@ const base=process.env.BETTER_AUTH_URL!;
 if(!base||new URL(base).hostname!=="127.0.0.1")throw Error("Local development only.");
 const originalFetch=globalThis.fetch;
 const pool=new Pool({connectionString:process.env.DATABASE_URL});
-const email=`provider-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",bookingId="",searchId="",quoteId="",bookCalls=0,gatewayAmount=675000,walletBalance=100000;
+const email=`provider-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",bookingId="",searchId="",quoteId="",bookCalls=0,validateCalls=0,validationFailure=false,changedFare=false,gatewayAmount=675000,walletBalance=100000;
 let gatewayOrder=`order_${randomUUID().replaceAll("-","")}`,gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
 const fixtureBookings:string[]=[],fixtureQuotes:string[]=[],fixtureSearches:string[]=[];
 const ssr={BAGGAGE:[{code:"BAG",amount:1000}],MEAL:[{code:"MEAL",amount:250}]};
@@ -33,7 +35,7 @@ try{
    if(url.endsWith("/review"))return ok({status:{success:true},bookingId:"TJ-contract",conditions:{st:300,isa:true},tripInfos:[{sI:[{id:"s1",da:{code:"BOM"},aa:{code:"DEL"},ssrInfo:ssr}]}],totalPriceInfo:{totalFareDetail:{fC:{TF:5000}}}});
    if(url.endsWith("/seat"))return ok({status:{success:true},tripSeatMap:{tripSeat:{s1:{sInfo:[{code:"2A",seatNo:"2A",amount:500,isBooked:false}]}}}});
    if(url.endsWith("/farerule"))return ok({status:{success:true},fareRule:{miscInfo:"Contract cancellation policy"}});
-   if(url.endsWith("/fare-validate")){assert.equal(payload.paymentInfos[0].amount,6750);assert.deepEqual(payload.travellerInfo[0].ssrSeatInfos,[{key:"s1",code:"2A"}]);return ok({status:{success:true}});}
+   if(url.endsWith("/fare-validate")){validateCalls++;assert.equal(payload.paymentInfos[0].amount,6750);assert.deepEqual(payload.travellerInfo[0].ssrSeatInfos,[{key:"s1",code:"2A"}]);if(validationFailure)throw Error("Lost fare validation response");return ok({status:{success:true},...(changedFare?{totalPriceInfo:{totalFareDetail:{fC:{TF:7000}}}}:{})});}
    if(url.endsWith("/air/book")){bookCalls++;assert.equal(payload.paymentInfos[0].amount,6750);assert.deepEqual(payload.travellerInfo[0].ssrBaggageInfos,[{key:"s1",code:"BAG"}]);throw new Error("Simulated connection loss AFTER supplier accepted booking");}
    if(url.endsWith("/booking-details"))return ok({status:{success:true},order:{status:"SUCCESS",bookingId:"TJ-contract"},itemInfos:{AIR:{travellerInfos:[{fN:"Contract",lN:"Guest",pt:"ADULT",ssrBaggageInfos:[{key:"s1",code:"BAG"}],ssrMealInfos:[{key:"s1",code:"MEAL"}],ssrSeatInfos:[{key:"s1",code:"2A"}]}]}}});
    throw Error("Unexpected supplier endpoint");
@@ -68,9 +70,22 @@ try{
  const replay=await createPayment(request("/api/payments/create",{quoteId,guests,acceptedTotalMinor:quote.totalMinor}));assert.equal((await replay.json()).orderId,gatewayOrder);
  const verified=await verifyPayment(request("/api/payments/verify",{bookingId,razorpay_order_id:gatewayOrder,razorpay_payment_id:gatewayPayment,razorpay_signature:signature(`${gatewayOrder}|${gatewayPayment}`,"contract-test-secret")}));assert.equal(verified.status,200);
  await runBookingJob();assert.equal(bookCalls,1);assert.equal((await pool.query("SELECT status FROM orders WHERE id=$1",[bookingId])).rows[0].status,"TICKETED");
+ assert.equal(validateCalls,2,"successful prepayment retry is reused, but post-payment validation remains a separate fresh call");
  await runBookingJob();assert.equal(bookCalls,1);
  const pdf=await confirmationDocument(new Request(base+`/api/bookings/${bookingId}/document`,{headers:{cookie}}),{params:Promise.resolve({id:bookingId})});assert.equal(pdf.status,200);assert.equal(pdf.headers.get("Content-Type"),"application/pdf");assert.equal(pdf.headers.get("Cache-Control"),"private, no-store");const firstPdf=Buffer.from(await pdf.arrayBuffer());assert.equal(firstPdf.subarray(0,5).toString(),"%PDF-");const repeatedPdf=await confirmationDocument(new Request(base+`/api/bookings/${bookingId}/document`,{headers:{cookie}}),{params:Promise.resolve({id:bookingId})});assert.deepEqual(Buffer.from(await repeatedPdf.arrayBuffer()),firstPdf);
  console.log("PASS initial checkout extras, ownership, forged options, locked checkout: mocked flight search → review → server-priced Razorpay order → signed capture verification → supplier timeout recovery → ticketed; duplicate checkout and tampered totals handled.");
+ const copyQuote=async()=>{const id=randomUUID();fixtureQuotes.push(id);await pool.query("INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at) SELECT $1,search_id,user_id,company_id,product,selection,review,$3,supplier_minor,total_minor,now()+interval '3 minutes' FROM supplier_quotes WHERE id=$2",[id,quoteId,`TJ-${id}`]);return (await pool.query("SELECT * FROM supplier_quotes WHERE id=$1",[id])).rows[0];};
+ const interrupted=await copyQuote();validationFailure=true;const beforeValidation=validateCalls;
+ await assert.rejects(validateInitialExtras(interrupted,guestSchema.parse(guests)));await assert.rejects(validateInitialExtras(interrupted,guestSchema.parse(guests)));assert.equal(validateCalls,beforeValidation+1);validationFailure=false;
+ await assert.rejects(saveCheckoutExtras(interrupted.id,[],actor));assert.equal((await pool.query("SELECT fare_validation_state FROM supplier_quotes WHERE id=$1",[interrupted.id])).rows[0].fare_validation_state,"BLOCKED");
+ const delayed=await copyQuote();await validateInitialExtras(delayed,guestSchema.parse(guests));const delayedOrder=randomUUID();fixtureBookings.push(delayedOrder);
+ await pool.query("INSERT INTO orders(id,reference,user_id,product,status,total_minor,supplier_minor,quote_id,guests_encrypted) VALUES($1,$2,$3,'FLIGHT','PAID',675000,675000,$4,$5)",[delayedOrder,`TEST-${delayedOrder}`,userId,delayed.id,seal(guests,delayedOrder)]);
+ await pool.query("INSERT INTO payments(id,order_id,gateway_order_id,gateway_payment_id,amount_minor,status) VALUES($1,$2,$3,$4,675000,'CAPTURED')",[randomUUID(),delayedOrder,`order_${randomUUID().replaceAll("-","")}`,`pay_${randomUUID().replaceAll("-","")}`]);await pool.query("INSERT INTO booking_jobs(order_id) VALUES($1)",[delayedOrder]);
+ changedFare=true;const beforeDelayedCheck=validateCalls;await runBookingJob();changedFare=false;
+ assert.equal(validateCalls,beforeDelayedCheck+1);assert.equal(bookCalls,1);assert.equal((await pool.query("SELECT status FROM orders WHERE id=$1",[delayedOrder])).rows[0].status,"MANUAL_REVIEW");
+ assert.deepEqual((await pool.query("SELECT fare_validation_state,booking_validation_state FROM supplier_quotes WHERE id=$1",[delayed.id])).rows[0],{fare_validation_state:"SUCCEEDED",booking_validation_state:"BLOCKED"});
+ await runBookingJob();assert.equal(validateCalls,beforeDelayedCheck+1);
+ console.log("PASS: uncertain prepayment validation cannot replay or change extras; fresh post-payment fare changes block Book and preserve captured funds for operations.");
  gatewayAmount=500000;gatewayOrder=`order_${randomUUID().replaceAll("-","")}`;gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
  const hotelSearch=await searchSupplier({product:"HOTEL",hotelIds:["100001"],checkIn:"2026-12-20",checkOut:"2026-12-22",adults:1,childrenAges:[5],rooms:[{adults:2,children:1,childAge:[5]},{adults:1,children:1,childAge:[8]}],nationality:"106"},actor);fixtureSearches.push(hotelSearch.searchId);
  const hotelQuote=await reviewSupplier(hotelSearch.searchId,{hid:"100001",optionId:"hotel-option"},actor);fixtureQuotes.push(hotelQuote.quoteId);

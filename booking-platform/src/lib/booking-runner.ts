@@ -1,6 +1,7 @@
 import "server-only";
 import { checkoutExtrasFulfilled } from "./checkout-extras-contract";
-import { initialFlightBody } from "./checkout-extras";
+import { initialFlightBody,validateFlightFare } from "./checkout-extras";
+import { FareValidationBlockedError } from "./fare-validation";
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { database,transaction } from "./db";
@@ -28,9 +29,7 @@ export async function runBookingJob(){
   }
   const payload=product==="FLIGHT"?initialFlightBody(bookingId,Number(order.supplier_minor),guests,order.selection.checkoutExtras):bookingBody(product,bookingId,Number(order.supplier_minor),guests);
   if(product==="FLIGHT"){
-   const valid=await tripjack("FLIGHT",paths.FLIGHT.validate,payload,true);
-   if(valid.alerts?.length)throw Error("Fare changed after payment");
-   const validatedTotal=valid.totalPriceInfo?.totalFareDetail?.fC?.TF??valid.totalPriceInfo?.fc?.TF;if(validatedTotal!==undefined&&minor(validatedTotal)!==Number(order.supplier_minor))throw Error("Supplier total changed after payment");
+   await validateFlightFare(order.quote_id,payload,Number(order.supplier_minor),"PREBOOK");
   }
   // Persist the booking reference and attempt marker BEFORE calling the supplier.
   // On process crash, recovery queries this reference; it never resubmits Book.
@@ -49,16 +48,16 @@ export async function runBookingJob(){
  const success=supplierSuccess&&!reviewRequired;
  const failed=["FAILED","ABORTED","UNCONFIRMED","CANCELLED"].includes(status);
  await transaction(async tx=>{
-  const current=await tx.query("SELECT id FROM orders WHERE id=$1 FOR UPDATE",[order.id]);if(!current.rowCount)throw Error("Missing order");
+  const current=await tx.query("SELECT o.id FROM orders o JOIN booking_jobs j ON j.order_id=o.id WHERE o.id=$1 AND j.lease_token=$2 FOR UPDATE OF o,j",[order.id,lease]);if(!current.rowCount)throw Error("Lease no longer owned");
   const newState=success?(product==="FLIGHT"?"TICKETED":"CONFIRMED"):failed?"BOOKING_FAILED":reviewRequired||job.checks>=35?"MANUAL_REVIEW":"BOOKING_PENDING";
   await tx.query("UPDATE orders SET status=$1,supplier_status=$2,revision=revision+1,updated_at=now() WHERE id=$3",[newState,String(status??"UNKNOWN"),order.id]);
   await tx.query("INSERT INTO supplier_booking_payloads(order_id,encrypted_payload) VALUES($1,$2) ON CONFLICT(order_id) DO UPDATE SET encrypted_payload=excluded.encrypted_payload,updated_at=now()",[order.id,seal(details,order.id)]);
   await tx.query("UPDATE booking_jobs SET state=$1,checks=checks+1,next_attempt=now()+interval '5 seconds',lease_until=NULL,lease_token=NULL WHERE order_id=$2 AND lease_token=$3",[success||failed||reviewRequired||job.checks>=35?"DONE":"POLLING",order.id,lease]);
   if(success||failed||reviewRequired||job.checks>=35)await tx.query("INSERT INTO outbox_events(id,aggregate_id,event_type,payload) VALUES($1,$2,$3,$4)",[randomUUID(),order.id,success?"booking.confirmed":failed?"booking.failed":"booking.review_required",{bookingId:order.id,supplierBookingId:order.supplier_booking_id,status:newState}]);
  });
- }catch{
+ }catch(error){
   if(job.attempted&&job.checks<35){await database().query("UPDATE booking_jobs SET checks=checks+1,next_attempt=now()+interval '5 seconds',lease_until=NULL,lease_token=NULL WHERE order_id=$1 AND lease_token=$2",[job.order_id,lease]);}
-  else {await transaction(async tx=>{const status=job.attempted?"MANUAL_REVIEW":"BOOKING_FAILED";await tx.query("UPDATE orders SET status=$2,revision=revision+1,updated_at=now() WHERE id=$1",[job.order_id,status]);await tx.query("UPDATE booking_jobs SET state='REVIEW',lease_token=NULL,lease_until=NULL WHERE order_id=$1 AND lease_token=$2",[job.order_id,lease]);await tx.query("INSERT INTO outbox_events(id,aggregate_id,event_type,payload) VALUES($1,$2,$3,$4)",[randomUUID(),job.order_id,job.attempted?"booking.review_required":"booking.failed",{bookingId:job.order_id,status}]);});}
+  else {await transaction(async tx=>{const current=await tx.query("SELECT o.id FROM orders o JOIN booking_jobs j ON j.order_id=o.id WHERE o.id=$1 AND j.lease_token=$2 FOR UPDATE OF o,j",[job.order_id,lease]);if(!current.rowCount)return;const reviewRequired=job.attempted||error instanceof FareValidationBlockedError;const status=reviewRequired?"MANUAL_REVIEW":"BOOKING_FAILED";await tx.query("UPDATE orders SET status=$2,revision=revision+1,updated_at=now() WHERE id=$1",[job.order_id,status]);await tx.query("UPDATE booking_jobs SET state='REVIEW',lease_token=NULL,lease_until=NULL WHERE order_id=$1 AND lease_token=$2",[job.order_id,lease]);await tx.query("INSERT INTO outbox_events(id,aggregate_id,event_type,payload) VALUES($1,$2,$3,$4)",[randomUUID(),job.order_id,reviewRequired?"booking.review_required":"booking.failed",{bookingId:job.order_id,status}]);});}
  }
  return true;
 }
