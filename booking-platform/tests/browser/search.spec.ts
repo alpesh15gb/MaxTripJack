@@ -29,7 +29,7 @@ test('same airport input is rejected locally, independent of display casing', as
   await page.getByLabel('From airport', { exact: true }).fill('Mumbai (BOM)');
   await page.getByLabel('To airport', { exact: true }).fill('bom');
   await page.getByRole('button', { name: 'Search flights', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('different departure and arrival');
+  await expect(page.locator('.home-search-form').getByRole('alert')).toContainText('different departure and arrival');
   await expect(page).toHaveURL('/');
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
@@ -137,7 +137,7 @@ test('a typed hotel city is not searched until an available destination is selec
   provider.search = { searchId, results: { hotels: [] } };
   const query = new URLSearchParams({ product: 'HOTEL', city: 'Goa', date: departure, end: returning, autoSearch: '1' });
   await page.goto(`/book?${query}`);
-  await expect(page.getByRole('alert')).toContainText('Choose a destination from the suggestions');
+  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Choose a destination from the suggestions');
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
   await page.getByRole('button', { name: 'Goa, India', exact: true }).click();
   await page.getByRole('button', { name: 'Search stays', exact: true }).click();

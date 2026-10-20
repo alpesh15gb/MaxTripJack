@@ -16,7 +16,7 @@ jobs:
           POSTGRES_USER: maxtravel
           POSTGRES_PASSWORD: ephemeral-ci-database-only
         ports: ['55439:5432']
-        options: --health-cmd 'pg_isready -U maxtravel -d maxtravel_ci' --health-interval 5s --health-timeout 5s --health-retries 20
+        options: --health-cmd "pg_isready -U maxtravel -d maxtravel_ci" --health-interval 5s --health-timeout 5s --health-retries 20
       mail:
         image: axllent/mailpit:latest
         ports: ['11025:1025', '18025:8025']

@@ -125,7 +125,7 @@ test('dismissing and resuming payment reuses the same order and never claims con
     guests: { email: 'traveller@example.test', phone: '9876543210', travellers: [{ pt: 'ADULT', fN: 'Aarav', lN: 'Example' }] },
   });
   await page.evaluate('window.__syntheticGateway.dismiss()');
-  await expect(page.getByRole('alert')).toContainText('Checkout closed. Your payment order is preserved.');
+  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Checkout closed. Your payment order is preserved.');
   await page.getByRole('button', { name: 'Resume secure checkout', exact: true }).click();
   await expect.poll(() => page.evaluate('window.__syntheticGateway.opens')).toEqual(['order_SYNTHETICONLY', 'order_SYNTHETICONLY']);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
@@ -149,7 +149,7 @@ test('uncertain verification directs to status without another payment or fake t
   await showPaymentReview(page);
   await openSyntheticPayment(page);
   await page.evaluate('window.__syntheticGateway.complete()');
-  await expect(page.getByRole('alert')).toContainText('Check My trips before attempting another payment.');
+  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Check My trips before attempting another payment.');
   await expect(page.getByRole('button', { name: 'Resume secure checkout', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Pay .* securely$/ })).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
@@ -232,7 +232,7 @@ for (const status of [409, 503]) test(`uncertain payment creation (${status}) lo
   await showPaymentReview(page);
   await page.getByRole('checkbox', { name: /I accept the reviewed total/ }).check();
   await page.getByRole('button', { name: /^Pay .* securely$/ }).click();
-  await expect(page.getByRole('alert')).toContainText('Payment order creation is pending reconciliation');
+  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Payment order creation is pending reconciliation');
   await expect(page.getByRole('link', { name: 'Check payment status in My trips', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Pay .* securely$/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Change selection', exact: true })).toBeDisabled();
