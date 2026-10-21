@@ -149,11 +149,12 @@ await withServer({ SEO_INDEXING_ENABLED: "false", SEO_SITE_ORIGIN: origin }, asy
     check(!/(?:₹|INR\s*)\s*[0-9][0-9,]*(?:\.[0-9]+)?/.test(cleanText(html)), `${path}: no invented public fare`);
     check(!/guaranteed (?:lowest|cheapest|first.place)|\b\d[\d,]*\s+(?:happy customers|verified reviews)\b/i.test(cleanText(html)), `${path}: no unsupported superlatives/testimonials`);
     if (path === "/") {
-      const hero = tags(html, "img").find(tag => (tag.class ?? "").split(" ").includes("home-escape-photo"));
-      check(Boolean(hero), "Homepage editorial photo is an actual responsive image");
-      check(Boolean(hero.srcset) && hero.sizes === "(max-width: 1280px) 100vw, 1200px", "Homepage editorial photo has responsive candidates and declared sizes");
-      check(hero.loading === "lazy", "Below-search editorial photo is lazy loaded");
-      check(!tags(html, "link").some(tag => tag.rel === "preload" && tag.as === "image"), "Below-search imagery does not compete with the search-first initial render");
+      const hero = tags(html, "img").find(tag => tag.alt === "Turquoise lagoon and overwater villas in the Maldives");
+      check(Boolean(hero), "Homepage editorial hero is an actual accessible responsive image");
+      check(Boolean(hero.srcset) && hero.sizes === "(max-width:700px) 38vw, 48vw", "Split hero declares responsive candidates and its actual layout sizes");
+      check(hero.loading !== "lazy", "Above-fold editorial hero is not deferred as a below-fold image");
+      const imagePreloads = tags(html, "link").filter(tag => tag.rel === "preload" && tag.as === "image");
+      check(imagePreloads.length === 1 && imagePreloads[0].imagesrcset === hero.srcset && imagePreloads[0].imagesizes === hero.sizes, "Only the above-fold responsive hero receives an image preload");
     }
     if (["/contact", "/office", "/about"].includes(path)) {
       check(cleanText(html).includes("Secunderabad"), `${path}: correct India office identity`);
