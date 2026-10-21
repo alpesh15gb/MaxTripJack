@@ -35,9 +35,9 @@ test('saved travellers show a useful empty state and confirm before removal', as
 test('traveller access failure is not mistaken for an empty saved list', async ({ page, provider }) => {
   provider.overrides['GET /api/travellers'] = { status: 401, body: { error: 'Sign in to view saved travellers.' } };
   await page.goto('/travellers');
-  await expect(page.getByRole('heading', { name: 'We couldn’t load your profiles.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in to manage your travellers.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'A familiar face, a faster checkout.' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Try again', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 
@@ -144,4 +144,140 @@ test('two-factor sign-in keeps the safe return destination until verification su
   await page.getByLabel('Authenticator code', { exact: true }).fill('123456');
   await page.getByRole('button', { name: 'Verify code', exact: true }).click();
   await expect(page).toHaveURL('/travellers');
+});
+
+test('traveller writes stay disabled after access failure and recover only after a successful reload', async ({ page, provider }, testInfo) => {
+  provider.overrides['GET /api/travellers']={status:401,body:{error:'Sign in to view saved travellers.'}};
+  await page.goto('/travellers');
+  await expect(page.getByRole('heading',{name:'Sign in to manage your travellers.'})).toBeVisible();
+  await expect(page.getByLabel('First name',{exact:true})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Save traveller',exact:true})).toHaveCount(0);
+  await expect(page.getByLabel('Passport number',{exact:true})).not.toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await capture(page,testInfo,'travellers-private-access');
+  await expect(page.getByRole('link',{name:'Sign in',exact:true})).toHaveAttribute('href','/account?returnTo=%2Ftravellers');
+  provider.overrides['GET /api/travellers']={body:{travellers:[]}};
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Save traveller',exact:true})).toBeEnabled();
+  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
+});
+
+test('traveller edits require confirmation before discard and save failures preserve typed details', async ({ page, provider }) => {
+  provider.overrides['GET /api/travellers']={body:{travellers:[{id:'fixture-traveller',name:'Alex Example',profile:{pt:'ADULT',ti:'Mr',fN:'Alex',lN:'Example'}}]}};
+  provider.overrides['PUT /api/travellers']={status:422,body:{error:'Please review these traveller details; your input is preserved.'}};
+  await page.goto('/travellers');
+  await page.getByRole('button',{name:'Edit profile',exact:true}).click();
+  await page.getByLabel('First name',{exact:true}).fill('Edited Alex');
+  page.once('dialog',dialog=>dialog.dismiss());
+  await page.getByRole('button',{name:'Cancel edit',exact:true}).click();
+  await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Edited Alex');
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();
+  await expect(page.getByText('Please review these traveller details; your input is preserved.',{exact:true})).toBeVisible();
+  await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Edited Alex');
+  expect(provider.requests('/api/travellers').filter(call=>call.method==='PUT')).toHaveLength(1);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Cancel edit',exact:true}).click();
+  await expect(page.getByLabel('First name',{exact:true})).toHaveValue('');
+  await expect(page.getByRole('heading',{name:'Add a traveller',exact:true})).toBeVisible();
+});
+
+test('removing the edited traveller clears stale editing state and announces the outcome', async ({ page, provider }) => {
+  provider.overrides['GET /api/travellers']={body:{travellers:[{id:'fixture-traveller',name:'Alex Example',profile:{pt:'ADULT',ti:'Mr',fN:'Alex',lN:'Example'}}]}};
+  provider.overrides['DELETE /api/travellers']={body:{ok:true}};
+  await page.goto('/travellers');
+  await page.getByRole('button',{name:'Edit profile',exact:true}).click();
+  provider.overrides['GET /api/travellers']={body:{travellers:[]}};
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Remove saved profile',exact:true}).click();
+  await expect(page.getByText('Traveller removed. Existing bookings are unchanged.',{exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Add a traveller',exact:true})).toBeVisible();
+  await expect(page.getByLabel('First name',{exact:true})).toHaveValue('');
+  await expect(page.getByRole('button',{name:'Save traveller',exact:true})).toBeEnabled();
+  expect(provider.calls.filter(call=>call.method==='PUT')).toHaveLength(0);
+});
+
+test('signed-in devices offer readable names, retry and an honest empty result', async ({page,provider})=>{
+ provider.overrides['GET /api/auth/list-sessions']={status:503,body:{message:'Devices temporarily unavailable'}};
+ await page.goto('/account');
+ const security=page.getByRole('region',{name:'Password and signed-in devices',exact:true});
+ await security.getByRole('button',{name:'View signed-in devices'}).click();
+ await expect(security.getByRole('button',{name:'Retry signed-in devices'})).toBeVisible();
+ provider.overrides['GET /api/auth/list-sessions']={body:[]};
+ await security.getByRole('button',{name:'Retry signed-in devices'}).click();
+ await expect(security.getByText('No active sessions were returned. Refresh or sign in again to confirm your access.')).toBeVisible();
+ expect(provider.calls.filter(call=>call.method==='POST')).toHaveLength(0);
+});
+
+test('current-device revocation requires confirmation and returns to sign-in', async ({page,provider},testInfo)=>{
+ provider.overrides['GET /api/auth/list-sessions']={body:[{token:'synthetic-session-not-a-credential',userAgent:'Mozilla/5.0 (Windows NT 10.0) Chrome/140 Safari/537',createdAt:'2026-10-21T12:00:00Z'}]};
+ provider.overrides['POST /api/auth/revoke-session']={body:{status:true}};
+ await page.goto('/account');
+ const security=page.getByRole('region',{name:'Password and signed-in devices',exact:true});
+ await security.getByRole('button',{name:'View signed-in devices'}).click();
+ await expect(security.getByRole('heading',{name:'Chrome on Windows · This device'})).toBeVisible();
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'account-current-device-before-revocation');
+ page.once('dialog',dialog=>dialog.dismiss());
+ await security.getByRole('button',{name:'Sign out this device'}).click();
+ expect(provider.requests('/api/auth/revoke-session')).toHaveLength(0);
+ provider.session=null;
+ page.once('dialog',dialog=>dialog.accept());
+ await security.getByRole('button',{name:'Sign out this device'}).click();
+ await expect(page.getByLabel('Email',{exact:true})).toBeVisible();
+ expect(provider.requests('/api/auth/revoke-session')).toHaveLength(1);
+ await expect(security).toHaveCount(0);
+});
+
+test('lost password-change response preserves inputs and prevents blind mutation retries',async({page})=>{
+ await page.goto('/account');
+ let attempts=0;
+ await page.route('**/api/auth/change-password',route=>{attempts++;return route.abort('failed');});
+ const security=page.getByRole('region',{name:'Password and signed-in devices',exact:true});
+ await security.getByLabel('Current password',{exact:true}).fill('SyntheticCurrent123');
+ await security.getByLabel('New password',{exact:true}).fill('SyntheticNewPassword123');
+ await security.getByLabel('Confirm new password',{exact:true}).fill('SyntheticNewPassword123');
+ await security.getByRole('button',{name:'Change password',exact:true}).click();
+ await expect(security.getByRole('status')).toContainText('We could not confirm whether your password changed.');
+ await expect(security.getByLabel('New password',{exact:true})).toHaveValue('SyntheticNewPassword123');
+ await expect(security.getByRole('button',{name:'Change password',exact:true})).toBeDisabled();
+ expect(attempts).toBe(1);
+});
+
+test('lost session-revocation response requires a fresh device read before another action',async({page,provider})=>{
+ provider.overrides['GET /api/auth/list-sessions']={body:[{token:'synthetic-other-session',userAgent:'Chrome/140',createdAt:'2026-10-21T12:00:00Z'}]};
+ await page.goto('/account');
+ let attempts=0;
+ await page.route('**/api/auth/revoke-session',route=>{attempts++;return route.abort('failed');});
+ const security=page.getByRole('region',{name:'Password and signed-in devices',exact:true});
+ await security.getByRole('button',{name:'View signed-in devices'}).click();
+ page.once('dialog',dialog=>dialog.accept());
+ await security.getByRole('button',{name:'Sign out this session'}).click();
+ await expect(security.getByRole('status')).toContainText('We could not confirm whether the session was signed out.');
+ await expect(security.getByRole('button',{name:'Sign out this session'})).toBeDisabled();
+ expect(attempts).toBe(1);
+ provider.overrides['GET /api/auth/list-sessions']={body:[]};
+ await security.getByRole('button',{name:'Refresh signed-in devices'}).click();
+ await expect(security.getByRole('button',{name:'Sign out this session'})).toHaveCount(0);
+ await expect(security.getByText('No active sessions were returned. Refresh or sign in again to confirm your access.')).toBeVisible();
+});
+
+test('uncertain traveller create keeps input and requires list reconciliation before retry',async({page,provider},testInfo)=>{
+ await page.goto('/travellers');
+ await expect(page.getByRole('button',{name:'Save traveller',exact:true})).toBeEnabled();
+ let attempts=0;
+ await page.route('**/api/travellers',async route=>{if(route.request().method()==='POST'){attempts++;await route.abort('failed');}else await route.fallback();});
+ await page.getByLabel('First name',{exact:true}).fill('Synthetic');
+ await page.getByLabel('Last name',{exact:true}).fill('Person');
+ await page.getByRole('button',{name:'Save traveller',exact:true}).click();
+ await expect(page.getByText(/We could not confirm whether this traveller was saved/)).toBeVisible();
+ await expect(page.getByRole('button',{name:'Save traveller',exact:true})).toBeDisabled();
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'traveller-save-outcome-uncertain');
+ await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Synthetic');
+ provider.overrides['GET /api/travellers']={body:{travellers:[{id:'synthetic-saved-after-loss',name:'Synthetic Person',profile:{pt:'ADULT',ti:'Mr',fN:'Synthetic',lN:'Person'}}]}};
+ await page.getByRole('button',{name:'Reload saved profiles',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Synthetic Person',exact:true})).toBeVisible();
+ await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Synthetic');
+ await expect(page.getByText(/Profiles reloaded. Check whether your previous change is already saved/)).toBeVisible();
+ expect(attempts).toBe(1);
 });
