@@ -1,3 +1,4 @@
 import {newCheckoutConfigured} from "@/lib/checkout-availability";
 import LiveBooking from "@/components/live-booking";
-export default async function BookPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){const query=await searchParams;const prefill:Record<string,string>={};for(const key of ["product","from","to","date","end","adults","city","returnDate","autoSearch","hotelIds","nationality","children","infants","cabin","resumeSelection"]){if(typeof query[key]==="string")prefill[key]=query[key].slice(0,key==="hotelIds"?2000:150);}return <LiveBooking key={JSON.stringify(prefill)} prefill={prefill} checkoutConfigured={newCheckoutConfigured()}/>;}
+import {bookingSearchPrefill} from "@/lib/booking-search-state";
+export default async function BookPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){const prefill=bookingSearchPrefill(await searchParams);return <LiveBooking key={JSON.stringify(prefill)} prefill={prefill} checkoutConfigured={newCheckoutConfigured()}/>;}

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { HomePackages } from "./home-packages";
+import "@/app/home-packages.css";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type ReactNode } from "react";
@@ -126,6 +128,8 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       </section>
 
       <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Review the total and supplier rules</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Updates and documents in My trips</small></span></div></section>
+
+      <HomePackages/>
 
       <section className="home-escape" aria-labelledby="escape-heading">
         <Image className="home-escape-photo" src={photos.hero} alt="Turquoise water and overwater villas in the Maldives" fill sizes="(max-width: 1280px) 100vw, 1200px" />

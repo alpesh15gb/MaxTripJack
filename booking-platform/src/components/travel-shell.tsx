@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import "./package-navigation.css";
 import { businessProfile } from "@/lib/business-profile";
 
 type IconName = "plane" | "hotel" | "arrow" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
@@ -26,7 +27,7 @@ export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number 
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }
 
-export function TravelHeader({ active, onProductChange }: { active?: "flights" | "hotels" | "trips" | "account"; onProductChange?: (product: "FLIGHT" | "HOTEL") => void }) {
+export function TravelHeader({ active, onProductChange }: { active?: "flights" | "hotels" | "trips" | "account" | "packages"; onProductChange?: (product: "FLIGHT" | "HOTEL") => void }) {
   return <>
     <a className="travel-skip" href="#main-content">Skip to main content</a>
     <div className="travel-environment"><span />Test environment <span className="travel-environment-detail">TripJack UAT · No live bookings or payments</span></div>
@@ -38,6 +39,7 @@ export function TravelHeader({ active, onProductChange }: { active?: "flights" |
           const selected = active === (product === "FLIGHT" ? "flights" : "hotels");
           return onProductChange ? <button type="button" key={product} aria-current={selected ? "page" : undefined} onClick={() => onProductChange(product)}>{label}</button> : <Link key={product} aria-current={selected ? "page" : undefined} href={product === "FLIGHT" ? "/book?product=FLIGHT" : "/book?product=HOTEL"}>{label}</Link>;
         })}
+        <Link href="/packages" aria-current={active === "packages" ? "page" : undefined}>Packages</Link>
         <Link href="/my-trips" aria-current={active === "trips" ? "page" : undefined}>My trips</Link>
         <Link className="travel-business-nav" href="/office">Our office <span aria-hidden="true">↗</span></Link>
       </nav>
@@ -50,7 +52,7 @@ export function TravelFooter() {
   return <footer className="travel-footer">
     <div className="travel-footer-top">
       <div><Link href="/" className="travel-brand">max<span>travel</span><i>.</i></Link><p>Competitive travel prices.<br />Real people. A real office.</p><span className="travel-footer-caption">MaxTravel · Secunderabad, India</span><Link href="/about">About MaxTravel</Link><Link href="/services">Our services</Link></div>
-      <div><h2>Plan your next trip</h2><Link href="/flights">Flight planning & route guides</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/cheap-flight-tickets">Compare affordable flights</Link><Link href="/last-minute-flights">Last-minute planning</Link><Link href="/book?product=HOTEL">Plan a stay</Link></div>
+      <div><h2>Plan your next trip</h2><Link href="/packages">Explore travel packages</Link><Link href="/flights">Flight planning & route guides</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/cheap-flight-tickets">Compare affordable flights</Link><Link href="/last-minute-flights">Last-minute planning</Link><Link href="/book?product=HOTEL">Plan a stay</Link></div>
       <div><h2>Help at every step</h2><Link href="/flight-booking-guide">Flight booking guide</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/customer-support">Customer support</Link><Link href="/my-trips">Manage my trips</Link><Link href="/account">Your account</Link><Link href="/contact">Contact MaxTravel</Link></div>
       <div className="travel-footer-promise"><TravelIcon name="pin" size={25} /><h2>A real office in Secunderabad.</h2><p>{businessProfile.hours.display}</p><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>{businessProfile.email}</a><Link href="/office">Office address & directions</Link><p>Review the full total and supplier rules. Payment alone does not confirm a trip.</p></div>
     </div>

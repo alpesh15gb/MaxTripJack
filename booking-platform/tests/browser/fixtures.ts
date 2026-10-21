@@ -126,6 +126,7 @@ export const test = base.extend<{ provider: ProviderFixture }>({
       provider.calls.push({ method: request.method(), path: url.pathname, query: Object.fromEntries(url.searchParams), body });
       let reply: Reply | undefined = provider.overrides[key];
       if (!reply) switch (key) {
+        case 'GET /api/packages': reply = { body: {packages:[],truncated:false,unavailableCount:0} }; break;
         case 'GET /api/travel/airports': reply = { body: { airports: [
           { code: 'BOM', name: 'Chhatrapati Shivaji Maharaj International Airport', city: 'Mumbai', country: 'India' },
           { code: 'DEL', name: 'Indira Gandhi International Airport', city: 'New Delhi', country: 'India' },

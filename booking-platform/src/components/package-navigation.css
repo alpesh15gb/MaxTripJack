@@ -1,0 +1,2 @@
+/* Four primary destinations remain readable on narrow screens; the office is also in the footer. */
+@media(max-width:700px){.travel-app .travel-header .travel-business-nav{display:none}.travel-header nav>a,.travel-header nav>button{min-height:48px}}
