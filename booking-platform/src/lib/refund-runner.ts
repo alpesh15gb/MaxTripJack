@@ -1,3 +1,4 @@
+import { assertRazorpayRecord } from "@/lib/payment-provider";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -5,10 +6,11 @@ import { transaction } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import { razorpay,razorpayKey } from "@/lib/providers/razorpay";
 export async function executeRefund(refundId:string,actorId:string|null=null){
- razorpayKey();const id=z.string().uuid().parse(refundId);
+ const id=z.string().uuid().parse(refundId);
  const refund=await transaction(async tx=>{
-  const found=await tx.query("SELECT r.*,p.gateway_payment_id,p.order_id,o.status AS booking_status FROM refunds r JOIN payments p ON p.id=r.payment_id JOIN orders o ON o.id=p.order_id WHERE r.id=$1 FOR UPDATE OF r,p,o",[id]);const row=found.rows[0];
+  const found=await tx.query("SELECT r.*,p.provider,p.gateway_payment_id,p.order_id,o.status AS booking_status FROM refunds r JOIN payments p ON p.id=r.payment_id JOIN orders o ON o.id=p.order_id WHERE r.id=$1 FOR UPDATE OF r,p,o",[id]);const row=found.rows[0];
   if(!row||!["APPROVED","PROCESSING"].includes(row.status))throw new HttpError(409,"Refund must be approved before execution.");
+  assertRazorpayRecord(row.provider);razorpayKey();
   if(row.booking_status!=="BOOKING_FAILED"){
    const consent=await tx.query("SELECT COALESCE(sum(refund_offer_minor),0)::text AS amount FROM cancellation_requests WHERE order_id=$1 AND status='CONFIRMED' AND accepted_at IS NOT NULL",[row.order_id]);
    const reserved=await tx.query("SELECT COALESCE(sum(r.amount_minor),0)::text AS amount FROM refunds r JOIN payments p ON p.id=r.payment_id WHERE p.order_id=$1 AND r.status IN ('REQUESTED','APPROVED','PROCESSING','COMPLETED')",[row.order_id]);

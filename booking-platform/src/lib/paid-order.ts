@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { transaction } from "./db";
 import { HttpError } from "./http";
 export async function recordCapturedPayment(gatewayOrderId:string,gatewayPaymentId:string,amount:number,currency:string,method?:string){return transaction(async tx=>{
- const result=await tx.query("SELECT * FROM payments WHERE gateway_order_id=$1 FOR UPDATE",[gatewayOrderId]);const payment=result.rows[0];
+ const result=await tx.query("SELECT * FROM payments WHERE gateway_order_id=$1 AND provider='RAZORPAY' FOR UPDATE",[gatewayOrderId]);const payment=result.rows[0];
  if(!payment||String(payment.amount_minor)!==String(amount)||payment.currency!==currency)throw new HttpError(409,"Payment does not match the server order.");
  if(payment.gateway_payment_id&&payment.gateway_payment_id!==gatewayPaymentId)throw new HttpError(409,"Payment requires reconciliation.");
  if(payment.status!=="CAPTURED"){

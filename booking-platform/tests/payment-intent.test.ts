@@ -7,7 +7,7 @@ const bookingId = "9225bc6c-30c5-4a3c-a506-59c3d4e20001";
 const gateway = { id: "order_existing", amount: 10000, currency: "INR", receipt: bookingId };
 const now = Date.now();
 function intent(overrides: Partial<PaymentIntent> = {}): PaymentIntent {
-  return { total_minor: "10000", status: "PAYMENT_PENDING", state: "STARTED", gateway_order_id: null, created_at: new Date(now - PAYMENT_INTENT_STALE_MS - 1000), ...overrides };
+  return { provider: "RAZORPAY", total_minor: "10000", status: "PAYMENT_PENDING", state: "STARTED", gateway_order_id: null, created_at: new Date(now - PAYMENT_INTENT_STALE_MS - 1000), ...overrides };
 }
 
 // In-memory SQL boundary: no database, auth service or provider network traffic.
@@ -17,7 +17,7 @@ function fixture(current = intent()) {
   const payments: { order_id: string; gateway_order_id: string; amount_minor: string; currency: string }[] = [];
   const query = async (sql: string, values: unknown[] = []) => {
     queries.push(sql);
-    if (sql.startsWith("SELECT o.total_minor")) {
+    if (sql.startsWith("SELECT g.provider,o.total_minor")) {
       assert.match(sql, /FOR UPDATE OF o,g$/);
       return { rows: [{ ...current }], rowCount: 1 };
     }
@@ -105,4 +105,11 @@ test("an existing conflicting payment link is never replaced", async () => {
   f.payments.push({ order_id: "other-booking", gateway_order_id: gateway.id, amount_minor: "10000", currency: "INR" });
   await assert.rejects(persistGatewayOrder(f.tx, bookingId, gateway, "RECOVER"));
   assert.deepEqual(f.writes(), []);
+});
+
+ test("Razorpay recovery refuses PayGlocal attempts without mutation", async () => {
+  const f = fixture(intent({ provider: "PAYGLOCAL" }));
+  assert.throws(() => assertRecoverablePaymentIntent(f.current, gateway.id, now));
+  await assert.rejects(persistGatewayOrder(f.tx, bookingId, gateway, "CREATE"));
+  assert.equal(f.writes().length, 0);
 });

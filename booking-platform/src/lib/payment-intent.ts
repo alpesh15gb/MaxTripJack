@@ -7,6 +7,7 @@ import { HttpError } from "./http";
 export const PAYMENT_INTENT_STALE_MS = 120_000;
 
 export type PaymentIntent = {
+  provider?: string;
   total_minor: string | number;
   status: string;
   state: string;
@@ -16,11 +17,12 @@ export type PaymentIntent = {
 type GatewayOrder = { id?: unknown; amount?: unknown; currency?: unknown; receipt?: unknown };
 
 export function assertRecoverablePaymentIntent(intent: PaymentIntent | undefined, gatewayOrderId: string, now = Date.now()) {
+  if (intent?.provider && intent.provider !== "RAZORPAY") throw new HttpError(409, "Payment belongs to another provider.");
   // Repeated recovery can observe a captured/ticketed order: verify its link
   // without resetting its state.
   if (intent?.state === "CREATED" && intent.gateway_order_id === gatewayOrderId) return;
   const age = intent ? now - new Date(intent.created_at).getTime() : NaN;
-  if (!intent || intent.gateway_order_id || !["PAYMENT_PENDING", "MANUAL_REVIEW"].includes(intent.status)
+  if (!intent || (intent.provider !== undefined && intent.provider !== "RAZORPAY") || intent.gateway_order_id || !["PAYMENT_PENDING", "MANUAL_REVIEW"].includes(intent.status)
     || !(intent.state === "UNKNOWN" || (intent.state === "STARTED" && age >= PAYMENT_INTENT_STALE_MS))) {
     throw new HttpError(409, "Payment order is not awaiting recovery. A recent creation attempt must finish before reconciliation.");
   }
@@ -29,10 +31,11 @@ export function assertRecoverablePaymentIntent(intent: PaymentIntent | undefined
 /** Caller supplies a transaction. Lock both rows before checking or linking. */
 export async function persistGatewayOrder(tx: Pick<PoolClient, "query">, bookingId: string, gateway: GatewayOrder, mode: "CREATE" | "RECOVER") {
   const found = await tx.query<PaymentIntent>(
-    "SELECT o.total_minor,o.status,g.state,g.gateway_order_id,g.created_at FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.id=$1 FOR UPDATE OF o,g", [bookingId],
+    "SELECT g.provider,o.total_minor,o.status,g.state,g.gateway_order_id,g.created_at FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.id=$1 FOR UPDATE OF o,g", [bookingId],
   );
   const intent = found.rows[0];
   if (typeof gateway.id !== "string" || !/^order_[A-Za-z0-9]+$/.test(gateway.id) || !intent
+    || (intent.provider !== undefined && intent.provider !== "RAZORPAY")
     || gateway.amount !== Number(intent.total_minor) || gateway.currency !== "INR"
     || (mode === "RECOVER" && gateway.receipt !== bookingId)) {
     throw new HttpError(409, "Gateway order does not match this booking and amount.");
@@ -63,10 +66,10 @@ export async function persistGatewayOrder(tx: Pick<PoolClient, "query">, booking
 /** A late failing creator must not undo a concurrent recovery or capture. */
 export async function markGatewayIntentUnknown(tx: Pick<PoolClient, "query">, bookingId: string) {
   const found = await tx.query<PaymentIntent>(
-    "SELECT o.total_minor,o.status,g.state,g.gateway_order_id,g.created_at FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.id=$1 FOR UPDATE OF o,g", [bookingId],
+    "SELECT g.provider,o.total_minor,o.status,g.state,g.gateway_order_id,g.created_at FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.id=$1 FOR UPDATE OF o,g", [bookingId],
   );
   const intent = found.rows[0];
-  if (!intent || intent.gateway_order_id || !["STARTED", "UNKNOWN"].includes(intent.state)
+  if (!intent || (intent.provider !== undefined && intent.provider !== "RAZORPAY") || intent.gateway_order_id || !["STARTED", "UNKNOWN"].includes(intent.state)
     || !["PAYMENT_PENDING", "MANUAL_REVIEW"].includes(intent.status)) return;
   await tx.query("UPDATE gateway_intents SET state='UNKNOWN' WHERE order_id=$1", [bookingId]);
   if (intent.status === "PAYMENT_PENDING") {

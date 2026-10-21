@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       }
       if(refundEvent){
        const refund=event.payload.refund!.entity;const candidate=refund.receipt??refund.notes?.refundId;const localId=z.string().uuid().safeParse(candidate);
-       const found=await tx.query("SELECT r.*,p.gateway_payment_id,p.order_id FROM refunds r JOIN payments p ON p.id=r.payment_id WHERE r.gateway_refund_id=$1 OR r.id=$2::uuid FOR UPDATE OF r,p",[refund.id,localId.success?localId.data:null]);const record=found.rows[0];
+       const found=await tx.query("SELECT r.*,p.gateway_payment_id,p.order_id FROM refunds r JOIN payments p ON p.id=r.payment_id WHERE p.provider='RAZORPAY' AND (r.gateway_refund_id=$1 OR r.id=$2::uuid) FOR UPDATE OF r,p",[refund.id,localId.success?localId.data:null]);const record=found.rows[0];
        if(!record||!record.operation_started_at||record.gateway_payment_id!==refund.payment_id||Number(record.amount_minor)!==refund.amount||(record.gateway_refund_id&&record.gateway_refund_id!==refund.id))throw new HttpError(409,"Refund requires reconciliation before accepting this event.");
        if(record.status==="COMPLETED")return {accepted:true};
        const status=refund.status==="processed"?"COMPLETED":"FAILED";
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
        await tx.query("INSERT INTO audit_events(id,action,entity_id,detail) VALUES($1,'REFUND_WEBHOOK_UPDATE',$2,$3)",[randomUUID(),record.id,{status}]);return {accepted:true};
       }
       if(!payment)throw new HttpError(400,"Missing payment entity.");
-      const found = await tx.query("SELECT id,order_id,amount_minor::text,currency,status,method,gateway_payment_id FROM payments WHERE gateway_order_id=$1 FOR UPDATE", [payment.order_id]);
+      const found = await tx.query("SELECT id,order_id,amount_minor::text,currency,status,method,gateway_payment_id FROM payments WHERE gateway_order_id=$1 AND provider='RAZORPAY' FOR UPDATE", [payment.order_id]);
       const record = found.rows[0];
       if (!record) throw new HttpError(409, "Payment order is not yet available. Retry delivery.");
       if (record.amount_minor !== String(payment.amount) || record.currency !== payment.currency) throw new HttpError(409, "Payment amount mismatch.");

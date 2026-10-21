@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       gatewayOrderId: z.string().regex(/^order_[A-Za-z0-9]+$/),
     }).strict());
     const found = await database().query<PaymentIntent>(
-      "SELECT o.total_minor,o.status,g.state,g.gateway_order_id,g.created_at FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.id=$1", [input.bookingId],
+      "SELECT g.provider,o.total_minor,o.status,g.state,g.gateway_order_id,g.created_at FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.id=$1", [input.bookingId],
     );
     assertRecoverablePaymentIntent(found.rows[0], input.gatewayOrderId);
     // Read the supplied existing order; never create/re-submit an uncertain one.

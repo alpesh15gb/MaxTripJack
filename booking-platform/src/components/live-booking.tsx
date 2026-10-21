@@ -13,7 +13,7 @@ import BookingFlightCard,{money} from './booking-flight-card';
 import {TravelHeader,TravelFooter} from './travel-shell';
 import {authClient} from '@/lib/auth-client';
 import useCheckoutRecovery from './use-checkout-recovery';
-import {clearCheckoutMarker,saveCheckoutMarker,isResumableCheckout,parseCheckoutRecoveryStatus,type CheckoutRecoveryStatus} from '@/lib/checkout-recovery';
+import {clearCheckoutMarker,saveCheckoutMarker,isResumableCheckout,isResumableHostedCheckout,parseCheckoutRecoveryStatus,type CheckoutRecoveryStatus} from '@/lib/checkout-recovery';
 import { compatibleReturnPair,estimatedFare,flightStops,groupLabel,indiaToday,initialAdults,journeyMinutes,orderedGroups,parseHotelIds,paymentFailureAction,quoteRemaining,type Flight,type FlightFare } from '@/lib/booking-presentation';
 
 type Product='FLIGHT'|'HOTEL';
@@ -23,7 +23,7 @@ type Results={searchId:string;results:{searchResult?:{tripInfos?:Record<string,F
 type Quote={quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
 type Selection={priceIds?:string[];hid?:string;optionId?:string};
 type CheckoutResult={razorpay_order_id:string;razorpay_payment_id:string;razorpay_signature:string};
-type Payment={bookingId:string;orderId:string;amount:number;currency:string;keyId:string};
+type Payment={provider?:'RAZORPAY';bookingId:string;orderId:string;amount:number;currency:string;keyId:string}|{provider:'PAYGLOCAL';bookingId:string;checkoutUrl:string;amount:number;currency:'INR'};
 type Gateway={key:string;amount:number;currency:string;order_id:string;name:string;handler:(result:CheckoutResult)=>void;modal:{ondismiss:()=>void}};
 declare global{interface Window{Razorpay?:new(options:Gateway)=>{open:()=>void;on:(event:string,callback:()=>void)=>void}}}
 class BookingApiError extends Error { constructor(message:string,public status:number){super(message);} }
@@ -65,7 +65,7 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
   const [rooms,setRooms]=useState<{hid:string;name:string;options:HotelOption[]}|null>(null);
   const [selectedFares,setSelectedFares]=useState<Record<string,string>>({}),[activeGroup,setActiveGroup]=useState('');
   const [sortBy,setSortBy]=useState('price'),[stopFilter,setStopFilter]=useState('ALL');
-  const [extrasPending,setExtrasPending]=useState(false),[sdk,setSdk]=useState(false);
+  const [extrasPending,setExtrasPending]=useState(false);
   const [gstEntered,setGstEntered]=useState(false),[emergencyEntered,setEmergencyEntered]=useState(false);
   const [checkoutStep,setCheckoutStep]=useState<'travellers'|'payment'>('travellers');
   const [reviewBase,setReviewBase]=useState(0),[now,setNow]=useState<number|null>(null);
@@ -186,6 +186,11 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
     if(nextGroup){setActiveGroup(nextGroup);setStopFilter('ALL');scrollToSection('booking-results');}else scrollToSection('booking-summary');
   }
   function openCheckout(order:Payment){
+    if(order.provider==='PAYGLOCAL'){
+      if(!isResumableHostedCheckout({...order,canResume:true}))throw Error('Hosted checkout details could not be verified. Check My trips before paying again.');
+      setActivity('Redirecting to secure checkout; payment verification follows in My trips');
+      window.location.assign(order.checkoutUrl);return;
+    }
     if(!window.Razorpay)throw Error('Secure checkout is still loading. Please wait a moment.');
     verificationStarted.current=false;
     const checkout=new window.Razorpay({key:order.keyId,amount:order.amount,currency:order.currency,order_id:order.orderId,name:'Max Travel · Test booking',handler:async result=>{
@@ -202,7 +207,6 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
     if(checkoutStep==='travellers'){setCheckoutStep('payment');scrollToSection('booking-review');return;}
     if(extrasPending){setMessage('Apply your flight extras before continuing.');return;}
     if(expired||needsReview){setMessage(payment?'Your reviewed price has expired. Your original order is preserved; check My trips before making another payment.':'Your reviewed price has expired. Refresh the price and accept the latest terms.');return;}
-    if(!sdk||!window.Razorpay){setMessage('Secure checkout is still loading. Check your connection and try again.');return;}
     const values=new FormData(form);
     busyRef.current=true;setBusy(true);setActivity('Opening secure payment');setMessage('');
     try{
@@ -210,16 +214,16 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
         const response=await fetch(`/api/payments/status?bookingId=${encodeURIComponent(payment.bookingId)}`,{cache:'no-store'});
         const body=await response.json();
         const status=parseCheckoutRecoveryStatus(body);
-        if(!response.ok||!status||!isResumableCheckout(status)){setPaymentUncertain(true);throw Error(status?.message||'Your order may already be processing. Check its status in My trips before paying again.');}
+        if(!response.ok||!status||(!isResumableCheckout(status)&&!isResumableHostedCheckout(status))){setPaymentUncertain(true);throw Error(status?.message||'Your order may already be processing. Check its status in My trips before paying again.');}
         if(Date.parse(quote.expiresAt)<=new Date().getTime())throw Error('This reviewed price has expired. Your original order is preserved; check My trips before making another payment.');
-        const verifiedOrder:Payment={bookingId:status.bookingId,orderId:status.orderId,keyId:status.keyId,amount:status.amount,currency:status.currency};
+        const verifiedOrder:Payment=isResumableHostedCheckout(status)?status:{bookingId:status.bookingId,orderId:status.orderId,keyId:status.keyId,amount:status.amount,currency:status.currency};
         setPayment(verifiedOrder);openCheckout(verifiedOrder);return;
       }
       const travellers=party.map((pt,index)=>({ti:String(values.get(`title-${index}`)),pt,...(quote.product==='HOTEL'?{roomIndex:hotelParty[index].roomIndex}:{}),fN:String(values.get(`first-${index}`)),lN:String(values.get(`last-${index}`)),...(values.get(`dob-${index}`)?{dob:String(values.get(`dob-${index}`))}:{}),...(values.get(`passport-${index}`)?{pNum:String(values.get(`passport-${index}`))}:{}),...(values.get(`expiry-${index}`)?{eD:String(values.get(`expiry-${index}`))}:{}),...(values.get(`pan-${index}`)?{pan:String(values.get(`pan-${index}`)).toUpperCase()}:{}),...(values.get(`nationality-${index}`)?{pNat:String(values.get(`nationality-${index}`)).toUpperCase()}:{})}));
       const extra={...(values.get('gstNumber')?{gstInfo:{gstNumber:String(values.get('gstNumber')).toUpperCase(),registeredName:String(values.get('gstName')),email:String(values.get('email')),mobile:String(values.get('phone')),address:String(values.get('gstAddress'))}}:{}),...(values.get('emergencyName')?{contactInfo:{ecn:String(values.get('emergencyName')),emails:[String(values.get('emergencyEmail'))],contacts:[String(values.get('emergencyPhone'))]}}:{})};
       if(!saveCheckoutMarker({quoteId:quote.quoteId}))throw new BookingApiError('Your browser could not preserve checkout recovery. Enable session storage before starting payment.',400);
       const order=await api<Payment>('/api/payments/create',{quoteId:quote.quoteId,acceptedTotalMinor:quote.totalMinor,guests:{...extra,travellers,email:values.get('email'),phone:values.get('phone')}});
-      if(!isResumableCheckout({...order,canResume:true}))throw Error('Payment order details could not be verified. The original attempt is preserved.');
+      if(!isResumableCheckout({...order,canResume:true})&&!isResumableHostedCheckout({...order,canResume:true}))throw Error('Payment order details could not be verified. The original attempt is preserved.');
       saveCheckoutMarker({quoteId:quote.quoteId,bookingId:order.bookingId});
       if(!mounted.current)return;
       setPayment(order);
@@ -236,28 +240,28 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
   }
 
   async function resumeInterrupted(){
-    if(!recovery.pending||busyRef.current||!sdk)return;
+    if(!recovery.pending||busyRef.current)return;
     busyRef.current=true;setBusy(true);setActivity('Checking your existing payment order');setMessage('');
     try{
       const marker=recovery.pending;
       const query=marker.bookingId?`bookingId=${encodeURIComponent(marker.bookingId)}`:`quoteId=${encodeURIComponent(marker.quoteId)}`;
       const response=await fetch(`/api/payments/status?${query}`,{cache:'no-store'});
       const data:CheckoutRecoveryStatus|null=parseCheckoutRecoveryStatus(await response.json());
-      if(!response.ok||!data||!isResumableCheckout(data)||!data.quoteExpiresAt||quoteRemaining(data.quoteExpiresAt,new Date().getTime())<=0)throw Error(data?.message||'This checkout cannot be resumed safely. Check My trips before paying again.');
+      if(!response.ok||!data||(!isResumableCheckout(data)&&!isResumableHostedCheckout(data))||!data.quoteExpiresAt||quoteRemaining(data.quoteExpiresAt,new Date().getTime())<=0)throw Error(data?.message||'This checkout cannot be resumed safely. Check My trips before paying again.');
       if(!mounted.current)return;
-      const order:Payment={bookingId:data.bookingId,orderId:data.orderId,keyId:data.keyId,amount:data.amount,currency:data.currency};
+      const order:Payment=isResumableHostedCheckout(data)?data:{bookingId:data.bookingId,orderId:data.orderId,keyId:data.keyId,amount:data.amount,currency:data.currency};
       saveCheckoutMarker({...marker,bookingId:order.bookingId});setPayment(order);openCheckout(order);
     }catch(error){if(mounted.current){recovery.invalidate();setMessage(error instanceof Error?error.message:'Check the existing payment in My trips.');busyRef.current=false;setBusy(false);setActivity('');}}
   }
 
   return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} onProductChange={switchProduct}/><main id="main-content" className="page-shell live-booking booking-workflow">
-    <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onReady={()=>setSdk(true)} onError={()=>setMessage('Payment checkout could not load. Check your connection. You can still compare journeys.')}/>
+    <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onError={()=>setMessage('Payment checkout could not load. Check your connection. You can still compare journeys.')}/>
     <Link href="/" className="back">← Back to explore</Link>
     <div className="page-heading"><div><div className="eyebrow">YOUR JOURNEY, YOUR WAY · TEST ENVIRONMENT</div><h1>Let’s get you going.</h1><p>Thoughtful choices. A clear total. Your next chapter starts here.</p></div><Link className="secondary" href="/account">Your account</Link></div>
     <ol className="booking-progress" aria-label="Booking progress">{['Search','Choose','Travellers','Payment'].map((label,index)=><li key={label} aria-current={step===index?'step':undefined} className={index<step?'is-complete':index===step?'is-current':''}><span aria-hidden="true">{index<step?'✓':index+1}</span>{label}</li>)}</ol>
     <div className="booking-layout"><div className="booking-main">
       {recovery.checking&&<div className="booking-status info-message" role="status">Checking for an interrupted checkout…</div>}
-      {recovery.pending&&<section className="white-card booking-recovery" aria-label="Interrupted checkout"><div className="eyebrow">LET’S PICK UP SAFELY</div><h2>Your previous checkout needs a look.</h2><p role="status">{recovery.message}</p><p className="muted">We have paused new payments so you do not accidentally pay twice. No traveller or contact details are saved in this browser.</p>{recovery.status&&isResumableCheckout(recovery.status)&&<button type="button" className="primary" disabled={busy||recovery.checking||!sdk} onClick={()=>void resumeInterrupted()}>Resume existing checkout · {money(recovery.status.amount)}</button>}<button type="button" className="secondary" disabled={busy||recovery.checking} onClick={()=>{if(recovery.pending)void recovery.reconcile(recovery.pending);}}>Check payment status again</button><Link className="secondary" href="/my-trips">Open My trips</Link>{/sign in/i.test(recovery.message)&&<Link className="inline-link" href="/account">Sign in to check your payment</Link>}</section>}
+      {recovery.pending&&<section className="white-card booking-recovery" aria-label="Interrupted checkout"><div className="eyebrow">LET’S PICK UP SAFELY</div><h2>Your previous checkout needs a look.</h2><p role="status">{recovery.message}</p><p className="muted">We have paused new payments so you do not accidentally pay twice. No traveller or contact details are saved in this browser.</p>{recovery.status&&(isResumableCheckout(recovery.status)||isResumableHostedCheckout(recovery.status))&&<button type="button" className="primary" disabled={busy||recovery.checking} onClick={()=>void resumeInterrupted()}>Resume existing checkout · {money(recovery.status.amount)}</button>}<button type="button" className="secondary" disabled={busy||recovery.checking} onClick={()=>{if(recovery.pending)void recovery.reconcile(recovery.pending);}}>Check payment status again</button><Link className="secondary" href="/my-trips">Open My trips</Link>{/sign in/i.test(recovery.message)&&<Link className="inline-link" href="/account">Sign in to check your payment</Link>}</section>}
       {!recovery.pending&&recovery.message&&<p className="info-message" role="status">{recovery.message} <Link href="/my-trips">My trips →</Link></p>}
       <div className="account-tabs" aria-label="Booking product"><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} aria-pressed={product==='FLIGHT'} onClick={()=>switchProduct('FLIGHT')}>✈ Flights</button><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} aria-pressed={product==='HOTEL'} onClick={()=>switchProduct('HOTEL')}>▤ Stays</button></div>
       <details className="booking-search-panel" open={!results&&!quote}><summary>{results||quote?'Your search · change dates or travellers':'Where would you like to go?'}</summary>
@@ -301,8 +305,8 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
           <details open={emergencyRequired}><summary>Emergency contact{emergencyRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>Contact name<input name="emergencyName" onChange={event=>setEmergencyEntered(Boolean(event.target.value.trim()))} required={emergencyRequired} maxLength={100}/></label><label>Contact email<input name="emergencyEmail" required={emergencyRequired||emergencyEntered} type="email"/></label><label>Contact phone with country code<input name="emergencyPhone" required={emergencyRequired||emergencyEntered} type="tel" minLength={10} maxLength={20}/></label></div></details>
           {quote.product==='FLIGHT'&&<CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={total=>setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total}:current)}/>}
         </fieldset>
-        {checkoutStep==='payment'&&<div className="booking-payment-review"><h3>Your total, before you pay.</h3><p>{party.length} traveller{party.length===1?'':'s'} · {quote.product==='HOTEL'?'Full stay total':'Complete selected itinerary'}</p><strong className="booking-payment-total">{money(quote.totalMinor)}</strong><p className="muted">Payment is processed by Razorpay. A successful payment is not a confirmed ticket or room: supplier confirmation follows in My trips.</p><label className="checkbox consent"><input key={`${quote.quoteId}:${quote.totalMinor}`} name="consent" type="checkbox" required disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked}/>I accept the reviewed total and supplier rules. This is a test booking with test-mode payment.</label><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>setCheckoutStep('travellers')}>Back to travellers</button></div>}
-        {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button className="primary booking-continue" disabled={busy||extrasPending||expired||needsReview||(checkoutStep==='payment'&&!sdk)}>{busy?'Processing…':checkoutStep==='travellers'?'Continue to payment':payment?'Resume secure checkout':`Pay ${money(quote.totalMinor)} securely`}</button>}
+        {checkoutStep==='payment'&&<div className="booking-payment-review"><h3>Your total, before you pay.</h3><p>{party.length} traveller{party.length===1?'':'s'} · {quote.product==='HOTEL'?'Full stay total':'Complete selected itinerary'}</p><strong className="booking-payment-total">{money(quote.totalMinor)}</strong><p className="muted">Payment opens with the configured secure payment provider. A successful payment is not a confirmed ticket or room: supplier confirmation follows in My trips.</p><label className="checkbox consent"><input key={`${quote.quoteId}:${quote.totalMinor}`} name="consent" type="checkbox" required disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked}/>I accept the reviewed total and supplier rules. This is a test booking with test-mode payment.</label><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>setCheckoutStep('travellers')}>Back to travellers</button></div>}
+        {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button className="primary booking-continue" disabled={busy||extrasPending||expired||needsReview}>{busy?'Processing…':checkoutStep==='travellers'?'Continue to payment':payment?'Resume secure checkout':`Pay ${money(quote.totalMinor)} securely`}</button>}
         {extrasPending&&<p className="muted" role="status">Apply your optional extras before continuing.</p>}
       </form>}
     </div>
