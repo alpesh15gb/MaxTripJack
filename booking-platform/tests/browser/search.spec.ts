@@ -14,7 +14,7 @@ test('homepage carries canonical airports and selected adults into exactly one s
   await page.waitForURL(url => url.pathname === '/book');
   const query = new URL(page.url()).searchParams;
   expect(Object.fromEntries(query)).toMatchObject({ product: 'FLIGHT', from: 'BOM', to: 'DEL', adults: '3', autoSearch: '1' });
-  await expect(page.getByText('IndiGo', { exact: true })).toBeVisible();
+  await expect(page.locator('.airline-identity').getByText('IndiGo', { exact: true })).toBeVisible();
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
   expect(provider.requests('/api/travel/search')[0].body).toMatchObject({
     product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: 3, children: 0, infants: 0, cabin: 'ECONOMY',
@@ -117,7 +117,7 @@ test('search errors remain actionable and an explicit retry sends only one new r
   delete provider.overrides['POST /api/travel/search'];
   provider.searchDelay = 500;
   await page.getByRole('button', { name: 'Search flights', exact: true }).click();
-  await expect(page.getByText('IndiGo', { exact: true })).toBeVisible();
+  await expect(page.locator('.airline-identity').getByText('IndiGo', { exact: true })).toBeVisible();
   expect(provider.requests('/api/travel/search')).toHaveLength(2);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });
@@ -177,7 +177,7 @@ test('traveller disclosure preserves party and cabin through keyboard close and 
   // Closed disclosure fields remain successful form controls; no search on edit.
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
   await form.getByRole('button', { name: 'Search flights', exact: true }).click();
-  await expect(page.getByText('IndiGo', { exact: true })).toBeVisible();
+  await expect(page.locator('.airline-identity').getByText('IndiGo', { exact: true })).toBeVisible();
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
   expect(provider.requests('/api/travel/search')[0].body).toMatchObject({
     product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure,

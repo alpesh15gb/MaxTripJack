@@ -13,7 +13,7 @@ test('family can choose cabin on homepage without losing search context', async 
   await form.getByRole('button',{name:'Search flights',exact:true}).click();
   await page.waitForURL(url=>url.pathname==='/book');
   expect(Object.fromEntries(new URL(page.url()).searchParams)).toMatchObject({adults:'2',children:'1',infants:'1',cabin:'BUSINESS',date:departure});
-  await expect(page.getByText('IndiGo',{exact:true})).toBeVisible();
+  await expect(page.locator('.airline-identity').getByText('IndiGo',{exact:true})).toBeVisible();
   expect(provider.requests('/api/travel/search')[0].body).toMatchObject({adults:2,children:1,infants:1,cabin:'BUSINESS'});
 });
 

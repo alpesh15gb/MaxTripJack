@@ -127,7 +127,7 @@ test('flight extras display supplier conditions as labelled terms and block unsa
   await page.goto('/my-trips');
   await page.locator('.trip-management > summary').click();
   await page.getByRole('button',{name:'Add seats, meals & baggage'}).click();
-  await page.getByLabel('meal',{exact:true}).selectOption('MEAL1');
+  await page.getByRole('combobox',{name:'meal for Synthetic Traveller · BOM → DEL',exact:true}).selectOption('MEAL1');
   await page.getByRole('button',{name:'Review extras total'}).click();
   await expect(page.getByRole('region',{name:'Supplier conditions'})).toContainText('Extras cannot be refunded');
   await expect(page.getByRole('region',{name:'Supplier conditions'})).toContainText('Seat eligibility still applies');

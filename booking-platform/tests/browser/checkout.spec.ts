@@ -138,7 +138,7 @@ test('dismissing and resuming payment reuses the same order and never claims con
   await page.evaluate('window.__syntheticGateway.dismiss()');
   await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Checkout closed. Your payment order is preserved.');
   await page.getByRole('button', { name: 'Resume secure checkout', exact: true }).click();
-  await expect.poll(() => page.evaluate('window.__syntheticGateway.opens')).toEqual(['order_SYNTHETICONLY', 'order_SYNTHETICONLY']);
+  await expect.poll(() => page.evaluate('window.__syntheticGateway?.opens ?? []')).toEqual(['order_SYNTHETICONLY', 'order_SYNTHETICONLY']);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/verify')).toHaveLength(0);
   expect(provider.requests('/api/payments/status')).toHaveLength(1);
@@ -292,7 +292,7 @@ test('reload resumes only the owned server-checked order and stores no traveller
   const recovery = page.getByRole('region', { name: 'Interrupted checkout', exact: true });
   await expect(recovery).toBeVisible();
   await recovery.getByRole('button', { name: /^Resume existing checkout/ }).click();
-  await expect.poll(() => page.evaluate('window.__syntheticGateway.opens')).toEqual(['order_SYNTHETICONLY']);
+  await expect.poll(() => page.evaluate('window.__syntheticGateway?.opens ?? []')).toEqual(['order_SYNTHETICONLY']);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/status')).toHaveLength(2);
   expect(provider.requests('/api/payments/status').map(call => call.query)).toEqual([{ bookingId }, { bookingId }]);
@@ -402,6 +402,8 @@ test('final review displays selected flight and exact traveller contact before p
  await expect(page.locator('.final-traveller-summary')).toContainText('Mr Aarav Example');
  await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
  await expect(page.locator('.final-traveller-summary')).toContainText('9876543210');
+ const fareSummary=await page.locator('.selected-itinerary .fare-comparison > summary').boundingBox();
+ expect(fareSummary?.height).toBeLessThan(160);
  await expectNoHorizontalOverflow(page);
 });
 
@@ -445,4 +447,14 @@ test('changing fare preserves private traveller draft only in the current page',
  await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
  await expect(page.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
+});
+
+test('results prioritise the first real option within the initial viewport',async({page})=>{
+ await openFlightSearch(page);
+ await expect(page.locator('.live-flight-card').first()).toBeVisible();
+ await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo({top:0,behavior:'instant'});});
+ const top=await page.locator('.live-flight-card').first().evaluate(element=>element.getBoundingClientRect().top+window.scrollY);
+ const height=page.viewportSize()!.height;
+ expect(top,'The first option should begin before the bottom fifth of the initial viewport').toBeLessThan(height*.85);
+ await expect(page.getByRole('complementary',{name:'Your journey summary'})).toHaveCount(0);
 });

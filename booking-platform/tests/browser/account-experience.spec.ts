@@ -44,7 +44,7 @@ test('traveller access failure is not mistaken for an empty saved list', async (
 test('password reset keeps invalid links local and exposes clear recovery feedback', async ({ page, provider }, testInfo) => {
   await page.goto('/reset-password');
   await expect(page.getByRole('main')).toHaveCount(1);
-  await expect(page.getByRole('alert')).toContainText('Reset link is missing or invalid.');
+  await expect(page.getByRole('main').getByRole('alert')).toContainText('Reset link is missing or invalid.');
   await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Back to account recovery' })).toBeVisible();
   expect(provider.calls.filter(call => call.method !== 'GET')).toHaveLength(0);
