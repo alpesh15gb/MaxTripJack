@@ -340,3 +340,10 @@
  .flight-shopping-list .fare-option-action { width:100%; display:grid; gap:8px; }
  .flight-shopping-list .fare-option-action .primary { width:100%; }
 }
+
+/* Keep the flight-group count readable beside long headings on narrow screens. */
+@media(max-width:600px) {
+ .booking-workflow.has-journey .results-heading:has(#flight-results-title) { grid-template-columns:minmax(0,1fr); gap:8px; }
+ .booking-workflow.has-journey .results-heading:has(#flight-results-title)>div { min-width:0; }
+ .booking-workflow .results-heading:has(#flight-results-title) .results-count { justify-self:start; min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+}

@@ -14,6 +14,12 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
  const geometry=await cards.first().evaluate(node=>{const r=node.getBoundingClientRect();return {scrollY,viewportHeight:innerHeight,cardTop:r.top,cardBottom:r.bottom};});
  await testInfo.attach('flight-viewport-geometry',{body:JSON.stringify(geometry),contentType:'application/json'});
+ for(const selector of ['#flight-results-title','.results-heading .results-count']){
+  const bounds=await page.locator(selector).evaluate(node=>{const box=node.getBoundingClientRect();const range=document.createRange();range.selectNodeContents(node);const text=range.getBoundingClientRect();return {left:box.left,right:box.right,textLeft:text.left,textRight:text.right,viewport:innerWidth};});
+  expect(bounds.left).toBeGreaterThanOrEqual(0);expect(bounds.right).toBeLessThanOrEqual(bounds.viewport);
+  expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.left-1);expect(bounds.textRight).toBeLessThanOrEqual(bounds.right+1);
+ }
+ await expect(page.locator('.results-heading .results-count')).toHaveText('3 of 3 options · Outbound');
  const shot=await page.screenshot({path:testInfo.outputPath(`flight-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});await testInfo.attach('flight-shopping viewport',{body:shot,contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-shopping-loaded');
  const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
