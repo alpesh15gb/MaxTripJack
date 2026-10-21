@@ -5,7 +5,9 @@ import { HttpError } from "./http";
 import { tripjack,paths,Product } from "./providers/tripjack";
 import { Search,flightSearch,hotelSearch,minor } from "./providers/contracts";
 import { requestLimit } from "./request-limit";
-import { customerTotal,customerFlightResults,customerHotelOptions,PricingRule } from "./customer-pricing";
+import { customerTotal,customerFlightResults,customerHotelOptions,customerHotelResults,PricingRule } from "./customer-pricing";
+import { hotelContentForSearch } from "./hotel-content";
+import { hotelRoomInfo,hotelStringList,hotelText } from "./hotel-presentation";
 import { orderedFlightSelection } from "./flight-selection";
 export type Actor={userId:string;companyId:string|null};
 export async function pricingRule(product:Product,actor:Actor){const rules=await database().query<PricingRule>("SELECT * FROM pricing_rules WHERE active=true AND product=$1 AND (company_id=$2 OR company_id IS NULL) ORDER BY company_id NULLS LAST,created_at DESC LIMIT 1",[product,actor.companyId]);return rules.rows[0];}
@@ -22,10 +24,19 @@ export async function searchSupplier(criteria:Search,actor:Actor){
  const id=randomUUID(),correlationId=randomUUID();
  const [data,rule]=await Promise.all([tripjack(criteria.product,paths[criteria.product].search,criteria.product==="FLIGHT"?flightSearch(criteria):hotelSearch(criteria,correlationId)),pricingRule(criteria.product,actor)]);
  await database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes')",[id,actor.userId,actor.companyId,criteria.product,criteria,data,correlationId]);
- return {searchId:id,product:criteria.product,results:criteria.product==="FLIGHT"?customerFlightResults(data,criteria,rule):{hotels:(data.hotels??[]).map((hotel:{tjHotelId:string;name:string})=>({tjHotelId:hotel.tjHotelId,name:hotel.name}))}};
+ if(criteria.product==="FLIGHT")return {searchId:id,product:criteria.product,results:customerFlightResults(data,criteria,rule)};
+ const results=customerHotelResults(data,rule);
+ results.hotels=results.hotels.filter(hotel=>criteria.hotelIds.includes(hotel.tjHotelId));
+ const properties=await hotelContentForSearch(results.hotels.map(hotel=>hotel.tjHotelId),criteria.hotelIds);
+ return {searchId:id,product:criteria.product,results:{hotels:results.hotels.map(hotel=>({...hotel,property:properties[hotel.tjHotelId]??hotel.property}))}};
 }
 export async function hotelDetail(searchId:string,hid:string,actor:Actor){const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);if(search.product!=="HOTEL"||!search.criteria.hotelIds.includes(hid))throw new HttpError(400,"Hotel not part of this search.");const input=hotelSearch(search.criteria,search.correlation_id);const {hids,...rest}=input;void hids;return tripjack("HOTEL",paths.HOTEL.detail,{...rest,hid});}
-export async function customerHotelDetail(searchId:string,hid:string,actor:Actor){const [data,rule]=await Promise.all([hotelDetail(searchId,hid,actor),pricingRule("HOTEL",actor)]);return customerHotelOptions(data,rule);}
+export async function customerHotelDetail(searchId:string,hid:string,actor:Actor){
+ const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
+ if(search.product!=="HOTEL"||!search.criteria.hotelIds.includes(hid))throw new HttpError(400,"Hotel not part of this search.");
+ const [data,rule,properties]=await Promise.all([hotelDetail(searchId,hid,actor),pricingRule("HOTEL",actor),hotelContentForSearch([hid],search.criteria.hotelIds)]);
+ return {...customerHotelOptions(data,rule),property:properties[hid]};
+}
 export async function reviewSupplier(searchId:string,selection:{priceIds?:string[];hid?:string;optionId?:string},actor:Actor){
  await requestLimit(actor.userId,"supplier-review",30);
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
@@ -37,10 +48,11 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  }else{
   if(!selection.hid||!selection.optionId)throw new HttpError(400,"Choose a hotel room option.");
   const detail=await hotelDetail(searchId,selection.hid,actor);
-  if(!detail.options?.some((o:{optionId:string})=>o.optionId===selection.optionId)||!detail.reviewHash)throw new HttpError(409,"Room option unavailable.");
+  if(!detail.options?.some((o:{optionId:string;inventory?:{available?:boolean}})=>o.optionId===selection.optionId&&o.inventory?.available!==false)||!detail.reviewHash)throw new HttpError(409,"Room option unavailable.");
   chosen={hid:selection.hid,optionId:selection.optionId,reviewHash:detail.reviewHash,correlationId:search.correlation_id};data=await tripjack("HOTEL",paths.HOTEL.review,chosen);
  }
  const product=search.product as Product;
+ if(product==="HOTEL"&&data.option?.inventory?.available===false)throw new HttpError(409,"Room option unavailable. Search again to choose another room.");
  const amount=product==="HOTEL"?data.option?.pricing?.totalPrice:data.totalPriceInfo?.totalFareDetail?.fC?.TF??data.totalPriceInfo?.fc?.TF;
  const currency=product==="HOTEL"?data.option?.pricing?.currency:"INR";
  if(!data.bookingId||amount===undefined||currency!=="INR")throw new HttpError(502,"Supplier review is missing required booking or INR pricing fields.");
@@ -51,5 +63,5 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  if(!Number.isFinite(seconds)||seconds<30)throw new HttpError(409,"Supplier review session unavailable or too short. Review again.");
  const expiresAt=new Date(reviewedAt+Math.min(seconds,180)*1000);if(expiresAt.getTime()-Date.now()<30000)throw new HttpError(409,"Supplier review expired while loading the rules. Review again.");
  const id=randomUUID();await database().query("INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",[id,searchId,actor.userId,actor.companyId,product,chosen,data,data.bookingId,supplierMinor,totalMinor,expiresAt]);
- return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:{tjHotelId:string})=>String(h.tjHotelId)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:{conditions:data.conditions,fareRules:data.fareRules,alerts:data.alerts,option:data.option?{cancellation:data.option.cancellation,compliance:data.option.compliance,bookingNotes:data.option.bookingNotes,pricing:{mf:data.option.pricing?.mf,mft:data.option.pricing?.mft}}:undefined}};
+ return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:{tjHotelId:string})=>String(h.tjHotelId)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:{conditions:data.conditions,fareRules:data.fareRules,alerts:data.alerts,option:data.option?{roomInfo:hotelRoomInfo(data.option.roomInfo),inclusions:hotelStringList(data.option.inclusions),mealBasis:hotelText(data.option.mealBasis),optionType:hotelText(data.option.optionType),cancellation:data.option.cancellation,compliance:data.option.compliance,bookingNotes:data.option.bookingNotes,pricing:{mf:data.option.pricing?.mf,mft:data.option.pricing?.mft}}:undefined}};
 }

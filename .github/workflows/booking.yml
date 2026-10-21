@@ -37,6 +37,18 @@ jobs:
           writeFileSync('.env.local',value,{mode:0o600});
           JS
       - run: npm run db:migrate && npm run db:auth
+      - name: Verify anonymous shopping ownership on disposable PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgresql://maxtravel:ephemeral-ci-database-only@127.0.0.1:55439/payglocal_disposable
+        run: |
+          node --input-type=module <<'JS'
+          import pg from 'pg';
+          const client = new pg.Client({connectionString:'postgresql://maxtravel:ephemeral-ci-database-only@127.0.0.1:55439/postgres'});
+          try { await client.connect(); await client.query('CREATE DATABASE payglocal_disposable'); }
+          finally { await client.end(); }
+          JS
+          node --import tsx tests/guest-shopping-postgres.mts
+          node --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/guest-shopping-routes.mts
       - run: npm run lint && npm test && npm run test:refunds && npm run test:cancellations && npm run build && npm run build:workers
       - name: Start fixture server and check flows
         run: |
@@ -75,6 +87,8 @@ jobs:
         run: npm run test:seo:http
       - name: Exercise real production UI with intercepted supplier and payment fixtures
         run: npm run test:browser
+      - name: Verify PayGlocal unavailable checkout on desktop and mobile
+        run: npx playwright test -c playwright.payglocal.config.ts
       - name: Preserve UI screenshots, failure traces and browser report
         if: always()
         uses: actions/upload-artifact@v4
@@ -83,5 +97,7 @@ jobs:
           path: |
             booking-platform/playwright-report/
             booking-platform/test-results/
+            booking-platform/playwright-report-payglocal/
+            booking-platform/test-results-payglocal/
           if-no-files-found: warn
           retention-days: 14

@@ -4,6 +4,10 @@ import { useEffect,useRef,useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
+import {hotelRoomLabel,hotelCancellationLabel,type HotelPropertyDetails,type HotelRoomOption} from '@/lib/hotel-presentation';
+import {BOOKING_HANDOFF_KEY,parseBookingHandoff} from '@/lib/booking-handoff';
+import {accountHref} from '@/lib/account-return';
+import HotelPropertyMedia from './hotel-property-media';
 import AirportPicker from './airport-picker';
 import HotelDestination from './hotel-destination';
 import NationalitySelect from './nationality-select';
@@ -18,25 +22,25 @@ import {clearCheckoutMarker,saveCheckoutMarker,isResumableCheckout,isResumableHo
 import { compatibleReturnPair,estimatedFare,flightStops,groupLabel,indiaToday,initialAdults,journeyMinutes,orderedGroups,parseHotelIds,paymentFailureAction,quoteRemaining,type Flight,type FlightFare } from '@/lib/booking-presentation';
 
 type Product='FLIGHT'|'HOTEL';
-type HotelOption={optionId:string;mealBasis?:string;pricing:{totalPrice:number;mf?:number;mft?:number};cancellation?:unknown;bookingNotes?:string};
-type Hotel={tjHotelId:string;name:string;options?:HotelOption[]};
+type HotelOption={roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];optionType?:string;optionId:string;mealBasis?:string;pricing:{totalPrice:number;mf?:number;mft?:number};cancellation?:unknown;bookingNotes?:string};
+type Hotel={tjHotelId:string;name:string;options?:HotelOption[];customerEstimateMinor?:number|null;property?:HotelPropertyDetails};
 type Results={searchId:string;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
-type Quote={quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
+type Quote={quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
 type Selection={priceIds?:string[];hid?:string;optionId?:string};
 type CheckoutResult={razorpay_order_id:string;razorpay_payment_id:string;razorpay_signature:string};
 type Payment={provider?:'RAZORPAY';bookingId:string;orderId:string;amount:number;currency:string;keyId:string}|{provider:'PAYGLOCAL';bookingId:string;checkoutUrl:string;amount:number;currency:'INR'};
 type Gateway={key:string;amount:number;currency:string;order_id:string;name:string;handler:(result:CheckoutResult)=>void;modal:{ondismiss:()=>void}};
 declare global{interface Window{Razorpay?:new(options:Gateway)=>{open:()=>void;on:(event:string,callback:()=>void)=>void}}}
-class BookingApiError extends Error { constructor(message:string,public status:number){super(message);} }
+class BookingApiError extends Error { constructor(message:string,public status:number,public code?:string){super(message);} }
 async function api<T>(path:string,data:unknown,signal?:AbortSignal):Promise<T>{
   const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal});
   const result=await response.json();
-  if(!response.ok)throw new BookingApiError(result.error||'We could not complete this request. Please try again.',response.status);
+  if(!response.ok)throw new BookingApiError(result.error||'We could not complete this request. Please try again.',response.status,result.code);
   return result;
 }
 function scrollToSection(id:string){requestAnimationFrame(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}));}
 
-export default function LiveBooking({prefill={}}:{prefill?:Record<string,string>}){
+export default function LiveBooking({prefill={},checkoutConfigured=false}:{prefill?:Record<string,string>;checkoutConfigured?:boolean}){
   const {data:session,isPending,error,refetch}=authClient.useSession();
   const resolvedIdentity=session?.user.id??'signed-out';
   const [stableIdentity,setStableIdentity]=useState<string|null>(null);
@@ -49,24 +53,36 @@ export default function LiveBooking({prefill={}}:{prefill?:Record<string,string>
   },[isPending,error,resolvedIdentity]);
   const changingIdentity=!isPending&&!error&&stableIdentity!==resolvedIdentity;
   if(stableIdentity===null||changingIdentity)return <><TravelHeader/><main id="main-content" className="page-shell live-booking"><div className="white-card" role="status"><h1>{error?'Let’s reconnect your account.':'Getting your journey ready…'}</h1><p>{error?'We could not verify your session. Try again before continuing.':'Checking secure access to your booking workspace.'}</p>{error&&<button className="primary" type="button" onClick={()=>void refetch()}>Check secure session again</button>}</div></main></>;
-  return <LiveBookingWorkspace key={stableIdentity} prefill={prefill}/>;
+  return <LiveBookingWorkspace key={stableIdentity} prefill={prefill} checkoutConfigured={checkoutConfigured}/>;
 }
 
-function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
+function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<string,string>;checkoutConfigured:boolean}){
   const router=useRouter();
+  const {data:checkoutSession}=authClient.useSession();
+  const [signInRequired,setSignInRequired]=useState(false);
+  const [freshSearchRequired,setFreshSearchRequired]=useState(false);
+  const [resumeSelection,setResumeSelection]=useState<Selection|null>(null);
+  const handoffRead=useRef(false);
+  const privateDraft=useRef<{party:string;values:[string,string][]}|null>(null);
   const recovery=useCheckoutRecovery();
   const initialProduct:Product=prefill.product==='HOTEL'?'HOTEL':'FLIGHT';
   const [product,setProduct]=useState<Product>(initialProduct);
   const [adults,setAdults]=useState(()=>initialAdults(prefill.adults,initialProduct));
-  const [children,setChildren]=useState(0),[infants,setInfants]=useState(0);
-  const [cabin,setCabin]=useState('ECONOMY');
+  const [children,setChildren]=useState(()=>Math.min(8,Math.max(0,Number(prefill.children)||0))),[infants,setInfants]=useState(()=>Math.min(initialAdults(prefill.adults),Math.max(0,Number(prefill.infants)||0)));
+  const [cabin,setCabin]=useState(()=>['ECONOMY','PREMIUM_ECONOMY','BUSINESS','FIRST'].includes(prefill.cabin)?prefill.cabin:'ECONOMY');
   const [multiCity,setMultiCity]=useState(false),[legCount,setLegCount]=useState(2);
   const [hotelOccupancy,setHotelOccupancy]=useState(()=>[{adults:initialAdults(prefill.adults,'HOTEL'),childAge:[] as number[]}]);
   const [busy,setBusy]=useState(false),[activity,setActivity]=useState(''),[message,setMessage]=useState('');
   const [results,setResults]=useState<Results|null>(null),[quote,setQuote]=useState<Quote|null>(null);
-  const [rooms,setRooms]=useState<{hid:string;name:string;options:HotelOption[]}|null>(null);
+  const [rooms,setRooms]=useState<{hid:string;name:string;options:HotelOption[];property?:HotelPropertyDetails}|null>(null);
   const [selectedFares,setSelectedFares]=useState<Record<string,string>>({}),[activeGroup,setActiveGroup]=useState('');
-  const [sortBy,setSortBy]=useState('price'),[stopFilter,setStopFilter]=useState('ALL');
+  const [sortBy,setSortBy]=useState('price'),[stopFilter,setStopFilter]=useState('ALL'),[airlineFilter,setAirlineFilter]=useState('ALL');
+  const [travellerSummary,setTravellerSummary]=useState<{names:string[];email:string;phone:string}|null>(null);
+  const [selectedJourney,setSelectedJourney]=useState<Flight[]>([]);
+  const [selectedRoom,setSelectedRoom]=useState<HotelOption|null>(null);
+  const [providerUnavailable,setProviderUnavailable]=useState(!checkoutConfigured);
+  const [loadRazorpay,setLoadRazorpay]=useState(false);
+  const queuedCheckout=useRef<Payment|null>(null);
   const [extrasPending,setExtrasPending]=useState(false);
   const [gstEntered,setGstEntered]=useState(false),[emergencyEntered,setEmergencyEntered]=useState(false);
   const [checkoutStep,setCheckoutStep]=useState<'travellers'|'payment'>('travellers');
@@ -79,7 +95,7 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();};},[]);
   useEffect(()=>{
-    if(prefill.autoSearch!=='1'||autoSearchStarted.current||recovery.blocked||paymentUncertain)return;
+    if(prefill.resumeSelection==='1'||prefill.autoSearch!=='1'||autoSearchStarted.current||recovery.blocked||paymentUncertain)return;
     const timer=setTimeout(()=>{
       if(autoSearchStarted.current)return;
       autoSearchStarted.current=true;
@@ -87,7 +103,7 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
       if(form?.checkValidity())form.requestSubmit();
     },0);
     return()=>clearTimeout(timer);
-  },[prefill.autoSearch,recovery.blocked,paymentUncertain]);
+  },[prefill.autoSearch,prefill.resumeSelection,recovery.blocked,paymentUncertain]);
   useEffect(()=>{
     if(!quote)return;
     const tick=()=>setNow(Date.now());
@@ -96,9 +112,30 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
     return()=>{clearTimeout(immediate);clearInterval(timer);};
   },[quote]);
 
+  useEffect(()=>{
+    if(prefill.resumeSelection!=='1'||handoffRead.current)return;
+    let handoff=null;
+    try{handoff=parseBookingHandoff(JSON.parse(sessionStorage.getItem(BOOKING_HANDOFF_KEY)||'null'));}catch{}
+    const timer=setTimeout(()=>{
+      handoffRead.current=true;
+      if(!handoff){setMessage('Your previous selection has expired. Search again for current availability.');return;}
+      setProduct(handoff.product);setResults({searchId:handoff.searchId,results:{}});setSelectedJourney(handoff.flights);setResumeSelection(handoff.selection);
+    },0);
+    return()=>clearTimeout(timer);
+  },[prefill.resumeSelection]);
+
+
   const reviewedRooms=quote?.summary?.rooms??hotelOccupancy.map(room=>({...room,children:room.childAge.length}));
   const hotelParty=reviewedRooms.flatMap((room,roomIndex)=>[...Array.from({length:room.adults},()=>({pt:'ADULT',roomIndex})),...Array.from({length:room.children},()=>({pt:'CHILD',roomIndex}))]);
   const party=quote?.product==='HOTEL'?hotelParty.map(person=>person.pt):[...Array.from({length:quote?.summary?.adults??adults},()=>'ADULT'),...Array.from({length:quote?.summary?.children??children},()=>'CHILD'),...Array.from({length:quote?.summary?.infants??infants},()=>'INFANT')];
+  useEffect(()=>{
+    const draft=privateDraft.current,form=checkoutForm.current;
+    if(!quote||!draft||!form||draft.party!==party.join(','))return;
+    for(const [name,value] of draft.values){const field=form.elements.namedItem(name);if(field instanceof HTMLInputElement||field instanceof HTMLSelectElement)field.value=value;}
+    privateDraft.current=null;
+    // Private values live only in this mounted account workspace, never storage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[quote?.quoteId]);
   const passportRequired=Boolean(quote?.review.conditions?.pcs?.pm||quote?.review.option?.compliance?.passportRequired);
   const expiryRequired=passportRequired||Boolean(quote?.review.conditions?.pcs?.pped);
   const gstRequired=Boolean(quote?.review.conditions?.gst?.igm||['PASSTHROUGH','RESELLER'].includes(quote?.review.option?.compliance?.gstType??''));
@@ -119,7 +156,8 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
   const groups=results?.results.searchResult?.tripInfos??{};
   const fareGroups=orderedGroups(groups),pairedFares=fareGroups.length>1;
   const shownGroup=fareGroups.includes(activeGroup)?activeGroup:fareGroups[0];
-  const flightRows=(groups[shownGroup]??[]).filter(flight=>stopFilter==='ALL'||shownGroup==='COMBO'||String(flightStops(flight,shownGroup))===stopFilter).slice().sort((a,b)=>sortBy==='departure'?(a.sI[0]?.dt??'').localeCompare(b.sI[0]?.dt??''):sortBy==='duration'?(journeyMinutes(a,shownGroup)??Number.MAX_SAFE_INTEGER)-(journeyMinutes(b,shownGroup)??Number.MAX_SAFE_INTEGER):estimatedFare(a)-estimatedFare(b));
+  const airlines=[...new Set((groups[shownGroup]??[]).flatMap(flight=>flight.sI.map(segment=>segment.fD.aI.name)).filter(Boolean))].sort();
+  const flightRows=(groups[shownGroup]??[]).filter(flight=>airlineFilter==='ALL'||flight.sI.some(segment=>segment.fD.aI.name===airlineFilter)).filter(flight=>stopFilter==='ALL'||shownGroup==='COMBO'||String(flightStops(flight,shownGroup))===stopFilter).slice().sort((a,b)=>sortBy==='departure'?(a.sI[0]?.dt??'').localeCompare(b.sI[0]?.dt??''):sortBy==='duration'?(journeyMinutes(a,shownGroup)??Number.MAX_SAFE_INTEGER)-(journeyMinutes(b,shownGroup)??Number.MAX_SAFE_INTEGER):estimatedFare(a)-estimatedFare(b));
   const selectedFare=(group:string)=>groups[group]?.flatMap(flight=>flight.totalPriceList).find(fare=>fare.id===selectedFares[group]);
   const allSelected=fareGroups.every(group=>selectedFares[group]);
   const step=quote?(checkoutStep==='payment'?3:2):results?1:0;
@@ -135,13 +173,13 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
   }
   function current(id:number){return mounted.current&&operation.current===id;}
   function finish(id:number){if(current(id)){busyRef.current=false;setBusy(false);setActivity('');}}
-  function report(error:unknown,id:number){if(current(id)){setMessage(error instanceof Error?error.message:'This request could not be completed.');scrollToSection('booking-feedback');}}
+  function report(error:unknown,id:number){if(current(id)){if(error instanceof BookingApiError&&[404,409].includes(error.status)&&/search.*(expired|no longer available)|expired.*search/i.test(error.message))setFreshSearchRequired(true);setMessage(error instanceof Error?error.message:'This request could not be completed.');scrollToSection('booking-feedback');}}
   function switchProduct(next:Product){
     if(busyRef.current||payment||paymentUncertain||recovery.blocked)return;
-    setProduct(next);setResults(null);setQuote(null);setRooms(null);setSelectedFares({});setMessage('');setSelection(null);setCheckoutStep('travellers');setExtrasPending(false);
+    privateDraft.current=null;setProduct(next);setResults(null);setQuote(null);setRooms(null);setSelectedFares({});setMessage('');setSelection(null);setCheckoutStep('travellers');setExtrasPending(false);
   }
   async function search(form:HTMLFormElement){
-    const task=begin('Finding available journeys');if(!task)return;
+    const task=begin('Finding available journeys');if(!task)return;privateDraft.current=null;setFreshSearchRequired(false);
     const fields=new FormData(form);
     try{
       const date=String(fields.get('date')??'');
@@ -156,26 +194,43 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
       const legs=[{from:origin,to:destination,date},...Array.from({length:legCount-1},(_,i)=>({from:String(fields.get(`leg-from-${i+1}`)).toUpperCase(),to:String(fields.get(`leg-to-${i+1}`)).toUpperCase(),date:String(fields.get(`leg-date-${i+1}`))}))];
       if(product==='FLIGHT'&&multiCity&&legs.some((leg,index)=>leg.from===leg.to||(index>0&&leg.date<legs[index-1].date)))throw Error('Choose different airports and chronological dates for every flight.');
       const input=product==='FLIGHT'?{product,from:origin,to:destination,date,adults,children,infants,cabin:String(fields.get('cabin')),...(multiCity?{legs}:returnDate?{returnDate}:{})}:{product,hotelIds:parseHotelIds(String(fields.get('hotelIds')??'')),checkIn:date,checkOut:String(fields.get('end')),adults:hotelOccupancy[0].adults,rooms:hotelOccupancy.map(room=>({...room,children:room.childAge.length})),childrenAges:hotelOccupancy[0].childAge,nationality:String(fields.get('nationality'))};
-      setQuote(null);setResults(null);setRooms(null);setSelectedFares({});setSelection(null);setSortBy('price');setStopFilter('ALL');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
+      setQuote(null);setResults(null);setRooms(null);setSelectedFares({});setSelection(null);setSortBy('price');setStopFilter('ALL');setAirlineFilter('ALL');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
       const data=await api<Results>('/api/travel/search',input,task.signal);
       if(current(task.id)){setResults(data);setActiveGroup(orderedGroups(data.results.searchResult?.tripInfos??{})[0]??'');scrollToSection('booking-results');}
     }catch(error){report(error,task.id);}finally{finish(task.id);}
   }
   async function review(nextSelection:Selection,renew=false){
     const task=begin(renew?'Checking the latest price and rules':'Reviewing your selection');if(!task)return;
+    const chosenFlights=Object.values(groups).flat().filter(flight=>flight.totalPriceList.some(fare=>nextSelection.priceIds?.includes(fare.id)));
+    if(chosenFlights.length)setSelectedJourney(chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))})));
+    const room=rooms?.options.find(option=>option.optionId===nextSelection.optionId);if(room)setSelectedRoom(room);
     try{
       const value=await api<Quote>('/api/travel/review',{searchId:results?.searchId,...nextSelection},task.signal);
       if(current(task.id)){
-        setQuote(value);setSelection(nextSelection);setReviewBase(value.totalMinor);setNow(null);setExtrasPending(false);setCheckoutStep('travellers');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
+        setQuote(value);setSelection(nextSelection);setSignInRequired(false);try{sessionStorage.removeItem(BOOKING_HANDOFF_KEY);}catch{};setReviewBase(value.totalMinor);setNow(null);setExtrasPending(false);setCheckoutStep('travellers');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
         if(!renew){setGstEntered(false);setEmergencyEntered(false);}
-        if(renew)setMessage('Price and rules refreshed. Your traveller details are kept on this page. Review optional extras again and accept the latest total before payment.');
+        if(renew)setMessage(`Latest total ${money(value.totalMinor)}${quote&&quote.totalMinor!==value.totalMinor?` (previously ${money(quote.totalMinor)})`:''}. Price and rules refreshed. Your traveller details are kept on this page. Review optional extras again and accept the latest total before payment.`);
         scrollToSection('booking-review');
       }
-    }catch(error){report(error,task.id);}finally{finish(task.id);}
+    }catch(error){
+      if(current(task.id)&&error instanceof BookingApiError&&(error.status===401||(error.status===403&&error.message==='Verify your email before continuing.'))&&results){
+        const flights=chosenFlights.length?chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))})):selectedJourney;
+        const handoff=parseBookingHandoff({version:1,savedAt:new Date().getTime(),product,searchId:results.searchId,selection:nextSelection,flights});
+        try{if(!handoff)throw Error();sessionStorage.setItem(BOOKING_HANDOFF_KEY,JSON.stringify(handoff));setSignInRequired(true);setMessage('Your selection is saved for this tab. Sign in and verify your email to review the latest price and book.');}catch{setMessage('Sign in to continue. Your browser cannot preserve this selection; please search again after signing in.');}
+        scrollToSection('booking-feedback');
+      }else report(error,task.id);
+    }finally{finish(task.id);}
   }
+  useEffect(()=>{
+    if(!resumeSelection||!results||!checkoutSession?.user.emailVerified||recovery.blocked)return;
+    const timer=setTimeout(()=>{setResumeSelection(null);void review(resumeSelection);},0);
+    return()=>clearTimeout(timer);
+    // review is intentionally triggered once after account and recovered IDs resolve.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[resumeSelection,results,checkoutSession?.user.emailVerified,recovery.blocked]);
   async function chooseHotel(hotel:Hotel){
     const task=begin('Checking room availability');if(!task)return;
-    try{const detail=await api<{options:HotelOption[]}>('/api/travel/hotel-detail',{searchId:results?.searchId,hid:hotel.tjHotelId},task.signal);if(current(task.id)){setRooms({hid:hotel.tjHotelId,name:hotel.name,options:detail.options});scrollToSection('booking-rooms');}}catch(error){report(error,task.id);}finally{finish(task.id);}
+    try{const detail=await api<{options:HotelOption[];property?:HotelPropertyDetails}>('/api/travel/hotel-detail',{searchId:results?.searchId,hid:hotel.tjHotelId},task.signal);if(current(task.id)){setRooms({hid:hotel.tjHotelId,name:hotel.name,options:detail.options,property:detail.property??hotel.property});scrollToSection('booking-rooms');}}catch(error){report(error,task.id);}finally{finish(task.id);}
   }
   function chooseFare(group:string,fare:FlightFare){
     if(!pairedFares){void review({priceIds:[fare.id]});return;}
@@ -185,7 +240,7 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
       return next;
     });
     const nextGroup=fareGroups[fareGroups.indexOf(group)+1];
-    if(nextGroup){setActiveGroup(nextGroup);setStopFilter('ALL');scrollToSection('booking-results');}else scrollToSection('booking-summary');
+    if(nextGroup){setActiveGroup(nextGroup);setStopFilter('ALL');setAirlineFilter('ALL');scrollToSection('booking-results');}else scrollToSection('booking-summary');
   }
   function openCheckout(order:Payment){
     if(order.provider==='PAYGLOCAL'){
@@ -193,7 +248,7 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
       setActivity('Redirecting to secure checkout; payment verification follows in My trips');
       window.location.assign(order.checkoutUrl);return;
     }
-    if(!window.Razorpay)throw Error('Secure checkout is still loading. Please wait a moment.');
+    if(!window.Razorpay){queuedCheckout.current=order;setLoadRazorpay(true);setActivity('Loading secure checkout');return;}
     verificationStarted.current=false;
     const checkout=new window.Razorpay({key:order.keyId,amount:order.amount,currency:order.currency,order_id:order.orderId,name:'Max Travel · Test booking',handler:async result=>{
       verificationStarted.current=true;
@@ -206,7 +261,7 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
   }
   async function submitCheckout(form:HTMLFormElement){
     if(!quote||busyRef.current)return;
-    if(checkoutStep==='travellers'){setCheckoutStep('payment');scrollToSection('booking-review');return;}
+    if(checkoutStep==='travellers'){const fields=new FormData(form);setTravellerSummary({names:party.map((_,index)=>`${fields.get(`title-${index}`)} ${fields.get(`first-${index}`)} ${fields.get(`last-${index}`)}`),email:String(fields.get('email')??''),phone:String(fields.get('phone')??'')});setCheckoutStep('payment');scrollToSection('booking-review');return;}
     if(extrasPending){setMessage('Apply your flight extras before continuing.');return;}
     if(expired||needsReview){setMessage(payment?'Your reviewed price has expired. Your original order is preserved; check My trips before making another payment.':'Your reviewed price has expired. Refresh the price and accept the latest terms.');return;}
     const values=new FormData(form);
@@ -233,9 +288,10 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
       openCheckout(order);
     }catch(error){if(mounted.current){
       const failureMessage=error instanceof Error?error.message:'Checkout unavailable.';
-      const action=paymentFailureAction(error instanceof BookingApiError?error.status:undefined,failureMessage);
+      const action=paymentFailureAction(error instanceof BookingApiError?error.status:undefined,failureMessage,error instanceof BookingApiError?error.code:undefined);
       if(action==='status')setPaymentUncertain(true);else clearCheckoutMarker({quoteId:quote.quoteId});
       if(action==='refresh')setNeedsReview(true);
+      if(action==='unavailable')setProviderUnavailable(true);
       if(action==='edit')setCheckoutStep('travellers');
       setMessage(`${failureMessage}${action==='status'?' Check My trips before attempting another payment.':action==='refresh'?' Refresh the reviewed price before continuing.':''}`);scrollToSection('booking-feedback');busyRef.current=false;setBusy(false);setActivity('');
     }}
@@ -257,16 +313,17 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
   }
 
   return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} onProductChange={switchProduct}/><main id="main-content" className="page-shell live-booking booking-workflow">
-    <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onError={()=>setMessage('Payment checkout could not load. Check your connection. You can still compare journeys.')}/>
+    {loadRazorpay&&<Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onReady={()=>{const order=queuedCheckout.current;queuedCheckout.current=null;if(order&&mounted.current)openCheckout(order);}} onError={()=>{queuedCheckout.current=null;busyRef.current=false;setBusy(false);setActivity('');setMessage('Checkout could not load. Your existing order is preserved. Check My trips before trying again.');}}/>}
     <Link href="/" className="back">← Back to explore</Link>
     <div className="page-heading booking-intro"><div><div className="eyebrow">PLAN A LITTLE. LOOK FORWARD TO A LOT.</div><h1>{product==='FLIGHT'?'Your next journey starts here.':'Find your somewhere special.'}</h1><p>{product==='FLIGHT'?'Compare flights, make it yours, and review every detail before you pay.':'Discover stays, compare room options, and see the full stay total.'}</p></div><span className="booking-test-badge">Test environment · No live payments</span></div>
+    {!checkoutConfigured&&<section className="booking-status info-message" aria-label="Online payment availability"><h2>Search and compare. Online payment is not available yet.</h2><p>You can explore flights, stays and supplier terms. We will not ask for traveller details or start a new payment while checkout is unavailable.</p><Link className="inline-link" href="/customer-support">Contact Max Travel for booking help →</Link></section>}
     <ol className="booking-progress" aria-label="Booking progress">{['Search','Choose','Travellers','Payment'].map((label,index)=><li key={label} aria-current={step===index?'step':undefined} className={index<step?'is-complete':index===step?'is-current':''}><span aria-hidden="true">{index<step?'✓':index+1}</span>{label}</li>)}</ol>
     <div className="booking-layout"><div className="booking-main">
       {recovery.checking&&<div className="booking-status info-message" role="status">Checking for an interrupted checkout…</div>}
-      {recovery.pending&&<section className="white-card booking-recovery" aria-label="Interrupted checkout"><div className="eyebrow">LET’S PICK UP SAFELY</div><h2>Your previous checkout needs a look.</h2><p role="status">{recovery.message}</p><p className="muted">We have paused new payments so you do not accidentally pay twice. No traveller or contact details are saved in this browser.</p>{recovery.status&&(isResumableCheckout(recovery.status)||isResumableHostedCheckout(recovery.status))&&<button type="button" className="primary" disabled={busy||recovery.checking} onClick={()=>void resumeInterrupted()}>Resume existing checkout · {money(recovery.status.amount)}</button>}<button type="button" className="secondary" disabled={busy||recovery.checking} onClick={()=>{if(recovery.pending)void recovery.reconcile(recovery.pending);}}>Check payment status again</button><Link className="secondary" href="/my-trips">Open My trips</Link>{/sign in/i.test(recovery.message)&&<Link className="inline-link" href="/account">Sign in to check your payment</Link>}</section>}
+      {recovery.pending&&<section className="white-card booking-recovery" aria-label="Interrupted checkout"><div className="eyebrow">LET’S PICK UP SAFELY</div><h2>Your previous checkout needs a look.</h2><p role="status">{recovery.message}</p><p className="muted">We have paused new payments so you do not accidentally pay twice. No traveller or contact details are saved in this browser.</p>{recovery.status&&(isResumableCheckout(recovery.status)||isResumableHostedCheckout(recovery.status))&&<button type="button" className="primary" disabled={busy||recovery.checking} onClick={()=>void resumeInterrupted()}>Resume existing checkout · {money(recovery.status.amount)}</button>}<button type="button" className="secondary" disabled={busy||recovery.checking} onClick={()=>{if(recovery.pending)void recovery.reconcile(recovery.pending);}}>Check payment status again</button><Link className="secondary" href="/my-trips">Open My trips</Link>{/sign in/i.test(recovery.message)&&<Link className="inline-link" href={accountHref('/book?'+new URLSearchParams(prefill).toString())}>Sign in to check your payment</Link>}</section>}
       {!recovery.pending&&recovery.message&&<p className="info-message" role="status">{recovery.message} <Link href="/my-trips">My trips →</Link></p>}
       <div className="account-tabs booking-product-tabs" aria-label="Booking product"><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} aria-pressed={product==='FLIGHT'} onClick={()=>switchProduct('FLIGHT')}>✈ Flights</button><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} aria-pressed={product==='HOTEL'} onClick={()=>switchProduct('HOTEL')}>▤ Stays</button></div>
-      <details className="booking-search-panel" open={!results&&!quote}><summary><span className="search-panel-icon" aria-hidden="true">⌕</span>{results||quote?'Your search · change dates or travellers':'Where would you like to go?'}</summary>
+      <details id="booking-search" className="booking-search-panel" open={!results&&!quote}><summary><span className="search-panel-icon" aria-hidden="true">⌕</span>{results||quote?'Your search · change dates or travellers':'Where would you like to go?'}</summary>
       <form ref={searchForm} aria-label="Search availability" className="white-card live-search" onSubmit={event=>{event.preventDefault();void search(event.currentTarget);}}>
         <fieldset className="live-search-controls" disabled={busy||Boolean(quote)||Boolean(payment)||paymentUncertain||recovery.blocked}>
           {product==='FLIGHT'&&<label>Journey type<select value={multiCity?'MULTI':'STANDARD'} onChange={event=>{setMultiCity(event.target.value==='MULTI');setResults(null);setSelectedFares({});}}><option value="STANDARD">One-way / return</option><option value="MULTI">Multi-city</option></select></label>}
@@ -277,25 +334,26 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
           <p className="muted search-footnote">{product==='FLIGHT'?'Up to 9 adults and children, plus infants. All results show your party’s estimated total.':'Set guests for each room. Child ages must match their dates of birth at check-in.'}</p><button className="primary booking-search-submit" disabled={busy}>{busy?'Checking availability…':product==='FLIGHT'?'Search flights':'Search stays'}</button>
         </fieldset>{quote&&<p className="muted">To edit your search, return to your selection first.</p>}
       </form></details>
-      <div id="booking-feedback" tabIndex={-1}>{message&&<div className="booking-status info-message" role="alert"><p>{message}</p>{/sign in/i.test(message)&&<Link className="inline-link" href="/account">Sign in or create an account</Link>}{(payment||paymentUncertain)&&<Link className="inline-link" href="/my-trips">View payment and booking status →</Link>}</div>}</div>
+      <div id="booking-feedback" tabIndex={-1}>{message&&<div className="booking-status info-message" role="alert"><p>{message}</p>{(/sign in/i.test(message)||signInRequired)&&<Link className="inline-link" href={accountHref('/book?'+new URLSearchParams({...prefill,...(signInRequired?{resumeSelection:'1'}:{})}).toString())}>Sign in or create an account</Link>}{freshSearchRequired&&!payment&&!paymentUncertain&&<button className="secondary" type="button" onClick={()=>{setResults(null);setRooms(null);setQuote(null);setSelection(null);setFreshSearchRequired(false);setMessage('Choose your dates and search again for current availability.');scrollToSection('booking-search');}}>Start a fresh search</button>}{(payment||paymentUncertain)&&<Link className="inline-link" href="/my-trips">View payment and booking status →</Link>}</div>}</div>
       {busy&&<div className="booking-skeleton" role="status" aria-live="polite"><span aria-hidden="true" className="booking-spinner"/><strong>{activity}…</strong><p>We’re checking the details, so you can choose with confidence.</p><div className="booking-loading-lines" aria-hidden="true"><i/><i/><i/></div></div>}
       {results&&!quote&&<section id="booking-results" className="live-results" aria-label="Available options">
         <div className="results-heading"><div><div className="eyebrow">COMPARE YOUR OPTIONS</div><h2>{product==='FLIGHT'?'Flights that fit your plans.':'Your next stay awaits.'}</h2><p className="muted">{product==='FLIGHT'?'Compare timings and fare benefits. Final price and rules are checked before payment.':'Choose a hotel, then compare available room options and cancellation terms.'}</p></div><span className="results-count" role="status" aria-live="polite">{product==='FLIGHT'?flightRows.length:results.results.hotels?.length??0} options</span></div>
         {product==='FLIGHT'&&<>
-          {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} onClick={()=>{setActiveGroup(group);setStopFilter('ALL');}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
-          <div className="results-toolbar" aria-label="Flight result controls"><label>Sort by<select value={sortBy} onChange={event=>setSortBy(event.target.value)}><option value="price">Lowest estimated price</option><option value="duration">Shortest known duration</option><option value="departure">Earliest departure</option></select></label><label>Stops<select value={stopFilter} disabled={shownGroup==='COMBO'} onChange={event=>setStopFilter(event.target.value)}><option value="ALL">Any number of stops</option><option value="0">Non-stop</option><option value="1">1 stop</option><option value="2">2 stops</option></select></label>{shownGroup==='COMBO'&&<p className="muted">Complete itineraries: inspect each flight below.</p>}</div>
+          {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} onClick={()=>{setActiveGroup(group);setStopFilter('ALL');setAirlineFilter('ALL');}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
+          <div className="results-toolbar" aria-label="Flight result controls"><label>Sort by<select value={sortBy} onChange={event=>setSortBy(event.target.value)}><option value="price">Lowest estimated price</option><option value="duration">Shortest known duration</option><option value="departure">Earliest departure</option></select></label><label>Airline (any segment)<select value={airlineFilter} onChange={event=>setAirlineFilter(event.target.value)}><option value="ALL">All airlines</option>{airlines.map(name=><option key={name} value={name}>{name}</option>)}</select></label><label>Stops<select value={stopFilter} disabled={shownGroup==='COMBO'} onChange={event=>setStopFilter(event.target.value)}><option value="ALL">Any number of stops</option><option value="0">Non-stop</option><option value="1">1 stop</option><option value="2">2 stops</option></select></label>{shownGroup==='COMBO'&&<p className="muted">Complete itineraries: inspect each flight below.</p>}</div>
           {flightRows.map((flight,index)=><BookingFlightCard key={`${shownGroup}-${flight.totalPriceList[0]?.id??index}`} flight={flight} group={shownGroup} busy={busy} selectedFareId={selectedFares[shownGroup]} onSelect={fare=>chooseFare(shownGroup,fare)} isCompatible={fare=>{const onward=selectedFare('ONWARD');return shownGroup!=='RETURN'||!onward||compatibleReturnPair(onward,fare);}}/>)}
-          {!flightRows.length&&<div className="empty-results"><h3>{fareGroups.length?'No flights match these filters':'No flights found'}</h3><p>{fareGroups.length?'Try another stop filter to see more journeys.':'Try a different date, route or cabin.'}</p>{fareGroups.length>0&&<button className="secondary" type="button" onClick={()=>setStopFilter('ALL')}>Reset filters</button>}</div>}
+          {!flightRows.length&&<div className="empty-results"><h3>{fareGroups.length?'No flights match these filters':'No flights found'}</h3><p>{fareGroups.length?'Try another airline or stop filter to see more journeys.':'Try a different date, route or cabin.'}</p>{fareGroups.length>0&&<button className="secondary" type="button" onClick={()=>{setStopFilter('ALL');setAirlineFilter('ALL');}}>Reset filters</button>}</div>}
         </>}
-        {product==='HOTEL'&&<div className="booking-hotel-list">{results.results.hotels?.map(hotel=><article className="white-card booking-record booking-hotel-card" key={hotel.tjHotelId}><div className="hotel-result-art" aria-hidden="true"><span>▥</span><i/><i/><i/></div><div className="hotel-result-content"><div className="eyebrow">EXPLORE THIS STAY</div><h3>{hotel.name}</h3><p className="muted">Find the room and meal plan that suit your trip.</p><div className="hotel-detail-tags"><span>Room options</span><span>Cancellation terms at review</span></div></div><div className="hotel-result-action"><small>Check rooms for current prices</small><button type="button" className="primary" disabled={busy} onClick={()=>void chooseHotel(hotel)}>Choose room</button></div></article>)}{!results.results.hotels?.length&&<div className="empty-results"><h3>No stays found</h3><p>Try another destination or date range.</p></div>}</div>}
+        {product==='HOTEL'&&<div className="booking-hotel-list">{results.results.hotels?.map(hotel=><article className="white-card booking-record booking-hotel-card" key={hotel.tjHotelId}><HotelPropertyMedia name={hotel.name} photos={hotel.property?.photos}/><div className="hotel-result-content"><div className="eyebrow">EXPLORE THIS STAY</div><h3>{hotel.name}</h3><p className="muted">{hotel.property?.address||'Find the room and meal plan that suit your trip.'}</p>{hotel.property?.starRating&&<p>Property category: {hotel.property.starRating} stars</p>}{Boolean(hotel.property?.amenities.length)&&<p>{hotel.property?.amenities.slice(0,5).join(' · ')}</p>}<div className="hotel-detail-tags"><span>Room options</span><span>Cancellation terms at review</span></div></div><div className="hotel-result-action">{typeof hotel.customerEstimateMinor==='number'?<><strong>From {money(hotel.customerEstimateMinor)}</strong><small>Estimated full stay · all selected rooms</small></>:<small>Check rooms for current prices</small>}<button type="button" className="primary" disabled={busy} onClick={()=>void chooseHotel(hotel)}>Choose room</button></div></article>)}{!results.results.hotels?.length&&<div className="empty-results"><h3>No stays found</h3><p>Try another destination or date range.</p></div>}</div>}
       </section>}
-      {rooms&&!quote&&product==='HOTEL'&&<section id="booking-rooms" className="white-card booking-rooms" aria-label="Room options"><div className="eyebrow">YOUR STAY, YOUR STYLE</div><h2>{rooms.name}</h2>{rooms.options.length?rooms.options.map(option=><article className="live-fare" key={option.optionId}><div><h3>{option.mealBasis?.replaceAll('_',' ')||'Room option'}</h3><strong>{money(Math.round(option.pricing.totalPrice*100))} <small>total for the full stay</small></strong><p className="muted">All selected rooms and guests · final total at review</p>{option.bookingNotes&&<p>{option.bookingNotes}</p>}<details><summary>Cancellation policy</summary><SupplierPolicy title="Supplier cancellation terms" value={option.cancellation}/></details></div><button type="button" className="primary" disabled={busy} onClick={()=>void review({hid:rooms.hid,optionId:option.optionId})}>Review room</button></article>):<div className="empty-results"><h3>No rooms available</h3><p>Choose another hotel or change your dates.</p></div>}</section>}
+      {rooms&&!quote&&product==='HOTEL'&&<section id="booking-rooms" className="white-card booking-rooms" aria-label="Room options"><div className="eyebrow">YOUR STAY, YOUR STYLE</div><h2>{rooms.name}</h2><HotelPropertyMedia name={rooms.name} photos={rooms.property?.photos} gallery/>{rooms.options.length?rooms.options.map(option=><article className="live-fare" key={option.optionId}><div><h3>{hotelRoomLabel({roomInfo:option.roomInfo??[]})}</h3><p>{option.mealBasis?.replaceAll('_',' ')||'Meal plan not supplied'}</p>{Boolean(option.inclusions?.length)&&<ul className="fare-features">{option.inclusions?.map(item=><li key={item}>{item}</li>)}</ul>}<p>{hotelCancellationLabel(option.cancellation,now??undefined)}</p><strong>{money(Math.round(option.pricing.totalPrice*100))} <small>total for the full stay</small></strong><p className="muted">All selected rooms and guests · final total at review</p>{option.bookingNotes&&<p>{option.bookingNotes}</p>}<details><summary>Cancellation policy</summary><SupplierPolicy title="Supplier cancellation terms" value={option.cancellation}/></details></div><button type="button" className="primary" disabled={busy} onClick={()=>void review({hid:rooms.hid,optionId:option.optionId})}>Review room</button></article>):<div className="empty-results"><h3>No rooms available</h3><p>Choose another hotel or change your dates.</p></div>}</section>}
       {quote&&<form ref={checkoutForm} id="booking-review" aria-label="Review and travellers" className="white-card booking-review" onSubmit={event=>{event.preventDefault();void submitCheckout(event.currentTarget);}}>
-        <div className="page-heading"><div><div className="eyebrow">{checkoutStep==='payment'?'ONE LAST LOOK':'YOUR TRIP IS TAKING SHAPE'}</div><h2>{checkoutStep==='payment'?'Ready when you are.':'Who’s coming along?'}</h2><h3>{summaryTitle}</h3><p>{quote.summary?.date||quote.summary?.checkIn}{(quote.summary?.returnDate||quote.summary?.checkOut)?` — ${quote.summary?.returnDate||quote.summary?.checkOut}`:''} · {party.length} traveller{party.length===1?'':'s'}{quote.product==='HOTEL'?` · ${reviewedRooms.length} room${reviewedRooms.length===1?'':'s'}`:''}</p></div><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{setQuote(null);setExtrasPending(false);setCheckoutStep('travellers');scrollToSection('booking-results');}}>Change selection</button></div>
+        <div className="page-heading"><div><div className="eyebrow">{checkoutStep==='payment'?'ONE LAST LOOK':'YOUR TRIP IS TAKING SHAPE'}</div><h2>{checkoutStep==='payment'?'Ready when you are.':'Who’s coming along?'}</h2><h3>{summaryTitle}</h3><p>{quote.summary?.date||quote.summary?.checkIn}{(quote.summary?.returnDate||quote.summary?.checkOut)?` — ${quote.summary?.returnDate||quote.summary?.checkOut}`:''} · {party.length} traveller{party.length===1?'':'s'}{quote.product==='HOTEL'?` · ${reviewedRooms.length} room${reviewedRooms.length===1?'':'s'}`:''}</p></div><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{if(checkoutForm.current)privateDraft.current={party:party.join(','),values:Array.from(new FormData(checkoutForm.current).entries()).filter((entry):entry is [string,string]=>typeof entry[1]==='string'&&entry[0]!=='consent')};setQuote(null);setExtrasPending(false);setCheckoutStep('travellers');scrollToSection('booking-results');}}>Change selection</button></div>
+        <section className="selected-itinerary" aria-label="Selected itinerary"><h3>{quote.product==='FLIGHT'?'Your selected flights':'Your selected room'}</h3>{quote.product==='FLIGHT'?selectedJourney.map((flight,index)=><BookingFlightCard key={index} flight={flight} group="COMBO" busy={true} readOnly onSelect={()=>{}} selectedFareId={flight.totalPriceList[0]?.id}/>):<><p>{quote.hotelName||rooms?.name||'Selected stay'}</p><h4>{hotelRoomLabel({roomInfo:quote.review.option?.roomInfo??selectedRoom?.roomInfo??[]})}</h4>{Boolean((quote.review.option?.inclusions??selectedRoom?.inclusions)?.length)&&<ul>{(quote.review.option?.inclusions??selectedRoom?.inclusions)?.map(item=><li key={item}>{item}</li>)}</ul>}<p>{(quote.review.option?.mealBasis??selectedRoom?.mealBasis)?.replaceAll('_',' ')||'Meal plan not supplied'}</p>{selectedRoom?.bookingNotes&&<p>{selectedRoom.bookingNotes}</p>}</>}<p className="muted">Search details are shown for your selection. The latest reviewed price and supplier conditions below take precedence.</p></section>
         <div className={`booking-expiry${expired||needsReview?' is-expired':''}`} role={expired||needsReview?'alert':undefined}><div><strong>{payment?'Payment order created':expired||needsReview?'A fresh price review is required':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':expired||needsReview?'Keep your traveller details. Refresh the price and rules before continuing.':'Fares can change. We’ll ask you to accept any new total before payment.'}</p></div>{!payment&&!paymentUncertain&&selection&&<button type="button" className="secondary" disabled={busy} onClick={()=>void review(selection,true)}>Refresh reviewed price</button>}</div>
         <details open><summary>Fare conditions, cancellation & documents</summary>{hasCancellationTerms?<SupplierPolicy title="Cancellation and fare rules" value={cancellationTerms}/>:<section className="supplier-policy" aria-label="Cancellation and fare rules"><h4>Cancellation and fare rules</h4><p className="policy-note">Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.</p></section>}<section className="supplier-policy" aria-label="Required booking details"><h4>Required booking details</h4>{requiredBookingDetails.length?<ul className="fare-features">{requiredBookingDetails.map(detail=><li key={detail}>{detail}</li>)}</ul>:<p className="policy-note">No additional documents are requested in this review. Traveller names must match their travel documents.</p>}</section></details>
         {Boolean(quote.review.alerts)&&<div className="info-message"><strong>Supplier update</strong><SupplierPolicy title="Review these fare alerts" value={quote.review.alerts}/></div>}
-        <fieldset className="booking-traveller-fields" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} hidden={checkoutStep==='payment'}>
+        <fieldset className="booking-traveller-fields" disabled={!checkoutConfigured||busy||Boolean(payment)||paymentUncertain||recovery.blocked} hidden={!checkoutConfigured||checkoutStep==='payment'}>
           {party.map((pt,index)=>{
             const dobRequired=pt!=='ADULT'||Boolean(quote.review.conditions?.dob?.adobr);
             const panRequired=pt==='ADULT'&&Boolean(quote.review.conditions?.ipa||quote.review.option?.compliance?.panRequired);
@@ -307,13 +365,14 @@ function LiveBookingWorkspace({prefill={}}:{prefill?:Record<string,string>}){
           <details open={emergencyRequired}><summary>Emergency contact{emergencyRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>Contact name<input name="emergencyName" onChange={event=>setEmergencyEntered(Boolean(event.target.value.trim()))} required={emergencyRequired} maxLength={100}/></label><label>Contact email<input name="emergencyEmail" required={emergencyRequired||emergencyEntered} type="email"/></label><label>Contact phone with country code<input name="emergencyPhone" required={emergencyRequired||emergencyEntered} type="tel" minLength={10} maxLength={20}/></label></div></details>
           {quote.product==='FLIGHT'&&<CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={total=>setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total}:current)}/>}
         </fieldset>
-        {checkoutStep==='payment'&&<div className="booking-payment-review"><h3>Your total, before you pay.</h3><p>{party.length} traveller{party.length===1?'':'s'} · {quote.product==='HOTEL'?'Full stay total':'Complete selected itinerary'}</p><strong className="booking-payment-total">{money(quote.totalMinor)}</strong><p className="muted">Payment opens with the configured secure payment provider. A successful payment is not a confirmed ticket or room: supplier confirmation follows in My trips.</p><label className="checkbox consent"><input key={`${quote.quoteId}:${quote.totalMinor}`} name="consent" type="checkbox" required disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked}/>I accept the reviewed total and supplier rules. This is a test booking with test-mode payment.</label><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>setCheckoutStep('travellers')}>Back to travellers</button></div>}
-        {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button className="primary booking-continue" disabled={busy||extrasPending||expired||needsReview}>{busy?'Processing…':checkoutStep==='travellers'?'Continue to payment':payment?'Resume secure checkout':`Pay ${money(quote.totalMinor)} securely`}</button>}
+        {checkoutStep==='payment'&&<div className="booking-payment-review"><h3>Check your travellers and contact details</h3>{travellerSummary&&<div className="final-traveller-summary"><ul>{travellerSummary.names.map((name,index)=><li key={index}><strong>{name}</strong> · {party[index]?.toLowerCase()}</li>)}</ul><p>Email: <strong>{travellerSummary.email}</strong></p><p>Mobile: <strong>{travellerSummary.phone}</strong></p><p className="muted">Names must match travel documents. Use Back to travellers to correct a detail.</p></div>}<h3>Your total, before you pay.</h3><p>{party.length} traveller{party.length===1?'':'s'} · {quote.product==='HOTEL'?'Full stay total':'Complete selected itinerary'}</p><strong className="booking-payment-total">{money(quote.totalMinor)}</strong><p className="muted">Payment opens with the configured secure payment provider. A successful payment is not a confirmed ticket or room: supplier confirmation follows in My trips.</p><label className="checkbox consent"><input key={`${quote.quoteId}:${quote.totalMinor}`} name="consent" type="checkbox" required disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked}/>I accept the reviewed total and supplier rules. Payment availability and booking confirmation are verified separately.</label><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>setCheckoutStep('travellers')}>Back to travellers</button></div>}
+        {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button className="primary booking-continue" disabled={busy||extrasPending||expired||needsReview||providerUnavailable}>{providerUnavailable?'Online payment unavailable':busy?'Processing…':checkoutStep==='travellers'?'Continue to payment':payment?'Resume secure checkout':`Pay ${money(quote.totalMinor)} securely`}</button>}
         {extrasPending&&<p className="muted" role="status">Apply your optional extras before continuing.</p>}
       </form>}
     </div>
-    <aside id="booking-summary" className="booking-summary" aria-label="Your journey summary"><div className="summary-compass" aria-hidden="true">↗</div><div className="eyebrow">YOUR TRIP COMPANION</div><h2>{quote?'Your trip, at a glance.':'Good journeys start here.'}</h2>{quote?<><h3>{summaryTitle}</h3><p>{quote.summary?.date||quote.summary?.checkIn}{(quote.summary?.returnDate||quote.summary?.checkOut)?` — ${quote.summary?.returnDate||quote.summary?.checkOut}`:''}</p><dl className="booking-summary-lines"><div><dt>Travellers</dt><dd>{party.length}</dd></div>{quote.product==='HOTEL'&&<div><dt>Rooms</dt><dd>{reviewedRooms.length}</dd></div>}<div><dt>Reviewed {quote.product==='HOTEL'?'stay':'fare'}</dt><dd>{money(reviewBase)}</dd></div>{quote.totalMinor!==reviewBase&&<div><dt>Selected flight extras</dt><dd>{money(quote.totalMinor-reviewBase)}</dd></div>}<div className="booking-total"><dt>Total payable</dt><dd>{money(quote.totalMinor)}</dd></div></dl><p className="muted">For all travellers{quote.product==='HOTEL'?' and all rooms':''}. Supplier taxes and applicable booking charges are included in the reviewed total. A detailed tax split is not provided here.</p></>:<><p>Compare what matters. Choose what fits. We’ll check your selection before you pay.</p>{!results&&<ol className="booking-guide"><li><span>01</span><div><strong>Start with your plans</strong><p>Choose your destination, dates and travellers.</p></div></li><li><span>02</span><div><strong>Find your fit</strong><p>Compare prices and the details that matter.</p></div></li><li><span>03</span><div><strong>Know before you go</strong><p>Review the full total and supplier terms.</p></div></li></ol>}{pairedFares&&<div className="selected-journey">{fareGroups.map(group=>{const fare=selectedFare(group);return <div key={group}><span>{groupLabel(group)}</span><strong>{fare?fare.fareIdentifier.replaceAll('_',' '):'Choose a flight'}</strong>{typeof fare?.customerEstimateMinor==='number'&&<small>{money(fare.customerEstimateMinor)} estimated</small>}</div>})}<button type="button" className="primary" disabled={busy||!allSelected} onClick={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}>Review selected journey ({fareGroups.filter(group=>selectedFares[group]).length}/{fareGroups.length})</button></div>}</>}
+    <aside id="booking-summary" className="booking-summary" aria-label="Your journey summary"><div className="summary-compass" aria-hidden="true">↗</div><div className="eyebrow">YOUR TRIP COMPANION</div><h2>{quote?'Your trip, at a glance.':'Good journeys start here.'}</h2>{quote?<><h3>{summaryTitle}</h3><p>{quote.summary?.date||quote.summary?.checkIn}{(quote.summary?.returnDate||quote.summary?.checkOut)?` — ${quote.summary?.returnDate||quote.summary?.checkOut}`:''}</p><dl className="booking-summary-lines"><div><dt>Travellers</dt><dd>{party.length}</dd></div>{quote.product==='HOTEL'&&<div><dt>Rooms</dt><dd>{reviewedRooms.length}</dd></div>}<div><dt>Reviewed {quote.product==='HOTEL'?'stay':'fare'}</dt><dd>{money(reviewBase)}</dd></div>{quote.totalMinor!==reviewBase&&<div><dt>Selected flight extras</dt><dd>{money(quote.totalMinor-reviewBase)}</dd></div>}<div className="booking-total"><dt>Total payable</dt><dd>{money(quote.totalMinor)}</dd></div></dl><p className="muted">For all travellers{quote.product==='HOTEL'?' and all rooms':''}. {quote.product==='HOTEL'?'This is the reviewed online stay total. Additional property-payable charges are not verified here; check the supplier terms or contact support before booking.':'Supplier taxes and applicable booking charges are included in the reviewed total. A detailed tax split is not provided here.'}</p></>:<><p>Compare what matters. Choose what fits. We’ll check your selection before you pay.</p>{!results&&<ol className="booking-guide"><li><span>01</span><div><strong>Start with your plans</strong><p>Choose your destination, dates and travellers.</p></div></li><li><span>02</span><div><strong>Find your fit</strong><p>Compare prices and the details that matter.</p></div></li><li><span>03</span><div><strong>Know before you go</strong><p>Review the full total and supplier terms.</p></div></li></ol>}{pairedFares&&<div className="selected-journey">{fareGroups.map(group=>{const fare=selectedFare(group);return <div key={group}><span>{groupLabel(group)}</span><strong>{fare?fare.fareIdentifier.replaceAll('_',' '):'Choose a flight'}</strong>{typeof fare?.customerEstimateMinor==='number'&&<small>{money(fare.customerEstimateMinor)} estimated</small>}</div>})}<button type="button" className="primary" disabled={busy||!allSelected} onClick={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}>Review selected journey ({fareGroups.filter(group=>selectedFares[group]).length}/{fareGroups.length})</button></div>}</>}
       <ul className="booking-trust-note"><li>Full total before payment</li><li>Fare rules at review</li><li>Verified updates in My trips</li></ul><p className="booking-environment-note">Test environment · No live payments</p><Link className="inline-link" href="/my-trips">Already paid? Check My trips →</Link>
     </aside></div>
+  {quote&&<div className="mobile-booking-action" aria-label="Quick booking summary"><div><small>{party.length} travellers · reviewed total</small><strong>{money(quote.totalMinor)}</strong></div><button className="secondary" type="button" onClick={()=>scrollToSection('booking-review')}>Review trip ↑</button></div>}
   </main><TravelFooter/></>;
 }

@@ -47,3 +47,5 @@ next-env.d.ts
 /dist/
 /audit-current.json
 /lint-report.json
+/playwright-report-payglocal/
+/test-results-payglocal/

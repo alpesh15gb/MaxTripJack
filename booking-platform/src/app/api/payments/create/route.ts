@@ -29,7 +29,16 @@ export async function POST(request:Request){try{
  if(Number(quote.total_minor)===0){const freeExisting=await database().query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(freeExisting.rowCount)return json({bookingId:freeExisting.rows[0].id,free:true,amount:0,currency:"INR"});}
  const existingIntent=await database().query("SELECT o.id,o.guests_encrypted,g.provider FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.quote_id=$1",[quote.id]);
  // Existing provider wins over configuration. Free services never contact a gateway.
- if(Number(quote.total_minor)>0)assertNewPaymentProviderReady(checkoutPaymentProvider(existingIntent.rows[0]?.provider));
+ if(Number(quote.total_minor)>0){
+  try{assertNewPaymentProviderReady(checkoutPaymentProvider(existingIntent.rows[0]?.provider));}
+  catch(error){
+   // Only a proven NEW checkout may clear the browser's uncertainty marker.
+   // Existing or unknown intents always retain reconciliation semantics.
+   if(!existingIntent.rowCount && error instanceof HttpError && error.status===503)
+    return json({code:"PAYMENT_PROVIDER_UNAVAILABLE",error:"Online payment is not available yet. No payment was started. You can keep comparing journeys."},503);
+   throw error;
+  }
+ }
  const key=Number(quote.total_minor)>0?razorpayKey():null;
  if(quote.product==="FLIGHT"&&!quote.service_kind&&((quote.fare_validation_state&&quote.fare_validation_state!=="SUCCEEDED")||quote.booking_validation_state)){if(existingIntent.rowCount)throw new HttpError(409,"Existing checkout requires reconciliation. Check My trips and do not pay again.");throw new FareValidationBlockedError();}
  if(existingIntent.rowCount&&!isDeepStrictEqual(unseal(existingIntent.rows[0].guests_encrypted,existingIntent.rows[0].id),guests))throw new HttpError(409,"Checkout already contains different traveller or contact details. Review the original order in My trips before paying.");

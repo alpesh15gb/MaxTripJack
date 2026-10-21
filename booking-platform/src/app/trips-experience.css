@@ -158,3 +158,18 @@
   .trips-checklist { padding: 0 16px; }
   .trips-workspace .trips-access > div { flex-wrap: wrap; }
 }
+
+.trips-journey-filters { margin: 12px 0 8px; flex-wrap: wrap; }
+.trips-loaded-scope { color: var(--muted, #667085); font-size: .82rem; line-height: 1.6; margin: 0 0 20px; }
+.trip-date-group { display: grid; gap: 16px; min-width: 0; }
+.trip-date-group > header h2 { font-size: 1.15rem; margin: 0 0 5px; }
+.trip-date-group > header h2 span { color: #667085; font-size: .8rem; margin-left: 5px; }
+.trip-date-group > header p { color: #667085; font-size: .82rem; line-height: 1.6; margin: 0; }
+.trip-refunds > div { align-items: start; gap: 16px; }
+.trip-refunds > div span { min-width: 0; }
+.trip-refunds small { display: block; font-size: .78rem; line-height: 1.6; margin-top: 5px; font-weight: 400; }
+.service-conditions { padding: 16px; border: 1px solid #e1e7ed; border-radius: 12px; margin: 16px 0; }
+.service-conditions p { font-size: .82rem; line-height: 1.65; }
+.service-conditions dl { display: grid; gap: 10px; }
+.service-conditions dt { color: #667085; font-size: .76rem; overflow-wrap: anywhere; }
+.service-conditions dd { margin: 3px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .86rem; }

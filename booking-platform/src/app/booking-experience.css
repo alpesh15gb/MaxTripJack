@@ -117,3 +117,25 @@
 .booking-workflow .booking-party-picker>p { margin:15px 0; font-size:12px; }
 .booking-workflow .booking-loading-lines { width:min(100%,420px); }
 @media(max-width:400px) { .booking-workflow .booking-party-picker .form-row { grid-template-columns:1fr; } }
+
+/* Keep real itinerary and review details readable on narrow screens. */
+.flight-segment-details { border-top:1px solid #dce5ec; margin-top:1rem; padding-top:1rem; }
+.flight-segment { padding:.75rem 0; border-bottom:1px solid #e5eaf0; }
+.selected-itinerary .live-flight-card { box-shadow:none; margin:.75rem 0; }
+.final-traveller-summary { background:#f3f7fa; border-radius:1rem; padding:1rem; overflow-wrap:anywhere; }
+.final-traveller-summary ul { padding-left:1.2rem; }
+.mobile-booking-action { display:none; }
+@media(max-width:700px) {
+ .booking-workflow { padding-bottom:calc(110px + env(safe-area-inset-bottom)); }
+ .mobile-booking-action { display:flex; align-items:center; justify-content:space-between; gap:1rem; position:fixed; z-index:30; bottom:0; left:0; right:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid #dce5ec; box-shadow:0 -4px 18px #162c4010; }
+ .mobile-booking-action strong,.mobile-booking-action small { display:block; }
+ .mobile-booking-action small { font-size:.72rem; }
+ .selected-itinerary .white-card { padding:12px; }
+}
+
+.hotel-property-thumb figure,.hotel-property-gallery figure { margin:0; min-width:0; }
+.hotel-property-thumb img { display:block; width:100%; height:120px; object-fit:cover; border-radius:14px; }
+.hotel-photo-unavailable { display:grid; place-items:center; min-height:100px; border-radius:14px; padding:10px; background:#edf2f5; color:#596879; text-align:center; font-size:.75rem; }
+.hotel-property-gallery { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:12px; margin:1rem 0; }
+.hotel-property-gallery img { width:100%; height:180px; object-fit:cover; border-radius:12px; }
+.hotel-property-gallery figcaption { font-size:.75rem; color:#596879; padding:5px; }

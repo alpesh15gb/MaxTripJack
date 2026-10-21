@@ -29,7 +29,7 @@ async function showPaymentReview(page: Page) {
 async function openSyntheticPayment(page: Page) {
   await page.getByRole('checkbox', { name: /I accept the reviewed total and supplier rules/ }).check();
   await page.getByRole('button', { name: /^Pay .* securely$/ }).click();
-  await expect.poll(() => page.evaluate('window.__syntheticGateway.opens.length')).toBe(1);
+  await expect.poll(() => page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
 }
 
 test('fare comparison selects a server fare id and shows a reviewed party total', async ({ page, provider }, testInfo) => {
@@ -187,7 +187,7 @@ test('supplier review-required errors do not automatically repeat payment creati
   await expect(page.getByRole('button', { name: /^Pay .* securely$/ })).toBeDisabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/verify')).toHaveLength(0);
-  expect(await page.evaluate('window.__syntheticGateway.opens.length')).toBe(0);
+  expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(0);
 });
 
 test('unknown local-time duration is not guessed and COMBO journeys are not connecting stops', async ({ page, provider }) => {
@@ -214,7 +214,7 @@ test('a captured order cannot reopen checkout after dismissal', async ({ page, p
   await page.evaluate('window.__syntheticGateway.dismiss()');
   await page.getByRole('button', { name: 'Resume secure checkout', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Check payment status in My trips', exact: true })).toBeVisible();
-  expect(await page.evaluate('window.__syntheticGateway.opens.length')).toBe(1);
+  expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/status')).toHaveLength(1);
   await expect(page.getByRole('button', { name: 'Resume secure checkout', exact: true })).toHaveCount(0);
@@ -234,7 +234,7 @@ test('an expired existing order is preserved but cannot reopen or create another
   await expect(page.getByRole('link', { name: 'View payment and booking status →', exact: true })).toBeVisible();
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/status')).toHaveLength(0);
-  expect(await page.evaluate('window.__syntheticGateway.opens.length')).toBe(1);
+  expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
 });
 
 for (const status of [409, 503]) test(`uncertain payment creation (${status}) locks retries and routes the traveller to status`, async ({ page, provider }, testInfo) => {
@@ -250,7 +250,7 @@ for (const status of [409, 503]) test(`uncertain payment creation (${status}) lo
   await expect(page.getByRole('button', { name: 'Refresh reviewed price', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/verify')).toHaveLength(0);
-  expect(await page.evaluate('window.__syntheticGateway.opens.length')).toBe(0);
+  expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(0);
   await capture(page, testInfo, 'payment-creation-uncertain');
 });
 
@@ -392,4 +392,57 @@ test('party selected in the collapsed search picker reaches traveller review int
   await expect(summary.locator('.booking-summary-lines > div').filter({ has: page.getByText('Travellers', { exact: true }) }).locator('dd')).toHaveText('4');
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
+});
+
+
+test('final review displays selected flight and exact traveller contact before payment',async({page})=>{
+ await openReviewedFlight(page);
+ await showPaymentReview(page);
+ await expect(page.getByRole('region',{name:'Selected itinerary'})).toContainText('IndiGo');
+ await expect(page.locator('.final-traveller-summary')).toContainText('Mr Aarav Example');
+ await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
+ await expect(page.locator('.final-traveller-summary')).toContainText('9876543210');
+ await expectNoHorizontalOverflow(page);
+});
+
+test('known unavailable provider reports no payment started without an uncertainty lock or irrelevant SDK',async({page,provider})=>{
+ provider.overrides['POST /api/payments/create']={status:503,body:{code:'PAYMENT_PROVIDER_UNAVAILABLE',error:'Online payment is not available yet. No payment was started.'}};
+ await openReviewedFlight(page);await showPaymentReview(page);
+ await page.getByRole('checkbox',{name:/I accept the reviewed total/}).check();
+ await page.getByRole('button',{name:/^Pay .* securely$/}).click();
+ await expect(page.getByRole('button',{name:'Online payment unavailable',exact:true})).toBeDisabled();
+ await expect(page.locator('#booking-feedback')).toContainText('No payment was started');
+ expect(await page.evaluate(()=>Object.keys(sessionStorage).filter(key=>key.includes('checkout')))).toEqual([]);
+ expect(await page.locator('script[src*="checkout.razorpay.com"]').count()).toBe(0);
+ await expect(page.getByRole('link',{name:'Check payment status in My trips',exact:true})).toHaveCount(0);
+});
+
+
+test('guest selection survives sign-in without persisting private fields or an old quote',async({page,provider})=>{
+ provider.session=null;
+ provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
+ await openFlightSearch(page);await selectVisibleFare(page);
+ const link=page.getByRole('link',{name:'Sign in or create an account',exact:true});
+ await expect(link).toBeVisible();
+ const accountUrl=new URL((await link.getAttribute('href'))!, 'http://127.0.0.1:3100');
+ const target=accountUrl.searchParams.get('returnTo');
+ expect(target).toContain('resumeSelection=1');
+ const handoff=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!));
+ expect(handoff.searchId).toBe(searchId);expect(handoff.selection).toEqual({priceIds:['onward-standard']});
+ expect(handoff).not.toHaveProperty('quoteId');expect(handoff).not.toHaveProperty('guests');
+ provider.session=syntheticSession();delete provider.overrides['POST /api/travel/review'];
+ await page.goto(target!);
+ await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Selected itinerary'})).toContainText('IndiGo');
+ expect(provider.requests('/api/travel/review')).toHaveLength(2);
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+});
+
+test('changing fare preserves private traveller draft only in the current page',async({page})=>{
+ await openReviewedFlight(page);await fillDomesticTraveller(page);
+ await page.getByRole('button',{name:'Change selection',exact:true}).click();
+ await selectVisibleFare(page);
+ await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+ await expect(page.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
+ expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
 });

@@ -185,3 +185,22 @@ test('traveller disclosure preserves party and cabin through keyboard close and 
   });
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
+
+test('hotel real supplier metadata and photos render with a truthful broken-photo fallback',async({page,provider},testInfo)=>{
+ const photo='https://pix8.agoda.net/hotelImages/123/room.jpg';
+ await page.route(photo,route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"><rect width="480" height="320" fill="#aacccc"/><text x="20" y="80">Synthetic property fixture</text></svg>'}));
+ const property={address:'Example Road, Goa',starRating:4,amenities:['Wi-Fi','Restaurant'],photos:[{url:photo,caption:'Supplier room view',isHero:true}]};
+ provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Fixture stay',customerEstimateMinor:1200000,property}]}};
+ provider.overrides['POST /api/travel/hotel-detail']={body:{property,options:[{optionId:'room1',roomInfo:[{name:'Deluxe room'}],inclusions:['Breakfast included'],mealBasis:'Breakfast',pricing:{totalPrice:12000,currency:'INR'},cancellation:{isRefundable:false,penalties:[]}}]}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,autoSearch:'1'}));
+ await expect(page.getByText('Example Road, Goa',{exact:true})).toBeVisible();
+ await expect(page.getByText('Property category: 4 stars',{exact:true})).toBeVisible();
+ await expect(page.getByText('Wi-Fi · Restaurant',{exact:true})).toBeVisible();
+ await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toBeVisible();
+ await page.getByRole('button',{name:'Choose room',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Deluxe room',exact:true})).toBeVisible();
+ await expect(page.locator('.hotel-property-gallery')).toBeVisible();
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-real-metadata-gallery');
+ await page.locator('.hotel-property-gallery img').dispatchEvent('error');
+ await expect(page.locator('#booking-rooms .hotel-photo-unavailable')).toContainText('Property photos not available');
+});

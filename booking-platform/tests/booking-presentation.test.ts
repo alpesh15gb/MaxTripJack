@@ -13,3 +13,9 @@ test('expiry reaches zero and unknown refundability never promises a refund',()=
 
 test('invalid expiry fails closed',()=>{assert.equal(quoteRemaining('not a date',0),0);});
 test('payment uncertainty never unlocks another quote or payment',()=>{assert.equal(paymentFailureAction(undefined,'Network failed'),'status');assert.equal(paymentFailureAction(500,'Failed'),'status');assert.equal(paymentFailureAction(409,'Payment order creation is pending reconciliation. Do not create another payment.'),'status');assert.equal(paymentFailureAction(409,'Checkout already contains different traveller or contact details.'),'status');assert.equal(paymentFailureAction(409,'An unrecognized conflict'),'status');assert.equal(paymentFailureAction(409,'Price changed. Accept the latest review.'),'refresh');assert.equal(paymentFailureAction(409,'This fare validation cannot be repeated safely. Review a new quote before paying; if payment was already taken, contact operations and do not pay again.'),'refresh');assert.equal(paymentFailureAction(400,'Invalid request fields.'),'edit');});
+
+test('only explicit proven pre-intent provider failure unlocks review, never generic 503',()=>{
+ assert.equal(paymentFailureAction(503,'Online payment is not available yet.','PAYMENT_PROVIDER_UNAVAILABLE'),'unavailable');
+ assert.equal(paymentFailureAction(503,'Online payment is not available yet.'),'status');
+ assert.equal(paymentFailureAction(500,'Failed','PAYMENT_PROVIDER_UNAVAILABLE'),'status');
+});

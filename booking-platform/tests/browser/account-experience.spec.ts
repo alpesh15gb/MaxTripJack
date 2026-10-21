@@ -44,9 +44,9 @@ test('traveller access failure is not mistaken for an empty saved list', async (
 test('password reset keeps invalid links local and exposes clear recovery feedback', async ({ page, provider }, testInfo) => {
   await page.goto('/reset-password');
   await expect(page.getByRole('main')).toHaveCount(1);
-  await page.getByLabel('New password', { exact: true }).fill('SyntheticPasswordOnly123');
-  await page.getByRole('button', { name: 'Update password' }).click();
-  await expect(page.getByRole('status')).toContainText('Reset link is missing or invalid.');
+  await expect(page.getByRole('alert')).toContainText('Reset link is missing or invalid.');
+  await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Back to account recovery' })).toBeVisible();
   expect(provider.calls.filter(call => call.method !== 'GET')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'password-reset-invalid-link');
@@ -73,4 +73,75 @@ test('operations access failure is shown as unavailable rather than no records',
   await expect(page.getByRole('heading', { name: 'Records are unavailable', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'No records to show.', exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
+});
+
+
+test('verification recovery is explicit, generic and cooldown protected', async ({ page, provider }) => {
+  provider.session = null;
+  provider.overrides['POST /api/auth/sign-up/email'] = { body: { user: { id: 'synthetic', email: 'person@example.test', emailVerified: false }, token: null } };
+  provider.overrides['POST /api/auth/send-verification-email'] = { body: { status: true } };
+  await page.goto('/account?returnTo=%2Fbook%3Ffrom%3DBOM%26to%3DDEL');
+  await page.getByRole('button', { name: 'Create account', exact: true }).first().click();
+  await page.getByLabel('Your name', { exact: true }).fill('Synthetic Person');
+  await page.getByLabel('Email', { exact: true }).fill('person@example.test');
+  await page.getByLabel('Password', { exact: true }).fill('SyntheticPasswordOnly123');
+  await page.getByRole('button', { name: 'Create account', exact: true }).last().click();
+  await expect(page.getByRole('heading', { name: 'Check your email', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Resend available in/ })).toBeDisabled();
+  const signup = provider.requests('/api/auth/sign-up/email')[0].body as {callbackURL:string};
+  expect(signup.callbackURL).toBe('/account?returnTo=%2Fbook%3Ffrom%3DBOM%26to%3DDEL');
+  await page.getByRole('button', { name: 'Back to sign in', exact: true }).click();
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
+  expect(provider.requests('/api/auth/send-verification-email')).toHaveLength(0);
+});
+
+test('sign-in returns to the requested customer workspace and rejects external returns', async ({ page, provider }) => {
+  provider.session = null;
+  provider.overrides['POST /api/auth/sign-in/email'] = { body: { user: { id: 'synthetic' }, token: null } };
+  await page.goto('/account?returnTo=https%3A%2F%2Fevil.example');
+  await page.getByLabel('Email', { exact: true }).fill('person@example.test');
+  await page.getByLabel('Password', { exact: true }).fill('SyntheticPasswordOnly123');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).last().click();
+  await expect(page).toHaveURL('/my-trips');
+});
+
+test('valid reset completion preserves the safe destination without keeping the password form', async ({ page, provider }) => {
+  provider.session = null;
+  provider.overrides['POST /api/auth/reset-password'] = { body: { status: true } };
+  await page.goto('/reset-password?token=synthetic-reset-token&returnTo=%2Ftravellers');
+  await page.getByLabel('New password', { exact: true }).fill('SyntheticPasswordOnly123');
+  await page.getByLabel('Confirm new password', { exact: true }).fill('SyntheticPasswordOnly123');
+  await page.getByRole('button', { name: 'Update password', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Password updated', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sign in and continue' })).toHaveAttribute('href', '/account?returnTo=%2Ftravellers');
+  await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0);
+});
+
+test('verification resend uses the supported endpoint and prevents immediate repeats', async ({ page, provider }) => {
+  provider.session = null;
+  provider.overrides['POST /api/auth/send-verification-email'] = { body: { status: true } };
+  await page.goto('/account?returnTo=%2Ftravellers');
+  await page.getByRole('button', { name: 'Need a verification email?' }).click();
+  await page.getByLabel('Email for verification').fill('person@example.test');
+  await page.getByRole('button', { name: 'Resend verification email', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('If this email has an unverified account');
+  await expect(page.getByRole('button', { name: /Resend available in/ })).toBeDisabled();
+  const calls = provider.requests('/api/auth/send-verification-email');
+  expect(calls).toHaveLength(1);
+  expect(calls[0].body).toMatchObject({ email: 'person@example.test', callbackURL: '/account?returnTo=%2Ftravellers' });
+});
+
+test('two-factor sign-in keeps the safe return destination until verification succeeds', async ({ page, provider }) => {
+  provider.session = null;
+  provider.overrides['POST /api/auth/sign-in/email'] = { body: { twoFactorRedirect: true } };
+  provider.overrides['POST /api/auth/two-factor/verify-totp'] = { body: { user: { id: 'synthetic' }, token: null } };
+  await page.goto('/account?returnTo=%2Ftravellers');
+  await page.getByLabel('Email', { exact: true }).fill('person@example.test');
+  await page.getByLabel('Password', { exact: true }).fill('SyntheticPasswordOnly123');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).last().click();
+  await expect(page.getByLabel('Authenticator code', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/account\?/);
+  await page.getByLabel('Authenticator code', { exact: true }).fill('123456');
+  await page.getByRole('button', { name: 'Verify code', exact: true }).click();
+  await expect(page).toHaveURL('/travellers');
 });
