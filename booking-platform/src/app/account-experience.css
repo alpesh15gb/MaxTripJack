@@ -25,7 +25,7 @@
 .account-benefits>a { display:inline-flex; align-items:center; min-height:44px; color:#2455e7; text-underline-offset:5px; font-size:14px; font-weight:600; }
 .account-experience .white-card { background:#fff; border:1px solid #e0e7ef; border-radius:22px; padding:30px; box-shadow:0 8px 28px #18344c04; min-width:0; }
 .account-experience .account-card { max-width:none; width:100%; margin:0; }
-.account-experience h2 { color:#142d40; }
+.account-experience-main h2 { color:#142d40; }
 .account-experience .account-card>h2 { font-size:25px; letter-spacing:-.5px; margin:0 0 10px; }
 .account-experience .account-card h3 { font-size:19px; letter-spacing:-.3px; }
 .account-experience .account-tabs { border:0; border-radius:12px; background:#f2f5f9; padding:5px; gap:4px; flex-wrap:nowrap; margin-bottom:26px; }
