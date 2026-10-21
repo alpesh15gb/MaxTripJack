@@ -98,7 +98,7 @@ test('cancellation submission refreshes progress immediately and uncertain retry
   expect(provider.requests(submit)[1].body).toEqual(provider.requests(submit)[0].body);
 });
 
-test('trip organiser groups real travel dates, keeps pending separate and explains refund progress', async ({ page, provider }) => {
+test('trip organiser groups real travel dates, keeps pending separate and explains refund progress', async ({ page, provider },testInfo) => {
   provider.bookingsPages['1'] = { hasMore: true, bookings: [
     {...trip('far-trip','MX-FAR','TICKETED','DEL'),itinerary_summary:{from:'BOM',to:'DEL',date:'2099-12-01'}},
     {...trip('near-trip','MX-NEAR','TICKETED','DEL'),itinerary_summary:{from:'BOM',to:'DEL',date:'2099-01-01'}},
@@ -115,6 +115,8 @@ test('trip organiser groups real travel dates, keeps pending separate and explai
   await expect(page.getByRole('region',{name:'Cancelled trips',exact:true})).toContainText('Refund processing');
   await expect(page.getByText('Processing or awaiting payment-provider confirmation. Completion is not yet confirmed.')).toBeVisible();
   await expect(page.getByText(/Search, filters and counts cover 5 loaded bookings only/)).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await capture(page,testInfo,'journey-studio-trip-organiser');
   await page.getByRole('button',{name:'Past travel',exact:true}).click();
   await expect(page.getByRole('article')).toHaveCount(1);
   await expectNoHorizontalOverflow(page);

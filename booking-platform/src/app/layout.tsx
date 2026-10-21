@@ -12,6 +12,7 @@ import "./booking-ui.css";
 import "./operations.css";
 import "./travel-design.css";
 import "./experience-system.css";
+import "./journey-studio.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

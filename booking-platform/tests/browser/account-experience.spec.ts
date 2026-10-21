@@ -292,6 +292,39 @@ test('account heading styling does not reduce footer text contrast',async({page,
  const luminance=(value:string)=>rgb(value).map(c=>c/255).map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)).reduce((sum,c,i)=>sum+c*[.2126,.7152,.0722][i],0);
  expect(colours.headings.length).toBeGreaterThan(0);
  for(const foreground of colours.headings){const a=luminance(foreground),b=luminance(colours.background);expect((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toBeGreaterThanOrEqual(4.5);}
- await expect(page.locator('.account-experience-main h2').first()).toHaveCSS('color','rgb(20, 45, 64)');
+ await expect(page.locator('.account-experience-main h1')).toHaveCSS('color','rgb(20, 45, 64)');
  await capture(page,testInfo,'account-heading-footer-contrast');
+});
+
+test('journey studio traveller form separates optional documents and keeps a single private sign-in gate',async({page,provider},testInfo)=>{
+ await page.goto('/travellers');
+ await expect(page.getByRole('button',{name:'Save traveller',exact:true})).toBeEnabled();
+ const documents=page.locator('summary').filter({hasText:'Travel documents'});
+ await expect(page.getByLabel('Passport number',{exact:true})).not.toBeVisible();
+ await documents.focus();
+ await page.keyboard.press('Enter');
+ await expect(page.getByLabel('Passport number',{exact:true})).toBeVisible();
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'journey-studio-traveller-documents');
+ await page.keyboard.press('Enter');
+ provider.overrides['GET /api/travellers']={status:401,body:{error:'Sign in required.'}};
+ await page.reload();
+ await expect(page.getByRole('heading',{name:'Sign in to manage your travellers.',exact:true})).toHaveCount(1);
+ await expect(page.getByRole('main').getByRole('link',{name:'Sign in',exact:true})).toHaveCount(1);
+ await expect(page.getByRole('button',{name:'Try again',exact:true})).toHaveCount(0);
+ await expect(page.getByLabel('Passport number',{exact:true})).not.toBeVisible();
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'journey-studio-single-private-gate');
+ expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
+});
+
+test('journey studio signed-in account keeps security controls and readable identity',async({page,provider},testInfo)=>{
+ await page.goto('/account');
+ await expect(page.getByRole('heading',{name:'Hello, Synthetic Traveller',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Account security',exact:true})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Password and signed-in devices',exact:true})).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'Your travel workspace'}).getByRole('link',{name:'Account & security',exact:true})).toHaveAttribute('aria-current','page');
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'journey-studio-account-security');
+ expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
 });

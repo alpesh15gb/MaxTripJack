@@ -106,8 +106,8 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={changeProduct} />
     <main id="main-content">
       <section className="home-intro" aria-labelledby="home-title">
-        <div><p className="home-kicker">YOUR NEXT CHAPTER STARTS HERE</p><h1 id="home-title">A great trip starts with <em>a clear plan.</em></h1><p>Find your flight. Find your stay. We’ll help with the details.</p></div>
-        <Link className="home-office-link" href="/office"><span><TravelIcon name="pin" /></span><div><strong>Online ease. Real people.</strong><small>Visit our Secunderabad office <TravelIcon name="arrow" size={14} /></small></div></Link>
+        <div className="studio-hero-copy"><p className="home-kicker"><span aria-hidden="true">✦</span> THE JOURNEY STUDIO</p><h1 id="home-title">A great trip starts with <em>a clear plan.</em></h1><p>Flights, stays and thoughtfully planned journeys.<br/>A little less searching. A lot more looking forward.</p><span className="studio-hero-signature">Your world. Your kind of journey.</span></div>
+        <div className="studio-hero-photo"><Image src={photos.hero} alt="Turquoise lagoon and overwater villas in the Maldives" fill sizes="(max-width:700px) 38vw, 48vw" priority/><span><TravelIcon name="pin" size={15}/>The Maldives · Travel inspiration</span><div className="studio-photo-note" aria-hidden="true">Somewhere<br/><em>different.</em></div></div>
       </section>
 
       <section id="trip-search" className="home-search-card" aria-label="Plan your trip">
@@ -131,19 +131,10 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
 
       <HomePackages/>
 
-      <section className="home-escape" aria-labelledby="escape-heading">
-        <Image className="home-escape-photo" src={photos.hero} alt="Turquoise water and overwater villas in the Maldives" fill sizes="(max-width: 1280px) 100vw, 1200px" />
-        <div className="home-escape-copy"><p className="home-kicker">MAKE ROOM FOR SOMETHING NEW</p><h2 id="escape-heading">A different view.<br /><em>A little more you.</em></h2><p>Your next escape starts with exploring the possibilities.</p><Link href="/book?product=HOTEL">Explore stays <TravelIcon name="arrow" size={18} /></Link></div>
-        <span className="home-escape-location"><TravelIcon name="pin" size={16} />The Maldives · Travel inspiration</span>
-      </section>
-
       <section className="home-discover" aria-labelledby="discover-heading"><div className="home-section-heading"><div><p className="home-kicker">A CHANGE OF SCENERY</p><h2 id="discover-heading">Where will you go next?</h2><p>For a long weekend, a fresh perspective, or no reason at all.</p></div><Link href="/book?product=HOTEL">Find your kind of stay<TravelIcon name="arrow" size={18} /></Link></div><div className="home-destinations">{[{ name: "Goa", image: photos.goa, mood: "SALT IN THE AIR", detail: "Slow days. Sea views. Your pace.", number: "01" }, { name: "Dubai", image: photos.dubai, mood: "A DIFFERENT PERSPECTIVE", detail: "Big city lights, bigger possibilities.", number: "02" }, { name: "Bali", image: photos.bali, mood: "FIND YOUR OWN RHYTHM", detail: "A little green. A little getaway.", number: "03" }].map(destination => <Link className="home-destination" href={`/book?product=HOTEL&city=${encodeURIComponent(destination.name)}`} key={destination.name} style={{ backgroundImage: `linear-gradient(0deg,rgba(8,26,37,.88),transparent 75%),url(${destination.image})` }} aria-label={`Explore stays in ${destination.name}`}><span className="home-destination-mood">{destination.mood}</span><span className="home-destination-number">{destination.number}</span><div><h3>{destination.name}</h3><p>{destination.detail}</p></div><span className="home-destination-arrow"><TravelIcon name="arrow" /></span></Link>)}</div></section>
-
-      <section className="home-how"><div className="home-how-intro"><p className="home-kicker">GOOD TRIPS START WITH CLARITY</p><h2>Less second-guessing.<br /><em>More looking forward.</em></h2><p>A booking flow that makes room for the details, so you can focus on the destination.</p><Link href="/book" className="home-text-link">Let’s get you going<TravelIcon name="arrow" size={18} /></Link></div><ol className="home-how-steps"><li><span>01</span><div><h3>Find what fits</h3><p>Compare flight timings and fare options, or choose a room that suits your stay.</p></div></li><li><span>02</span><div><h3>Know what you’re booking</h3><p>Review the final price, inclusions and supplier rules before making a payment.</p></div></li><li><span>03</span><div><h3>Keep every detail together</h3><p>Follow confirmation updates and find your travel documents in My trips.</p></div></li></ol></section>
 
       {children}
 
-      <section className="home-business"><span className="home-business-icon"><TravelIcon name="bag" size={27} /></span><div><p className="home-kicker">MAX TRAVEL FOR BUSINESS</p><h2>Travel for work. Keep it together.</h2><p>Your company account, travellers and bookings. Together.</p></div><Link href="/account">Open your account<TravelIcon name="arrow" size={18} /></Link></section>
     </main>
     <TravelFooter />
   </div>;
