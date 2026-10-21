@@ -10,12 +10,14 @@ type Catalogue = {packages:TravelPackageSummary[];truncated:boolean;unavailableC
 function PackageMoney({item}: {item:TravelPackageSummary}) {
   return <div className="package-price"><strong>{item.priceAmount !== null && <small>Starting estimate </small>}{packagePrice(item)}</strong><span>{packagePriceBasis[item.priceBasis]}</span>{item.priceAmount !== null && <small>{item.taxesIncluded ? 'Taxes included' : 'Check applicable taxes'} · Valid through {item.priceValidUntil} UTC</small>}</div>;
 }
-export function PackageExperience({slug}: {slug?:string}) { return <PackageContent key={slug || 'list'} slug={slug}/>; }
-function PackageContent({slug}: {slug?:string}) {
-  const [catalogue,setCatalogue] = useState<Catalogue|null>(null);
+export function PackageExperience({slug,initialPackage}: {slug?:string;initialPackage?:TravelPackage}) { return <PackageContent key={slug || 'list'} slug={slug} initialPackage={initialPackage}/>; }
+function PackageContent({slug,initialPackage}: {slug?:string;initialPackage?:TravelPackage}) {
+  const [loadedCatalogue,setCatalogue] = useState<Catalogue|null>(null);
+  const catalogue:Catalogue|null=initialPackage?{packages:[initialPackage],truncated:false,unavailableCount:0}:loadedCatalogue;
   const [error,setError] = useState(''); const [notFound,setNotFound] = useState(false); const [attempt,setAttempt] = useState(0);
   const [query,setQuery] = useState('');
   useEffect(() => {
+    if(initialPackage)return;
     const controller = new AbortController();
     fetch(slug ? `/api/packages/${encodeURIComponent(slug)}` : '/api/packages', {signal:controller.signal,cache:'no-store'}).then(async response => {
       if (!response.ok) { if (response.status === 404) setNotFound(true); throw new Error(response.status === 404 ? 'This package is no longer published or available.' : 'We couldn’t load package information. Please try again.'); }
@@ -24,7 +26,7 @@ function PackageContent({slug}: {slug?:string}) {
       setCatalogue({packages,truncated:data.truncated === true,unavailableCount:data.unavailableCount || 0});
     }).catch(e => { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Packages unavailable.'); });
     return () => controller.abort();
-  }, [slug,attempt]);
+  }, [slug,attempt,initialPackage]);
   const retry = () => {setError('');setNotFound(false);setCatalogue(null);setAttempt(value => value+1);};
   const item = slug ? catalogue?.packages[0] as TravelPackage | undefined : undefined;
   const visible = catalogue?.packages.filter(p => `${p.title} ${p.destination}`.toLowerCase().includes(query.trim().toLowerCase())) || [];

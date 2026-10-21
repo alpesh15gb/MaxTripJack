@@ -1,0 +1,10 @@
+import {samplePackage} from './package-fixture';
+/** Server-test-only content. Never imported by application code. */
+export function packageSsrFixture(slug:string,snapshot=1):unknown|null {
+ if(slug==='kerala-at-your-pace')return samplePackage;
+ if(slug==='expired-layout-sample')return {...samplePackage,slug,priceValidUntil:'2020-01-01',travelEnd:'2020-01-02'};
+ if(slug==='ssr-consistency-layout-sample')return {...samplePackage,slug,title:`SSR consistency layout sample ${snapshot}`,description:`Request snapshot ${snapshot} — fixture only.`,coverImageUrl:'',gallery:[]};
+ const samples=[{slug:'goa-layout-sample',name:'Goa',destination:'Goa, India'},{slug:'dubai-layout-sample',name:'Dubai',destination:'Dubai, UAE'},{slug:'bali-layout-sample',name:'Bali',destination:'Bali, Indonesia'}];
+ const p=samples.find(p=>p.slug===slug);if(!p)return null;
+ return {...samplePackage,id:`visual-sample-${samples.indexOf(p)}`,slug,title:`${p.name} — layout sample`,destination:p.destination,summary:'Layout sample — not published inventory. Destination imagery for design review only.',description:'Layout sample — not published inventory. This page demonstrates the visual presentation of an itinerary; it is not a travel offer.',priceAmount:null,priceBasis:'ON_REQUEST',availability:'UNAVAILABLE',availabilityNotes:'Not bookable. Layout sample for design review only.',priceNotes:'No price is offered for this visual sample.',coverImageUrl:`https://i.travelapi.com/lodging/layout-sample-${slug}.jpg`,coverImageAlt:`${p.name} destination photograph — layout sample, not published inventory`,gallery:[],itinerary:[{day:1,title:'Day one — layout sample',description:'Placeholder itinerary text for design review, not an included service.'},{day:2,title:'Day two — layout sample',description:'Placeholder itinerary text for design review, not an included service.'}],inclusions:['Layout sample only — no services offered'],exclusions:['Not published inventory'],terms:'Visual sample only. No booking is offered.',cancellationPolicy:'Not applicable to this non-bookable layout sample.'};
+}

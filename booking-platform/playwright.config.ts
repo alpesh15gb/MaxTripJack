@@ -31,7 +31,7 @@ export default defineConfig({
     { name: 'mobile-390', use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 } },
   ],
   webServer: {
-    command: 'npm run start -- --hostname 127.0.0.1 --port 3100',
+    command: 'node --import tsx --import ./tests/package-ssr-fetch.mts node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3100',
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,

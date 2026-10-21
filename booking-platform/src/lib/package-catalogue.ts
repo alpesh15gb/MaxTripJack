@@ -11,11 +11,12 @@ export async function fetchPackageCatalogue(slug?: string, fetcher: typeof fetch
   const timer = setTimeout(() => controller.abort(), 5000);
   try {
     const response = await fetcher(CRM + (slug ? `/${slug}` : ''), {signal:controller.signal,redirect:'error',cache:'no-store',headers:{Accept:'application/json'}});
-    if (response.status === 404 && slug) throw new PackageCatalogueError(404);
-    if (!response.ok || !response.body || Number(response.headers.get('content-length') || 0) > MAX_BYTES) throw new Error('upstream');
+    const rejectResponse = async (error:Error):Promise<never> => { await response.body?.cancel().catch(() => {}); throw error; };
+    if (response.status === 404 && slug) return await rejectResponse(new PackageCatalogueError(404));
+    if (!response.ok || !response.body || Number(response.headers.get('content-length') || 0) > MAX_BYTES) return await rejectResponse(new Error('upstream'));
     const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let size = 0;
     try { while (true) { const part = await reader.read(); if (part.done) break; size += part.value.length; if (size > MAX_BYTES) throw new Error('body limit'); chunks.push(part.value); } }
-    finally { await reader.cancel(); }
+    finally { try { await reader.cancel(); } finally { reader.releaseLock(); } }
     const joined = new Uint8Array(size); let offset = 0; for (const chunk of chunks) { joined.set(chunk, offset); offset += chunk.length; }
     const data = JSON.parse(new TextDecoder().decode(joined));
     const items = slug ? [data.package] : data.packages;
@@ -26,5 +27,5 @@ export async function fetchPackageCatalogue(slug?: string, fetcher: typeof fetch
     if (typeof truncated !== 'boolean' || !Number.isSafeInteger(unavailableCount) || unavailableCount < 0) throw new Error('flags');
     return {packages,truncated,unavailableCount};
   } catch (error) { if (error instanceof PackageCatalogueError) throw error; throw new PackageCatalogueError(503); }
-  finally { clearTimeout(timer); }
+  finally { clearTimeout(timer); controller.abort(); }
 }

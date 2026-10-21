@@ -50,3 +50,8 @@ test('email drafts encode valid percent local-parts and all message fields',()=>
  assert.ok(href.startsWith('mailto:person%250a%40example.test?subject='));
  const query=new URLSearchParams(href.split('?')[1]);assert.equal(query.size,2);assert.equal(query.get('subject'),'Package enquiry: A&B?subject=other');assert.equal(query.get('body'),'Hello&bcc=other@example.test');
 });
+
+test('catalogue rejects oversize headers and releases unread response body',async()=>{
+ let cancelled=false;const body=new ReadableStream({start(controller){controller.enqueue(new Uint8Array([1]));},cancel(){cancelled=true;}});
+ await assert.rejects(fetchPackageCatalogue(undefined,(async()=>new Response(body,{headers:{'content-length':String(9*1024*1024)}})) as typeof fetch));assert.equal(cancelled,true);assert.equal(body.locked,false);
+});
