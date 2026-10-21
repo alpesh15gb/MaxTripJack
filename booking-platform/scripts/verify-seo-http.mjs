@@ -149,11 +149,11 @@ await withServer({ SEO_INDEXING_ENABLED: "false", SEO_SITE_ORIGIN: origin }, asy
     check(!/(?:₹|INR\s*)\s*[0-9][0-9,]*(?:\.[0-9]+)?/.test(cleanText(html)), `${path}: no invented public fare`);
     check(!/guaranteed (?:lowest|cheapest|first.place)|\b\d[\d,]*\s+(?:happy customers|verified reviews)\b/i.test(cleanText(html)), `${path}: no unsupported superlatives/testimonials`);
     if (path === "/") {
-      const hero = tags(html, "img").find(tag => (tag.class ?? "").split(" ").includes("home-hero-photo"));
-      check(Boolean(hero), "Homepage hero is an actual responsive image, not a CSS-only LCP background");
-      check(Boolean(hero.srcset) && hero.sizes === "(max-width: 1360px) 100vw, 1360px", "Homepage hero has responsive candidates and declared sizes");
-      check(hero.loading !== "lazy", "Above-fold homepage hero is not lazy loaded");
-      check(tags(html, "link").some(tag => tag.rel === "preload" && tag.as === "image"), "Homepage hero preload is in actual SSR HTML");
+      const hero = tags(html, "img").find(tag => (tag.class ?? "").split(" ").includes("home-escape-photo"));
+      check(Boolean(hero), "Homepage editorial photo is an actual responsive image");
+      check(Boolean(hero.srcset) && hero.sizes === "(max-width: 1280px) 100vw, 1200px", "Homepage editorial photo has responsive candidates and declared sizes");
+      check(hero.loading === "lazy", "Below-search editorial photo is lazy loaded");
+      check(!tags(html, "link").some(tag => tag.rel === "preload" && tag.as === "image"), "Below-search imagery does not compete with the search-first initial render");
     }
     if (["/contact", "/office", "/about"].includes(path)) {
       check(cleanText(html).includes("Secunderabad"), `${path}: correct India office identity`);

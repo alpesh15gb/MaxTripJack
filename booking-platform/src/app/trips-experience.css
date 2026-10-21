@@ -1,0 +1,160 @@
+/* Trip management is intentionally scoped so booking and account styles stay independent. */
+.trips-workspace {
+  --trip-ink: #142d40;
+  --trip-muted: #526779;
+  --trip-border: #e0e7ee;
+  max-width: 1240px;
+  color: var(--trip-ink);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.trips-workspace .page-heading { align-items: center; gap: 24px; margin: 40px 0 30px; }
+.trips-workspace h1 { font-size: clamp(30px, 3.2vw, 44px); font-weight: 650; letter-spacing: -1.6px; }
+.trips-workspace .page-heading p { font-size: 16px; color: var(--trip-muted); margin-top: 12px; }
+.trips-workspace .eyebrow { font-size: 11px; color: #087f8c; font-weight: 700; letter-spacing: 1.5px; }
+.trips-workspace .primary, .trips-workspace .secondary { min-height: 46px; border-radius: 12px; font-size: 14px; padding: 11px 17px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; }
+.trips-workspace .primary { color: white; background: #2455e7; }
+.trips-workspace .secondary { background: white; color: #243e53; border: 1px solid #d6e0ea; }
+.trips-workspace button:not(:disabled), .trips-workspace summary { cursor: pointer; }
+.trips-workspace button:disabled { opacity: .55; cursor: not-allowed; }
+.trips-workspace :is(button,a,input,select,summary):focus-visible { outline: 3px solid #2455e7; outline-offset: 4px; }
+.trips-workspace .trips-overview { background: white; border-radius: 20px; margin: 0 0 30px; padding: 25px 0; grid-template-columns: 1fr 1fr 1fr 1.5fr; border-color: var(--trip-border); }
+.trips-workspace .trips-overview > div > span { font-size: 10px; letter-spacing: 1px; color: var(--trip-muted); }
+.trips-workspace .trips-overview strong { font-size: 32px; font-weight: 650; gap: 12px; }
+.trips-workspace .trips-overview strong small { font-size: 13px; max-width: 100px; }
+.trips-workspace .trips-overview > p { font-size: 13px; line-height: 1.6; color: var(--trip-muted); }
+.trips-workspace .trips-overview > p svg { flex-shrink: 0; color: #087f8c; }
+.trips-dashboard { display: grid; grid-template-columns: minmax(0, 1fr) 280px; align-items: start; gap: 28px; }
+.trips-dashboard-main { min-width: 0; }
+.trips-search { display: flex; align-items: center; gap: 12px; padding: 5px 16px; border: 1px solid var(--trip-border); background: white; border-radius: 14px; margin: 0 0 16px; color: #526779; }
+.trips-workspace .trips-search input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; border-radius: 6px; min-height: 44px; font-size: 14px; padding: 8px 0; box-shadow: none; }
+.trips-search > span:last-child { white-space: nowrap; font-size: 11px; border-left: 1px solid var(--trip-border); padding-left: 12px; }
+.trips-workspace .trips-filter-row { display: block; margin-bottom: 20px; }
+.trips-workspace .trips-filters { background: transparent; padding: 0; gap: 7px; flex-wrap: wrap; }
+.trips-workspace .trips-filters button { min-height: 44px; font-size: 13px; border: 1px solid var(--trip-border); background: white; border-radius: 24px; padding: 9px 15px; color: #526779; }
+.trips-workspace .trips-filters [aria-pressed="true"] { background: #142d40; color: white; border-color: #142d40; box-shadow: none; }
+.trips-workspace .trips-filter-row > span { display: block; margin: 14px 0 0; font-size: 13px; color: var(--trip-muted); }
+.trips-workspace .trip-record { border-radius: 20px; border-color: var(--trip-border); box-shadow: 0 4px 18px #142d4005; }
+.trips-workspace .trip-record-top { background: white; padding: 19px 24px; flex-wrap: wrap; gap: 10px; }
+.trips-workspace .trip-record-type { font-size: 13px; color: var(--trip-muted); }
+.trips-workspace .trip-status { font-size: 12px; border-radius: 20px; padding: 6px 12px; }
+.trips-workspace .trip-status.is-confirmed { background: #e7f5f1; color: #126b55; }
+.trips-workspace .trip-status.is-pending { color: #805b10; }
+.trips-workspace .trip-status.is-attention { color: #a03b2c; }
+.trips-workspace .trip-record-main { padding: 24px; gap: 20px; }
+.trips-workspace .trip-record-main h2 { font-size: 26px; font-weight: 650; }
+.trips-workspace .trip-itinerary { font-size: 14px; color: var(--trip-muted); }
+.trips-workspace .trip-reference { font-size: 12px; gap: 5px; color: var(--trip-muted); }
+.trips-workspace .trip-reference strong { font-size: 13px; color: var(--trip-ink); overflow-wrap: anywhere; }
+.trips-workspace .trip-reference > span { display: block; flex-basis: 100%; padding: 0; margin: 3px 0 0; border: 0; }
+.trips-workspace .trip-record-total strong { font-size: 24px; font-weight: 650; }
+.trips-workspace .trip-record-total small, .trips-workspace .trip-record-total > span { font-size: 12px; }
+.trip-journeys { display: grid; gap: 10px; padding: 0 24px 22px; }
+.trip-journey { display: grid; grid-template-columns: 1fr minmax(100px,1.2fr) 1fr; gap: 16px; align-items: center; border-radius: 14px; background: #f5f7fa; padding: 17px 20px; }
+.trip-journey > div { display: flex; flex-direction: column; }
+.trip-journey > div:last-child { text-align: right; }
+.trip-journey > div > span { font-size: 12px; color: var(--trip-muted); }
+.trip-journey strong { font-size: 24px; font-weight: 650; line-height: 1.5; }
+.trip-journey-line { position: relative; color: #2455e7; display: grid; justify-items: center; gap: 7px; }
+.trip-journey-line:after { content: ""; position: absolute; left: 0; right: 0; bottom: 9px; border-bottom: 1px dashed #c4d0df; }
+.trip-journey-line svg { position: relative; z-index: 1; background: #f5f7fa; box-sizing: content-box; padding: 0 9px; }
+.trip-journey-line small { color: var(--trip-muted); font-size: 12px; text-align: center; }
+.trip-stay { margin: 0 24px 22px; grid-template-columns: 1fr 50px 1fr; }
+.trip-stay strong { font-size: 18px; }
+.trips-workspace .trip-status-note { font-size: 14px; line-height: 1.65; border-radius: 12px; margin: 0 24px; padding: 14px 16px; }
+.trips-workspace .trip-status-note svg { flex-shrink: 0; margin-top: 4px; }
+.trips-workspace .trip-status-note.is-confirmed { color: #24624e; }
+.trips-workspace .trip-status-note.is-pending { color: #78581d; }
+.trips-workspace .trip-record-actions { padding: 20px 24px 24px; }
+.trips-workspace .trip-record-actions .secondary { font-size: 13px; min-height: 44px; border-radius: 11px; }
+.trips-workspace .trip-auto-update { font-size: 13px; }
+.trips-workspace .trip-linked-note, .trips-workspace .trip-related p, .trips-workspace .trip-related span { font-size: 13px; }
+.trips-workspace .trip-confirmation { background: #f8fafc; border-radius: 16px; margin: 0 24px 24px; }
+.trips-workspace .trip-confirmation h3, .trips-workspace .trip-refunds h3 { font-size: 16px; }
+.trips-workspace .trip-confirmation dl, .trips-workspace .trip-confirmation > p, .trips-workspace .trip-passengers > div, .trips-workspace .trip-refunds p { font-size: 14px; }
+.trips-workspace .trip-passengers > div { grid-template-columns: 1fr 1fr; }
+.trips-workspace .trip-passengers > div > strong { grid-column: 1/-1; }
+.trips-workspace .trip-refunds > div { font-size: 14px; }
+.trips-workspace .trip-management > summary { font-size: 14px; color: #294861; padding: 18px 24px; min-height: 56px; }
+.trips-workspace .trip-management > div { padding: 8px 24px 24px; }
+.trips-workspace .trip-management h3 { font-size: 18px; font-weight: 650; }
+.trips-workspace .trip-management .muted { font-size: 14px; color: var(--trip-muted); }
+.trips-workspace .trip-management :is(input:not([type="checkbox"]),select) { min-height: 46px; font-size: 15px; border-radius: 10px; border: 1px solid #cdd9e4; padding: 10px 12px; width: 100%; }
+.trips-workspace .trip-management label { font-size: 14px; line-height: 1.7; }
+.trips-workspace .trip-management .checkbox { display: flex; gap: 10px; align-items: center; min-height: 44px; }
+.trips-workspace .trip-management input[type="checkbox"] { width: 19px; height: 19px; flex-shrink: 0; accent-color: #2455e7; }
+.trips-workspace .trip-management fieldset { border: 1px solid var(--trip-border); border-radius: 12px; margin: 18px 0; padding: 14px; min-width: 0; }
+.trips-workspace .trip-management .account-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+.trips-workspace .trip-management .account-tabs button { font-size: 14px; min-height: 44px; border-radius: 10px; padding: 10px 14px; border: 1px solid var(--trip-border); }
+.trips-workspace .trip-management .account-tabs [aria-pressed="true"] { color: #2455e7; background: #edf2ff; border-color: #b9caff; }
+.trips-workspace .trip-management .info-message, .trips-workspace .trip-inline-error { font-size: 14px; border-radius: 12px; }
+.trips-workspace .trip-management .policy-text { max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+.trips-workspace .cancellation-progress > div { border: 1px solid var(--trip-border); background: #f8fafc; padding: 18px; border-radius: 14px; margin: 14px 0; }
+.trips-support { display: grid; gap: 22px; }
+.trips-support-card { background: #eaf1ff; border: 1px solid #dce6fa; border-radius: 20px; padding: 25px; }
+.trips-support-icon { background: white; color: #2455e7; width: 50px; height: 50px; display: grid; place-items: center; border-radius: 15px; margin-bottom: 24px; }
+.trips-workspace .trips-support-card .eyebrow { font-size: 10px; color: #2455e7; letter-spacing: 1px; }
+.trips-support h2 { font-size: 23px; line-height: 1.3; letter-spacing: -.6px; font-weight: 650; margin: 13px 0; }
+.trips-support p { font-size: 14px; color: var(--trip-muted); line-height: 1.75; }
+.trips-support-card .secondary { width: 100%; margin-top: 8px; }
+.trips-checklist { padding: 0 5px; }
+.trips-checklist h2 { font-size: 18px; }
+.trips-checklist ul { list-style: none; padding: 0; margin: 18px 0; display: grid; gap: 18px; }
+.trips-checklist li { display: flex; gap: 12px; font-size: 14px; color: var(--trip-muted); line-height: 1.6; }
+.trips-checklist svg { flex-shrink: 0; color: #087f8c; margin-top: 3px; }
+.trips-checklist a { font-size: 14px; font-weight: 600; color: #2455e7; display: inline-flex; align-items: center; min-height: 44px; gap: 10px; }
+.trips-support .trips-support-footnote { border-top: 1px solid var(--trip-border); padding-top: 20px; display: flex; gap: 10px; font-size: 13px; }
+.trips-support-footnote svg { flex-shrink: 0; margin-top: 3px; }
+.trips-workspace .trips-empty { border-radius: 24px; padding: 64px 24px; }
+.trips-workspace .trips-empty h2 { font-size: clamp(27px,3vw,36px); font-weight: 650; }
+.trips-workspace .trips-empty > p:not(.eyebrow) { font-size: 16px; max-width: 540px; }
+.trips-workspace .trips-empty .eyebrow { font-size: 11px; }
+.trips-workspace .trips-empty > span:not(.trips-empty-icon), .trips-workspace .trips-account-link { font-size: 14px; }
+.trips-workspace .trips-filter-empty p { font-size: 14px; }
+.trips-workspace .trips-loading p { font-size: 16px; }
+.trips-workspace .booking-skeleton { border-radius: 20px; min-height: 220px; margin: 20px 0; background: linear-gradient(110deg,#e9eef5 15%,#f9fbfe 40%,#e9eef5 60%); background-size: 200% 100%; animation: trip-loading 1.8s ease-in-out infinite; }
+.trips-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@keyframes trip-loading { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .trips-workspace .booking-skeleton { animation: none; } }
+@media (max-width: 1050px) {
+  .trips-dashboard { grid-template-columns: minmax(0,1fr); }
+  .trips-support { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .trips-support-footnote { grid-column: 1/-1; }
+  .trips-workspace .trips-overview { grid-template-columns: repeat(3,1fr); }
+  .trips-workspace .trips-overview > p { grid-column: 1/-1; margin-top: 20px; padding: 18px 24px 0; border-top: 1px solid var(--trip-border); }
+}
+@media (max-width: 600px) {
+  .trips-workspace { width: calc(100% - 32px); margin-top: 24px; }
+  .trips-workspace .page-heading { margin-top: 0; }
+  .trips-workspace .page-heading p { font-size: 15px; }
+  .trips-workspace h1 { letter-spacing: -1px; }
+  .trips-workspace .trips-overview > div { padding: 0 12px; }
+  .trips-workspace .trips-overview > div > span { font-size: 9px; letter-spacing: .4px; }
+  .trips-workspace .trips-overview strong { flex-direction: column; gap: 4px; font-size: 28px; }
+  .trips-workspace .trips-overview strong small { font-size: 12px; }
+  .trips-workspace .trips-overview > p { font-size: 13px; padding: 16px 16px 0; }
+  .trips-workspace .trips-filters { justify-content: flex-start; }
+  .trips-workspace .trips-filters button { padding: 8px 12px; }
+  .trips-search > span:last-child { display: none; }
+  .trips-workspace .trip-record-top { padding: 16px; }
+  .trips-workspace .trip-record-main { padding: 20px 16px; }
+  .trips-workspace .trip-record-main h2 { font-size: 25px; }
+  .trips-workspace .trip-record-total { width: 100%; }
+  .trips-workspace .trip-record-total small, .trips-workspace .trip-record-total > span { font-size: 12px; }
+  .trip-journeys { padding: 0 16px 20px; }
+  .trip-journey { padding: 16px 12px; gap: 10px; }
+  .trip-journey strong { font-size: 22px; }
+  .trip-stay { margin: 0 16px 20px; grid-template-columns: 1fr 22px 1fr; }
+  .trip-stay strong { font-size: 15px; }
+  .trips-workspace .trip-status-note { margin: 0 16px; padding: 13px; }
+  .trips-workspace .trip-record-actions { padding: 18px 16px; }
+  .trips-workspace .trip-confirmation { margin: 0 16px 20px; padding: 16px; }
+  .trips-workspace .trip-confirmation dl > div { flex-direction: column; gap: 3px; }
+  .trips-workspace .trip-confirmation dd { text-align: left; }
+  .trips-workspace .trip-management > summary { padding: 17px 16px; }
+  .trips-workspace .trip-management > div { padding: 8px 16px 20px; }
+  .trips-workspace .trip-management .form-row { grid-template-columns: 1fr; }
+  .trips-support { grid-template-columns: 1fr; }
+  .trips-checklist { padding: 0 16px; }
+  .trips-workspace .trips-access > div { flex-wrap: wrap; }
+}

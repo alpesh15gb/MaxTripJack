@@ -88,3 +88,46 @@
 @media (max-width: 1200px) { .home-public-intro { margin: 60px 5%; } .public-layout { gap: 34px; grid-template-columns: minmax(0, 1fr) 280px; } }
 @media (max-width: 850px) { .public-main { padding: 0 22px; } .public-hero { padding: 35px 30px; } .public-layout { grid-template-columns: minmax(0, 1fr); } .public-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); } .home-public-heading { grid-template-columns: minmax(0, 1fr) 270px; gap: 32px; } .home-public-intro > .public-route-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .public-main { padding: 0 16px; } .public-breadcrumbs { font-size: 10px; line-height: 1.8; padding: 18px 0; } .public-hero { padding: 29px 23px; border-radius: 13px; } .public-hero h1 { letter-spacing: -1px; } .public-intro { font-size: 14px; line-height: 1.9; } .public-eyebrow { font-size: 9px; } .public-layout { padding-top: 25px; gap: 28px; } .public-section h2 { font-size: 21px; } .public-section p, .public-section li { font-size: 13px; } .public-rail { grid-template-columns: minmax(0, 1fr); } .public-route-grid, .home-public-intro > .public-route-grid { grid-template-columns: minmax(0, 1fr); } .public-related { margin: 32px 0; padding: 23px; } .public-related > div { flex-direction: column; gap: 13px; } .home-public-intro { margin: 42px 20px; } .home-public-heading { grid-template-columns: minmax(0, 1fr); gap: 25px; } .home-public-links { gap: 9px; } .home-public-links a { font-size: 11px; padding: 9px 12px; } .public-airport-table th, .public-airport-table td { padding: 12px 10px; } .public-airport-table tbody th { min-width: 90px; } }
+
+/* Editorial experience: clear reading surfaces and useful next steps. */
+.public-site { background:#f5f7fa; }
+.public-main { max-width:1224px; padding-bottom:8px; }
+.public-site .public-hero { background:linear-gradient(120deg,#eaf1ff,#edf7f6); border:1px solid #dce6f0; border-radius:24px; padding:52px 56px; }
+.public-site .public-hero h1 { color:#142d40; max-width:870px; font-weight:650; }
+.public-site .public-eyebrow { color:#087f8c; font-size:11px; }
+.public-site .public-intro { color:#4c6579; font-size:16px; }
+.public-site .public-layout { gap:30px; grid-template-columns:minmax(0,1fr) 310px; padding-top:30px; }
+.public-site .public-article { background:white; border:1px solid #e0e7ef; padding:30px; border-radius:22px; }
+.public-site .public-notice { padding:18px; border-radius:14px; }
+.public-site .public-notice p { font-size:13px; }
+.public-site .public-section { padding:30px 0; }
+.public-site .public-section p,.public-site .public-section li,.public-site .public-questions p,.public-site .public-sources p { font-size:15px; line-height:1.85; }
+.public-site .public-section h2 { font-size:25px; }
+.public-site .public-button { min-height:48px; font-size:14px; border-radius:12px; background:#2455e7; }
+.public-site .public-office-card { background:#ecf5f3; border-radius:20px; padding:28px; }
+.public-site .public-office-card .public-eyebrow { font-size:10px; }
+.public-site .public-office-card address,.public-site .public-hours { font-size:14px; }
+.public-site .public-contact-links a { min-height:44px; font-size:13px; }
+.public-site .public-directions,.public-site .public-office-link { min-height:44px; display:inline-flex; align-items:center; font-size:13px; }
+.public-site .public-rail-note { background:white; border-radius:20px; padding:25px; }
+.public-site .public-rail-note h2 { font-size:18px; }
+.public-site .public-rail-note p,.public-site .public-rail-note a { font-size:14px; }
+.public-site .public-route-card { border-radius:16px; background:#f8fafe; padding:23px; transition:border-color .15s,background .15s; }
+.public-site .public-route-card:hover { border-color:#8aa8ed; background:#f0f5ff; }
+.public-site .public-route-card h3 { font-size:19px; }
+.public-site .public-route-card p { font-size:14px; }
+.public-site .public-route-action { font-size:13px; min-height:44px; }
+.public-site .public-questions details { background:#f7f9fc; border:1px solid #e2e9f1; border-radius:13px; margin:10px 0; padding:0 18px; }
+.public-site .public-questions summary { min-height:56px; padding:16px 0; font-size:15px; }
+.public-site .public-questions details p { padding-bottom:20px; margin-top:0; }
+.public-site .public-related { background:#eaf0fa; border:1px solid #dce5f2; border-radius:20px; margin:32px 0 50px; }
+.public-site .public-related a { display:inline-flex; align-items:center; min-height:44px; font-size:14px; }
+.public-site .public-airport-table { font-size:14px; }
+.public-site .public-airport-table caption,.public-site .public-sources li { font-size:13px; }
+.public-site .public-reviewed,.public-site .public-fineprint { font-size:12px; }
+.public-site .public-breadcrumbs { min-height:60px; font-size:13px; }
+.public-site .public-breadcrumbs a { display:inline-block; padding:8px 0; }
+.public-site .public-breadcrumbs li { align-content:center; }
+.public-site .travel-footer { margin-top:0; }
+@media(max-width:900px) { .public-site .public-layout { grid-template-columns:1fr; } .public-site .public-rail { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .public-site .public-hero { padding:30px 23px; border-radius:20px; } .public-site .public-hero h1 { font-size:34px; } .public-site .public-intro { font-size:15px; } .public-site .public-article { padding:23px 20px; border-radius:18px; } .public-site .public-layout { gap:22px; } .public-site .public-rail { grid-template-columns:1fr; } .public-site .public-section p,.public-site .public-section li,.public-site .public-questions p { font-size:14px; } .public-site .public-section h2 { font-size:23px; } .public-site .public-breadcrumbs { font-size:12px; } .public-site .public-table-wrap { max-width:100%; } .public-site .public-airport-table { font-size:12px; } .public-site .public-related { margin-bottom:32px; } }

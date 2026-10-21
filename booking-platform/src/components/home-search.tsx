@@ -78,16 +78,13 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   return <div className="trip-home">
     <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={changeProduct} />
     <main id="main-content">
-      <section className="home-hero" aria-labelledby="home-title">
-        <Image className="home-hero-photo" src={photos.hero} alt="" fill sizes="(max-width: 1360px) 100vw, 1360px" preload />
-        <div className="home-hero-shade" aria-hidden="true" />
-        <div className="home-hero-copy"><p className="home-kicker"><span /> A LITTLE FURTHER. A LITTLE FREER.</p><h1 id="home-title">Flights & stays.<br /><em>Real people to help.</em></h1><p>Competitive travel prices. A real Secunderabad office.<br />Plan your journey with MaxTravel.</p></div>
-        <div className="home-hero-caption"><TravelIcon name="pin" size={16} /><span>Somewhere worth slowing down<br /><strong>The Maldives</strong></span></div>
-        <div className="home-hero-stamp" aria-hidden="true"><TravelIcon name="globe" size={22} /><span>MORE WORLD.<br />MORE YOU.</span></div>
+      <section className="home-intro" aria-labelledby="home-title">
+        <div><p className="home-kicker">YOUR NEXT CHAPTER STARTS HERE</p><h1 id="home-title">A great trip starts with <em>a clear plan.</em></h1><p>Find your flight. Find your stay. We’ll help with the details.</p></div>
+        <Link className="home-office-link" href="/office"><span><TravelIcon name="pin" /></span><div><strong>Online ease. Real people.</strong><small>Visit our Secunderabad office <TravelIcon name="arrow" size={14} /></small></div></Link>
       </section>
 
-      <section className="home-search-card" aria-label="Plan your trip">
-        <div className="home-search-top"><div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div><span><TravelIcon name="shield" size={16} /> Your next trip, a little simpler.</span></div>
+      <section id="trip-search" className="home-search-card" aria-label="Plan your trip">
+        <div className="home-search-top"><div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div><span><TravelIcon name="shield" size={16} /> Flights, stays & a fresh start.</span></div>
         <form ref={form} className="home-search-form" onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><span className="home-economy">Economy</span></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<Link href={`/book?product=${product}`}>{product === "FLIGHT" ? "Multi-city, children or another cabin" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></Link></div>
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
@@ -102,7 +99,13 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
         <p className="home-search-footnote"><TravelIcon name="check" size={14} />Compare first. Review the full price and rules before you pay.</p>
       </section>
 
-      <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Full total, without the guesswork</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Booking updates & documents</small></span></div></section>
+      <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Review the total and supplier rules</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Updates and documents in My trips</small></span></div></section>
+
+      <section className="home-escape" aria-labelledby="escape-heading">
+        <Image className="home-escape-photo" src={photos.hero} alt="Turquoise water and overwater villas in the Maldives" fill sizes="(max-width: 1280px) 100vw, 1200px" />
+        <div className="home-escape-copy"><p className="home-kicker">MAKE ROOM FOR SOMETHING NEW</p><h2 id="escape-heading">A different view.<br /><em>A little more you.</em></h2><p>Your next escape starts with exploring the possibilities.</p><Link href="/book?product=HOTEL">Explore stays <TravelIcon name="arrow" size={18} /></Link></div>
+        <span className="home-escape-location"><TravelIcon name="pin" size={16} />The Maldives · Travel inspiration</span>
+      </section>
 
       <section className="home-discover" aria-labelledby="discover-heading"><div className="home-section-heading"><div><p className="home-kicker">A CHANGE OF SCENERY</p><h2 id="discover-heading">Where will you go next?</h2><p>For a long weekend, a fresh perspective, or no reason at all.</p></div><Link href="/book?product=HOTEL">Find your kind of stay<TravelIcon name="arrow" size={18} /></Link></div><div className="home-destinations">{[{ name: "Goa", image: photos.goa, mood: "SALT IN THE AIR", detail: "Slow days. Sea views. Your pace.", number: "01" }, { name: "Dubai", image: photos.dubai, mood: "A DIFFERENT PERSPECTIVE", detail: "Big city lights, bigger possibilities.", number: "02" }, { name: "Bali", image: photos.bali, mood: "FIND YOUR OWN RHYTHM", detail: "A little green. A little getaway.", number: "03" }].map(destination => <Link className="home-destination" href={`/book?product=HOTEL&city=${encodeURIComponent(destination.name)}`} key={destination.name} style={{ backgroundImage: `linear-gradient(0deg,rgba(8,26,37,.88),transparent 75%),url(${destination.image})` }} aria-label={`Explore stays in ${destination.name}`}><span className="home-destination-mood">{destination.mood}</span><span className="home-destination-number">{destination.number}</span><div><h3>{destination.name}</h3><p>{destination.detail}</p></div><span className="home-destination-arrow"><TravelIcon name="arrow" /></span></Link>)}</div></section>
 
@@ -110,7 +113,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
 
       {children}
 
-      <section className="home-business"><span className="home-business-icon"><TravelIcon name="bag" size={27} /></span><div><p className="home-kicker">MAX TRAVEL FOR BUSINESS</p><h2>A work trip. Not more work.</h2><p>Your company account, travellers and bookings. Together.</p></div><Link href="/account">Explore business travel<TravelIcon name="arrow" size={18} /></Link></section>
+      <section className="home-business"><span className="home-business-icon"><TravelIcon name="bag" size={27} /></span><div><p className="home-kicker">MAX TRAVEL FOR BUSINESS</p><h2>Travel for work. Keep it together.</h2><p>Your company account, travellers and bookings. Together.</p></div><Link href="/account">Open your account<TravelIcon name="arrow" size={18} /></Link></section>
     </main>
     <TravelFooter />
   </div>;

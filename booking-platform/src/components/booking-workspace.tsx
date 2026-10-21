@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import "@/app/trips-experience.css";
 import FlightServices from "./flight-services";
 import CancellationRequest from "./cancellation-request";
 import CancellationProgress from "./cancellation-progress";
@@ -74,6 +75,19 @@ function tripMeta(booking: Booking) {
   const guests = (trip.adults ?? 0) + (trip.children ?? 0) + (trip.infants ?? 0);
   return `${travelDate(trip.legs?.[0]?.date ?? trip.date)}${trip.returnDate ? ` – ${travelDate(trip.returnDate)}` : ""} · ${trip.legs?.length ? `${trip.legs.length} flights` : trip.returnDate ? "Round trip" : "One way"}${guests ? ` · ${guests} traveller${guests === 1 ? "" : "s"}` : ""}`;
 }
+function TripJourney({ booking }: { booking: Booking }) {
+  const trip = booking.itinerary_summary;
+  if (!trip || booking.service_kind === "ANCILLARY") return null;
+  if (booking.product === "HOTEL") return <div className="trip-journey trip-stay" aria-label="Stay dates"><div><span>Check-in</span><strong>{travelDate(trip.checkIn)}</strong></div><span className="trip-journey-line"><TravelIcon name="hotel" size={20} /></span><div><span>Check-out</span><strong>{travelDate(trip.checkOut)}</strong></div></div>;
+  const legs = trip.legs?.length ? trip.legs : trip.from && trip.to ? [{ from: trip.from, to: trip.to, date: trip.date }, ...(trip.returnDate ? [{ from: trip.to, to: trip.from, date: trip.returnDate }] : [])] : [];
+  if (!legs.length) return null;
+  return <div className="trip-journeys" aria-label="Journey itinerary">{legs.map((leg, index) => <div className="trip-journey" key={`${index}-${leg.from}-${leg.to}`}><div><span>{index === 0 ? "Departure" : trip.returnDate && !trip.legs?.length ? "Return" : `Flight ${index + 1}`}</span><strong>{leg.from}</strong></div><span className="trip-journey-line"><small>{travelDate(leg.date)}</small><TravelIcon name="plane" size={18} /></span><div><span>Arrival</span><strong>{leg.to}</strong></div></div>)}</div>;
+}
+
+function TripSupport() {
+  return <aside className="trips-support" aria-label="Trip help"><section className="trips-support-card"><span className="trips-support-icon"><TravelIcon name="shield" size={25} /></span><p className="eyebrow">HERE FOR YOUR JOURNEY</p><h2>A little help, when you need it.</h2><p>Questions about your booking? Keep your booking reference handy so our team can help.</p><Link className="secondary" href="/customer-support">Get booking support<TravelIcon name="arrow" size={16} /></Link></section><section className="trips-checklist"><h2>Before you go</h2><ul><li><TravelIcon name="check" size={18} /><span>Check the supplier confirmation and traveller details.</span></li><li><TravelIcon name="receipt" size={18} /><span>Download your confirmation when it’s available.</span></li><li><TravelIcon name="bag" size={18} /><span>Review baggage, check-in and supplier rules.</span></li></ul><Link href="/flight-booking-guide">Your flight booking guide <span aria-hidden="true">↗</span></Link></section><p className="trips-support-footnote"><TravelIcon name="clock" size={17} />Waiting for confirmation? Avoid paying again while your status is being checked.</p></aside>;
+}
+
 function mergeBookings(current: Booking[], incoming: Booking[]) {
   return [...new Map([...current, ...incoming].map(booking => [booking.id, booking])).values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
@@ -111,6 +125,7 @@ function BookingRecord({ booking, originalReference, onUpdate }: { booking: Book
   return <article className="white-card trip-record" aria-labelledby={`trip-title-${booking.id}`}>
     <div className="trip-record-top"><div className="trip-record-type"><TravelIcon name={booking.product === "FLIGHT" ? "plane" : "hotel"} size={16} /><span>{booking.service_kind === "ANCILLARY" ? "Flight extras receipt" : booking.service_kind === "REISSUE" ? "Replacement flight" : booking.product === "FLIGHT" ? "Flight booking" : "Hotel booking"}</span></div><span className={`trip-status is-${status.tone}`}><i />{status.label}</span></div>
     <div className="trip-record-main"><div><h2 id={`trip-title-${booking.id}`}>{bookingTitle(booking)}</h2><p className="trip-itinerary">{tripMeta(booking)}</p><p className="trip-reference">Booking reference <strong>{booking.reference}</strong><span>Created {travelDate(booking.created_at)}</span></p></div><div className="trip-record-total"><small>Booking total</small><strong>{money(booking.total_minor, booking.currency)}</strong><span>{booking.currency} · All travellers</span></div></div>
+    <TripJourney booking={booking} />
     <p className={`trip-status-note is-${status.tone}`}><TravelIcon name={status.tone === "confirmed" ? "check" : status.tone === "pending" ? "clock" : "receipt"} size={16} />{status.description}</p>
     {booking.service_kind && <p className="trip-linked-note">Linked to your original booking{originalReference ? ` ${originalReference}` : ""}.{booking.service_kind === "REISSUE" ? " Use the replacement ticket for changed travel once it is ticketed." : " These extras belong to that journey."}</p>}
     <div className="trip-record-actions">{confirmedStatuses.includes(booking.status) && <button type="button" className="secondary" aria-expanded={expanded} aria-controls={`confirmation-${booking.id}`} disabled={detailsLoading} onClick={() => void loadDetails()}><TravelIcon name="receipt" size={16} />{detailsLoading ? "Loading details…" : expanded && !detailsError ? "Hide confirmation details" : detailsError ? "Retry confirmation details" : "View confirmation details"}</button>}{[...confirmedStatuses, "CANCELLED"].includes(booking.status) && <a className="secondary" href={`/api/bookings/${booking.id}/document`}><TravelIcon name="bag" size={16} />Download confirmation PDF</a>}{pendingStatuses.includes(booking.status) && <span className="trip-auto-update"><span />We’ll refresh this status automatically</span>}</div>
@@ -132,6 +147,8 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
   const [metrics, setMetrics] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [accessError, setAccessError] = useState(false);
+  const [search, setSearch] = useState("");
   const [listError, setListError] = useState("");
   const [syncError, setSyncError] = useState("");
   const [filter, setFilter] = useState("ALL");
@@ -143,7 +160,7 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
     const controller = new AbortController();
     fetch(admin ? "/api/admin/overview" : "/api/bookings?page=1", { cache: "no-store", signal: controller.signal }).then(async response => {
       const data = await response.json();
-      if (!response.ok) throw Error(data.error || "Your bookings could not be loaded.");
+      if (!response.ok) { setAccessError(response.status === 401 || response.status === 403); throw Error(data.error || "Your bookings could not be loaded."); }
       if (admin) setMetrics(data);
       else { setHasMore(Boolean(data.hasMore)); setBookings(data.bookings ?? []); }
     }).catch(error => {
@@ -181,7 +198,7 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
 
   function refresh() {
     moreController.current?.abort(); moreInFlight.current = false;
-    setPage(1); setLoadingMore(false); setLoading(true); setError(""); setListError(""); setSyncError(""); setRevision(value => value + 1);
+    setPage(1); setLoadingMore(false); setLoading(true); setError(""); setAccessError(false); setListError(""); setSyncError(""); setRevision(value => value + 1);
   }
   async function loadMore() {
     if (moreInFlight.current) return;
@@ -198,21 +215,21 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
       if (!controller.signal.aborted) { moreInFlight.current = false; setLoadingMore(false); }
     }
   }
-  const visible = bookings.filter(booking => filter === "ALL" || (filter === "ATTENTION" ? attentionStatuses.includes(booking.status) : booking.product === filter));
+  const visible = bookings.filter(booking => (filter === "ALL" || (filter === "ATTENTION" ? attentionStatuses.includes(booking.status) : filter === "PENDING" ? pendingStatuses.includes(booking.status) : booking.product === filter)) && `${booking.reference} ${bookingTitle(booking)} ${booking.itinerary_summary?.city ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()));
   const confirmedCount = bookings.filter(booking => confirmedStatuses.includes(booking.status)).length;
   const pendingCount = bookings.filter(booking => pendingStatuses.includes(booking.status)).length;
 
   return <>
     <TravelHeader active={admin ? undefined : "trips"} />
     <main className="page-shell trips-workspace" id="main-content">
-      <div className="page-heading"><div><div className="eyebrow">{admin ? "MAX TRAVEL OPERATIONS" : "EVERY JOURNEY, TOGETHER"}</div><h1>{admin ? "Your operations workspace." : "Good trips. All together."}</h1><p>{admin ? "Protected access · Admin permission and authenticator required" : "Your bookings, the latest updates, and the details that matter."}</p></div><div className="trips-heading-actions"><button className="secondary" disabled={loading} onClick={refresh} aria-label="Refresh booking updates"><TravelIcon name="refresh" size={16} />Refresh</button><Link className="primary" href="/book"><TravelIcon name="plane" size={16} />Plan a trip</Link></div></div>
-      {loading ? <div className="trips-loading" role="status" aria-label="Loading your trips"><p>Gathering your journeys…</p><div className="booking-skeleton" /><div className="booking-skeleton" /></div> : error ? <section className="trips-empty trips-access"><span className="trips-empty-icon"><TravelIcon name="shield" size={29} /></span><p className="eyebrow">YOUR TRIPS ARE PRIVATE</p><h2>Let’s get you to your bookings.</h2><p role="alert">{error}</p><div><Link className="primary" href="/account">Open account</Link><button className="secondary" onClick={refresh}>Try again</button></div></section> : admin ? <div className="metric-grid">{Object.entries(metrics).map(([key, value]) => <div className="white-card metric" key={key}><span>{key.replaceAll("_", " ")}</span><strong>{value}</strong><small>Database records</small></div>)}</div> : bookings.length === 0 ? <section className="trips-empty"><span className="trips-empty-icon"><TravelIcon name="bag" size={31} /></span><p className="eyebrow">A BLANK PAGE. A WORLD OF POSSIBILITIES.</p><h2>Your next story starts here.</h2><p>No bookings are linked to this account yet. A weekend away, a long-awaited reunion, or somewhere completely new?</p><Link className="primary" href="/book">Find your next journey<TravelIcon name="arrow" size={17} /></Link><span>Already booked? Check you’re signed in to the right account.</span><Link className="trips-account-link" href="/account">Account & security</Link></section> : <>
+      <div className="page-heading"><div><div className="eyebrow">{admin ? "MAX TRAVEL OPERATIONS" : "EVERY JOURNEY, TOGETHER"}</div><h1>{admin ? "Your operations workspace." : "Your trips. All in one place."}</h1><p>{admin ? "Protected access · Admin permission and authenticator required" : "Your bookings, the latest updates, and the details that matter."}</p></div><div className="trips-heading-actions"><button className="secondary" disabled={loading} onClick={refresh} aria-label="Refresh booking updates"><TravelIcon name="refresh" size={16} />Refresh</button><Link className="primary" href="/book"><TravelIcon name="plane" size={16} />Plan a trip</Link></div></div>
+      {loading ? <div className="trips-loading" role="status" aria-label="Loading your trips"><p>Gathering your journeys…</p><div className="booking-skeleton" /><div className="booking-skeleton" /></div> : error ? <section className="trips-empty trips-access"><span className="trips-empty-icon"><TravelIcon name="shield" size={29} /></span><p className="eyebrow">{accessError ? "YOUR TRIPS ARE PRIVATE" : "LET’S TRY THAT AGAIN"}</p><h2>{accessError ? "Let’s get you to your bookings." : "We couldn’t load your trips."}</h2><p role="alert">{error}</p><div>{accessError && <Link className="primary" href="/account">Open account</Link>}<button className="secondary" onClick={refresh}>Try again</button></div></section> : admin ? <div className="metric-grid">{Object.entries(metrics).map(([key, value]) => <div className="white-card metric" key={key}><span>{key.replaceAll("_", " ")}</span><strong>{value}</strong><small>Database records</small></div>)}</div> : bookings.length === 0 ? <section className="trips-empty"><span className="trips-empty-icon"><TravelIcon name="bag" size={31} /></span><p className="eyebrow">A BLANK PAGE. A WORLD OF POSSIBILITIES.</p><h2>Your next story starts here.</h2><p>No bookings are linked to this account yet. A weekend away, a long-awaited reunion, or somewhere completely new?</p><Link className="primary" href="/book">Find your next journey<TravelIcon name="arrow" size={17} /></Link><span>Already booked? Check you’re signed in to the right account.</span><Link className="trips-account-link" href="/account">Account & security</Link></section> : <>
         <div className="trips-overview"><div><span>YOUR TRIPS</span><strong>{bookings.length}<small>loaded bookings</small></strong></div><div><span>SUPPLIER CONFIRMED</span><strong>{confirmedCount}<small>confirmed bookings</small></strong></div><div><span>STAY IN THE LOOP</span><strong>{pendingCount}<small>awaiting an update</small></strong></div><p><TravelIcon name="shield" size={20} />Payment and supplier confirmation are separate. We’ll show the actual status here.</p></div>
-        <div className="trips-filter-row"><div className="trips-filters" aria-label="Filter your bookings">{[{ value: "ALL", label: "All trips" }, { value: "FLIGHT", label: "Flights" }, { value: "HOTEL", label: "Hotels" }, { value: "ATTENTION", label: "Needs attention" }].map(item => <button key={item.value} type="button" aria-pressed={filter === item.value} onClick={() => setFilter(item.value)}>{item.label}</button>)}</div><span>{visible.length} shown · Newest first</span></div>
+        <div className="trips-dashboard"><div className="trips-dashboard-main"><label className="trips-search"><TravelIcon name="search" size={20} /><span className="trips-visually-hidden">Search loaded bookings</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search destination or booking reference" /><span>Loaded trips</span></label><div className="trips-filter-row"><div className="trips-filters" aria-label="Filter your bookings">{[{ value: "ALL", label: "All trips" }, { value: "FLIGHT", label: "Flights" }, { value: "HOTEL", label: "Hotels" }, { value: "PENDING", label: "In progress" }, { value: "ATTENTION", label: "Needs attention" }].map(item => <button key={item.value} type="button" aria-pressed={filter === item.value} onClick={() => setFilter(item.value)}>{item.label}</button>)}</div><span>{visible.length} shown · Newest first</span></div>
         {syncError && <p className="trip-inline-error" role="status">Automatic updates are temporarily unavailable: {syncError} Your last loaded status is shown. We’ll retry automatically.</p>}
-        {visible.length ? <div className="trips-list">{visible.map(booking => <BookingRecord booking={booking} originalReference={bookings.find(original => original.id === booking.parent_order_id)?.reference} key={booking.id} onUpdate={refresh} />)}</div> : <section className="trips-filter-empty"><TravelIcon name="search" size={25} /><h2>No bookings in this view.</h2><p>Try another filter, or load older trips if more history is available.</p><button className="secondary" onClick={() => setFilter("ALL")}>Show all trips</button></section>}
+        {visible.length ? <div className="trips-list">{visible.map(booking => <BookingRecord booking={booking} originalReference={bookings.find(original => original.id === booking.parent_order_id)?.reference} key={booking.id} onUpdate={refresh} />)}</div> : <section className="trips-filter-empty"><TravelIcon name="search" size={25} /><h2>No bookings in this view.</h2><p>Try a different search or filter, or load older trips if more history is available.</p><button className="secondary" onClick={() => { setFilter("ALL"); setSearch(""); }}>Show all trips</button></section>}
         {listError && <p className="trip-inline-error" role="alert">{listError} Your loaded trips are still here. Try loading older trips again.</p>}
-        {hasMore && <div className="trips-load-more"><button className="secondary" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "Loading older trips…" : "Load older trips"}</button></div>}
+        {hasMore && <div className="trips-load-more"><button className="secondary" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "Loading older trips…" : "Load older trips"}</button></div>}</div><TripSupport /></div>
       </>}
     </main>
     <TravelFooter />

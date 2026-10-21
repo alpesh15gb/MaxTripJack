@@ -31,7 +31,7 @@ export default function VisibilityDashboard() {
     return () => controller.abort();
   }, [refresh]);
 
-  return <main className={styles.page}>
+  return <main id="main-content" className={styles.page}>
     <nav className={styles.navigation} aria-label="Operations navigation"><Link href="/operations">← Operations workspace</Link><Link href="/account">Account & security</Link></nav>
     <header className={styles.heading}><div><p className={styles.eyebrow}>PRIVATE · FINANCE PERMISSION REQUIRED</p><h1>Visibility & measurement</h1><p>Readiness, known gaps and a read-only booking ledger snapshot.</p></div>
       <button className={styles.button} disabled={loading} onClick={() => { setSnapshot(null); setMessage(""); setRefresh(value => value + 1); }}>{loading ? "Loading ledger…" : "Refresh ledger"}</button>
@@ -63,7 +63,7 @@ export default function VisibilityDashboard() {
     </section>
 
     <section className={styles.section} aria-labelledby="baseline-heading"><p className={styles.eyebrow}>UNKNOWN IS NOT ZERO</p><h2 id="baseline-heading">Search & growth baseline</h2><p>Use the first complete 28-day production window after approved activation. Record source, dates, time zone, consent gaps and test exclusions before setting traffic or conversion growth targets.</p>
-      <div className={styles.tableWrap}><table className={styles.table}><caption>Unmeasured baseline; performance thresholds are targets, not results.</caption><thead><tr><th scope="col">Metric</th><th scope="col">Source</th><th scope="col">Baseline</th><th scope="col">Target</th></tr></thead><tbody>{VISIBILITY_BASELINES.map(metric => <tr key={metric.metric}><th scope="row">{metric.metric}</th><td>{metric.source}</td><td>Not measured</td><td>{metric.target ?? "Set after baseline"}</td></tr>)}</tbody></table></div>
+      <div className={styles.tableWrap} role="region" aria-label="Search and growth baseline" tabIndex={0}><table className={styles.table}><caption>Unmeasured baseline; performance thresholds are targets, not results.</caption><thead><tr><th scope="col">Metric</th><th scope="col">Source</th><th scope="col">Baseline</th><th scope="col">Target</th></tr></thead><tbody>{VISIBILITY_BASELINES.map(metric => <tr key={metric.metric}><th scope="row">{metric.metric}</th><td>{metric.source}</td><td>Not measured</td><td>{metric.target ?? "Set after baseline"}</td></tr>)}</tbody></table></div>
     </section>
   </main>;
 }

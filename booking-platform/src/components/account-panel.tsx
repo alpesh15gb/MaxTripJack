@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import AccountExperienceShell from "./account-experience-shell";
+import { TravelIcon } from "./travel-shell";
 import SessionSecurity from "./session-security";
 import { authClient } from "@/lib/auth-client";
 
@@ -20,10 +22,10 @@ export default function AccountPanel() {
     if (result.error) throw new Error(result.error.message); await refetch(); setMode("signin");
    } else if (mode === "reset") {
     const result = await authClient.requestPasswordReset({ email, redirectTo: "/reset-password" });
-    if (result.error) throw new Error(result.error.message); setMessage("If the account exists, a reset link will be sent. Local development emails appear in Mailpit.");
+    if (result.error) throw new Error(result.error.message); setMessage("If the account exists, a reset link will be sent. Check your inbox for the next step.");
    } else if (mode === "signup") {
     const result = await authClient.signUp.email({ email, password, name: String(form.get("name")), callbackURL: "/account" });
-    if (result.error) throw new Error(result.error.message); setMessage("Check your email to verify the account, then sign in. Development emails appear in Mailpit."); setMode("signin");
+    if (result.error) throw new Error(result.error.message); setMessage("Check your email to verify the account, then sign in. Follow the verification link to continue."); setMode("signin");
    } else {
     const result = await authClient.signIn.email({ email, password });
     if (result.error) throw new Error(result.error.message);
@@ -32,7 +34,7 @@ export default function AccountPanel() {
   } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to complete authentication."); }
   finally { setBusy(false); }
  }
- return <div className="page-shell account-shell"><Link className="back" href="/">← Max Travel home</Link><div className="page-heading"><div><div className="eyebrow">YOUR MAX TRAVEL ACCOUNT</div><h1>Every journey starts with you.</h1><p>Secure account access for your trips, travellers, and company bookings.</p></div></div><div className="white-card account-card">
+ return <AccountExperienceShell><div className="page-shell account-shell"><Link className="back" href="/">← Max Travel home</Link><div className="page-heading"><div><div className="eyebrow">YOUR MAX TRAVEL ACCOUNT</div><h1>Every journey starts with you.</h1><p>Secure account access for your trips, travellers, and company bookings.</p></div></div><div className="account-experience-grid"><aside className="account-benefits"><span className="account-benefits-icon"><TravelIcon name="shield" size={28}/></span><p className="eyebrow">YOUR JOURNEY, TOGETHER</p><h2>One place for every next step.</h2><p>Keep your trip details close and your account protected.</p><ul><li><TravelIcon name="bag"/><div><strong>Trips at a glance</strong><span>Follow supplier confirmation and manage your bookings.</span></div></li><li><TravelIcon name="user"/><div><strong>Less typing next time</strong><span>Save traveller profiles securely for future checkouts.</span></div></li><li><TravelIcon name="shield"/><div><strong>You’re in control</strong><span>Manage passwords, authenticators and signed-in devices.</span></div></li></ul><Link href="/customer-support">Need a hand? Contact support →</Link></aside><div className="white-card account-card">
  {isPending ? <p role="status">Checking your session…</p> : session ? <><h2>Hello, {session.user.name}</h2><p className="muted">{session.user.email}</p><div className="account-links"><Link className="primary" href="/my-trips">My trips</Link><Link className="secondary" href="/travellers">Saved travellers</Link><Link className="secondary" href="/operations">Admin workspace</Link></div><hr/><h2>Account security</h2><p className="muted">Two-factor authentication is required for corporate and admin access.</p>{session.user.twoFactorEnabled ? <p className="green">Authenticator protection enabled.</p> : <form onSubmit={async e => {
  e.preventDefault(); setBusy(true); setMessage("");
  try { const values = new FormData(e.currentTarget);
@@ -46,5 +48,5 @@ export default function AccountPanel() {
  </> : <><div className="account-tabs">{(["signin", "signup", "reset"] as const).map(m => <button key={m} onClick={() => {setMode(m);setMessage("");}} aria-pressed={mode===m}>{m === "signin" ? "Sign in" : m === "signup" ? "Create account" : "Reset password"}</button>)}</div><form onSubmit={e => {e.preventDefault();void submit(new FormData(e.currentTarget));}}>
  {mode === "challenge" ? <><label>{recovery?"One-time backup code":"Authenticator code"}<input name="code" inputMode={recovery?"text":"numeric"} pattern={recovery?undefined:"[0-9]{6}"} required autoComplete="one-time-code"/></label><label className="checkbox"><input type="checkbox" checked={recovery} onChange={e=>setRecovery(e.target.checked)}/>Use a saved recovery code</label></> : <>{mode === "signup" && <label>Your name<input name="name" required minLength={2} maxLength={100} autoComplete="name"/></label>}<label>Email<input name="email" required type="email" autoComplete="email"/></label>{mode !== "reset" && <label>Password<input name="password" type="password" required minLength={12} maxLength={128} autoComplete={mode === "signup" ? "new-password" : "current-password"}/></label>}</>}
  <button className="primary" disabled={busy}>{busy ? "Please wait…" : mode === "signup" ? "Create account" : mode === "reset" ? "Send reset link" : mode === "challenge" ? "Verify code" : "Sign in"}</button></form><p className="muted">Corporate accounts are linked and approved by Max Travel. Registration does not grant company or admin access.</p></>}
- {message && <p role="status" className="info-message">{message}</p>}</div><p className="muted">Local development only. No live bookings or payments are enabled.</p></div>;
+ {message && <p role="status" className="info-message">{message}</p>}</div></div><p className="account-environment-note">Test environment · No live travel bookings or payments are enabled.</p></div></AccountExperienceShell>;
 }

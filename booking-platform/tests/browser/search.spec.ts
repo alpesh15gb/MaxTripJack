@@ -2,7 +2,7 @@ import { test, expect, capture, departure, returning, expectNoHorizontalOverflow
 
 test('homepage carries canonical airports and selected adults into exactly one search', async ({ page, provider }, testInfo) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^Flights & stays\.\s*Real people to help\.$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('A great trip starts with a clear plan.');
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'homepage');
   const form = page.locator('.home-search-form');
@@ -144,4 +144,44 @@ test('a typed hotel city is not searched until an available destination is selec
   await page.getByRole('button', { name: 'Search stays', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No stays found', exact: true })).toBeVisible();
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
+});
+
+
+test('traveller disclosure preserves party and cabin through keyboard close and reopen', async ({ page, provider }, testInfo) => {
+  await openFlightSearch(page, { auto: false });
+  const form = page.getByRole('form', { name: 'Search availability' });
+  const picker = form.locator('.booking-party-picker');
+  const summary = picker.locator('summary');
+  await expect(picker).not.toHaveAttribute('open');
+  await expect(summary).toContainText('1 adult · Economy');
+  await expect(picker.getByRole('combobox', { name: 'Adults', exact: true })).not.toBeVisible();
+  await summary.focus();
+  await summary.press('Enter');
+  await expect(picker).toHaveAttribute('open', '');
+  await picker.getByRole('combobox', { name: 'Adults', exact: true }).selectOption('2');
+  await picker.getByRole('combobox', { name: 'Children · age 2–11', exact: true }).selectOption('1');
+  await picker.getByRole('combobox', { name: 'Infants · under 2', exact: true }).selectOption('1');
+  await picker.getByRole('combobox', { name: 'Cabin', exact: true }).selectOption('PREMIUM_ECONOMY');
+  await expect(summary).toContainText('2 adults · 1 child · 1 infant · Premium economy');
+  await expectNoHorizontalOverflow(page);
+  await capture(page, testInfo, 'travellers-cabin-expanded');
+  await summary.focus();
+  await summary.press('Enter');
+  await expect(picker).not.toHaveAttribute('open');
+  await summary.click();
+  await expect(picker.getByRole('combobox', { name: 'Adults', exact: true })).toHaveValue('2');
+  await expect(picker.getByRole('combobox', { name: 'Children · age 2–11', exact: true })).toHaveValue('1');
+  await expect(picker.getByRole('combobox', { name: 'Infants · under 2', exact: true })).toHaveValue('1');
+  await expect(picker.getByRole('combobox', { name: 'Cabin', exact: true })).toHaveValue('PREMIUM_ECONOMY');
+  await summary.click();
+  // Closed disclosure fields remain successful form controls; no search on edit.
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);
+  await form.getByRole('button', { name: 'Search flights', exact: true }).click();
+  await expect(page.getByText('IndiGo', { exact: true })).toBeVisible();
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+  expect(provider.requests('/api/travel/search')[0].body).toMatchObject({
+    product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure,
+    adults: 2, children: 1, infants: 1, cabin: 'PREMIUM_ECONOMY',
+  });
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

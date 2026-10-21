@@ -358,3 +358,38 @@ test('an account identity change clears private draft fields while preserving th
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });
+
+
+test('party selected in the collapsed search picker reaches traveller review intact', async ({ page, provider }) => {
+  provider.quote = reviewedQuote({
+    summary: { from: 'BOM', to: 'DEL', date: departure, adults: 2, children: 1, infants: 1 },
+  });
+  await openFlightSearch(page, { auto: false });
+  const search = page.getByRole('form', { name: 'Search availability' });
+  const picker = search.locator('.booking-party-picker');
+  await picker.locator('summary').click();
+  await picker.getByRole('combobox', { name: 'Adults', exact: true }).selectOption('2');
+  await picker.getByRole('combobox', { name: 'Children · age 2–11', exact: true }).selectOption('1');
+  await picker.getByRole('combobox', { name: 'Infants · under 2', exact: true }).selectOption('1');
+  await picker.getByRole('combobox', { name: 'Cabin', exact: true }).selectOption('BUSINESS');
+  await picker.locator('summary').click();
+  await expect(picker).not.toHaveAttribute('open');
+  await search.getByRole('button', { name: 'Search flights', exact: true }).click();
+  await selectVisibleFare(page);
+  const review = page.getByRole('form', { name: 'Review and travellers' });
+  await expect(review.locator('.traveller-card')).toHaveCount(4);
+  for (const name of ['Adult 1', 'Adult 2', 'Child 3', 'Infant 4']) {
+    await expect(review.getByRole('group', { name, exact: true })).toBeVisible();
+  }
+  for (const index of [2, 3]) {
+    await expect(review.locator(`[name="dob-${index}"]`)).toBeVisible();
+    await expect(review.locator(`[name="dob-${index}"]`)).toHaveAttribute('required', '');
+  }
+  expect(provider.requests('/api/travel/search')[0].body).toMatchObject({ adults: 2, children: 1, infants: 1, cabin: 'BUSINESS' });
+  expect(provider.requests('/api/travel/review')).toHaveLength(1);
+  expect(provider.requests('/api/travel/review')[0].body).toEqual({ searchId, priceIds: ['onward-standard'] });
+  const summary = page.getByRole('complementary', { name: 'Your journey summary' });
+  await expect(summary.locator('.booking-summary-lines > div').filter({ has: page.getByText('Travellers', { exact: true }) }).locator('dd')).toHaveText('4');
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+  await expectNoHorizontalOverflow(page);
+});

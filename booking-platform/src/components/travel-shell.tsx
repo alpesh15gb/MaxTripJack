@@ -29,19 +29,19 @@ export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number 
 export function TravelHeader({ active, onProductChange }: { active?: "flights" | "hotels" | "trips" | "account"; onProductChange?: (product: "FLIGHT" | "HOTEL") => void }) {
   return <>
     <a className="travel-skip" href="#main-content">Skip to main content</a>
-    <div className="travel-environment"><span />Test environment <span className="travel-environment-detail">TripJack UAT · No live travel bookings</span></div>
+    <div className="travel-environment"><span />Test environment <span className="travel-environment-detail">TripJack UAT · No live bookings or payments</span></div>
     <header className="travel-header">
       <Link href="/" className="travel-brand" aria-label="Max Travel home"><span className="travel-brand-symbol"><TravelIcon name="plane" size={22} /></span>max<span>travel</span><i>.</i></Link>
       <nav aria-label="Main navigation">
         {(["FLIGHT", "HOTEL"] as const).map(product => {
           const label = product === "FLIGHT" ? "Flights" : "Hotels";
           const selected = active === (product === "FLIGHT" ? "flights" : "hotels");
-          return onProductChange ? <button type="button" key={product} aria-current={selected ? "page" : undefined} onClick={() => onProductChange(product)}>{label}</button> : <Link key={product} aria-current={selected ? "page" : undefined} href={product === "FLIGHT" ? "/flights" : "/book?product=HOTEL"}>{label}</Link>;
+          return onProductChange ? <button type="button" key={product} aria-current={selected ? "page" : undefined} onClick={() => onProductChange(product)}>{label}</button> : <Link key={product} aria-current={selected ? "page" : undefined} href={product === "FLIGHT" ? "/book?product=FLIGHT" : "/book?product=HOTEL"}>{label}</Link>;
         })}
         <Link href="/my-trips" aria-current={active === "trips" ? "page" : undefined}>My trips</Link>
         <Link className="travel-business-nav" href="/office">Our office <span aria-hidden="true">↗</span></Link>
       </nav>
-      <div className="travel-header-actions"><span className="travel-currency">INR <span>₹</span></span><Link className="travel-account" href="/account"><TravelIcon name="user" size={17} /><span>My account</span></Link></div>
+      <div className="travel-header-actions"><span className="travel-currency">INR <span>₹</span></span><Link className="travel-account" href="/account" aria-current={active === "account" ? "page" : undefined}><TravelIcon name="user" size={17} /><span>My account</span></Link></div>
     </header>
   </>;
 }
