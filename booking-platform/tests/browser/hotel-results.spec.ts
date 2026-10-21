@@ -5,8 +5,12 @@ const hotels=[
  {tjHotelId:'10002',name:'Bay Stay',customerEstimateMinor:400000,property:{address:'Bay Road, Goa',starRating:3,propertyType:'Resort',amenities:['Pool'],photos:[{url:photo,isHero:true}]}},
  {tjHotelId:'10003',name:'Unknown Stay',property:{amenities:[]}},
 ];
-test('hotel results prioritize real stay totals with scoped filters, sorting and intact room flow',async({page,provider},testInfo)=>{
+test.beforeEach(async({page})=>{
  await page.route(photo,route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"><rect width="480" height="320" fill="#a7c8c5"/><text x="20" y="80">Synthetic property fixture</text></svg>'}));
+});
+
+test('hotel results prioritize real stay totals with scoped filters, sorting and intact room flow',async({page,provider},testInfo)=>{
+
  provider.search={searchId,results:{hotels}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{property:hotels[0].property,options:[{optionId:'room1',roomInfo:[{name:'Deluxe twin room'}],mealBasis:'Room only',pricing:{totalPrice:8000,currency:'INR'},cancellation:{isRefundable:false,penalties:[]}}]}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002,10003',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
@@ -19,7 +23,17 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(page.getByRole('article',{name:'Palm House',exact:true}).getByRole('listitem').filter({hasText:/^parking$/i})).toHaveCount(1);
  const firstTop=await cards.first().evaluate(node=>node.getBoundingClientRect().top+window.scrollY);
  expect(firstTop).toBeLessThan((page.viewportSize()?.height??844)*.85);
- await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-shopping-loaded');
+ await expectNoHorizontalOverflow(page);
+ // Preserve actual post-search scroll; neutral focus must not reveal the skip-link in captures.
+ await page.locator('#hotel-results-title').evaluate(node=>(node as HTMLElement).focus({preventScroll:true}));
+ await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
+ const geometry=await cards.first().evaluate(node=>{const rect=(element:Element|null)=>{const r=element!.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height};};return {scrollY,viewportHeight:innerHeight,card:rect(node),name:rect(node.querySelector('h3')),cta:rect(node.querySelector('button')),activeElement:document.activeElement?.id};});
+ await testInfo.attach('hotel-loaded-viewport-geometry',{body:JSON.stringify(geometry,null,2),contentType:'application/json'});
+ expect(geometry.name.top).toBeGreaterThanOrEqual(0);expect(geometry.name.bottom).toBeLessThan(geometry.viewportHeight);
+ expect(geometry.cta.top).toBeLessThan(geometry.viewportHeight*1.5);
+ const viewport=await page.screenshot({path:testInfo.outputPath(`hotel-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});
+ await testInfo.attach('hotel-shopping viewport · synthetic provider data',{body:viewport,contentType:'image/png'});
+ await capture(page,testInfo,'hotel-shopping-loaded');
  await expect(page.locator('#booking-search>summary')).toContainText('Goa');
  await expect(page.locator('#booking-search>summary')).toContainText(departure);
  await expect(page.locator('#booking-search>summary')).toContainText(returning);
@@ -56,7 +70,7 @@ test('unsubmitted hotel date edits preserve searched totals; a fresh search rese
  const changed=new Date(returning+'T00:00:00Z');changed.setUTCDate(changed.getUTCDate()+1);
  await page.getByLabel('Check-out',{exact:true}).fill(changed.toISOString().slice(0,10));
  await page.locator('#booking-search>summary').click();
- await expect(cards.first().locator('.hotel-stay-price')).toHaveText(original);
+ await expect(cards.first().locator('.hotel-stay-price')).toHaveText(original,{useInnerText:true});
  await cards.first().getByRole('button',{name:'Choose room'}).click();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10002'});
  const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
