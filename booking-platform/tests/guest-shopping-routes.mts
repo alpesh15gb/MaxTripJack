@@ -26,8 +26,8 @@ let providerCalls=0,created=false;
 const option={optionId:'fixture-room',pricing:{totalPrice:5000,currency:'INR'}};
 globalThis.fetch=async(input)=>{
  const target=String(input);providerCalls++;
- if(target==='https://apitest.tripjack.com/fms/v1/air-search-all')return Response.json({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[],totalPriceList:[{id:'public-fare',fareIdentifier:'PUBLISHED',fD:{ADULT:{fC:{TF:5000}}}}]}]}}});
- if(target==='https://apitest-hms.tripjack.com/hms/v3/hotel/listing')return Response.json({status:{success:true},hotels:[{tjHotelId:'100001',name:'Fixture Hotel',options:[option]}]});
+ if(target==='https://apitest.tripjack.com/fms/v1/air-search-all')return Response.json({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[],totalPriceList:[{id:'public-fare',fareIdentifier:'PUBLISHED',fd:{ADULT:{fC:{TF:5000},bI:{iB:'15 Kg'},rT:1}}}]}]}}});
+ if(target==='https://apitest-hms.tripjack.com/hms/v3/hotel/listing')return Response.json({status:{success:true},hotels:[{hotelId:100001,name:'Fixture Hotel',options:[option]},{hotelId:100002,name:'Unrequested Hotel',options:[option]}]});
  if(target==='https://apitest-hms.tripjack.com/hms/v3/hotel/pricing')return Response.json({status:{success:true},options:[option],reviewHash:'fixture-only'});
  throw Error('Unexpected outbound request blocked');
 };
@@ -47,6 +47,8 @@ try{
  const guestCookie=response.headers.get('set-cookie')!.split(';')[0];assert.ok(guestCookie.startsWith('maxtravel-shopping='));
  const stored=(await pool.query('SELECT user_id,company_id FROM supplier_searches WHERE id=$1',[result.searchId])).rows[0];assert.match(stored.user_id,/^guest:/);assert.equal(stored.company_id,null);
  assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].customerEstimateMinor,501000);
+ assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].fD.ADULT.bI.iB,'15 Kg');
+ assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].fD.ADULT.rT,1);
  console.log('PASS real anonymous search, signed cookie and public-only pricing; company markup not exposed');
  const before=providerCalls;
  assert.equal((await search(request(flight,'',{origin:'https://attacker.invalid'}))).status,403);
@@ -54,7 +56,10 @@ try{
  assert.equal(providerCalls,before);
  console.log('PASS cross-site and invalid origin rejected before provider transport');
  const hotelResponse=await search(request(hotel,guestCookie));assert.equal(hotelResponse.status,200);const hotelResult=await hotelResponse.json();
+ assert.deepEqual(hotelResult.results.hotels.map((row:{tjHotelId:string})=>row.tjHotelId),['100001']);
+ assert.equal(hotelResult.results.hotels[0].customerEstimateMinor,500000);
  const selection={searchId:hotelResult.searchId,hid:'100001'};
+ const subsetBefore=providerCalls;assert.equal((await detail(request({...selection,hid:'100002'},guestCookie))).status,400);assert.equal(providerCalls,subsetBefore);
  assert.equal((await detail(request(selection,guestCookie))).status,200);
  const detailBefore=providerCalls;assert.equal((await detail(request(selection))).status,409);assert.equal(providerCalls,detailBefore);
  console.log('PASS guest hotel details require matching cookie owner; wrong owner never reaches supplier');
