@@ -175,3 +175,17 @@
 .booking-workflow .selected-itinerary .combo-itinerary { padding:12px 14px; }
 .booking-workflow .selected-itinerary .fare-comparison[open]>summary { min-height:44px; padding:10px 14px; }
 .booking-workflow .selected-itinerary .live-fare { padding:12px 14px; }
+
+.mobile-filter-toggle { display:none; }
+.flight-extra-filters { display:contents; }
+@media(max-width:600px) {
+ .booking-workflow.has-journey .results-heading { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }
+ .booking-workflow.has-journey .results-heading h2 { font-size:20px; }
+ .booking-workflow.has-journey .results-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:12px; }
+ .booking-workflow.has-journey .results-toolbar select { min-height:44px; font-size:14px; padding:8px 10px; }
+ .booking-workflow.has-journey .results-toolbar label { font-size:12px; }
+ .booking-workflow .mobile-filter-toggle { display:block; min-height:44px; min-width:80px; padding:10px 12px; grid-column:auto; }
+ .booking-workflow .flight-extra-filters { display:none; }
+ .booking-workflow .flight-extra-filters.is-expanded { display:grid; grid-column:1/-1; gap:12px; padding-top:12px; border-top:1px solid #e1e7ed; }
+ .booking-workflow.has-journey .results-toolbar>.muted { grid-column:1/-1; margin:0; }
+}

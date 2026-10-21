@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
+import { test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
 
 async function selectVisibleFare(page: Page) {
   await page.locator('.fare-comparison > summary').first().click();
@@ -200,6 +200,8 @@ test('unknown local-time duration is not guessed and COMBO journeys are not conn
   provider.search = { searchId, results: { searchResult: { tripInfos: { COMBO: [combo] } } } };
   await openFlightSearch(page, { roundTrip: true });
   await expect(page.getByText('Complete itinerary · Review every flight', { exact: true })).toBeVisible();
+  const filters=page.getByRole('button',{name:/^Filters/});
+  if(await filters.isVisible())await filters.click();
   await expect(page.getByRole('combobox', { name: 'Stops', exact: true })).toBeDisabled();
   await expect(page.locator('.combo-itinerary')).toContainText('BOM → DEL');
   await expect(page.locator('.combo-itinerary')).toContainText('DEL → BOM');
@@ -455,6 +457,26 @@ test('results prioritise the first real option within the initial viewport',asyn
  await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo({top:0,behavior:'instant'});});
  const top=await page.locator('.live-flight-card').first().evaluate(element=>element.getBoundingClientRect().top+window.scrollY);
  const height=page.viewportSize()!.height;
+ await capture(page,test.info(),'compact-results-first-viewport');
  expect(top,'The first option should begin before the bottom fifth of the initial viewport').toBeLessThan(height*.85);
  await expect(page.getByRole('complementary',{name:'Your journey summary'})).toHaveCount(0);
+});
+
+
+test('mobile filters expand accessibly without replacing the visible sort or triggering another supplier search',async({page,provider})=>{
+ await openFlightSearch(page);await expect(page.locator('.live-flight-card').first()).toBeVisible();
+ const filters=page.getByRole('button',{name:/^Filters/});
+ if(await filters.isVisible()){
+  await expect(filters).toHaveAttribute('aria-expanded','false');
+  await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveCount(0);
+  await filters.focus();await filters.press('Enter');await expect(filters).toHaveAttribute('aria-expanded','true');
+  await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');
+  await expect(page.getByRole('combobox',{name:'Stops',exact:true})).toBeVisible();
+  await filters.click();await expect(filters).toHaveAttribute('aria-expanded','false');
+  await filters.focus();await filters.press('Enter');
+  await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveValue('IndiGo');
+  await expectFlightToolbarValuesFit(page);
+ }
+ await expect(page.getByRole('combobox',{name:'Sort by',exact:true})).toBeVisible();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });
