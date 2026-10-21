@@ -195,7 +195,8 @@ test(`hotel real supplier metadata and photos render with a truthful broken-phot
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,autoSearch:'1'}));
  await expect(page.getByText('Example Road, Goa',{exact:true})).toBeVisible();
  await expect(page.getByText('Property category: 4 stars',{exact:true})).toBeVisible();
- await expect(page.getByText('Wi-Fi · Restaurant',{exact:true})).toBeVisible();
+ await expect(page.getByRole('list',{name:'Property amenities'}).getByText('Wi-Fi',{exact:true})).toBeVisible();
+ await expect(page.getByRole('list',{name:'Property amenities'}).getByText('Restaurant',{exact:true})).toBeVisible();
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toBeVisible();
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('loading','lazy');
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('referrerpolicy','no-referrer');
