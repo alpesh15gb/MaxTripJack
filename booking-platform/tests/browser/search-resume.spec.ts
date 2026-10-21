@@ -10,7 +10,7 @@ test('submitted multi-city shape survives refresh, but unsubmitted edits do not 
  await expect.poll(()=>provider.requests('/api/travel/search').length).toBe(1);
  await expect(page.locator('#booking-results')).toBeVisible();
  const submitted=page.url();
- await page.locator('#booking-search summary').click();
+ await page.locator('#booking-search > summary').click();
  await page.locator('[name="leg-date-1"]').fill(departure);
  expect(page.url()).toBe(submitted);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -64,7 +64,7 @@ test('sign-in return retains submitted multicity passengers rather than the orig
 test('expired and malformed deep links explain recovery without calling search',async({page,provider})=>{
  for(const query of ([{legs:'not-json'},{rooms:'[{"adults":99,"childAge":[]}]'},{date:'2020-01-01'}] as Record<string,string>[])){
   await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',autoSearch:'1',...query}));
-  await expect(page.getByRole('alert')).toContainText('search link is invalid or its dates have passed');
+  await expect(page.getByRole('main').getByRole('alert')).toContainText('search link is invalid or its dates have passed');
  }
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
@@ -77,7 +77,7 @@ test('round-trip auto-search refresh preserves the return date and searches once
  await expect(page.locator('#booking-results')).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(2);
  expect(provider.requests('/api/travel/search')[1].body).toMatchObject({returnDate:returning,adults:2,cabin:'FIRST'});
- await page.locator('#booking-search summary').click();
+ await page.locator('#booking-search > summary').click();
  await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('STANDARD');
  await expect(page.locator('[name="returnDate"]')).toHaveValue(returning);
 });
