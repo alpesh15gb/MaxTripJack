@@ -36,19 +36,24 @@ export function hotelText(value: unknown, max = 500): string | undefined {
 export function hotelStringList(value: unknown): string[] {
   return Array.isArray(value) ? [...new Set(value.map(item => hotelText(item)).filter((item): item is string => Boolean(item)))].slice(0, 40) : [];
 }
-/** Allowlisted supplier URLs are metadata only; CSP approval is required before rendering.
- * No server image proxy. Only the exact origin/path documented in v3 static content.
- */
+/** Exact supplier image locations observed in static content. Shared by normalization
+ * and browser rendering; never fetch/proxy supplier URLs on the server. */
+export function safeHotelPhotoUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length > 2048 || /[\\\u0000-\u0020\u007f]/.test(value)) return false;
+  const prefix = ['https://pix8.agoda.net/hotelImages/', 'https://i.travelapi.com/lodging/'].find(item => value.startsWith(item));
+  if (!prefix || /[?#]/.test(value) || /%2e|%2f|%5c|%25/i.test(value) || /(?:^|\/)\.{1,2}(?:\/|$)/.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return !url.port && !url.username && !url.password && !url.search && !url.hash && url.href.startsWith(prefix);
+  } catch { return false; }
+}
 function hotelPhotos(source: unknown): NonNullable<HotelPropertyDetails['photos']> {
   return (Array.isArray(source) ? source : []).slice(0, 30).flatMap(raw => {
     const photo = hotelObject(raw), links = hotelObject(photo.links);
-    const href = hotelObject(links.Standard).href;
-    if (typeof href !== 'string' || href.length > 2048 || !href.startsWith('https://pix8.agoda.net/hotelImages/')) return [];
-    try {
-      const url = new URL(href);
-      if (url.protocol !== 'https:' || url.hostname !== 'pix8.agoda.net' || url.port || url.username || url.password || url.search || url.hash || (!url.pathname.startsWith('/hotelImages/') || /%2e|%2f|%5c|%25/i.test(url.pathname))) return [];
-      return [{url: url.href, ...(hotelText(photo.caption) ? {caption: hotelText(photo.caption)} : {}), isHero: photo.is_hero_image === true}];
-    } catch { return []; }
+    // Preserve Standard support; UAT static content supplies the observed XXL variant.
+    const href = [hotelObject(links.Standard).href, hotelObject(links.XXL).href].find(safeHotelPhotoUrl);
+    if (!href) return [];
+    return [{url: href, ...(hotelText(photo.caption) ? {caption: hotelText(photo.caption)} : {}), isHero: photo.is_hero_image === true}];
   }).slice(0, 10);
 }
 export function hotelPropertyDetails(source: unknown): HotelPropertyDetails {

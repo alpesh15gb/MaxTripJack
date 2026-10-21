@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { customerHotelOptions, customerHotelResults } from '../src/lib/customer-pricing';
-import { hotelCancellationLabel, hotelPropertyDetails, hotelRoomLabel } from '../src/lib/hotel-presentation';
+import { hotelCancellationLabel, hotelPropertyDetails, hotelRoomLabel, safeHotelPhotoUrl } from '../src/lib/hotel-presentation';
 const option = {optionId:'room-1',roomInfo:[{id:'1',name:'Twin room'},{id:'1',name:'Twin room'}],inclusions:['Breakfast','Wi-Fi'],mealBasis:'Breakfast',pricing:{totalPrice:1000,currency:'INR',mf:20,mft:3.6},commercial:{commission:999},reviewHash:'secret'};
 test('hotel rate preserves supplier room names and inclusions without commercial fields',()=>{
  const result=customerHotelOptions({options:[option]}).options[0];
@@ -65,4 +65,25 @@ test('photo paths reject normalized traversal, escaped separators and explicit d
 
 test('undocumented image query credentials and fragments never reach customer output',()=>{
  for(const suffix of ['?token=secret','#private'])assert.equal(hotelPropertyDetails({images:[{links:{Standard:{href:'https://pix8.agoda.net/hotelImages/a.jpg'+suffix}}}]}).photos,undefined);
+});
+
+
+test('observed XXL static content yields bounded real photos while Standard remains preferred',()=>{
+ const href='https://i.travelapi.com/lodging/1000000/room.jpg';
+ const images=Array.from({length:54},()=>({is_hero_image:true,links:{XXL:{href}}}));
+ const photos=hotelPropertyDetails({images}).photos!;
+ assert.equal(photos.length,10);assert.deepEqual(photos[0],{url:href,isHero:true});
+ const standard='https://pix8.agoda.net/hotelImages/123/room.jpg';
+ assert.equal(hotelPropertyDetails({images:[{links:{Standard:{href:standard},XXL:{href}}}]}).photos?.[0].url,standard);
+ assert.equal(hotelPropertyDetails({images:[{links:{Unknown:{href}}}]}).photos,undefined);
+});
+
+test('shared renderer and normalizer guard rejects unsafe URLs for both observed hosts',()=>{
+ for(const base of ['https://i.travelapi.com/lodging/','https://pix8.agoda.net/hotelImages/']){
+  assert.equal(safeHotelPhotoUrl(base+'a.jpg'),true);
+  const u=new URL(base);
+  const invalid=[base+'a?',base+'a#',base+'a?token=secret',base+'a#private',base+'../private',base+'x/../a',base+'./a',base+'%2e%2e/private',base+'%252e%252e/private',base+'a%2f..%2fprivate',base+'a%5cprivate',base+'a\\private',base+'a\n.jpg',base.replace('https:','http:'),base.replace(u.hostname,u.hostname+'.evil.test'),base.replace(u.hostname,'user:secret@'+u.hostname),base.replace(u.hostname,u.hostname+':443'),base.replace(u.hostname,u.hostname+':444'),'https://'+u.hostname+'/other/a',base+'a'.repeat(2050)];
+  for(const href of invalid){assert.equal(safeHotelPhotoUrl(href),false,href);assert.equal(hotelPropertyDetails({images:[{links:{XXL:{href}}}]}).photos,undefined,href);}
+ }
+ for(const value of [null,{},123,'https://127.0.0.1/lodging/a','https://sub.i.travelapi.com/lodging/a','https://i.travelapi.com/hotels/a'])assert.equal(safeHotelPhotoUrl(value),false);
 });

@@ -186,8 +186,8 @@ test('traveller disclosure preserves party and cabin through keyboard close and 
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('hotel real supplier metadata and photos render with a truthful broken-photo fallback',async({page,provider},testInfo)=>{
- const photo='https://pix8.agoda.net/hotelImages/123/room.jpg';
+for(const photo of ['https://pix8.agoda.net/hotelImages/123/room.jpg','https://i.travelapi.com/lodging/123/room.jpg']){
+test(`hotel real supplier metadata and photos render with a truthful broken-photo fallback (${new URL(photo).hostname})`,async({page,provider},testInfo)=>{
  await page.route(photo,route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"><rect width="480" height="320" fill="#aacccc"/><text x="20" y="80">Synthetic property fixture</text></svg>'}));
  const property={address:'Example Road, Goa',starRating:4,amenities:['Wi-Fi','Restaurant'],photos:[{url:photo,caption:'Supplier room view',isHero:true}]};
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Fixture stay',customerEstimateMinor:1200000,property}]}};
@@ -197,6 +197,8 @@ test('hotel real supplier metadata and photos render with a truthful broken-phot
  await expect(page.getByText('Property category: 4 stars',{exact:true})).toBeVisible();
  await expect(page.getByText('Wi-Fi · Restaurant',{exact:true})).toBeVisible();
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toBeVisible();
+ await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('loading','lazy');
+ await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('referrerpolicy','no-referrer');
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Deluxe room',exact:true})).toBeVisible();
  await expect(page.locator('.hotel-property-gallery')).toBeVisible();
@@ -204,3 +206,5 @@ test('hotel real supplier metadata and photos render with a truthful broken-phot
  await page.locator('.hotel-property-gallery img').dispatchEvent('error');
  await expect(page.locator('#booking-rooms .hotel-photo-unavailable')).toContainText('Property photos not available');
 });
+
+}

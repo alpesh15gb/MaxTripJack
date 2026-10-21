@@ -9,3 +9,13 @@ test('supplier property photos are scoped to image path without granting scripts
  for(const directive of directives.filter(value=>!value.startsWith('img-src ')))assert.ok(!directive.includes('agoda'));
  assert.ok(!directives.join(';').includes('*.agoda'));
 });
+
+
+test('observed TravelAPI photos grant only the exact image path, not scripts or fetch',()=>{
+ const directives=contentSecurityPolicy('abc123').split('; ');
+ const image=directives.find(value=>value.startsWith('img-src '))!;
+ assert.ok(image.split(' ').includes('https://i.travelapi.com/lodging/'));
+ for(const directive of directives.filter(value=>!value.startsWith('img-src ')))assert.ok(!directive.includes('travelapi'));
+ assert.ok(!directives.join(';').includes('*.travelapi'));
+ assert.ok(!image.split(' ').includes('https://i.travelapi.com'));
+});
