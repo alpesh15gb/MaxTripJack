@@ -1,0 +1,53 @@
+import {test,expect,capture,departure,returning,flight,searchId,reviewedQuote,expectNoHorizontalOverflow} from './fixtures';
+import type {Flight} from '../../src/lib/booking-presentation';
+test('flight shopping preserves local dates, airport identity and party fare contracts while filtering',async({page,provider},testInfo)=>{
+ const tomorrow=new Date(departure+'T00:00:00Z');tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
+ const night:Flight={sI:[{dt:departure+'T23:25:00',at:tomorrow.toISOString().slice(0,10)+'T01:50:00',duration:145,fD:{aI:{name:'Example International Airways',code:'EX'},fN:'123'},da:{code:'DEL',city:'New Delhi'},aa:{code:'NMI',city:'Navi Mumbai'}}],totalPriceList:[{id:'night-standard',fareIdentifier:'STANDARD',customerEstimateMinor:1200000,fD:{ADULT:{cc:'ECONOMY',rT:0,bI:{cB:'7 Kg',iB:'15 Kg'}},CHILD:{bI:{cB:'5 Kg',iB:'10 Kg'}},INFANT:{bI:{iB:'No allowance'}}}},{id:'night-flex',fareIdentifier:'FLEXIBLE',customerEstimateMinor:1450000,fD:{ADULT:{cc:'ECONOMY',rT:1,bI:{cB:'7 Kg',iB:'25 Kg'}}}}]};
+ const unknown:Flight={sI:[{...night.sI[0],dt:departure+'T19:00:00',at:departure+'T21:00:00',duration:undefined,fD:{aI:{name:'Unknown price fixture',code:'UP'},fN:'5'}}],totalPriceList:[{id:'unknown',fareIdentifier:'STANDARD',fD:{}}]};
+ provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[night,flight(),unknown]}}}};
+ provider.quote=reviewedQuote({totalMinor:1450000,summary:{from:'DEL',to:'NMI',date:departure,adults:2,children:1,infants:1}});
+ await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'DEL',to:'NMI',date:departure,adults:'2',children:'1',infants:'1',cabin:'ECONOMY',autoSearch:'1'}));
+ const cards=page.locator('.flight-shopping-list .live-flight-card');await expect(cards).toHaveCount(3);
+ await expect(cards.first()).toContainText('IndiGo');await expect(cards.last()).toContainText('Price at review');
+ await expect(page.locator('#booking-search>summary')).toContainText('4 travellers');await expect(page.locator('#booking-search>summary')).toContainText('ECONOMY');
+ await page.locator('#flight-results-title').evaluate(node=>(node as HTMLElement).focus({preventScroll:true}));
+ await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
+ const geometry=await cards.first().evaluate(node=>{const r=node.getBoundingClientRect();return {scrollY,viewportHeight:innerHeight,cardTop:r.top,cardBottom:r.bottom};});
+ await testInfo.attach('flight-viewport-geometry',{body:JSON.stringify(geometry),contentType:'application/json'});
+ const shot=await page.screenshot({path:testInfo.outputPath(`flight-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});await testInfo.attach('flight-shopping viewport',{body:shot,contentType:'image/png'});
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-shopping-loaded');
+ const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
+ await page.getByLabel('Maximum party total (₹)',{exact:true}).fill('7000');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
+ await page.getByRole('button',{name:'Reset flight filters',exact:true}).click();await expect(cards).toHaveCount(3);
+ await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('EVENING');await expect(cards).toHaveCount(2);
+ await page.getByLabel('Maximum party total (₹)',{exact:true}).fill('13000');await expect(cards).toHaveCount(1);
+ await expect(cards.first()).toContainText('+1 calendar day');await expect(cards.first()).toContainText('NMI');await expect(cards.first()).toContainText('Navi Mumbai');
+ await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');await expect(page.getByRole('heading',{name:'No flights match these filters'})).toBeVisible();
+ await page.getByRole('button',{name:'Reset filters',exact:true}).click();await expect(cards).toHaveCount(3);
+ await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('Example International Airways');
+ if(await toggle.isVisible())await toggle.click();
+ await cards.first().locator('.flight-segment-details>summary').click();await expect(cards.first().locator('.flight-segment-details')).toContainText('EX 123');
+ await cards.first().locator('.fare-comparison>summary').click();await expect(cards.first()).toContainText('child: cabin baggage 5 Kg');await expect(cards.first()).toContainText('infant: cabin baggage not supplied');
+ await expect(cards.first()).toContainText('₹14,500');await expect(cards.first()).toContainText('All travellers · estimated total');
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-fare-families');
+ await cards.first().locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Select fare',exact:true}).click();
+ await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
+ expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['night-flex']});
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+
+test('automatic return advance clears group filters but preserves selected outbound fare',async({page,provider})=>{
+ const back=flight('RETURN');back.sI[0].dt=returning+'T19:00:00';back.totalPriceList[0].customerEstimateMinor=1000000;
+ provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[flight()],RETURN:[back]}}}};
+ await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,returnDate:returning,adults:'1',autoSearch:'1'}));
+ const toggle=page.getByRole('button',{name:/^Filters/});await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
+ if(await toggle.isVisible())await toggle.click();
+ await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('MORNING');await page.getByLabel('Maximum party total (₹)',{exact:true}).fill('7000');
+ await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Select fare',exact:true}).click();
+ await expect(page.getByRole('button',{name:/^Return/})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('₹10,000');
+ if(await toggle.isVisible()&&await toggle.getAttribute('aria-expanded')==='false')await toggle.click();
+ await expect(page.getByRole('combobox',{name:'Departure time',exact:true})).toHaveValue('ALL');await expect(page.getByLabel('Maximum party total (₹)',{exact:true})).toHaveValue('');
+ await page.getByRole('button',{name:/^Outbound/}).click();await expect(page.getByRole('button',{name:'Selected',exact:true})).toHaveAttribute('aria-pressed','true');
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
