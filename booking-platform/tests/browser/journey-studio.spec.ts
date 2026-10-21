@@ -13,7 +13,7 @@ test('journey studio home keeps a usable search dock beside editorial inspiratio
  await expect(page.locator('.studio-concierge-band')).toHaveCount(1);await expect(page.locator('.studio-concierge-band')).toContainText('9:00 am–9:00 pm');
  await page.locator('.travel-footer').scrollIntoViewIfNeeded();for(const heading of await page.locator('.travel-footer h2').all())await expect(heading).toHaveCSS('color','rgb(255, 255, 255)');
  await capture(page,testInfo,'studio-footer');
- if(testInfo.project.name==='mobile-390'){await page.setViewportSize({width:320,height:844});await page.evaluate(()=>scrollTo(0,0));await expectNoHorizontalOverflow(page);await testInfo.attach('studio narrow320 viewport',{body:await page.screenshot({fullPage:false,animations:'disabled'}),contentType:'image/png'});}
+ if(testInfo.project.name==='mobile-390'){await page.setViewportSize({width:320,height:844});await page.evaluate(()=>scrollTo(0,0));await expectNoHorizontalOverflow(page);for(const code of ['BOM','DEL']){const badge=page.locator('.airport-code-badge').filter({hasText:code});await expect(badge).toBeVisible();const box=await badge.boundingBox();expect(box?.x).toBeGreaterThanOrEqual(0);expect((box?.x||0)+(box?.width||0)).toBeLessThanOrEqual(320);}await testInfo.attach('studio narrow320 viewport',{body:await page.screenshot({fullPage:false,animations:'disabled'}),contentType:'image/png'});}
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
 

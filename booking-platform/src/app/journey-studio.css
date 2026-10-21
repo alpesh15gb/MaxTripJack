@@ -47,3 +47,5 @@ body .travel-footer :is(h2,h3){color:#fff}body .travel-footer p{color:#cad5df}bo
 .booking-workflow.booking-workflow.has-journey .booking-search-panel:not([open]) .search-edit-label{color:#dbe6f9}.booking-workflow.booking-workflow.has-journey .booking-search-panel:not([open])>summary>span:not(.search-panel-icon){color:#fff}
 /* Paint the summary itself: checkout route styles also give summaries a light surface. */
 .booking-workflow.booking-workflow.has-journey .booking-search-panel:not([open])>summary{background:#142d40;border-radius:13px;color:#fff}
+.studio-hero-support{display:block}.trip-home .airport-code-badge{display:inline-block;color:#142d40;background:#e8eef7;border-radius:4px;padding:2px 5px;font-weight:750;letter-spacing:.06em;margin-right:4px}
+@media(max-width:700px){.trip-home .studio-hero-support{display:none}.trip-home .home-intro{padding-top:20px;padding-bottom:28px}.trip-home .home-party-options>summary{min-height:44px;padding-top:10px;padding-bottom:10px}.trip-home .home-party-options>summary>span:empty{display:none}.trip-home .home-search-input .airport-hint{display:block;line-height:1.5;font-size:12px;margin-top:4px}}
