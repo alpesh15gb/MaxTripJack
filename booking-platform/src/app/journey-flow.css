@@ -171,3 +171,9 @@
  .journey-flow .flight-shopping-list .fare-option-action>.primary{grid-row:auto;grid-column:auto;min-width:0;margin-top:4px}
 }
 .journey-flow .signin-review-gate>.signin-search-again{display:inline-flex;align-items:center;justify-content:center;min-height:48px;font-size:15px;background:#2453e9;color:#fff;text-decoration:none}
+/* Open comparisons must retain the same width-safe mobile summary as closed cards.
+   The route's legacy row-reverse rule otherwise squeezes the price and pans the card. */
+@media(max-width:600px){
+ .journey-flow.booking-workflow .flight-shopping-list .live-flight-card:not(.is-readonly) .fare-comparison[open]>summary{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;justify-content:stretch;gap:12px}
+ .journey-flow.booking-workflow .flight-shopping-list .live-flight-card:not(.is-readonly) .fare-comparison[open]>summary>strong,.journey-flow.booking-workflow .flight-shopping-list .live-flight-card:not(.is-readonly) .fare-comparison[open]>summary>span{width:100%;min-width:0;max-width:none}
+}

@@ -12,6 +12,12 @@ async function reference(page:Page,testInfo:TestInfo,name:string,critical:Locato
  if(bounds.length)await testInfo.attach(`${name} next-action geometry`,{body:Buffer.from(JSON.stringify(bounds,null,2)),contentType:'application/json'});
  for(const bound of bounds){expect(bound.top,`${bound.text}: complete top within natural viewport`).toBeGreaterThanOrEqual(0);expect(bound.bottom,`${bound.text}: complete bottom within natural viewport`).toBeLessThanOrEqual(bound.height);}
 }
+async function expectFlightCardContentsFit(card:Locator){
+ const geometry=await card.evaluate(node=>{const bounds=node.getBoundingClientRect();return {left:bounds.left,right:bounds.right,scrollLeft:node.scrollLeft,clientWidth:node.clientWidth,scrollWidth:node.scrollWidth,children:Array.from(node.querySelectorAll('.flight-result-top,.airline-monogram,.flight-route-line strong,.fare-comparison>summary>strong,.choose-fare-label')).map(child=>{const r=child.getBoundingClientRect();return {text:child.textContent,left:r.left,right:r.right};})};});
+ expect(geometry.scrollWidth,'flight card must not conceal horizontal overflow').toBeLessThanOrEqual(geometry.clientWidth+1);
+ expect(Math.abs(geometry.scrollLeft),'flight card must not retain an internal horizontal pan').toBeLessThanOrEqual(1);
+ for(const child of geometry.children){expect(child.left,`${child.text}: complete left within card`).toBeGreaterThanOrEqual(geometry.left-1);expect(child.right,`${child.text}: complete right within card`).toBeLessThanOrEqual(geometry.right+1);}
+}
 const flightQuery=()=>'/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'});
 
 for(const width of [null,320])test.describe(width?'320px decision surfaces':'Project viewport decision surfaces',()=>{
@@ -34,6 +40,8 @@ test('flight decision has an explicit next action and reversible fare choice',as
  await expect(card.locator('.fare-choice-heading h3')).toBeFocused();
  await expect(card.locator('.fare-details-unavailable').first()).toHaveCSS('font-size','14px');
  await reference(page,testInfo,'journey-fare-choice',[card.getByRole('button',{name:'Check fare & continue',exact:true}).first(),card.locator('.fare-option-action strong').first()]);
+ if(page.viewportSize()!.width<=600)await expect(card.locator('.fare-comparison[open]>summary')).toHaveCSS('display','grid');
+ await expectFlightCardContentsFit(card);
  await card.getByRole('button',{name:'Back to flights',exact:true}).click();await expect(summary).toBeFocused();
  await expect(card.locator('.fare-option')).toHaveCount(0);
  await summary.press('Space');
@@ -94,13 +102,15 @@ test('account review boundary explains the selected journey without implying a r
  await expect(page.locator('#booking-feedback')).toContainText('check the current price and full conditions');
  await expect(page.locator('#booking-signin-title')).toBeFocused();
  const layout=await page.locator('.flight-shopping-list .live-flight-card').first().evaluate(card=>{
-  const measure=(node:Element)=>{const r=node.getBoundingClientRect(),css=getComputedStyle(node);return {tag:node.tagName,className:node.className,text:node.textContent?.slice(0,60),left:r.left,right:r.right,width:r.width,scrollLeft:node.scrollLeft,clientWidth:node.clientWidth,scrollWidth:node.scrollWidth,overflowX:css.overflowX,overflowY:css.overflowY,display:css.display,gridColumns:css.gridTemplateColumns,minWidth:css.minWidth,maxWidth:css.maxWidth,padding:css.padding,margin:css.margin,whiteSpace:css.whiteSpace};};
+  const measure=(node:Element)=>{const r=node.getBoundingClientRect(),css=getComputedStyle(node);return {tag:node.tagName,className:node.className,text:node.textContent?.slice(0,60),left:r.left,right:r.right,width:r.width,scrollLeft:node.scrollLeft,clientWidth:node.clientWidth,scrollWidth:node.scrollWidth,overflowX:css.overflowX,overflowY:css.overflowY,display:css.display,open:node instanceof HTMLDetailsElement?node.open:undefined,flexDirection:css.flexDirection,order:css.order,gridColumns:css.gridTemplateColumns,minWidth:css.minWidth,maxWidth:css.maxWidth,padding:css.padding,margin:css.margin,whiteSpace:css.whiteSpace};};
   const parents:ReturnType<typeof measure>[]=[];for(let node:Element|null=card;node;node=node.parentElement)parents.push(measure(node));
   return {viewport:{width:innerWidth,scrollX,documentWidth:document.documentElement.scrollWidth},parents,children:Array.from(card.querySelectorAll('*')).map(measure)};
  });
  await testInfo.attach('auth boundary flight layout diagnostics',{body:Buffer.from(JSON.stringify(layout,null,2)),contentType:'application/json'});
  await reference(page,testInfo,'journey-account-boundary',[page.getByRole('link',{name:'Sign in to review selection',exact:true}),page.locator('#booking-signin-title')]);
+ await expectFlightCardContentsFit(page.locator('.flight-shopping-list .live-flight-card').first());
  await page.getByRole('button',{name:'Back to fares',exact:true}).click();await expect(page.locator('#flight-results-title')).toBeFocused();
+ await expectFlightCardContentsFit(page.locator('.flight-shopping-list .live-flight-card').first());
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
