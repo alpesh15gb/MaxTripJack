@@ -182,3 +182,12 @@
 .journey-flow .hotel-content-status{display:block;min-height:1.5em;line-height:1.5}
 @media(max-width:600px){.journey-flow .hotel-card-photo .hotel-photo-unavailable{min-height:185px}}
 .journey-flow .hotel-shopping-card :is(.hotel-property-category,.hotel-property-address),.journey-flow .hotel-card-photo .hotel-photo-unavailable{font-size:14px}
+
+/* Keep truthful metadata status without pushing mobile stays below another control row. */
+@media(max-width:600px){
+ .journey-flow .hotel-shopping-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:12px 8px;align-items:end}
+ .journey-flow .hotel-shopping-toolbar>div{grid-column:1/-1;grid-row:1}
+ .journey-flow .hotel-shopping-toolbar>label{grid-column:1;grid-row:2;min-width:0}
+ .journey-flow .hotel-shopping-toolbar select{min-width:0;width:100%;padding-left:10px;padding-right:24px}
+ .journey-flow .hotel-shopping-toolbar>.hotel-filter-toggle{grid-column:2;grid-row:2;width:84px;min-width:0;min-height:44px;padding-left:6px;padding-right:6px;align-self:end}
+}

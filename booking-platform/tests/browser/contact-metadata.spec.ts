@@ -121,3 +121,26 @@ test('a cached unavailable outcome stays distinct from genuine absence without a
  await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
  expect(contentCalls).toBe(0);
 });
+
+for(const narrow of [false,true]){
+ test(`hotel sort and filters share a compact readable mobile row${narrow?' at 320px':''}`,async({page,provider},testInfo)=>{
+  if(narrow)await page.setViewportSize({width:320,height:844});
+  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Toolbar fixture stay',customerEstimateMinor:800000,propertyContentStatus:'resolved',property:{amenities:[]}}]}};
+  await page.goto(hotelQuery);
+  const select=page.getByRole('combobox',{name:'Sort stays',exact:true});await expect(select).toBeVisible();
+  const mobile=(page.viewportSize()?.width??1440)<=600;
+  for(const value of ['price','price-desc','name','supplier']){
+   await select.selectOption(value);
+   const geometry=await select.evaluate(element=>{
+    const s=element as HTMLSelectElement,button=document.querySelector('.hotel-filter-toggle')!,style=getComputedStyle(s),r=s.getBoundingClientRect(),b=button.getBoundingClientRect();
+    const ctx=document.createElement('canvas').getContext('2d')!;ctx.font=style.font;
+    return {left:r.left,right:r.right,bottom:r.bottom,height:r.height,buttonLeft:b.left,buttonRight:b.right,buttonBottom:b.bottom,buttonHeight:b.height,viewport:innerWidth,text:ctx.measureText(s.selectedOptions[0].text).width,available:s.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)};
+   });
+   expect(geometry.text).toBeLessThanOrEqual(geometry.available);
+   if(mobile){expect(geometry.height).toBeGreaterThanOrEqual(44);expect(geometry.buttonHeight).toBeGreaterThanOrEqual(44);expect(Math.abs(geometry.bottom-geometry.buttonBottom)).toBeLessThan(1);expect(geometry.right).toBeLessThanOrEqual(geometry.buttonLeft);expect(geometry.left).toBeGreaterThanOrEqual(0);expect(geometry.buttonRight).toBeLessThanOrEqual(geometry.viewport);}
+  }
+  await expect(page.locator('.hotel-content-status')).toHaveText('Compare room options.');await expectNoHorizontalOverflow(page);
+  await testInfo.attach(`hotel-compact-toolbar${narrow?'-320':''}-viewport`,{body:await page.screenshot({fullPage:false}),contentType:'image/png'});
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ });
+}
