@@ -1,15 +1,21 @@
 import {test,expect,flight,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
-import type {Page,TestInfo} from '@playwright/test';
+import type {Locator,Page,TestInfo} from '@playwright/test';
 import path from 'node:path';
 
-async function reference(page:Page,testInfo:TestInfo,name:string){
+async function reference(page:Page,testInfo:TestInfo,name:string,critical:Locator[]=[]){
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;const tick=()=>{stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);};requestAnimationFrame(tick);});});
  await expectNoHorizontalOverflow(page);
+ const bounds=await Promise.all(critical.map(locator=>locator.evaluate(node=>{const r=node.getBoundingClientRect();return {text:node.textContent,top:r.top,bottom:r.bottom,height:innerHeight};})));
  const body=await page.screenshot({path:testInfo.outputPath(`${name}-${testInfo.project.name}-viewport.png`),fullPage:false,animations:'disabled'});
  await testInfo.attach(`${name} · actual viewport · synthetic inventory`,{body,contentType:'image/png'});
  await capture(page,testInfo,name);
+ if(bounds.length)await testInfo.attach(`${name} next-action geometry`,{body:Buffer.from(JSON.stringify(bounds,null,2)),contentType:'application/json'});
+ for(const bound of bounds){expect(bound.top,`${bound.text}: complete top within natural viewport`).toBeGreaterThanOrEqual(0);expect(bound.bottom,`${bound.text}: complete bottom within natural viewport`).toBeLessThanOrEqual(bound.height);}
 }
 const flightQuery=()=>'/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'});
+
+for(const width of [null,320])test.describe(width?'320px decision surfaces':'Project viewport decision surfaces',()=>{
+ test.beforeEach(async({page})=>{if(width)await page.setViewportSize({width,height:844});});
 
 test('flight decision has an explicit next action and reversible fare choice',async({page,provider},testInfo)=>{
  await page.emulateMedia({reducedMotion:'reduce'});
@@ -20,11 +26,14 @@ test('flight decision has an explicit next action and reversible fare choice',as
  const card=page.locator('.flight-shopping-list .live-flight-card').first();
  const action=card.locator('.choose-fare-label');await expect(action).toHaveText('Choose fare →');
  await expect.poll(()=>action.evaluate(node=>{const r=node.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})).toBe(true);
+ if(page.viewportSize()!.width<=600)await expect(page.locator('.results-heading')).toHaveCSS('margin-bottom','2px');
  await reference(page,testInfo,'journey-flight-results');
  const summary=card.locator('.fare-comparison>summary');await summary.focus();await page.keyboard.press('Enter');
  await expect(card.getByRole('button',{name:'Check fare & continue',exact:true})).toHaveCount(2);
  await expect(card).toContainText('₹7,200.50');
- await reference(page,testInfo,'journey-fare-choice');
+ await expect(card.locator('.fare-choice-heading h3')).toBeFocused();
+ await expect(card.locator('.fare-details-unavailable').first()).toHaveCSS('font-size','14px');
+ await reference(page,testInfo,'journey-fare-choice',[card.getByRole('button',{name:'Check fare & continue',exact:true}).first(),card.locator('.fare-option-action strong').first()]);
  await card.getByRole('button',{name:'Back to flights',exact:true}).click();await expect(summary).toBeFocused();
  await expect(card.locator('.fare-option')).toHaveCount(0);
  await summary.press('Space');
@@ -68,7 +77,7 @@ test('room workspace and back preserve the exact filtered search without another
  const choose=page.getByRole('button',{name:'Choose room',exact:true});await choose.click();
  await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#room-choice-title')).toBeFocused();
  await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
- await reference(page,testInfo,'journey-room-workspace');
+ await reference(page,testInfo,'journey-room-workspace',[page.getByRole('button',{name:'Review stay',exact:true}).first(),page.locator('.room-option-action strong').first()]);
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(choose).toBeFocused();
  await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
  await reference(page,testInfo,'journey-stays-restored');
@@ -83,7 +92,23 @@ test('account review boundary explains the selected journey without implying a r
  await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
  await expect(page.locator('.signin-selection-context')).toContainText('BOM → DEL');
  await expect(page.locator('#booking-feedback')).toContainText('check the current price and full conditions');
- await reference(page,testInfo,'journey-account-boundary');
+ await expect(page.locator('#booking-signin-title')).toBeFocused();
+ await reference(page,testInfo,'journey-account-boundary',[page.getByRole('link',{name:'Sign in to review selection',exact:true}),page.locator('#booking-signin-title')]);
  await page.getByRole('button',{name:'Back to fares',exact:true}).click();await expect(page.locator('#flight-results-title')).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('storage-unavailable review shows focused honest sign-in and search-again guidance',async({page,provider},testInfo)=>{
+ provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
+ await page.addInitScript(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='maxtravel:selection:v1')throw new Error('Synthetic selection storage unavailable');return original.call(this,key,value);};});
+ await page.goto(flightQuery());await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await expect(page.locator('#booking-signin-title')).toBeFocused();
+ await expect(page.locator('#booking-feedback')).toContainText('cannot preserve this selection');
+ const next=page.getByRole('link',{name:'Sign in, then search again',exact:true});
+ await expect(next).not.toHaveAttribute('href',/resumeSelection|autoSearch/);
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toHaveCount(0);
+ await reference(page,testInfo,'journey-storage-unavailable',[next,page.locator('#booking-signin-title')]);
+ expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 });

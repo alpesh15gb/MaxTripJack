@@ -55,7 +55,9 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(cards.last()).toHaveAttribute('aria-label','Unknown Stay');
  await cards.first().getByRole('button',{name:'Choose room'}).click();
  await expect(page.getByRole('heading',{name:'Deluxe twin room',exact:true})).toBeVisible();
- await expect(page.getByRole('heading',{name:'Choose your room',exact:true})).toBeFocused();
+ await expect(page.locator('#room-choice-title')).toHaveRole('heading');
+ await expect(page.locator('#room-choice-title')).toHaveText('Choose your room');
+ await expect(page.locator('#room-choice-title')).toBeFocused();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10001'});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-shopping-room-options');
