@@ -361,3 +361,12 @@
 .booking-workflow .fare-option-action strong { font-variant-numeric:tabular-nums; }
 
 .booking-workflow .fare-details-unavailable { font-size:14px; line-height:1.5; color:#42596b; margin:8px 0 12px; max-width:65ch; }
+
+/* Selected receipts are not a two-column comparison action. Give the complete
+   price basis full width without shrinking any qualifier or hiding fare details. */
+.booking-workflow .selected-itinerary .is-readonly .fare-comparison>summary {
+  display:block; height:auto; min-height:44px;
+}
+.booking-workflow .selected-itinerary .is-readonly .fare-comparison>summary>strong {
+  display:block; margin-top:8px;
+}

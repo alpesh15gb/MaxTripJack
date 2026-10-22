@@ -26,6 +26,12 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'audit-fare-comparison');
  await offers.first().getByRole('button',{name:'Select fare',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
+ const selectedSummary=page.locator('.selected-itinerary .fare-comparison>summary');
+ await expect(selectedSummary).toContainText('Selected fare');
+ await expect(selectedSummary).toContainText('Estimated total · all travellers');
+ expect((await selectedSummary.boundingBox())?.height).toBeLessThan(160);
+ for(const qualifier of await selectedSummary.locator('small').all()) expect(await qualifier.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(14);
+ await capture(page,testInfo,'audit-selected-fare-receipt');
  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['audit-published']});
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
