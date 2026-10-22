@@ -177,3 +177,8 @@
  .journey-flow.booking-workflow .flight-shopping-list .live-flight-card:not(.is-readonly) .fare-comparison[open]>summary{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;justify-content:stretch;gap:12px}
  .journey-flow.booking-workflow .flight-shopping-list .live-flight-card:not(.is-readonly) .fare-comparison[open]>summary>strong,.journey-flow.booking-workflow .flight-shopping-list .live-flight-card:not(.is-readonly) .fare-comparison[open]>summary>span{width:100%;min-width:0;max-width:none}
 }
+
+/* Optional property content never replaces rates or changes the photo slot height. */
+.journey-flow .hotel-content-status{display:block;min-height:1.5em;line-height:1.5}
+@media(max-width:600px){.journey-flow .hotel-card-photo .hotel-photo-unavailable{min-height:185px}}
+.journey-flow .hotel-shopping-card :is(.hotel-property-category,.hotel-property-address),.journey-flow .hotel-card-photo .hotel-photo-unavailable{font-size:14px}

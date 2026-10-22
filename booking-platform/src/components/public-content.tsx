@@ -45,8 +45,8 @@ function ContentLink({ link }: { link: PublicLink }) {
   return link.href.startsWith("/") ? <Link href={link.href}>{link.label}<span aria-hidden="true"> →</span></Link> : <a href={link.href}>{link.label}<span aria-hidden="true"> ↗</span></a>;
 }
 
-export function OfficeContactCard({ compact = false }: { compact?: boolean }) {
-  return <section className={`public-office-card${compact ? " is-compact" : ""}`} aria-label="MaxTravel office and contact details">
+export function OfficeContactCard({ compact = false, id }: { compact?: boolean; id?: string }) {
+  return <section id={id} tabIndex={id ? -1 : undefined} className={`public-office-card${compact ? " is-compact" : ""}`} aria-label="MaxTravel office and contact details">
     <span className="public-icon"><TravelIcon name="pin" size={23} /></span>
     <p className="public-eyebrow">A REAL OFFICE. A DIRECT CONTACT.</p>
     <h2>{businessProfile.locationName}</h2>
@@ -89,11 +89,11 @@ export function PublicPageView({ page }: { page: PublicPage }) {
     <TravelHeader active={page.slug === "flights" ? "flights" : undefined} />
     <main id="main-content" className="public-main">
       <Breadcrumbs items={breadcrumbs} />
-      <header className="public-hero"><p className="public-eyebrow">{page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{page.cta && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}</header>
+      <header className="public-hero"><p className="public-eyebrow">{page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{page.slug === "contact" && <a className="public-button" href="#contact-options">See contact options<TravelIcon name="arrow" size={18} /></a>}{page.cta && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}</header>
       <div className="public-layout"><article className="public-article"><PlanningNotice /><ContentSections sections={page.sections} />
         {page.showRoutes && <section className="public-section" aria-labelledby="route-guides-heading"><h2 id="route-guides-heading">Five journeys. Five practical planning guides.</h2><RouteGuideCards /></section>}
         {page.questions && <Questions questions={page.questions} />}<ReviewDate value={page.reviewedAt} />
-      </article><aside className="public-rail"><OfficeContactCard compact={!page.contact} /><section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section></aside></div>
+      </article><aside className="public-rail"><OfficeContactCard compact={!page.contact} id={page.slug === "contact" ? "contact-options" : undefined} /><section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section></aside></div>
       <RelatedLinks links={page.related} />
     </main><TravelFooter /><SeoJsonLd id="public-page-schema" data={schema} />
   </div>;

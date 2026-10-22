@@ -28,8 +28,8 @@ import { compatibleReturnPair,estimatedFare,flightStops,groupLabel,indiaToday,in
 
 type Product='FLIGHT'|'HOTEL';
 type HotelOption=AvailableHotelOption;
-type Hotel={tjHotelId:string;name:string;options?:HotelOption[];customerEstimateMinor?:number|null;property?:HotelPropertyDetails};
-type Results={searchId:string;propertyContentPending?:boolean;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
+type Hotel={tjHotelId:string;name:string;options?:HotelOption[];customerEstimateMinor?:number|null;property?:HotelPropertyDetails;propertyContentStatus?:'pending'|'resolved'|'unavailable'};
+type Results={searchId:string;propertyContentPending?:boolean;propertyContentUnavailable?:boolean;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
 type Quote={quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
 type Selection={priceIds?:string[];hid?:string;optionId?:string};
 type CheckoutResult={razorpay_order_id:string;razorpay_payment_id:string;razorpay_signature:string};
@@ -150,11 +150,15 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     const timeout=setTimeout(()=>controller.abort(),8000);
     let active=true;
     // Optional static content must never hold up rates or overwrite a newer search.
-    void api<{searchId:string;properties:Record<string,HotelPropertyDetails>}>('/api/travel/hotel-content',{searchId:resultSearchId},controller.signal).then(content=>{
-      if(!active||content.searchId!==resultSearchId)return;
-      setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,results:{...current.results,hotels:current.results.hotels?.map(hotel=>({...hotel,property:content.properties[hotel.tjHotelId]??hotel.property}))}}:current);
+    void api<{searchId:string;properties:Record<string,HotelPropertyDetails>;propertyContentStatuses?:Record<string,'resolved'|'unavailable'>}>('/api/travel/hotel-content',{searchId:resultSearchId},controller.signal).then(content=>{
+      if(!active)return;
+      if(content.searchId!==resultSearchId){
+        setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:true}:current);
+        return;
+      }
+      setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:Object.values(content.propertyContentStatuses??{}).includes('unavailable'),results:{...current.results,hotels:current.results.hotels?.map((hotel):Hotel=>({...hotel,propertyContentStatus:content.propertyContentStatuses?(content.propertyContentStatuses[hotel.tjHotelId]??'unavailable'):'resolved',property:content.properties[hotel.tjHotelId]??hotel.property}))}}:current);
     }).catch(()=>{
-      if(active)setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false}:current);
+      if(active)setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:true}:current);
     }).finally(()=>clearTimeout(timeout));
     return()=>{active=false;clearTimeout(timeout);controller.abort();};
   },[resultSearchId,propertyContentPending]);
@@ -470,7 +474,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
           {!flightRows.length&&<div className="empty-results"><h3>{fareGroups.length?'No flights match these filters':'No flights found for these airports'}</h3><p>{fareGroups.length?'Try another airline or stop filter to see more journeys.':'Try a different date, route or cabin.'}</p>{fareGroups.length>0&&<button className="secondary" type="button" onClick={()=>{setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');}}>Reset filters</button>}</div>}
           </div></div>
         </>}
-        {product==='HOTEL'&&<HotelResults key={results.searchId} hotels={results.results.hotels??[]} context={hotelStayContext} busy={busy} onChoose={(hotel,trigger)=>void chooseHotel(hotel,trigger)}/>}
+        {product==='HOTEL'&&<HotelResults key={results.searchId} hotels={results.results.hotels??[]} context={hotelStayContext} metadataStatus={results.propertyContentPending?'loading':results.propertyContentUnavailable||results.results.hotels?.some(hotel=>hotel.propertyContentStatus==='unavailable')?'unavailable':'ready'} busy={busy} onChoose={(hotel,trigger)=>void chooseHotel(hotel,trigger)}/>}
       </section>}
       {rooms&&roomView&&!quote&&product==='HOTEL'&&<HotelRoomView name={rooms.name} options={rooms.options} property={rooms.property} context={hotelStayContext} busy={busy} now={now} onBack={backToStays} onReview={optionId=>void review({hid:rooms.hid,optionId})}/>}
       {quote&&<form ref={checkoutForm} id="booking-review" aria-label="Review and travellers" className="white-card booking-review" onSubmit={event=>{event.preventDefault();void submitCheckout(event.currentTarget);}}>

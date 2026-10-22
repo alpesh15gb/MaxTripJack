@@ -1,4 +1,5 @@
 import { hotelObject, hotelPropertyDetails, type HotelPropertyDetails } from './hotel-presentation';
+export type HotelContentStatus = 'pending' | 'resolved' | 'unavailable';
 
 /** Official v3 static content contract. Never cache rates, inventory or cancellation here.
  * https://tripjack.com/page/api-doc#hotel-content
@@ -8,12 +9,12 @@ export function createHotelContentCache(
   fetchContent: (hotelIds: string[]) => Promise<unknown>,
   now: () => number = Date.now,
 ) {
-  const cache = new Map<string, {expires: number; property?: HotelPropertyDetails}>();
+  const cache = new Map<string, {expires: number; property?: HotelPropertyDetails; status: Exclude<HotelContentStatus, 'pending'>}>();
   const pending = new Map<string, Promise<void>>();
   const maxEntries = 500;
-  function put(id: string, property?: HotelPropertyDetails) {
+  function put(id: string, property?: HotelPropertyDetails, status: Exclude<HotelContentStatus, 'pending'> = 'resolved') {
     cache.delete(id);
-    cache.set(id, {expires: now() + (property ? 6 * 60 * 60_000 : 60_000), property});
+    cache.set(id, {expires: now() + (property ? 6 * 60 * 60_000 : 60_000), property, status});
     while (cache.size > maxEntries) cache.delete(cache.keys().next().value!);
   }
   function scopedIds(requestedIds: string[], ownedSearchHotelIds: string[]) {
@@ -32,6 +33,12 @@ export function createHotelContentCache(
     }
     return result;
   }
+  function statuses(requestedIds: string[], ownedSearchHotelIds: string[]): Record<string, HotelContentStatus> {
+    return Object.fromEntries(scopedIds(requestedIds, ownedSearchHotelIds).map(id => {
+      const entry = cache.get(id);
+      return [id, entry && entry.expires > now() ? entry.status : 'pending'];
+    }));
+  }
   async function contentForSearch(requestedIds: string[], ownedSearchHotelIds: string[]): Promise<Record<string, HotelPropertyDetails>> {
     const ids = scopedIds(requestedIds, ownedSearchHotelIds);
     const missing = ids.filter(id => !pending.has(id) && (!cache.has(id) || cache.get(id)!.expires <= now()));
@@ -40,6 +47,7 @@ export function createHotelContentCache(
       const work = Promise.resolve().then(() => fetchContent(missing)).then(response => {
         const allowed = new Set(missing);
         const rows = hotelObject(response).hotels;
+        if (!Array.isArray(rows)) throw new Error('Hotel content unavailable.');
         const found = new Map<string, HotelPropertyDetails>();
         for (const raw of (Array.isArray(rows) ? rows : []).slice(0, 100)) {
           const hotel = hotelObject(raw);
@@ -49,12 +57,12 @@ export function createHotelContentCache(
         for (const id of missing) put(id, found.get(id));
       }).catch(() => {
         // Optional catalogue failure must not break dynamic availability; no raw error/key exposure.
-        for (const id of missing) put(id);
+        for (const id of missing) put(id, undefined, 'unavailable');
       }).finally(() => { for (const id of missing) pending.delete(id); });
       for (const id of missing) pending.set(id, work);
     }
     await Promise.all(ids.map(id => pending.get(id)));
     return peek(ids, ownedSearchHotelIds);
   }
-  return Object.assign(contentForSearch, {peek});
+  return Object.assign(contentForSearch, {peek, statuses});
 }

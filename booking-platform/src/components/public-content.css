@@ -131,3 +131,6 @@
 .public-site .travel-footer { margin-top:0; }
 @media(max-width:900px) { .public-site .public-layout { grid-template-columns:1fr; } .public-site .public-rail { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:600px) { .public-site .public-hero { padding:30px 23px; border-radius:20px; } .public-site .public-hero h1 { font-size:34px; } .public-site .public-intro { font-size:15px; } .public-site .public-article { padding:23px 20px; border-radius:18px; } .public-site .public-layout { gap:22px; } .public-site .public-rail { grid-template-columns:1fr; } .public-site .public-section p,.public-site .public-section li,.public-site .public-questions p { font-size:14px; } .public-site .public-section h2 { font-size:23px; } .public-site .public-breadcrumbs { font-size:12px; } .public-site .public-table-wrap { max-width:100%; } .public-site .public-airport-table { font-size:12px; } .public-site .public-related { margin-bottom:32px; } }
+
+.public-office-card#contact-options { scroll-margin-top:128px; }
+.public-office-card#contact-options:focus { outline:3px solid #2455e7; outline-offset:4px; }

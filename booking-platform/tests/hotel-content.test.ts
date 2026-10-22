@@ -54,3 +54,31 @@ test('peek returns immediately during slow content and never starts optional pro
  release();await pending;
  assert.equal(content.peek(['123'],['123'])['123'].starRating,4);
 });
+
+test('metadata status distinguishes unresolved, resolved empty and failed without changing negative TTL',async()=>{
+ let calls=0,now=0,fail=false;
+ const content=createHotelContentCache(async()=>{calls++;if(fail)throw Error('private timeout detail');return {hotels:[]};},()=>now);
+ assert.deepEqual(content.statuses(['123'],['123']),{'123':'pending'});assert.equal(calls,0);
+ assert.throws(()=>content.statuses(['999'],['123']));
+ await content(['123'],['123']);assert.deepEqual(content.statuses(['123'],['123']),{'123':'resolved'});
+ assert.deepEqual(content.peek(['123'],['123']),{});
+ now=59_999;await content(['123'],['123']);assert.equal(calls,1);
+ now=60_000;assert.deepEqual(content.statuses(['123'],['123']),{'123':'pending'});
+ fail=true;await content(['123'],['123']);assert.equal(calls,2);
+ assert.deepEqual(content.statuses(['123'],['123']),{'123':'unavailable'});
+ now=119_999;await content(['123'],['123']);assert.equal(calls,2);
+ now=120_000;assert.deepEqual(content.statuses(['123'],['123']),{'123':'pending'});
+ assert.ok(!JSON.stringify(content.statuses(['123'],['123'])).includes('private'));
+});
+
+test('resolved empty property objects retain positive TTL; malformed responses are unavailable, not absent',async()=>{
+ let now=0,calls=0;
+ const content=createHotelContentCache(async()=>{calls++;return {hotels:[{tjHotelId:'123'}]};},()=>now);
+ await content(['123'],['123']);assert.deepEqual(content.peek(['123'],['123']),{'123':{amenities:[]}});
+ const statuses=content.statuses(['123','456'],['123','456']);assert.deepEqual(statuses,{'123':'resolved','456':'pending'});
+ statuses['123']='unavailable';assert.equal(content.statuses(['123'],['123'])['123'],'resolved');
+ now=60_000;await content(['123'],['123']);assert.equal(calls,1);
+ now=6*60*60_000;assert.equal(content.statuses(['123'],['123'])['123'],'pending');
+ const malformed=createHotelContentCache(async()=>({status:{success:true}}));
+ assert.deepEqual(await malformed(['123'],['123']),{});assert.equal(malformed.statuses(['123'],['123'])['123'],'unavailable');
+});
