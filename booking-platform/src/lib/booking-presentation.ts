@@ -1,3 +1,4 @@
+import {suppliedMinutes,supplierInstant} from './supplier-time';
 /** Pure customer-facing presentation helpers. Never infer a supplier promise. */
 export type FlightSegment = {
   dt: string; at: string; duration?: number; isRs?: boolean;
@@ -35,11 +36,11 @@ export function flightStops(flight: Flight, group: string): number | null {
  * nonstop segment; only subtract timestamps when they carry explicit offsets. */
 export function journeyMinutes(flight: Flight, group?: string): number | null {
   if (group === 'COMBO' || !flight.sI.length) return null;
-  if (flight.sI.length === 1 && Number.isFinite(flight.sI[0].duration) && Number(flight.sI[0].duration) > 0) return Number(flight.sI[0].duration);
-  const start = flight.sI[0].dt, end = flight.sI.at(-1)!.at;
-  if (!/(Z|[+-]\d{2}:?\d{2})$/.test(start) || !/(Z|[+-]\d{2}:?\d{2})$/.test(end)) return null;
-  const minutes = (Date.parse(end) - Date.parse(start)) / 60000;
-  return Number.isFinite(minutes) && minutes >= 0 ? Math.round(minutes) : null;
+  if (flight.sI.length === 1 && suppliedMinutes(flight.sI[0].duration)!==null) return suppliedMinutes(flight.sI[0].duration);
+  const start=supplierInstant(flight.sI[0].dt),end=supplierInstant(flight.sI.at(-1)!.at);
+  if(start===null||end===null)return null;
+  const minutes=(end-start)/60000;
+  return Number.isSafeInteger(minutes)&&minutes>0?minutes:null;
 }
 export function durationLabel(minutes: number | null) {
   return minutes === null ? 'Times shown in local airport time' : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
