@@ -49,3 +49,5 @@ next-env.d.ts
 /lint-report.json
 /playwright-report-payglocal/
 /test-results-payglocal/
+/playwright-report-webkit/
+/test-results-webkit/
