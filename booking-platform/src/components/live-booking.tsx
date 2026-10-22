@@ -104,6 +104,14 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const mounted=useRef(true),verificationStarted=useRef(false);
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();};},[]);
+  const resultSearchId=results?.searchId;
+  useEffect(()=>{
+    if(!resultSearchId)return;
+    // The results section is conditional. Scroll only after React has committed it,
+    // not from the response callback where a single frame can precede that commit.
+    const frame=requestAnimationFrame(()=>document.getElementById('booking-results')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}));
+    return()=>cancelAnimationFrame(frame);
+  },[resultSearchId]);
   useEffect(()=>{
     if(prefill.resumeSelection==='1'||prefill.autoSearch!=='1'||autoSearchStarted.current||recovery.blocked||paymentUncertain)return;
     const timer=setTimeout(()=>{
@@ -214,7 +222,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
         setSubmittedSearch(searchUrl?criteria:{product});
         window.history.replaceState(null,'',searchUrl??`/book?product=${product}`);
         if(!searchUrl)setMessage('Your search is ready. This large search cannot be saved in a link; after refreshing or signing in, choose your search again.');
-        if(product==='HOTEL')setHotelStayContext({checkIn:date,checkOut:String(fields.get('end')),rooms:hotelOccupancy.length,guests:hotelOccupancy.reduce((sum,room)=>sum+room.adults+room.childAge.length,0)});setResults(data);setSearchedSummary(product==='FLIGHT'?`${multiCity?legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · '):`${origin} → ${destination}`} · ${date}${returnDate?` – ${returnDate}`:''} · ${adults+children+infants} traveller${adults+children+infants===1?'':'s'} · ${String(fields.get('cabin')).replaceAll('_',' ')}`:`${String(fields.get('city')||'Selected destination')} · ${date} – ${String(fields.get('end'))} · ${hotelOccupancy.length} room${hotelOccupancy.length===1?'':'s'} · ${hotelOccupancy.reduce((sum,room)=>sum+room.adults+room.childAge.length,0)} guest${hotelOccupancy.reduce((sum,room)=>sum+room.adults+room.childAge.length,0)===1?'':'s'}`);setActiveGroup(orderedGroups(data.results.searchResult?.tripInfos??{})[0]??'');scrollToSection('booking-results');}
+        if(product==='HOTEL')setHotelStayContext({checkIn:date,checkOut:String(fields.get('end')),rooms:hotelOccupancy.length,guests:hotelOccupancy.reduce((sum,room)=>sum+room.adults+room.childAge.length,0)});setResults(data);setSearchedSummary(product==='FLIGHT'?`${multiCity?legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · '):`${origin} → ${destination}`} · ${date}${returnDate?` – ${returnDate}`:''} · ${adults+children+infants} traveller${adults+children+infants===1?'':'s'} · ${String(fields.get('cabin')).replaceAll('_',' ')}`:`${String(fields.get('city')||'Selected destination')} · ${date} – ${String(fields.get('end'))} · ${hotelOccupancy.length} room${hotelOccupancy.length===1?'':'s'} · ${hotelOccupancy.reduce((sum,room)=>sum+room.adults+room.childAge.length,0)} guest${hotelOccupancy.reduce((sum,room)=>sum+room.adults+room.childAge.length,0)===1?'':'s'}`);setActiveGroup(orderedGroups(data.results.searchResult?.tripInfos??{})[0]??'');}
     }catch(error){report(error,task.id);}finally{finish(task.id);}
   }
   async function review(nextSelection:Selection,renew=false){

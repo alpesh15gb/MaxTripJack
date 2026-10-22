@@ -29,6 +29,7 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
  const geometry=await cards.first().evaluate(node=>{const rect=(element:Element|null)=>{const r=element!.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height};};return {scrollY,viewportHeight:innerHeight,card:rect(node),name:rect(node.querySelector('h3')),cta:rect(node.querySelector('button')),activeElement:document.activeElement?.id};});
  await testInfo.attach('hotel-loaded-viewport-geometry',{body:JSON.stringify(geometry,null,2),contentType:'application/json'});
+ expect(geometry.scrollY).toBeGreaterThan(0);
  expect(geometry.name.top).toBeGreaterThanOrEqual(0);expect(geometry.name.bottom).toBeLessThan(geometry.viewportHeight);
  expect(geometry.cta.top).toBeLessThan(geometry.viewportHeight*1.5);
  const viewport=await page.screenshot({path:testInfo.outputPath(`hotel-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});
@@ -80,4 +81,15 @@ test('unsubmitted hotel date edits preserve searched totals; a fresh search rese
  await expect(cards).toHaveCount(3);await expect(page.locator('#booking-search>summary')).toContainText(changed.toISOString().slice(0,10));
  if(await toggle.isVisible())await toggle.click();await expect(page.getByLabel('Property name',{exact:true})).toHaveValue('');
  expect(provider.requests('/api/travel/search')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('reduced motion keeps post-search result navigation immediate',async({page,provider})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.addInitScript(()=>{const original=Element.prototype.scrollIntoView;const recorded:ScrollBehavior[]=[];Object.defineProperty(window,'__resultScrollBehaviors',{value:recorded});Element.prototype.scrollIntoView=function(options?:boolean|ScrollIntoViewOptions){if(this.id==='booking-results'&&typeof options==='object'&&options.behavior)recorded.push(options.behavior);return original.call(this,options);};});
+ provider.search={searchId,results:{hotels}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002,10003',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
+ await expect(page.locator('.hotel-shopping-card')).toHaveCount(3);
+ await expect.poll(()=>page.evaluate(()=>(window as unknown as {__resultScrollBehaviors:ScrollBehavior[]}).__resultScrollBehaviors)).toEqual(['auto']);
+ await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });
