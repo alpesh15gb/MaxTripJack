@@ -34,3 +34,15 @@ test('home discovery uses published summaries and navigation fits narrow viewpor
  await page.locator('.home-package-plans').scrollIntoViewIfNeeded();await capture(page,testInfo,'home-published-packages');await expectNoHorizontalOverflow(page);
  await nav.getByRole('link',{name:'Packages',exact:true}).click();await expect(page.getByRole('heading',{name:'Travel packages',exact:true})).toBeVisible();
 });
+
+test('package duration copy uses singular and plural on cards, home and detail',async({page,provider})=>{
+ const plans=[{...samplePackage,id:'day-trip',slug:'day-trip',title:'Day trip sample',durationDays:1,durationNights:0},{...samplePackage},{...samplePackage,id:'long-trip',slug:'long-trip',title:'Long trip sample',durationDays:4,durationNights:3}];
+ provider.overrides['GET /api/packages']={body:{packages:plans,truncated:false,unavailableCount:0}};
+ await page.goto('/packages');
+ const cards=page.locator('.package-card');
+ await expect(cards.nth(0).locator('.package-card-photo>span')).toHaveText('1 day · 0 nights');
+ await expect(cards.nth(1).locator('.package-card-photo>span')).toHaveText('2 days · 1 night');
+ await expect(cards.nth(2).locator('.package-card-photo>span')).toHaveText('4 days · 3 nights');
+ await page.goto('/');await expect(page.locator('.home-package-grid>a').nth(0)).toContainText('Kerala, India · 1 day');await expect(page.locator('.home-package-grid>a').nth(0)).not.toContainText('1 days');await expect(page.locator('.home-package-grid>a').nth(1)).toContainText('Kerala, India · 2 days');
+ await page.goto('/packages/kerala-at-your-pace');await expect(page.locator('.package-facts')).toContainText('2 days / 1 night');await expect(page.locator('.package-facts')).not.toContainText('1 nights');
+});
