@@ -1,7 +1,9 @@
-import {test,expect,openFlightSearch} from './fixtures';
-test('hard-gated PayGlocal is disclosed before traveller collection while comparison stays available',async({page,provider})=>{
+import {test,expect,openFlightSearch,capture,expectNoHorizontalOverflow} from './fixtures';
+test('hard-gated PayGlocal is disclosed before traveller collection while comparison stays available',async({page,provider},testInfo)=>{
  await openFlightSearch(page);
  await expect(page.getByRole('region',{name:'Online payment availability'})).toContainText('Online payment is not available yet');
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'payment-disabled-compact-results');
  await page.locator('.fare-comparison > summary').first().click();
  await page.getByRole('button',{name:'Select fare',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();

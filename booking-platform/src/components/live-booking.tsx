@@ -29,7 +29,7 @@ import { compatibleReturnPair,estimatedFare,flightStops,groupLabel,indiaToday,in
 type Product='FLIGHT'|'HOTEL';
 type HotelOption={roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];optionType?:string;optionId:string;mealBasis?:string;pricing:{totalPrice:number;mf?:number;mft?:number};cancellation?:unknown;bookingNotes?:string};
 type Hotel={tjHotelId:string;name:string;options?:HotelOption[];customerEstimateMinor?:number|null;property?:HotelPropertyDetails};
-type Results={searchId:string;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
+type Results={searchId:string;propertyContentPending?:boolean;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
 type Quote={quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
 type Selection={priceIds?:string[];hid?:string;optionId?:string};
 type CheckoutResult={razorpay_order_id:string;razorpay_payment_id:string;razorpay_signature:string};
@@ -107,6 +107,21 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();};},[]);
   const resultSearchId=results?.searchId;
+  const propertyContentPending=results?.propertyContentPending===true;
+  useEffect(()=>{
+    if(!resultSearchId||!propertyContentPending)return;
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),8000);
+    let active=true;
+    // Optional static content must never hold up rates or overwrite a newer search.
+    void api<{searchId:string;properties:Record<string,HotelPropertyDetails>}>('/api/travel/hotel-content',{searchId:resultSearchId},controller.signal).then(content=>{
+      if(!active||content.searchId!==resultSearchId)return;
+      setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,results:{...current.results,hotels:current.results.hotels?.map(hotel=>({...hotel,property:content.properties[hotel.tjHotelId]??hotel.property}))}}:current);
+    }).catch(()=>{
+      if(active)setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false}:current);
+    }).finally(()=>clearTimeout(timeout));
+    return()=>{active=false;clearTimeout(timeout);controller.abort();};
+  },[resultSearchId,propertyContentPending]);
   useEffect(()=>{
     if(!resultSearchId)return;
     // The results section is conditional. Scroll only after React has committed it,
@@ -217,6 +232,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
       const completeRooms=product==='HOTEL'?completeHotelRooms(hotelOccupancy):[];
       const input=product==='FLIGHT'?{product,from:origin,to:destination,date,adults,children,infants,cabin:String(fields.get('cabin')),...(multiCity?{legs}:returnDate?{returnDate}:{})}:{product,hotelIds:parseHotelIds(String(fields.get('hotelIds')??'')),checkIn:date,checkOut:String(fields.get('end')),adults:hotelOccupancy[0].adults,rooms:completeRooms,childrenAges:completeRooms[0].childAge,nationality:String(fields.get('nationality'))};
       validating=false;setSearchValidation(false);
+      requestAnimationFrame(()=>document.getElementById('booking-pending')?.scrollIntoView({behavior:'auto',block:'nearest'}));
       setQuote(null);setResults(null);setRooms(null);setSelectedFares({});setSelection(null);setSortBy('price');setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
       const data=await api<Results>('/api/travel/search',input,task.signal);
       if(current(task.id)){
@@ -343,11 +359,12 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     }catch(error){if(mounted.current){recovery.invalidate();setMessage(error instanceof Error?error.message:'Check the existing payment in My trips.');busyRef.current=false;setBusy(false);setActivity('');}}
   }
 
-  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} onProductChange={switchProduct}/><main id="main-content" className={`page-shell live-booking booking-workflow${results||quote?' has-journey':''}${product==='HOTEL'&&results&&!quote?' hotel-results-page':''}${results&&!quote&&!pairedFares?' results-only':''}`}>
+  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} onProductChange={switchProduct}/><main id="main-content" className={`page-shell live-booking booking-workflow${results||quote?' has-journey':''}${!quote?' booking-shopping':''}${busy&&activity==='Finding available journeys'?' is-searching':''}${product==='HOTEL'&&results&&!quote?' hotel-results-page':''}${results&&!quote&&!pairedFares?' results-only':''}`}>
     {loadRazorpay&&<Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onReady={()=>{const order=queuedCheckout.current;queuedCheckout.current=null;if(order&&mounted.current)openCheckout(order);}} onError={()=>{queuedCheckout.current=null;busyRef.current=false;setBusy(false);setActivity('');setMessage('Checkout could not load. Your existing order is preserved. Check My trips before trying again.');}}/>}
     <Link href="/" className="back">← Back to explore</Link>
+    {busy&&<section id="booking-pending" className="booking-skeleton booking-pending" role="status" aria-live="polite" aria-label="Search and booking activity"><span aria-hidden="true" className="booking-spinner"/><strong>{activity}…</strong><p>{activity==='Finding available journeys'?'Waiting for live supplier availability. Results will appear here when the response arrives; prices are not confirmed yet.':'We’re checking the details. Please wait before trying again.'}</p><div className="booking-loading-lines" aria-hidden="true"><i/><i/><i/></div></section>}
     <div className="page-heading booking-intro"><div><>{!results&&!quote&&<div className="eyebrow">PLAN A LITTLE. LOOK FORWARD TO A LOT.</div>}<h1>{quote?'Review your trip':results?(product==='FLIGHT'?'Compare flights':'Compare stays'):(product==='FLIGHT'?'Your next journey starts here.':'Find your somewhere special.')}</h1>{!results&&!quote&&<p>{product==='FLIGHT'?'Compare flights, make it yours, and review every detail before you pay.':'Discover stays, compare room options, and see the full stay total.'}</p>}</></div><span className="booking-test-badge">Test environment · No live payments</span></div>
-    {!checkoutConfigured&&<section className="booking-status info-message" aria-label="Online payment availability"><h2>Search and compare. Online payment is not available yet.</h2><p>You can explore flights, stays and supplier terms. We will not ask for traveller details or start a new payment while checkout is unavailable.</p><Link className="inline-link" href="/customer-support">Contact Max Travel for booking help →</Link></section>}
+    {!checkoutConfigured&&<section className="booking-status info-message booking-availability-notice" aria-label="Online payment availability"><h2>Search and compare. Online payment is not available yet.</h2><p>Compare flights, stays and supplier terms. Traveller details and new payments are disabled.</p><Link className="inline-link" href="/customer-support">Contact Max Travel for booking help →</Link></section>}
     <ol className="booking-progress" aria-label="Booking progress">{['Search','Choose','Travellers','Payment'].map((label,index)=><li key={label} aria-current={step===index?'step':undefined} className={index<step?'is-complete':index===step?'is-current':''}><span aria-hidden="true">{index<step?'✓':index+1}</span>{label}</li>)}</ol>
     <div className="booking-layout"><div className="booking-main">
       {recovery.checking&&<div className="booking-status info-message" role="status">Checking for an interrupted checkout…</div>}
@@ -366,7 +383,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
         </fieldset>{quote&&<p className="muted">To edit your search, return to your selection first.</p>}
       </form></details>
       <div id="booking-feedback" tabIndex={-1}>{message&&<div className="booking-status info-message" role="alert"><p>{message}</p>{(/sign in/i.test(message)||signInRequired)&&<Link className="inline-link" href={accountHref('/book?'+new URLSearchParams({...submittedSearch,...(signInRequired?{resumeSelection:'1'}:{})}).toString())}>Sign in or create an account</Link>}{freshSearchRequired&&!payment&&!paymentUncertain&&<button className="secondary" type="button" onClick={()=>{setResults(null);setRooms(null);setQuote(null);setSelection(null);setFreshSearchRequired(false);setMessage('Choose your dates and search again for current availability.');scrollToSection('booking-search');}}>Start a fresh search</button>}{(payment||paymentUncertain)&&<Link className="inline-link" href="/my-trips">View payment and booking status →</Link>}</div>}</div>
-      {busy&&<div className="booking-skeleton" role="status" aria-live="polite"><span aria-hidden="true" className="booking-spinner"/><strong>{activity}…</strong><p>We’re checking the details, so you can choose with confidence.</p><div className="booking-loading-lines" aria-hidden="true"><i/><i/><i/></div></div>}
+
       {results&&!quote&&<section id="booking-results" className="live-results" aria-label="Available options">
         {product==='FLIGHT'&&<div className="results-heading"><div><h2 id="flight-results-title" tabIndex={-1}>Available flights</h2><p className="muted">Estimated party totals · final price checked at review</p></div><span className="results-count" role="status" aria-live="polite">{flightRows.length} of {(groups[shownGroup]??[]).length} options · {groupLabel(shownGroup||'')}</span></div>}
         {product==='FLIGHT'&&<>

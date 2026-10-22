@@ -54,3 +54,20 @@ body .travel-footer :is(h2,h3){color:#fff}body .travel-footer p{color:#cad5df}bo
 /* Local text backplates preserve the photograph while keeping captions readable on bright water. */
 .studio-hero-photo>span,.studio-hero-photo .studio-photo-note{background:rgba(20,45,64,.85);color:#fff;border-radius:6px;padding:8px 10px;text-shadow:none;max-width:calc(100% - 40px)}
 @media(max-width:700px){.studio-hero-photo>span{font-size:12px;line-height:1.4;padding:6px;max-width:calc(100% - 12px);overflow-wrap:anywhere}}
+
+/* Search feedback belongs before the form, not below a screen of disabled fields. */
+.booking-workflow.booking-workflow .booking-pending{margin:0 0 16px;padding:16px 20px;scroll-margin-top:12px;border:1px solid #c5d7e8;border-radius:14px;background:#f3f8ff;color:#142d40}
+.booking-workflow.booking-workflow .booking-pending strong{font-size:18px}
+.booking-workflow.booking-workflow .booking-pending p{font-size:14px;line-height:1.5;margin:8px 0}
+.booking-workflow.booking-workflow.booking-shopping{padding-top:8px}
+.booking-workflow.booking-workflow.booking-shopping>.back{margin-bottom:8px;min-height:44px;display:inline-flex;align-items:center}
+.booking-workflow.booking-workflow.booking-shopping .booking-intro{padding:0 0 12px;margin-bottom:0;gap:12px}
+.booking-workflow.booking-workflow.booking-shopping .booking-intro h1{font-family:inherit;font-size:28px;letter-spacing:-.7px;margin:0}
+.booking-workflow.booking-workflow.is-searching .booking-intro p,.booking-workflow.booking-workflow.is-searching .booking-intro .eyebrow{display:none}
+.booking-workflow.booking-workflow.booking-shopping .booking-availability-notice{padding:10px 14px;margin:0 0 10px;display:flex;align-items:center;flex-wrap:wrap;gap:4px 16px}
+.booking-workflow.booking-workflow.booking-shopping .booking-availability-notice h2{font-size:14px;line-height:1.5;margin:0}
+.booking-workflow.booking-workflow.booking-shopping .booking-availability-notice p{font-size:14px;line-height:1.5;margin:0}
+.booking-workflow.booking-workflow.booking-shopping .booking-availability-notice a{font-size:14px;min-height:44px;display:inline-flex;align-items:center}
+.booking-workflow.booking-workflow.booking-shopping .booking-progress{padding:8px 0 12px;margin-bottom:12px}
+.home-navigation-status,.booking-route-loading p{font-size:14px;line-height:1.5;color:#42596b}
+@media(max-width:600px){.booking-workflow.booking-workflow.booking-shopping .booking-intro h1{font-size:24px}.booking-workflow.booking-workflow .booking-pending{padding:14px}.booking-workflow.booking-workflow.booking-shopping .booking-test-badge{font-size:11px;padding:6px 8px}}
