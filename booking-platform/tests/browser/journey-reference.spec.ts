@@ -39,7 +39,7 @@ test('flight decision has an explicit next action and reversible fare choice',as
  await expect(card).toContainText('₹7,200.50');
  await expect(card.locator('.fare-choice-heading h3')).toBeFocused();
  await expect(card.locator('.fare-details-unavailable').first()).toHaveCSS('font-size','14px');
- await reference(page,testInfo,'journey-fare-choice',[card.getByRole('button',{name:'Check fare & continue',exact:true}).first(),card.locator('.fare-option-action strong').first()]);
+ await reference(page,testInfo,'journey-fare-choice',[card.getByRole('button',{name:'Check fare & continue',exact:true}).first(),card.locator('.fare-option-heading strong').first()]);
  if(page.viewportSize()!.width<=600)await expect(card.locator('.fare-comparison[open]>summary')).toHaveCSS('display','grid');
  await expectFlightCardContentsFit(card);
  await card.getByRole('button',{name:'Back to flights',exact:true}).click();await expect(summary).toBeFocused();

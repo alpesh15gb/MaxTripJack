@@ -2,9 +2,10 @@
 /* eslint-disable @next/next/no-img-element -- Exact-host supplier images deliberately bypass an image proxy; fixed dimensions, lazy loading and no-referrer are required. */
 import {useState} from 'react';
 import {safeHotelPhotoUrl, type HotelPropertyDetails} from '@/lib/hotel-presentation';
-export default function HotelPropertyMedia({name,photos,gallery=false}:{name:string;photos?:HotelPropertyDetails['photos'];gallery?:boolean}){
+export type HotelMetadataStatus='loading'|'unavailable'|'ready';
+export default function HotelPropertyMedia({name,photos,gallery=false,metadataStatus='ready'}:{name:string;photos?:HotelPropertyDetails['photos'];gallery?:boolean;metadataStatus?:HotelMetadataStatus}){
  const [failed,setFailed]=useState<string[]>([]);
  const valid=(photos??[]).filter(photo=>safeHotelPhotoUrl(photo.url)&&!failed.includes(photo.url)).slice(0,gallery?6:1);
- if(!valid.length)return <div className="hotel-photo-unavailable">Property photos not available</div>;
+ if(!valid.length)return <div className="hotel-photo-unavailable">{metadataStatus==='loading'?'Property photos loading…':metadataStatus==='unavailable'?'Property photos unavailable right now':'Property photos not available'}</div>;
  return <div className={gallery?'hotel-property-gallery':'hotel-property-thumb'}>{valid.map((photo,index)=><figure key={photo.url}>{/* Exact supplier-host URLs are allowlisted server-side and again here. No optimizer/proxy or referrer. */}<img src={photo.url} alt={photo.caption?`${name} · ${photo.caption}`:`${name} · supplier property photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer" width={gallery?480:220} height={gallery?320:240} onError={()=>setFailed(current=>[...current,photo.url])}/>{gallery&&photo.caption&&<figcaption>{photo.caption}</figcaption>}</figure>)}</div>;
 }

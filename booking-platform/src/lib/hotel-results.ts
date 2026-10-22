@@ -1,5 +1,6 @@
 import type {HotelPropertyDetails} from './hotel-presentation';
-export type HotelResult={tjHotelId:string;name:string;customerEstimateMinor?:number|null;property?:HotelPropertyDetails};
+import type {HotelContentStatus} from './hotel-content-cache';
+export type HotelResult={tjHotelId:string;name:string;customerEstimateMinor?:number|null;property?:HotelPropertyDetails;propertyContentStatus?:HotelContentStatus};
 export type HotelStayContext={checkIn:string;checkOut:string;rooms:number;guests:number};
 export type HotelFilters={name:string;category:string;type:string;budget:string};
 export const emptyHotelFilters:HotelFilters={name:'',category:'',type:'',budget:''};

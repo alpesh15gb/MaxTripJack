@@ -1,3 +1,4 @@
+import {supplierInstant} from './supplier-time';
 /** Customer-safe hotel metadata from the TripJack v3 contract.
  * Source: https://tripjack.com/page/api-doc (Hotel API v3).
  * Static property content is never evidence of availability or a bookable rate.
@@ -70,8 +71,7 @@ export function hotelPropertyDetails(source: unknown): HotelPropertyDetails {
 }
 /** Supplier timestamps without offsets use Asia/Kolkata, per hotel v3 docs. */
 function policyTime(value: unknown): number {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?$/.test(value)) return NaN;
-  return Date.parse(/(Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}+05:30`);
+  return supplierInstant(value,'+05:30') ?? NaN;
 }
 export function hotelCancellation(source: unknown): HotelCancellation {
   const data = hotelObject(source);
@@ -97,9 +97,16 @@ export function hotelRoomLabel(option: {roomInfo?: {name: string}[]}): string {
   const names = (option.roomInfo ?? []).map(room => room.name).filter(Boolean);
   return names.length ? names.join(' + ') : 'Room details not supplied';
 }
+/** Validate the entire schedule, not only rows active now: a future overlapping
+ * charge must not let today's summary promise a longer zero-charge window.
+ * Keep original normalized rows intact for the full supplier-policy disclosure. */
+export function hotelCancellationScheduleIsUnambiguous(cancellation: HotelCancellation): boolean {
+  const sorted = [...cancellation.penalties].sort((a,b) => policyTime(a.from)-policyTime(b.from));
+  return sorted.length > 0 && sorted.every((row,index) => index===0 || policyTime(row.from)>=policyTime(sorted[index-1].to));
+}
 export function hotelCancellationLabel(source: unknown, now = Date.now()): string {
   const cancellation = hotelCancellation(source);
-  const active = cancellation.penalties.filter(row => policyTime(row.from) <= now && now < policyTime(row.to));
+  const active = (hotelCancellationScheduleIsUnambiguous(cancellation) ? cancellation.penalties : []).filter(row => policyTime(row.from) <= now && now < policyTime(row.to));
   // No cancellation promise from a flag alone, ambiguous overlaps or a payment deadline.
   if (active.length === 1 && active[0].amount === 0 && cancellation.isRefundable !== false) {
     const end = new Intl.DateTimeFormat('en-IN', {timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'}).format(policyTime(active[0].to));

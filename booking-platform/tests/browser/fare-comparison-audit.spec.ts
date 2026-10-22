@@ -19,13 +19,16 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  await expect(offers.nth(1)).toContainText('₹3,261.50');await expect(offers.nth(2)).toContainText('₹7,799.50');await expect(offers.nth(3)).toContainText('Price at review');
  await expect(card.locator('.fare-comparison-guidance')).toContainText('Lowest INR estimates first; unpriced offers last.');
  await expect(card.locator('.fare-comparison-guidance')).toContainText('do not assume eligibility');
- await expect(card.locator('.fare-details-unavailable')).toHaveCount(4);
+ await expect(card.locator('.fare-details-unavailable')).toHaveCount(1);
+ const sharedTerms=await card.locator('.fare-details-unavailable').getAttribute('id');
+ expect(sharedTerms).toBeTruthy();for(const offer of await offers.all())await expect(offer).toHaveAttribute('aria-describedby',sharedTerms!);
  for(const qualifier of await card.locator('.fare-comparison>summary small,.fare-option-action small').all()){
   expect(await qualifier.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(14);
  }
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'audit-fare-comparison');
  await offers.first().getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
+ await page.getByText('Original search details & fare',{exact:true}).click();
  const selectedSummary=page.locator('.selected-itinerary .fare-comparison>summary');
  await expect(selectedSummary).toContainText('Selected fare');
  await expect(selectedSummary).toContainText('Estimated total · all travellers');

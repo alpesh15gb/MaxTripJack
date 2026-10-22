@@ -408,6 +408,7 @@ test('final review displays selected flight and exact traveller contact before p
  await expect(page.locator('.final-traveller-summary')).toContainText('Mr Aarav Example');
  await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
  await expect(page.locator('.final-traveller-summary')).toContainText('9876543210');
+ await page.getByText('Original search details & fare',{exact:true}).click();
  const fareSummary=await page.locator('.selected-itinerary .fare-comparison > summary').boundingBox();
  expect(fareSummary?.height).toBeLessThan(160);
  await expectNoHorizontalOverflow(page);

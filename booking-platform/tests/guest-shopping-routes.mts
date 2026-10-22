@@ -67,6 +67,8 @@ try{
  assert.deepEqual(hotelResult.results.hotels.map((row:{tjHotelId:string})=>row.tjHotelId),['100001']);
  assert.equal(hotelResult.results.hotels[0].customerEstimateMinor,500000);
  assert.equal(contentCalls,0);assert.equal(hotelResult.propertyContentPending,true);
+ assert.deepEqual(hotelResult.results.hotels[0].property,{amenities:[]});
+ assert.equal(hotelResult.results.hotels[0].propertyContentStatus,'pending');
  const contentInput={searchId:hotelResult.searchId};
  const callsBeforeContent=providerCalls;
  assert.equal((await content(request(contentInput))).status,409);
@@ -78,8 +80,12 @@ try{
  await Promise.race([contentStarting,new Promise((_,reject)=>{setTimeout(()=>reject(Error('Content fixture did not start')),1500).unref();})]);
  assert.equal(contentSettled,false);assert.equal(hotelResult.results.hotels[0].customerEstimateMinor,500000);
  releaseContent();const enriched=await contentResponse;assert.equal(enriched.status,200);
- const properties=(await enriched.json()).properties;assert.deepEqual(Object.keys(properties),['100001']);assert.equal(properties['100001'].starRating,4);
+ const enrichedBody=await enriched.json(),properties=enrichedBody.properties;assert.deepEqual(Object.keys(properties),['100001']);assert.equal(properties['100001'].starRating,4);
+ assert.deepEqual(enrichedBody.propertyContentStatuses,{'100001':'resolved'});
  assert.ok(!JSON.stringify(properties).includes('customerEstimateMinor'));assert.equal(contentCalls,1);
+ const cachedHotel=await search(request(hotel,guestCookie));assert.equal(cachedHotel.status,200);const cachedBody=await cachedHotel.json();
+ assert.equal(cachedBody.propertyContentPending,false);assert.equal(cachedBody.propertyContentUnavailable,false);
+ assert.equal(cachedBody.results.hotels[0].propertyContentStatus,'resolved');assert.equal(cachedBody.results.hotels[0].customerEstimateMinor,500000);assert.equal(contentCalls,1);
  await pool.query("UPDATE supplier_searches SET expires_at=now()-interval '1 minute' WHERE id=$1",[hotelResult.searchId]);
  assert.equal((await content(request(contentInput,guestCookie))).status,409);assert.equal(contentCalls,1);
  await pool.query("UPDATE supplier_searches SET expires_at=now()+interval '14 minutes' WHERE id=$1",[hotelResult.searchId]);

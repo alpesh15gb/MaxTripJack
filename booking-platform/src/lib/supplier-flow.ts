@@ -32,7 +32,8 @@ export async function searchSupplier(criteria:Search,actor:Actor,timing=new Sear
  const results=customerHotelResults(data,rule);
  results.hotels=results.hotels.filter(hotel=>criteria.hotelIds.includes(hotel.tjHotelId));
  const properties=hotelContentForSearch.peek(results.hotels.map(hotel=>hotel.tjHotelId),criteria.hotelIds);
- return {searchId:id,product:criteria.product,propertyContentPending:results.hotels.some(hotel=>!properties[hotel.tjHotelId]),results:{hotels:results.hotels.map(hotel=>({...hotel,property:properties[hotel.tjHotelId]??hotel.property}))}};
+ const statuses=hotelContentForSearch.statuses(results.hotels.map(hotel=>hotel.tjHotelId),criteria.hotelIds);
+ return {searchId:id,product:criteria.product,propertyContentPending:Object.values(statuses).includes('pending'),propertyContentUnavailable:Object.values(statuses).includes('unavailable'),results:{hotels:results.hotels.map(hotel=>({...hotel,propertyContentStatus:statuses[hotel.tjHotelId],property:properties[hotel.tjHotelId]??hotel.property}))}};
  });
 }
 export async function customerHotelContent(searchId:string,actor:Actor){
@@ -40,7 +41,10 @@ export async function customerHotelContent(searchId:string,actor:Actor){
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
  if(search.product!=="HOTEL")throw new HttpError(400,"Hotel content requires a hotel search.");
  const ids=customerHotelResults(search.results).hotels.map(hotel=>hotel.tjHotelId).filter(id=>search.criteria.hotelIds.includes(id));
- return {searchId,properties:await hotelContentForSearch(ids,search.criteria.hotelIds)};
+ const properties=await hotelContentForSearch(ids,search.criteria.hotelIds);
+ // A capacity-limited lookup may not have started. It is unavailable for this response, not an empty result.
+ const propertyContentStatuses=Object.fromEntries(Object.entries(hotelContentForSearch.statuses(ids,search.criteria.hotelIds)).map(([id,status])=>[id,status==='pending'?'unavailable':status]));
+ return {searchId,properties,propertyContentStatuses};
 }
 export async function hotelDetail(searchId:string,hid:string,actor:Actor){const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);if(search.product!=="HOTEL"||!search.criteria.hotelIds.includes(hid))throw new HttpError(400,"Hotel not part of this search.");const input=hotelSearch(search.criteria,search.correlation_id);const {hids,...rest}=input;void hids;return tripjack("HOTEL",paths.HOTEL.detail,{...rest,hid});}
 export async function customerHotelDetail(searchId:string,hid:string,actor:Actor){
