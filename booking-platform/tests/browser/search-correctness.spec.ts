@@ -59,10 +59,36 @@ test('new review failure is not misclassified as previous local search validatio
  await page.goto(`/book?product=FLIGHT&from=BOM&to=DEL&date=${departure}&autoSearch=1`);
  await expect(page.locator('#booking-results')).toBeVisible();
  await page.locator('#booking-search>summary').click();await page.getByLabel('To airport',{exact:true}).fill('BOM');
+ await expect(page.getByLabel('From airport',{exact:true})).toHaveValue('BOM');
+ await expect(page.getByLabel('To airport',{exact:true})).toHaveValue('BOM');
  await page.getByRole('button',{name:'Search flights',exact:true}).click();await expect(page.locator('#booking-feedback')).toContainText('different departure and arrival');
  provider.overrides['POST /api/travel/review']={status:503,body:{error:'Supplier review is temporarily unavailable.'}};
  await page.locator('.live-flight-card').first().locator('.fare-comparison>summary').click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  await expect(page.locator('#booking-feedback')).toContainText('Supplier review is temporarily unavailable');
  await page.getByLabel('To airport',{exact:true}).fill('DEL');await expect(page.locator('#booking-feedback')).toContainText('Supplier review is temporarily unavailable');
+});
+
+test('deferred modify-search focus never replaces the explicitly chosen airport field',async({page,provider})=>{
+ await page.goto(`/book?product=FLIGHT&from=BOM&to=DEL&date=${departure}&autoSearch=1`);
+ await expect(page.locator('#booking-results')).toBeVisible();
+ // Reproduce the event ordering: open the disclosure, then choose the arrival
+ // field before its deferred autofocus runs. No timer or provider bypass.
+ await page.locator('#booking-search').evaluate(panel=>{
+  const details=panel as HTMLDetailsElement;
+  details.open=true;
+  details.querySelector('summary')?.focus();
+  details.dispatchEvent(new Event('toggle'));
+  details.querySelector<HTMLInputElement>('input[aria-label="To airport"]')!.focus();
+ });
+ await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+ const arrival=page.getByLabel('To airport',{exact:true});
+ await expect(arrival).toBeFocused();
+ await arrival.fill('BOM');
+ await expect(page.getByLabel('From airport',{exact:true})).toHaveValue('BOM');
+ await expect(arrival).toHaveValue('BOM');
+ await page.getByRole('button',{name:'Search flights',exact:true}).click();
+ await expect(page.locator('#booking-feedback')).toContainText('different departure and arrival');
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });

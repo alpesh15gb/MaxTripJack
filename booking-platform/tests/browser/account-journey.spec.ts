@@ -89,7 +89,7 @@ test('expired selection returns to honest retained-criteria search without autom
  await page.goto(account);
  await page.evaluate(()=>sessionStorage.setItem('maxtravel:selection:v1',JSON.stringify({version:1,savedAt:0,product:'FLIGHT',searchId:'11111111-1111-4111-8111-111111111111',selection:{priceIds:['synthetic-expired']},flights:[]})));
  await page.getByRole('link',{name:'Continue to review selection',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText('Your previous selection has expired');
+ await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Your previous selection has expired');
  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);

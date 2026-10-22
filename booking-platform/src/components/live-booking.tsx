@@ -137,10 +137,11 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const [selection,setSelection]=useState<Selection|null>(null),[payment,setPayment]=useState<Payment|null>(null);
   const [paymentUncertain,setPaymentUncertain]=useState(false),[needsReview,setNeedsReview]=useState(false);
   const searchForm=useRef<HTMLFormElement>(null),checkoutForm=useRef<HTMLFormElement>(null);
+  const searchFocusFrame=useRef<number|null>(null);
   const autoSearchStarted=useRef(false),operation=useRef(0),requestController=useRef<AbortController|null>(null),busyRef=useRef(false);
   const mounted=useRef(true),verificationStarted=useRef(false);
 
-  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();};},[]);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();if(searchFocusFrame.current!==null)cancelAnimationFrame(searchFocusFrame.current);};},[]);
   const resultSearchId=results?.searchId;
   const propertyContentPending=results?.propertyContentPending===true;
   useEffect(()=>{
@@ -251,6 +252,20 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     requestController.current?.abort();
     const controller=new AbortController();requestController.current=controller;
     return {id,signal:controller.signal};
+  }
+  function focusOpenedSearch(panel:HTMLDetailsElement){
+    if(searchFocusFrame.current!==null){cancelAnimationFrame(searchFocusFrame.current);searchFocusFrame.current=null;}
+    if(!panel.open||!results||quote)return;
+    const origin=document.activeElement;
+    const summary=panel.querySelector(':scope > summary');
+    // Native toggle is deferred: never override a field the customer has already chosen.
+    if(origin!==summary&&origin!==document.body&&origin!==document.documentElement)return;
+    searchFocusFrame.current=requestAnimationFrame(()=>{
+      searchFocusFrame.current=null;
+      if(!mounted.current||!panel.isConnected||!panel.open||document.activeElement!==origin)return;
+      panel.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+      searchForm.current?.querySelector<HTMLInputElement>(product==='HOTEL'?'input[name="city"]':'input:not([type=hidden])')?.focus({preventScroll:true});
+    });
   }
   function current(id:number){return mounted.current&&operation.current===id;}
   function finish(id:number){if(current(id)){busyRef.current=false;setBusy(false);setActivity('');}}
@@ -419,11 +434,11 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     <ol className="booking-progress" aria-label="Booking progress">{(checkoutConfigured?['Search','Choose','Travellers','Review & pay']:['Search','Choose','Review selection']).map((label,index)=><li key={label} aria-current={step===index?'step':undefined} className={index<step?'is-complete':index===step?'is-current':''}><span aria-hidden="true">{index<step?'✓':index+1}</span>{label}</li>)}</ol>
     <div className="booking-layout"><div className="booking-main">
       {recovery.checking&&<div className="booking-status info-message" role="status">Checking for an interrupted checkout…</div>}
-      {recovery.pending&&<section className="white-card booking-recovery" aria-label="Interrupted checkout"><div className="eyebrow">LET’S PICK UP SAFELY</div><h2>Your previous checkout needs a look.</h2><p role="status">{recovery.message}</p><p className="muted">We have paused new payments so you do not accidentally pay twice. No traveller or contact details are saved in this browser.</p>{recovery.status&&(isResumableCheckout(recovery.status)||isResumableHostedCheckout(recovery.status))&&<button type="button" className="primary" disabled={busy||recovery.checking} onClick={()=>void resumeInterrupted()}>Resume existing checkout · {money(recovery.status.amount)}</button>}<button type="button" className="secondary" disabled={busy||recovery.checking} onClick={()=>{if(recovery.pending)void recovery.reconcile(recovery.pending);}}>Check payment status again</button><Link className="secondary" href="/my-trips">Open My trips</Link>{/sign in/i.test(recovery.message)&&<Link className="inline-link" href={accountHref('/book?'+new URLSearchParams(Object.fromEntries(Object.entries(submittedSearch).filter(([key])=>!signInWithoutSelection||!['resumeSelection','autoSearch'].includes(key)))).toString())}>Sign in to check your payment</Link>}</section>}
+      {recovery.pending&&<section className="white-card booking-recovery" aria-label="Interrupted checkout"><div className="eyebrow">LET’S PICK UP SAFELY</div><h2>Your previous checkout needs a look.</h2><p role="status">{recovery.message}</p><p className="muted">We have paused new payments so you do not accidentally pay twice. No traveller or contact details are saved in this browser.</p>{recovery.status&&(isResumableCheckout(recovery.status)||isResumableHostedCheckout(recovery.status))&&<button type="button" className="primary" disabled={busy||recovery.checking} onClick={()=>void resumeInterrupted()}>Resume existing checkout · {money(recovery.status.amount)}</button>}<button type="button" className="secondary" disabled={busy||recovery.checking} onClick={()=>{if(recovery.pending)void recovery.reconcile(recovery.pending);}}>Check payment status again</button><Link className="secondary" href="/my-trips">Open My trips</Link>{/sign in/i.test(recovery.message)&&<Link className="inline-link" href={accountHref('/book?'+new URLSearchParams(submittedSearch).toString())}>Sign in to check your payment</Link>}</section>}
       {!recovery.pending&&recovery.message&&<p className="info-message" role="status">{recovery.message} <Link href="/my-trips">My trips →</Link></p>}
       {!results&&!quote&&<div className="account-tabs booking-product-tabs" aria-label="Booking product"><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} aria-pressed={product==='FLIGHT'} onClick={()=>switchProduct('FLIGHT')}>✈ Flights</button><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} aria-pressed={product==='HOTEL'} onClick={()=>switchProduct('HOTEL')}>▤ Stays</button></div>}
       {searchRecovery&&<section id="booking-search-recovery" tabIndex={-1} className="info-message" role="status"><h2>Search again to compare options</h2><p>Previous search results are not available in this tab. Search again to compare other options.</p><p>Your search criteria are kept below. No new availability request is made until you search.</p></section>}
-      <details id="booking-search" className="booking-search-panel" open={!results&&!quote} onToggle={event=>{if(event.currentTarget.open&&results&&!quote)requestAnimationFrame(()=>{searchForm.current?.querySelector<HTMLInputElement>(product==='HOTEL'?'input[name="city"]':'input:not([type=hidden])')?.focus({preventScroll:true});document.getElementById('booking-search')?.scrollIntoView({behavior:'smooth',block:'start'});});}}><summary><span className="search-panel-icon" aria-hidden="true">⌕</span>{results||quote?<><span>{searchedSummary||`${summaryTitle}${quote?.summary?.date?` · ${quote.summary.date}`:''}`}</span><small className="search-edit-label">Modify search</small></>:'Where would you like to go?'}</summary>
+      <details id="booking-search" className="booking-search-panel" open={!results&&!quote} onToggle={event=>focusOpenedSearch(event.currentTarget)}><summary><span className="search-panel-icon" aria-hidden="true">⌕</span>{results||quote?<><span>{searchedSummary||`${summaryTitle}${quote?.summary?.date?` · ${quote.summary.date}`:''}`}</span><small className="search-edit-label">Modify search</small></>:'Where would you like to go?'}</summary>
       <form ref={searchForm} onChange={()=>{if(searchValidation){setMessage('');setSearchValidation(false);}}} aria-label="Search availability" className="white-card live-search" onSubmit={event=>{event.preventDefault();void search(event.currentTarget);}}>
         <fieldset className="live-search-controls" disabled={busy||Boolean(quote)||Boolean(payment)||paymentUncertain||recovery.blocked}>
           {product==='FLIGHT'&&<label>Journey type<select value={multiCity?'MULTI':'STANDARD'} onChange={event=>{setMultiCity(event.target.value==='MULTI');setResults(null);setSelectedFares({});}}><option value="STANDARD">One-way / return</option><option value="MULTI">Multi-city</option></select></label>}

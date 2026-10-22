@@ -93,6 +93,12 @@ test('account review boundary explains the selected journey without implying a r
  await expect(page.locator('.signin-selection-context')).toContainText('BOM → DEL');
  await expect(page.locator('#booking-feedback')).toContainText('check the current price and full conditions');
  await expect(page.locator('#booking-signin-title')).toBeFocused();
+ const layout=await page.locator('.flight-shopping-list .live-flight-card').first().evaluate(card=>{
+  const measure=(node:Element)=>{const r=node.getBoundingClientRect(),css=getComputedStyle(node);return {tag:node.tagName,className:node.className,text:node.textContent?.slice(0,60),left:r.left,right:r.right,width:r.width,scrollLeft:node.scrollLeft,clientWidth:node.clientWidth,scrollWidth:node.scrollWidth,overflowX:css.overflowX,overflowY:css.overflowY,display:css.display,gridColumns:css.gridTemplateColumns,minWidth:css.minWidth,maxWidth:css.maxWidth,padding:css.padding,margin:css.margin,whiteSpace:css.whiteSpace};};
+  const parents:ReturnType<typeof measure>[]=[];for(let node:Element|null=card;node;node=node.parentElement)parents.push(measure(node));
+  return {viewport:{width:innerWidth,scrollX,documentWidth:document.documentElement.scrollWidth},parents,children:Array.from(card.querySelectorAll('*')).map(measure)};
+ });
+ await testInfo.attach('auth boundary flight layout diagnostics',{body:Buffer.from(JSON.stringify(layout,null,2)),contentType:'application/json'});
  await reference(page,testInfo,'journey-account-boundary',[page.getByRole('link',{name:'Sign in to review selection',exact:true}),page.locator('#booking-signin-title')]);
  await page.getByRole('button',{name:'Back to fares',exact:true}).click();await expect(page.locator('#flight-results-title')).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
