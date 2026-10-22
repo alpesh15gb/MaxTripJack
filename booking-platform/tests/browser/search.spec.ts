@@ -99,7 +99,7 @@ test('hotel search sends separate adults and child ages for every room', async (
 test('zero results is a useful empty state, not a fare or a booking', async ({ page, provider }, testInfo) => {
   provider.search = { searchId, results: { searchResult: { tripInfos: { ONWARD: [] } } } };
   await openFlightSearch(page);
-  await expect(page.getByRole('heading', { name: 'No flights found', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No flights found for these airports', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select fare', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);

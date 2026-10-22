@@ -26,7 +26,7 @@ let providerCalls=0,created=false;
 const option={optionId:'fixture-room',pricing:{totalPrice:5000,currency:'INR'}};
 globalThis.fetch=async(input)=>{
  const target=String(input);providerCalls++;
- if(target==='https://apitest.tripjack.com/fms/v1/air-search-all')return Response.json({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[],totalPriceList:[{id:'public-fare',fareIdentifier:'PUBLISHED',fd:{ADULT:{fC:{TF:5000},bI:{iB:'15 Kg'},rT:1}}}]}]}}});
+ if(target==='https://apitest.tripjack.com/fms/v1/air-search-all')return Response.json({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[{da:{code:'NMI'},aa:{code:'DEL'},dt:future(30)+'T10:00'}],totalPriceList:[{id:'alternate-airport',fd:{ADULT:{fC:{TF:1}}}}]},{sI:[{da:{code:'BOM'},aa:{code:'DEL'},dt:future(30)+'T10:00'}],totalPriceList:[{id:'public-fare',fareIdentifier:'PUBLISHED',fd:{ADULT:{fC:{TF:5000},bI:{iB:'15 Kg'},rT:1}}}]}]}}});
  if(target==='https://apitest-hms.tripjack.com/hms/v3/hotel/listing')return Response.json({status:{success:true},hotels:[{hotelId:100001,name:'Fixture Hotel',options:[option]},{hotelId:100002,name:'Unrequested Hotel',options:[option]}]});
  if(target==='https://apitest-hms.tripjack.com/hms/v3/hotel/pricing')return Response.json({status:{success:true},options:[option],reviewHash:'fixture-only'});
  throw Error('Unexpected outbound request blocked');
@@ -46,6 +46,7 @@ try{
  const response=await search(request(flight));assert.equal(response.status,200);const result=await response.json();
  const guestCookie=response.headers.get('set-cookie')!.split(';')[0];assert.ok(guestCookie.startsWith('maxtravel-shopping='));
  const stored=(await pool.query('SELECT user_id,company_id FROM supplier_searches WHERE id=$1',[result.searchId])).rows[0];assert.match(stored.user_id,/^guest:/);assert.equal(stored.company_id,null);
+ assert.equal(result.results.searchResult.tripInfos.ONWARD.length,1);assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].id,'public-fare');
  assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].customerEstimateMinor,501000);
  assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].fD.ADULT.bI.iB,'15 Kg');
  assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].fD.ADULT.rT,1);

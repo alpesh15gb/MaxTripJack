@@ -15,7 +15,7 @@ const base=process.env.BETTER_AUTH_URL!;
 if(!base||new URL(base).hostname!=="127.0.0.1")throw Error("Local development only.");
 const originalFetch=globalThis.fetch;
 const pool=new Pool({connectionString:process.env.DATABASE_URL});
-const email=`provider-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",bookingId="",searchId="",quoteId="",bookCalls=0,validateCalls=0,walletBalance=100000;
+const email=`provider-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",bookingId="",searchId="",quoteId="",bookCalls=0,reviewCalls=0,validateCalls=0,walletBalance=100000;
 let gatewayOrder=`order_${randomUUID().replaceAll("-","")}`,gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
 const fixtureBookings:string[]=[],fixtureQuotes:string[]=[],fixtureSearches:string[]=[];
 const hotelOption={optionId:"hotel-option",pricing:{totalPrice:5000 as unknown,currency:"INR",mf:0,mft:0},cancellation:{isRefundable:true,penalties:[]},compliance:{panRequired:false,passportRequired:false,gstType:"NA"}};
@@ -30,8 +30,8 @@ try{
   if(url==="https://apitest.tripjack.com/ums/v1/user-detail")return ok({status:{success:true},walletBalance});
   if(url.startsWith("https://apitest.tripjack.com")){
    assert.equal(new Headers(init?.headers).get("apikey"),"contract-test-key");
-   if(url.endsWith("air-search-all"))return ok({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[],totalPriceList:[{id:"price-contract",fD:{ADULT:{fC:{TF:5000}}}}]}]}}});
-   if(url.endsWith("/review"))return ok({status:{success:true},bookingId:"TJ-contract",conditions:{st:300},totalPriceInfo:{totalFareDetail:{fC:{TF:5000}}}});
+   if(url.endsWith("air-search-all"))return ok({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[{da:{code:"BOM"},aa:{code:"DEL"},dt:"2026-12-20T10:00"}],totalPriceList:[{id:"price-contract",fD:{ADULT:{fC:{TF:5000}}}}]}]}}});
+   if(url.endsWith("/review")){reviewCalls++;return ok({status:{success:true},bookingId:"TJ-contract",conditions:{st:300},totalPriceInfo:{totalFareDetail:{fC:{TF:5000}}}});}
    if(url.endsWith("/farerule"))return ok({status:{success:true},fareRule:{miscInfo:"Contract cancellation policy"}});
    if(url.endsWith("/fare-validate")){validateCalls++;return ok({status:{success:true}});}
    if(url.endsWith("/air/book")){bookCalls++;assert.equal(payload.paymentInfos[0].amount,5000);throw new Error("Simulated connection loss AFTER supplier accepted booking");}
@@ -52,6 +52,9 @@ try{
   throw Error("Unexpected external request blocked by contract test");
  };
  const actor={userId,companyId:null};const search=await searchSupplier({product:"FLIGHT",from:"BOM",to:"DEL",date:"2026-12-20",adults:1,children:0,infants:0,cabin:"ECONOMY"},actor);searchId=search.searchId;fixtureSearches.push(searchId);
+ // A forged ID from an alternate-airport raw response must fail before review transport.
+ await pool.query("UPDATE supplier_searches SET results=jsonb_set(results, '{searchResult,tripInfos,ONWARD}', (results #> '{searchResult,tripInfos,ONWARD}') || $2::jsonb) WHERE id=$1",[searchId,JSON.stringify([{sI:[{da:{code:"NMI"},aa:{code:"DEL"},dt:"2026-12-20T10:00"}],totalPriceList:[{id:"alternate-airport"}]}])]);
+ const beforeReview=reviewCalls;await assert.rejects(()=>reviewSupplier(searchId,{priceIds:["alternate-airport"]},actor),/current search/);assert.equal(reviewCalls,beforeReview);
  const quote=await reviewSupplier(searchId,{priceIds:["price-contract"]},actor);quoteId=quote.quoteId;fixtureQuotes.push(quoteId);
  const readPaymentStatus=(query:string)=>paymentStatus(new Request(base+`/api/payments/status?${query}`,{headers:{cookie}}));
  const unseen=await readPaymentStatus(`quoteId=${quoteId}`);assert.equal(unseen.status,200);assert.deepEqual({found:(await unseen.clone().json()).found,canResume:(await unseen.json()).canResume},{found:false,canResume:false});

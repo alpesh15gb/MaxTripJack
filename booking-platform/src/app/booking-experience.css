@@ -347,3 +347,17 @@
  .booking-workflow.has-journey .results-heading:has(#flight-results-title)>div { min-width:0; }
  .booking-workflow .results-heading:has(#flight-results-title) .results-count { justify-self:start; min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
 }
+
+/* Customer audit: keep the basis of a price as readable as other body metadata. */
+.booking-workflow .live-flight-card .fare-comparison>summary small,
+.booking-workflow .flight-shopping-list .fare-comparison>summary small,
+.booking-workflow .live-flight-card .fare-option-action small {
+  font-size:14px; line-height:1.45; letter-spacing:0;
+}
+.booking-workflow .fare-comparison-guidance {
+  margin:0; padding:12px; border:1px solid #dce5eb; border-radius:8px;
+  background:#f5f7fa; color:#42596b; font-size:14px; line-height:1.5;
+}
+.booking-workflow .fare-option-action strong { font-variant-numeric:tabular-nums; }
+
+.booking-workflow .fare-details-unavailable { font-size:14px; line-height:1.5; color:#42596b; margin:8px 0 12px; max-width:65ch; }

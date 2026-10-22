@@ -31,7 +31,7 @@ try{
   if(url==="https://apitest.tripjack.com/ums/v1/user-detail")return ok({status:{success:true},walletBalance});
   if(url.startsWith("https://apitest.tripjack.com")){
    assert.equal(new Headers(init?.headers).get("apikey"),"contract-test-key");
-   if(url.endsWith("air-search-all"))return ok({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[],totalPriceList:[{id:"price-contract",fD:{ADULT:{fC:{TF:5000}}}}]}]}}});
+   if(url.endsWith("air-search-all"))return ok({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[{da:{code:"BOM"},aa:{code:"DEL"},dt:"2026-12-20T10:00"}],totalPriceList:[{id:"price-contract",fD:{ADULT:{fC:{TF:5000}}}}]}]}}});
    if(url.endsWith("/review"))return ok({status:{success:true},bookingId:"TJ-contract",conditions:{st:300,isa:true},tripInfos:[{sI:[{id:"s1",da:{code:"BOM"},aa:{code:"DEL"},ssrInfo:ssr}]}],totalPriceInfo:{totalFareDetail:{fC:{TF:5000}}}});
    if(url.endsWith("/seat"))return ok({status:{success:true},tripSeatMap:{tripSeat:{s1:{sInfo:[{code:"2A",seatNo:"2A",amount:500,isBooked:false}]}}}});
    if(url.endsWith("/farerule"))return ok({status:{success:true},fareRule:{miscInfo:"Contract cancellation policy"}});
