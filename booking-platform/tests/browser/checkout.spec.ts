@@ -1,9 +1,11 @@
 import type { Page } from '@playwright/test';
+import type { ProviderFixture } from './fixtures';
 import { test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
 
-async function selectVisibleFare(page: Page) {
-  await page.locator('.fare-comparison > summary').first().click();
-  await page.getByRole('button', { name: 'Select fare', exact: true }).first().click();
+async function selectVisibleFare(page: Page, label = 'Check fare & continue') {
+  const comparison = page.locator('.flight-shopping-list .fare-comparison').first();
+  if (await comparison.getAttribute('open') === null) await comparison.locator(':scope > summary').click();
+  await page.getByRole('button', { name: label, exact: true }).first().click();
 }
 
 async function openReviewedFlight(page: Page) {
@@ -22,8 +24,8 @@ async function fillDomesticTraveller(page: Page) {
 
 async function showPaymentReview(page: Page) {
   await fillDomesticTraveller(page);
-  await page.getByRole('button', { name: 'Continue to payment', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Your total, before you pay.', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Review booking', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Review your booking', exact: true })).toBeVisible();
 }
 
 async function openSyntheticPayment(page: Page) {
@@ -38,7 +40,7 @@ test('fare comparison selects a server fare id and shows a reviewed party total'
   await expect(page.getByText('Cabin baggage: 7 Kg', { exact: true })).toBeVisible();
   await expect(page.getByText('Checked baggage: 15 Kg', { exact: true })).toBeVisible();
   await capture(page, testInfo, 'fare-comparison');
-  await page.getByRole('button', { name: 'Select fare', exact: true }).click();
+  await page.getByRole('button', { name: 'Check fare & continue', exact: true }).click();
   await expect(page.getByRole('form', { name: 'Review and travellers' })).toBeVisible();
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
   expect(provider.requests('/api/travel/review')[0].body).toEqual({ searchId, priceIds: ['onward-standard'] });
@@ -52,12 +54,14 @@ test('return journeys require one outbound and one return fare in canonical orde
   provider.search = flightResults(true);
   provider.quote = reviewedQuote({ totalMinor: 1308000, summary: { from: 'BOM', to: 'DEL', date: departure, returnDate: returning, adults: 1 } });
   await openFlightSearch(page, { roundTrip: true });
-  await expect(page.getByRole('button', { name: /Review selected journey \(0\/2\)/ })).toBeDisabled();
-  await selectVisibleFare(page);
+  await expect(page.getByRole('button', { name: /^Review selected journey/ })).toHaveCount(0);
+  await expect(page.getByRole('region',{name:'Selected flight context'})).toContainText('Choose this flight next');
+  await selectVisibleFare(page, 'Choose this outbound fare');
   await expect(page.getByRole('button', { name: /^Return/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('button', { name: /Review selected journey \(1\/2\)/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^Review selected journey/ })).toHaveCount(0);
+  await expect(page.getByRole('region',{name:'Selected flight context'})).toContainText('BOM → DEL');
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
-  await selectVisibleFare(page);
+  await selectVisibleFare(page, 'Choose this return fare');
   await page.getByRole('button', { name: /Review selected journey \(2\/2\)/ }).click();
   await expect(page.getByRole('form', { name: 'Review and travellers' })).toBeVisible();
   expect(provider.requests('/api/travel/review')[0].body).toEqual({ searchId, priceIds: ['onward-standard', 'return-standard'] });
@@ -98,8 +102,8 @@ test('supplier-required documents, GST and emergency details are visible and req
     'Emergency contact name, email address and phone number.',
   ]);
   await fillDomesticTraveller(page);
-  await page.getByRole('button', { name: 'Continue to payment', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Your total, before you pay.', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Review booking', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Review your booking', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'supplier-required-documents');
@@ -110,17 +114,17 @@ test('expired quotes block payment and refresh explicitly without losing travell
   await openReviewedFlight(page);
   await fillDomesticTraveller(page);
   await expect(page.getByText('A fresh price review is required', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Continue to payment', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Review booking', exact: true })).toBeDisabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await capture(page, testInfo, 'expired-quote');
   provider.quote = reviewedQuote({ quoteId: '44444444-4444-4444-8444-444444444444', totalMinor: 724000 });
   await page.getByRole('button', { name: 'Refresh reviewed price', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Continue to payment', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Review booking', exact: true })).toBeEnabled();
   await expect(page.getByLabel('First name', { exact: true })).toHaveValue('Aarav');
   await expect(page.getByLabel('Email', { exact: true })).toHaveValue('traveller@example.test');
   await expect(page.getByRole('complementary', { name: 'Your journey summary' })).toContainText('₹7,240');
   expect(provider.requests('/api/travel/review')).toHaveLength(2);
-  await page.getByRole('button', { name: 'Continue to payment', exact: true }).click();
+  await page.getByRole('button', { name: 'Review booking', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: /I accept the reviewed total/ })).not.toBeChecked();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
@@ -426,7 +430,7 @@ test('guest selection survives sign-in without persisting private fields or an o
  provider.session=null;
  provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await openFlightSearch(page);await selectVisibleFare(page);
- const link=page.getByRole('link',{name:'Sign in or create an account',exact:true});
+ const link=page.getByRole('link',{name:'Sign in to review selection',exact:true});
  await expect(link).toBeVisible();
  const accountUrl=new URL((await link.getAttribute('href'))!, 'http://127.0.0.1:3100');
  const target=accountUrl.searchParams.get('returnTo');
@@ -440,6 +444,11 @@ test('guest selection survives sign-in without persisting private fields or an o
  await expect(page.getByRole('region',{name:'Selected itinerary'})).toContainText('IndiGo');
  expect(provider.requests('/api/travel/review')).toHaveLength(2);
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ await page.getByRole('button',{name:'Change selection',exact:true}).click();
+ await expect(page.locator('#booking-search-recovery')).toContainText('Previous search results are not available in this tab');
+ await expect(page.getByRole('heading',{name:'No flights found for these airports',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });
 
 test('changing fare preserves private traveller draft only in the current page',async({page})=>{
@@ -479,4 +488,127 @@ test('mobile filters expand accessibly without replacing the visible sort or tri
  }
  await expect(page.getByRole('combobox',{name:'Sort by',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+});
+
+test('checking a selected fare disables repeated continuation without creating another review',async({page,provider})=>{
+ let release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;});
+ const reviewBodies:unknown[]=[];
+ await page.route('**/api/travel/review',async route=>{
+  reviewBodies.push(route.request().postDataJSON());await held;
+  await route.fulfill({json:provider.quote});
+ });
+ try{
+  await openFlightSearch(page);
+  await page.locator('.fare-comparison > summary').first().click();
+  const next=page.locator('.fare-option').first().getByRole('button');
+  await expect(next).toHaveAccessibleName('Check fare & continue');
+  await next.click();await expect(next).toBeDisabled();
+  await expect.poll(()=>reviewBodies.length).toBe(1);
+  await page.keyboard.press('Enter');
+  expect(reviewBodies).toEqual([{searchId,priceIds:['onward-standard']}]);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+  release();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
+  expect(reviewBodies).toHaveLength(1);
+ }finally{release();}
+});
+
+test('forbidden fare review is not presented as a sign-in bypass or a saved booking',async({page,provider})=>{
+ provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
+ await openFlightSearch(page);await selectVisibleFare(page);
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
+ provider.overrides['POST /api/travel/review']={status:403,body:{error:'Your account is suspended. Contact support.'}};
+ await selectVisibleFare(page);
+ await expect(page.locator('#booking-feedback')).toContainText('Your account is suspended. Contact support.');
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('form',{name:'Review and travellers'})).toHaveCount(0);
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ expect(provider.requests('/api/travel/review')).toHaveLength(2);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('a deliberate new search removes an obsolete sign-in selection without another review',async({page,provider})=>{
+ provider.session=null;
+ provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
+ await openFlightSearch(page);await selectVisibleFare(page);
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).not.toBeNull();
+ provider.search={...flightResults(),searchId:'11111111-1111-4111-8111-111111111112'};
+ await page.locator('#booking-search > summary').click();
+ await page.getByRole('button',{name:'Search flights',exact:true}).click();
+ await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
+ await expect.poll(()=>provider.requests('/api/travel/search').length).toBe(2);
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toHaveCount(0);
+ expect(provider.requests('/api/travel/review')).toHaveLength(1);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+
+async function savedGuestSelection(page:Page,provider:ProviderFixture){
+ provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
+ await openFlightSearch(page);await selectVisibleFare(page);
+ const link=page.getByRole('link',{name:'Sign in to review selection',exact:true});await expect(link).toBeVisible();
+ return new URL((await link.getAttribute('href'))!,'http://127.0.0.1:3100').searchParams.get('returnTo')!;
+}
+
+test('resumed selection rejected by an expired session has a working return to search',async({page,provider})=>{
+ const target=await savedGuestSelection(page,provider);provider.session=syntheticSession();
+ await page.goto(target);await expect.poll(()=>provider.requests('/api/travel/review').length).toBe(2);
+ await page.getByRole('button',{name:'Back to fares',exact:true}).click();
+ await expect(page.locator('#booking-search-recovery')).toBeFocused();
+ await expect(page.locator('#booking-search-recovery')).toContainText('Previous search results are not available in this tab');
+ await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toHaveCount(0);
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('resumed selection with temporary review failure offers search recovery instead of false empty inventory',async({page,provider})=>{
+ const target=await savedGuestSelection(page,provider);provider.session=syntheticSession();
+ provider.overrides['POST /api/travel/review']={status:503,body:{error:'Supplier review is temporarily unavailable. Try again later.'}};
+ await page.goto(target);await expect(page.locator('#booking-feedback')).toContainText('Supplier review is temporarily unavailable');
+ await expect(page.getByRole('heading',{name:'No flights found for these airports',exact:true})).toHaveCount(0);
+ await page.locator('#saved-selection-recovery').getByRole('button',{name:'Search again',exact:true}).click();
+ await expect(page.locator('#booking-search-recovery')).toBeFocused();
+ await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('saved selection opened while signed out explains the account step without calling review',async({page,provider})=>{
+ const target=await savedGuestSelection(page,provider);await page.goto(target);
+ const recovery=page.locator('#saved-selection-recovery');await expect(recovery).toBeVisible();
+ await expect(recovery.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
+ await recovery.getByRole('button',{name:'Search again',exact:true}).click();
+ await expect(page.locator('#booking-search-recovery')).toBeFocused();
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('expired selection abandons obsolete account handoff without an automatic new supplier search',async({page,provider})=>{
+ await savedGuestSelection(page,provider);
+ provider.overrides['POST /api/travel/review']={status:409,body:{error:'This search has expired. Search again for current availability.'}};
+ await selectVisibleFare(page);await page.getByRole('button',{name:'Start a fresh search',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toHaveCount(0);
+ await expect(page.locator('.signin-selection-context')).toHaveCount(0);
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('hotel sign-in feedback can reopen existing room options after returning to stays',async({page,provider})=>{
+ provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
+ provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Synthetic room recovery stay',customerEstimateMinor:800000}]}};
+ provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'retained-room-id',roomInfo:[{name:'Twin room'}],pricing:{totalPrice:8000,currency:'INR'}}]}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Delhi',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
+ await page.getByRole('button',{name:'Choose room',exact:true}).click();
+ await page.getByRole('button',{name:'Review stay',exact:true}).click();
+ await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Back to stays',exact:true}).click();
+ await expect(page.locator('#booking-results')).toBeVisible();
+ await page.getByRole('button',{name:'Back to room options',exact:true}).click();
+ await expect(page.locator('#room-choice-title')).toBeFocused();
+ await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
+ expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'retained-room-id'}]);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

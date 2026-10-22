@@ -55,10 +55,16 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(cards.last()).toHaveAttribute('aria-label','Unknown Stay');
  await cards.first().getByRole('button',{name:'Choose room'}).click();
  await expect(page.getByRole('heading',{name:'Deluxe twin room',exact:true})).toBeVisible();
- await expect(page.locator('#booking-rooms')).toBeFocused();
+ await expect(page.getByRole('heading',{name:'Choose your room',exact:true})).toBeFocused();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10001'});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-shopping-room-options');
+ await page.getByRole('button',{name:'Back to stays',exact:true}).click();
+ await expect(cards.first()).toHaveAttribute('aria-label','Palm House');
+ await expect(cards.first().getByRole('button',{name:'Choose room'})).toBeFocused();
+ await expect(page.getByLabel('Sort stays',{exact:true})).toHaveValue('price-desc');
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
 });
 
 test('unsubmitted hotel date edits preserve searched totals; a fresh search resets scoped filters',async({page,provider})=>{
@@ -74,6 +80,9 @@ test('unsubmitted hotel date edits preserve searched totals; a fresh search rese
  await expect(cards.first().locator('.hotel-stay-price')).toHaveText(original,{useInnerText:true});
  await cards.first().getByRole('button',{name:'Choose room'}).click();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10002'});
+ await page.getByRole('button',{name:'Back to stays',exact:true}).click();
+ await expect(cards.first().getByRole('button',{name:'Choose room'})).toBeFocused();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
  const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
  await page.getByLabel('Property name',{exact:true}).fill('Palm');await expect(cards).toHaveCount(1);
  provider.search={searchId:'11111111-1111-4111-8111-111111111119',results:{hotels}};

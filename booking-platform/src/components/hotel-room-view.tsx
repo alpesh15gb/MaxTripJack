@@ -1,0 +1,17 @@
+import {hotelRoomLabel,hotelCancellationLabel,type HotelPropertyDetails,type HotelRoomOption} from '@/lib/hotel-presentation';
+import {stayNights,type HotelStayContext} from '@/lib/hotel-results';
+import HotelPropertyMedia from './hotel-property-media';
+import SupplierPolicy from './supplier-policy';
+import {money} from './booking-flight-card';
+
+export type AvailableHotelOption={roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];optionType?:string;optionId:string;mealBasis?:string;pricing:{totalPrice:number;mf?:number;mft?:number};cancellation?:unknown;bookingNotes?:string};
+export default function HotelRoomView({name,options,property,context,busy,now,onBack,onReview}:{name:string;options:AvailableHotelOption[];property?:HotelPropertyDetails;context:HotelStayContext|null;busy:boolean;now:number|null;onBack:()=>void;onReview:(optionId:string)=>void}){
+ const nights=stayNights(context);
+ return <section id="booking-rooms" className="booking-rooms room-workspace" aria-label="Room options">
+  <button type="button" className="secondary room-back" disabled={busy} onClick={onBack}><span aria-hidden="true">← </span>Back to stays</button>
+  <header className="room-workspace-heading"><div><p className="eyebrow">YOUR SELECTED STAY</p><h2 id="room-choice-title" tabIndex={-1}>Choose your room</h2><h3>{name}</h3>{context&&<p className="room-stay-context">{context.checkIn} — {context.checkOut} · {nights?`${nights} night${nights===1?'':'s'} · `:''}{context.rooms} room{context.rooms===1?'':'s'} · {context.guests} guest{context.guests===1?'':'s'}</p>}</div><div className="room-property-photo"><HotelPropertyMedia name={name} photos={property?.photos}/></div></header>
+  {Boolean(property?.address||property?.photos?.length)&&<details className="room-gallery"><summary>Property details{property?.photos?.length?' & photos':''}</summary>{property?.address&&<p>{property.address}</p>}<HotelPropertyMedia name={name} photos={property?.photos} gallery/></details>}
+  <div className="room-choice-intro"><h3>Compare available room options</h3><p>Choose a room option to check its current total and full conditions. This does not reserve a room.</p></div>
+  {options.length?<div className="room-option-list">{options.map(option=><article className="live-fare room-option-card" key={option.optionId}><div><h3>{hotelRoomLabel({roomInfo:option.roomInfo??[]})}</h3><dl className="room-choice-facts"><div><dt>Meals</dt><dd>{option.mealBasis?.replaceAll('_',' ')||'Meal plan not supplied'}</dd></div><div><dt>Cancellation</dt><dd>{hotelCancellationLabel(option.cancellation,now??undefined)}</dd></div></dl>{Boolean(option.inclusions?.length)&&<ul className="fare-features">{option.inclusions?.map(item=><li key={item}>{item}</li>)}</ul>}{option.bookingNotes&&<p>{option.bookingNotes}</p>}<details><summary>Full cancellation policy</summary><SupplierPolicy title="Supplier cancellation terms" value={option.cancellation}/></details></div><div className="room-option-action"><small>Estimated full stay total</small><strong>{money(Math.round(option.pricing.totalPrice*100))}</strong><p>All selected rooms and guests · final total at review</p><button type="button" className="primary" disabled={busy} onClick={()=>onReview(option.optionId)}>Review stay</button></div></article>)}</div>:<div className="empty-results"><h3>No rooms available</h3><p>Return to your stays to choose another property. Your filters and search are kept.</p></div>}
+ </section>;
+}

@@ -87,7 +87,7 @@ test('hotel search sends separate adults and child ages for every room', async (
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'hotel-results');
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
-  await page.getByRole('button', { name: 'Review room', exact: true }).click();
+  await page.getByRole('button', { name: 'Review stay', exact: true }).click();
   const review = page.getByRole('form', { name: 'Review and travellers' });
   await expect(review.locator('.traveller-card')).toHaveCount(7);
   await expect(review.getByRole('group', { name: 'Room 1 · Child 4', exact: true })).toBeVisible();
@@ -100,7 +100,7 @@ test('zero results is a useful empty state, not a fare or a booking', async ({ p
   provider.search = { searchId, results: { searchResult: { tripInfos: { ONWARD: [] } } } };
   await openFlightSearch(page);
   await expect(page.getByRole('heading', { name: 'No flights found for these airports', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Select fare', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Check fare & continue', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
@@ -129,7 +129,7 @@ test('a hotel with no available room options never exposes a review action', asy
   await page.goto(`/book?${query}`);
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No rooms available', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Review room', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Review stay', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   await capture(page, testInfo, 'hotel-no-rooms');
 });

@@ -13,6 +13,7 @@ import "./operations.css";
 import "./travel-design.css";
 import "./experience-system.css";
 import "./journey-studio.css";
+import "./journey-flow.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

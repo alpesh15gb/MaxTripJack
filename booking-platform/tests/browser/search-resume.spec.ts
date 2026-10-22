@@ -49,8 +49,8 @@ test('sign-in return retains submitted multicity passengers rather than the orig
  await page.getByRole('combobox',{name:'Adults',exact:true}).selectOption('3');
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
  await page.locator('.fare-comparison > summary').first().click();
- await page.getByRole('button',{name:'Select fare',exact:true}).first().click();
- const link=page.getByRole('link',{name:'Sign in or create an account',exact:true});
+ await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
+ const link=page.getByRole('link',{name:'Sign in to review selection',exact:true});
  await expect(link).toBeVisible();
  const target=new URL((await link.getAttribute('href'))!,'http://127.0.0.1:3100').searchParams.get('returnTo')!;
  const params=new URL(target,'http://127.0.0.1:3100').searchParams;

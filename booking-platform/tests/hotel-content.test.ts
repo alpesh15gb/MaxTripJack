@@ -42,3 +42,15 @@ test('retained metadata is capped and evicted entries are fetched again',async()
  assert.equal(calls,6);
  await content(['1'],['1']);assert.equal(calls,7);
 });
+
+test('peek returns immediately during slow content and never starts optional provider work',async()=>{
+ let calls=0,release!:()=>void;
+ const gate=new Promise<void>(resolve=>{release=resolve;});
+ const content=createHotelContentCache(async()=>{calls++;await gate;return {hotels:[hotel]};});
+ assert.deepEqual(content.peek(['123'],['123']),{});assert.equal(calls,0);
+ const pending=content(['123'],['123']);await Promise.resolve();assert.equal(calls,1);
+ assert.deepEqual(content.peek(['123'],['123']),{});
+ assert.throws(()=>content.peek(['999'],['123']));
+ release();await pending;
+ assert.equal(content.peek(['123'],['123'])['123'].starRating,4);
+});

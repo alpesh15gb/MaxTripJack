@@ -9,14 +9,15 @@ import { customerTotal,customerFlightResults,customerHotelOptions,customerHotelR
 import { hotelListingId } from "./hotel-listing-id";
 import { hotelContentForSearch } from "./hotel-content";
 import { hotelRoomInfo,hotelStringList,hotelText } from "./hotel-presentation";
+import { SearchTiming } from "./search-timing";
 import { exactAirportGroups } from "./flight-airport-scope";
 import { orderedFlightSelection } from "./flight-selection";
 export type Actor={userId:string;companyId:string|null};
 export async function pricingRule(product:Product,actor:Actor){const rules=await database().query<PricingRule>("SELECT * FROM pricing_rules WHERE active=true AND product=$1 AND (company_id=$2 OR company_id IS NULL) ORDER BY company_id NULLS LAST,created_at DESC LIMIT 1",[product,actor.companyId]);return rules.rows[0];}
 export async function owned(table:"supplier_searches"|"supplier_quotes"|"orders",id:string,actor:Actor){const result=await database().query(`SELECT * FROM ${table} WHERE id=$1 AND user_id=$2 AND company_id IS NOT DISTINCT FROM $3::uuid`,[id,actor.userId,actor.companyId]);if(!result.rows[0])throw new HttpError(404,"Record not found.");return result.rows[0];}
 export function assertFresh(expires:Date|string){if(new Date(expires).getTime()<=Date.now())throw new HttpError(409,"This quote or search expired. Search and review again.");}
-export async function searchSupplier(criteria:Search,actor:Actor){
- await requestLimit(actor.userId,"supplier-search",20);
+export async function searchSupplier(criteria:Search,actor:Actor,timing=new SearchTiming()){
+ await timing.measure("limit",()=>requestLimit(actor.userId,"supplier-search",20));
  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
  const start=criteria.product==="FLIGHT"?criteria.date:criteria.checkIn;
  if(start<today)throw new HttpError(400,"Travel date must not be in the past.");
@@ -24,13 +25,22 @@ export async function searchSupplier(criteria:Search,actor:Actor){
  if(criteria.product==="FLIGHT"&&criteria.returnDate&&criteria.returnDate<criteria.date)throw new HttpError(400,"Return date must not precede departure.");
  if(criteria.product==="HOTEL"&&criteria.checkOut<=criteria.checkIn)throw new HttpError(400,"Check-out must follow check-in.");
  const id=randomUUID(),correlationId=randomUUID();
- const [data,rule]=await Promise.all([tripjack(criteria.product,paths[criteria.product].search,criteria.product==="FLIGHT"?flightSearch(criteria):hotelSearch(criteria,correlationId)),pricingRule(criteria.product,actor)]);
- await database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes')",[id,actor.userId,actor.companyId,criteria.product,criteria,data,correlationId]);
+ const [data,rule]=await Promise.all([timing.measure("supplier",()=>tripjack(criteria.product,paths[criteria.product].search,criteria.product==="FLIGHT"?flightSearch(criteria):hotelSearch(criteria,correlationId))),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
+ await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes')",[id,actor.userId,actor.companyId,criteria.product,criteria,data,correlationId]));
+ return timing.sync("projection",()=>{
  if(criteria.product==="FLIGHT")return {searchId:id,product:criteria.product,results:customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule)};
  const results=customerHotelResults(data,rule);
  results.hotels=results.hotels.filter(hotel=>criteria.hotelIds.includes(hotel.tjHotelId));
- const properties=await hotelContentForSearch(results.hotels.map(hotel=>hotel.tjHotelId),criteria.hotelIds);
- return {searchId:id,product:criteria.product,results:{hotels:results.hotels.map(hotel=>({...hotel,property:properties[hotel.tjHotelId]??hotel.property}))}};
+ const properties=hotelContentForSearch.peek(results.hotels.map(hotel=>hotel.tjHotelId),criteria.hotelIds);
+ return {searchId:id,product:criteria.product,propertyContentPending:results.hotels.some(hotel=>!properties[hotel.tjHotelId]),results:{hotels:results.hotels.map(hotel=>({...hotel,property:properties[hotel.tjHotelId]??hotel.property}))}};
+ });
+}
+export async function customerHotelContent(searchId:string,actor:Actor){
+ await requestLimit(actor.userId,"hotel-content",20);
+ const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
+ if(search.product!=="HOTEL")throw new HttpError(400,"Hotel content requires a hotel search.");
+ const ids=customerHotelResults(search.results).hotels.map(hotel=>hotel.tjHotelId).filter(id=>search.criteria.hotelIds.includes(id));
+ return {searchId,properties:await hotelContentForSearch(ids,search.criteria.hotelIds)};
 }
 export async function hotelDetail(searchId:string,hid:string,actor:Actor){const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);if(search.product!=="HOTEL"||!search.criteria.hotelIds.includes(hid))throw new HttpError(400,"Hotel not part of this search.");const input=hotelSearch(search.criteria,search.correlation_id);const {hids,...rest}=input;void hids;return tripjack("HOTEL",paths.HOTEL.detail,{...rest,hid});}
 export async function customerHotelDetail(searchId:string,hid:string,actor:Actor){

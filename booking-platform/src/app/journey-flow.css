@@ -1,0 +1,136 @@
+/* Travel Clearly: decision surfaces, scoped away from expressive discovery. */
+.journey-flow{--journey-ink:#172b32;--journey-muted:#52616a;--journey-blue:#2453e9;color:var(--journey-ink)}
+.journey-flow [hidden]{display:none!important}
+.journey-flow.has-journey .booking-intro{margin:8px 0 12px;align-items:center}
+.journey-flow.has-journey .booking-intro h1{font-family:var(--font-geist-sans),sans-serif;font-size:28px;line-height:1.2;letter-spacing:-.6px}
+.journey-flow .booking-progress{max-width:640px;margin:12px 0 20px}
+.journey-flow .booking-progress li{font-size:14px}
+.journey-flow .booking-availability-notice{display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px;padding:12px 16px;border-left:3px solid #bf7a0b;background:#fff6e3;border-radius:10px}
+.journey-flow .booking-availability-notice h2{font:600 14px/1.5 var(--font-geist-sans),sans-serif;margin:0;color:#533c0d}
+.journey-flow .booking-availability-notice p{font-size:14px;line-height:1.5;margin:0;flex:1 1 440px;color:#533c0d}
+.journey-flow .booking-availability-notice a{font-size:14px;min-height:44px;display:inline-flex;align-items:center;color:#153ec2}
+.journey-flow .booking-pending{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px 12px;padding:20px;border:1px solid #c7d5f3;background:#edf3ff;color:#142d40}
+.journey-flow .booking-pending .booking-spinner{position:static;width:22px;height:22px;grid-column:1;align-self:center;margin:0}
+.journey-flow .booking-pending>strong{grid-column:2;position:static}
+.journey-flow .booking-pending>p{grid-column:2;margin:0;font-size:14px}
+.journey-flow .booking-pending .booking-loading-lines{display:none}
+.journey-flow .results-heading h2,.journey-flow .hotel-shopping-toolbar h2,.journey-flow .room-workspace h2{font-family:var(--font-geist-sans),sans-serif;font-size:28px;line-height:1.2;letter-spacing:-.6px}
+.journey-flow .results-heading{align-items:center;margin:0 0 20px}
+.journey-flow .results-heading p{font-size:15px;line-height:1.5;margin-top:8px}
+.journey-flow .flight-shopping-list{gap:16px}
+.journey-flow .live-flight-card{border:1px solid #dce3e9;box-shadow:0 3px 12px #142d4005;border-radius:16px;overflow:visible;background:#fff}
+.journey-flow .live-flight-card .flight-result-top{padding-bottom:12px}
+.journey-flow .flight-route-line{padding:12px 0}
+.journey-flow .live-flight-card .fare-comparison>summary{padding:16px 0 0;gap:16px;align-items:center;border-top:1px solid #e5e9ef;list-style:none}
+.journey-flow .live-flight-card .fare-comparison>summary::-webkit-details-marker{display:none}
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span{order:2;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+.journey-flow .choose-fare-label{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:48px;min-width:172px;padding:10px 20px;border-radius:10px;background:var(--journey-blue);color:#fff;font-size:16px;font-weight:650;line-height:1.4;white-space:nowrap}
+.journey-flow .fare-comparison>summary:hover .choose-fare-label{background:#173db8}
+.journey-flow .fare-comparison>summary:focus-visible{outline:3px solid #087f8c;outline-offset:5px;border-radius:8px}
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>strong{order:1;text-align:left;max-width:none;min-width:0;font-variant-numeric:tabular-nums}
+.journey-flow .fare-comparison>summary small{font-size:14px;line-height:1.45;color:#52616a;white-space:normal}
+.journey-flow .fare-choice-heading{display:flex;align-items:start;justify-content:space-between;gap:16px;padding:20px 0 8px}
+.journey-flow .fare-choice-heading h3{font-size:20px;margin:0 0 6px}
+.journey-flow .fare-choice-heading p{font-size:14px;margin:0;color:#52616a}
+.journey-flow .fare-choice-heading button{flex-shrink:0;min-height:44px;font-size:14px}
+.journey-flow .fare-comparison-guidance{font-size:14px;line-height:1.5;padding:12px;background:#f5f7fa;border-radius:8px;color:#52616a}
+.journey-flow .fare-option{border:1px solid #dce3e9;border-radius:12px;padding:20px;margin-top:12px;background:#fff}
+.journey-flow .fare-option h3{font-size:18px;line-height:1.4}
+.journey-flow .fare-option-action .primary{min-height:48px;white-space:normal;line-height:1.4;font-size:15px}
+.journey-flow .fare-option-action{min-width:200px}
+.journey-flow .journey-leg-context{padding:16px;border:1px solid #cedaef;background:#edf3ff;border-radius:12px;margin:0 0 20px}
+.journey-flow .journey-leg-context ol{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:16px}
+.journey-flow .journey-leg-context li{flex:1 1 220px;display:grid;align-content:start;gap:6px;font-size:14px;border-left:3px solid #b8c7db;padding-left:12px}
+.journey-flow .journey-leg-context li.is-current{border-color:#2453e9}
+.journey-flow .journey-leg-context li>span{color:#52616a}
+.journey-flow .journey-leg-context small{font-size:14px}
+.journey-flow .journey-leg-context li button{justify-self:start;min-height:44px;padding:8px 12px}
+.journey-flow .journey-leg-context>.primary{margin-top:16px;min-height:48px}
+.journey-flow .room-workspace{padding:0;border:0;background:transparent;scroll-margin-top:100px}
+.journey-flow .room-back{min-height:44px;margin:0 0 20px}
+.journey-flow .room-workspace-heading{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px;align-items:center;padding:24px;background:#fff;border:1px solid #dce3e9;border-radius:16px}
+.journey-flow .room-workspace-heading h2{margin:4px 0 16px}
+.journey-flow .room-workspace-heading h3{font-size:20px;line-height:1.4;margin:0 0 8px}
+.journey-flow .room-workspace-heading p{font-size:14px;line-height:1.5;color:#52616a}
+.journey-flow .room-workspace-heading .eyebrow{color:#2453e9;font-size:12px;font-weight:700;letter-spacing:1px}
+.journey-flow .room-property-photo{height:190px;border-radius:12px;overflow:hidden}
+.journey-flow .room-property-photo .hotel-property-media{height:100%;min-height:0}
+.journey-flow .room-stay-context{padding-top:12px;border-top:1px solid #e5e9ef}
+.journey-flow .room-choice-intro{margin:28px 0 16px}
+.journey-flow .room-choice-intro h3{font-size:20px;margin:0 0 8px}
+.journey-flow .room-choice-intro p{font-size:15px;line-height:1.5;color:#52616a;margin:0}
+.journey-flow .room-option-list{display:grid;gap:16px}
+.journey-flow .room-option-card{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:24px;padding:24px;background:#fff;border:1px solid #dce3e9;border-radius:16px;margin:0}
+.journey-flow .room-option-card h3{font-size:20px;line-height:1.4;margin:0 0 16px}
+.journey-flow .room-choice-facts{display:grid;gap:12px;margin:0}
+.journey-flow .room-choice-facts dt{font-size:14px;font-weight:600;color:#52616a}
+.journey-flow .room-choice-facts dd{font-size:16px;margin:4px 0 0;line-height:1.5}
+.journey-flow .room-option-action{display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding-left:24px;border-left:1px solid #e5e9ef}
+.journey-flow .room-option-action strong{font-size:26px;font-variant-numeric:tabular-nums;line-height:1.4}
+.journey-flow .room-option-action small,.journey-flow .room-option-action p{font-size:14px;line-height:1.5;color:#52616a}
+.journey-flow .room-option-action .primary{min-height:48px;margin-top:8px}
+.journey-flow .review-unavailable{padding:20px;border-radius:12px;background:#fff6e3;border:1px solid #ead8ae;margin-bottom:20px}
+.journey-flow .review-unavailable h3{margin:0 0 8px;font-size:20px}
+.journey-flow .review-unavailable p{font-size:16px;line-height:1.5}
+.journey-flow .review-unavailable>div{display:flex;flex-wrap:wrap;gap:12px}
+.journey-flow .review-unavailable .primary,.journey-flow .review-unavailable .secondary{min-height:48px;display:inline-flex;align-items:center}
+@media(max-width:900px){
+ .journey-flow .room-workspace-heading{grid-template-columns:minmax(0,1fr) 210px;padding:20px}
+ .journey-flow .room-option-card{grid-template-columns:minmax(0,1fr) 210px;padding:20px;gap:20px}
+}
+@media(max-width:600px){
+ .journey-flow.has-journey .booking-intro h1{font-size:24px}
+ .journey-flow .booking-progress{margin:12px 0 16px}
+ .journey-flow .booking-progress li{font-size:14px}
+ .journey-flow .results-heading h2,.journey-flow .hotel-shopping-toolbar h2{font-size:24px}
+ .journey-flow .results-heading{gap:10px;margin-bottom:16px}
+ .journey-flow .booking-availability-notice{padding:10px 12px;gap:2px}
+ .journey-flow .booking-availability-notice p{flex-basis:100%}
+ .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+ .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>strong{order:1;width:100%;max-width:none;text-align:left}
+ .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span{order:2;align-items:stretch;text-align:center;width:100%}
+ .journey-flow .choose-fare-label{width:100%;min-width:0;justify-content:space-between}
+ .journey-flow .fare-choice-heading{flex-direction:column;gap:12px}
+ .journey-flow .fare-choice-heading button{align-self:flex-start}
+ .journey-flow .fare-option{padding:16px}
+ .journey-flow .fare-option-action{min-width:0;width:100%}
+ .journey-flow .fare-option-action .primary{width:100%}
+ .journey-flow .journey-leg-context{padding:12px}
+ .journey-flow .journey-leg-context li{flex-basis:100%}
+ .journey-flow .room-workspace-heading{display:flex;flex-direction:column;align-items:stretch;padding:20px;gap:16px}
+ .journey-flow .room-property-photo{height:150px}
+ .journey-flow .room-workspace-heading h2{font-size:26px;margin-bottom:12px}
+ .journey-flow .room-workspace-heading h3{font-size:18px}
+ .journey-flow .room-option-card{grid-template-columns:1fr;gap:20px;padding:20px}
+ .journey-flow .room-option-action{padding:16px 0 0;border-left:0;border-top:1px solid #e5e9ef}
+ .journey-flow .room-option-action .primary{width:100%}
+ .journey-flow .room-choice-facts dd{font-size:16px}
+ .journey-flow .review-unavailable{padding:16px}
+ .journey-flow .review-unavailable>div>*{width:100%;justify-content:center}
+}
+.journey-flow .room-property-photo .hotel-property-thumb,.journey-flow .room-property-photo figure,.journey-flow .room-property-photo img{height:100%;width:100%;margin:0;object-fit:cover}
+.journey-flow .room-gallery{margin-top:12px}
+.journey-flow .room-gallery>summary{min-height:44px;display:flex;align-items:center;font-size:14px;color:#153ec2;cursor:pointer}
+@media(max-width:600px){
+ /* Room choice is a decision surface. Photos remain in the adjacent disclosure. */
+ .journey-flow .room-property-photo{display:none}
+ .journey-flow .room-workspace-heading{padding:16px}
+ .journey-flow .room-workspace-heading h2{font-size:24px;margin:0 0 8px}
+ .journey-flow .room-workspace-heading p{margin:8px 0}
+ .journey-flow .room-choice-intro{margin:20px 0 12px}
+ .journey-flow .room-back{margin-bottom:12px}
+}
+/* Reset the old comparison-link wrapper, including its mobile fixed flex basis. */
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span{flex:0 1 auto;border:0;padding:0;background:transparent}
+.journey-flow .flight-shopping-list .fare-comparison:not([open])>summary{flex-direction:column;align-items:stretch;padding:20px 16px;border-top:0}
+.journey-flow .flight-shopping-list .fare-comparison[open]>summary{flex-direction:row;align-items:center;padding:16px 20px}
+.journey-flow .flight-shopping-list .fare-comparison>summary>span{align-items:stretch}
+@media(max-width:600px){
+ .journey-flow .flight-shopping-list .fare-comparison:not([open])>summary,.journey-flow .flight-shopping-list .fare-comparison[open]>summary{flex-direction:column;align-items:stretch;padding:14px;gap:12px}
+}
+.journey-flow.booking-workflow .flight-shopping-list .live-flight-card{grid-template-columns:minmax(0,1fr) 235px}
+.journey-flow .flight-shopping-list .airline-identity small,.journey-flow .flight-shopping-list .flight-cabin,.journey-flow .flight-shopping-list .flight-route-line small,.journey-flow .flight-shopping-list .flight-airport-city,.journey-flow .flight-shopping-list .flight-segment-details>summary,.journey-flow .flight-shopping-list .fare-features,.journey-flow .flight-shopping-list .fare-option .muted{font-size:14px;line-height:1.5}
+.journey-flow .flight-day-change{font-size:14px!important}
+.journey-flow .signin-selection-context{padding:12px 0;border-top:1px solid #cedaef;margin-top:12px}
+.journey-flow .signin-selection-context button{min-height:44px}
+.journey-flow #booking-search-recovery{scroll-margin-top:100px}

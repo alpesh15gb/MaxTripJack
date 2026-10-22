@@ -62,7 +62,7 @@ test('new review failure is not misclassified as previous local search validatio
  await page.getByRole('button',{name:'Search flights',exact:true}).click();await expect(page.locator('#booking-feedback')).toContainText('different departure and arrival');
  provider.overrides['POST /api/travel/review']={status:503,body:{error:'Supplier review is temporarily unavailable.'}};
  await page.locator('.live-flight-card').first().locator('.fare-comparison>summary').click();
- await page.getByRole('button',{name:'Select fare',exact:true}).first().click();
+ await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  await expect(page.locator('#booking-feedback')).toContainText('Supplier review is temporarily unavailable');
  await page.getByLabel('To airport',{exact:true}).fill('DEL');await expect(page.locator('#booking-feedback')).toContainText('Supplier review is temporarily unavailable');
 });

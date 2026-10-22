@@ -36,7 +36,7 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await cards.first().locator('.fare-comparison>summary').click();await expect(cards.first()).toContainText('child: cabin baggage 5 Kg');await expect(cards.first()).toContainText('infant: cabin baggage not supplied');
  await expect(cards.first()).toContainText('₹14,500');await expect(cards.first()).toContainText('All travellers · estimated total');
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-fare-families');
- await cards.first().locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Select fare',exact:true}).click();
+ await cards.first().locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['night-flex']});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -50,7 +50,7 @@ test('automatic return advance clears group filters but preserves selected outbo
  const toggle=page.getByRole('button',{name:/^Filters/});await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
  if(await toggle.isVisible())await toggle.click();
  await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('MORNING');await page.getByLabel('Maximum party total (₹)',{exact:true}).fill('7000');
- await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Select fare',exact:true}).click();
+ await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Choose this outbound fare',exact:true}).click();
  await expect(page.getByRole('button',{name:/^Return/})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('₹10,000');
  if(await toggle.isVisible()&&await toggle.getAttribute('aria-expanded')==='false')await toggle.click();
  await expect(page.getByRole('combobox',{name:'Departure time',exact:true})).toHaveValue('ALL');await expect(page.getByLabel('Maximum party total (₹)',{exact:true})).toHaveValue('');

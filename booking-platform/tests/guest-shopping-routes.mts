@@ -22,12 +22,16 @@ process.env.TRIPJACK_FLIGHT_API_KEY='isolated-fixture-only';process.env.TRIPJACK
 process.env.PUBLIC_SHOPPING_TRUST_PROXY='false';
 (globalThis as typeof globalThis & {travelPool?:Pool}).travelPool=pool;
 const previousFetch=globalThis.fetch;
-let providerCalls=0,created=false;
+let providerCalls=0,created=false,contentCalls=0;
+let releaseContent!:()=>void,contentStarted!:()=>void;
+const contentGate=new Promise<void>(resolve=>{releaseContent=resolve;});
+const contentStarting=new Promise<void>(resolve=>{contentStarted=resolve;});
 const option={optionId:'fixture-room',pricing:{totalPrice:5000,currency:'INR'}};
-globalThis.fetch=async(input)=>{
+globalThis.fetch=async(input,init)=>{
  const target=String(input);providerCalls++;
  if(target==='https://apitest.tripjack.com/fms/v1/air-search-all')return Response.json({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[{da:{code:'NMI'},aa:{code:'DEL'},dt:future(30)+'T10:00'}],totalPriceList:[{id:'alternate-airport',fd:{ADULT:{fC:{TF:1}}}}]},{sI:[{da:{code:'BOM'},aa:{code:'DEL'},dt:future(30)+'T10:00'}],totalPriceList:[{id:'public-fare',fareIdentifier:'PUBLISHED',fd:{ADULT:{fC:{TF:5000},bI:{iB:'15 Kg'},rT:1}}}]}]}}});
  if(target==='https://apitest-hms.tripjack.com/hms/v3/hotel/listing')return Response.json({status:{success:true},hotels:[{hotelId:100001,name:'Fixture Hotel',options:[option]},{hotelId:100002,name:'Unrequested Hotel',options:[option]}]});
+ if(target==='https://apitest-hms.tripjack.com/hms/v3/content/fetch-hotel-content'){contentCalls++;assert.deepEqual(JSON.parse(String(init?.body)).hotelIds,['100001']);contentStarted();await contentGate;return Response.json({status:{success:true},hotels:[{tjHotelId:'100001',star_rating:'4',amenities:{'0':{name:'Pool'}}},{tjHotelId:'100002',star_rating:'5'}]});}
  if(target==='https://apitest-hms.tripjack.com/hms/v3/hotel/pricing')return Response.json({status:{success:true},options:[option],reviewHash:'fixture-only'});
  throw Error('Unexpected outbound request blocked');
 };
@@ -41,9 +45,12 @@ try{
  const {getAuth}=await import('../src/lib/auth');const auth=getAuth();await(await getMigrations(auth.options)).runMigrations();
  const {POST:search}=await import('../src/app/api/travel/search/route');
  const {POST:detail}=await import('../src/app/api/travel/hotel-detail/route');
+ const {POST:content}=await import('../src/app/api/travel/hotel-content/route');
  const company=randomUUID();await pool.query("INSERT INTO companies(id,name,status) VALUES($1,'Isolated fixture','APPROVED')",[company]);
  await pool.query("INSERT INTO pricing_rules(id,company_id,product,markup_minor) VALUES($1,NULL,'FLIGHT',1000),($2,$3,'FLIGHT',99999)",[randomUUID(),randomUUID(),company]);
  const response=await search(request(flight));assert.equal(response.status,200);const result=await response.json();
+ assert.match(response.headers.get('server-timing')!,/supplier;dur=[\d.]+/);
+ assert.ok(!response.headers.get('server-timing')!.includes(result.searchId));
  const guestCookie=response.headers.get('set-cookie')!.split(';')[0];assert.ok(guestCookie.startsWith('maxtravel-shopping='));
  const stored=(await pool.query('SELECT user_id,company_id FROM supplier_searches WHERE id=$1',[result.searchId])).rows[0];assert.match(stored.user_id,/^guest:/);assert.equal(stored.company_id,null);
  assert.equal(result.results.searchResult.tripInfos.ONWARD.length,1);assert.equal(result.results.searchResult.tripInfos.ONWARD[0].totalPriceList[0].id,'public-fare');
@@ -59,6 +66,24 @@ try{
  const hotelResponse=await search(request(hotel,guestCookie));assert.equal(hotelResponse.status,200);const hotelResult=await hotelResponse.json();
  assert.deepEqual(hotelResult.results.hotels.map((row:{tjHotelId:string})=>row.tjHotelId),['100001']);
  assert.equal(hotelResult.results.hotels[0].customerEstimateMinor,500000);
+ assert.equal(contentCalls,0);assert.equal(hotelResult.propertyContentPending,true);
+ const contentInput={searchId:hotelResult.searchId};
+ const callsBeforeContent=providerCalls;
+ assert.equal((await content(request(contentInput))).status,409);
+ assert.equal((await content(request({...contentInput,hotelIds:['100002']},guestCookie))).status,400);
+ assert.equal((await content(request(contentInput,guestCookie,{origin:'https://attacker.invalid'}))).status,403);
+ assert.equal((await content(request({searchId:result.searchId},guestCookie))).status,400);
+ assert.equal(providerCalls,callsBeforeContent);
+ let contentSettled=false;const contentResponse=content(request(contentInput,guestCookie)).then(value=>{contentSettled=true;return value;});
+ await Promise.race([contentStarting,new Promise((_,reject)=>{setTimeout(()=>reject(Error('Content fixture did not start')),1500).unref();})]);
+ assert.equal(contentSettled,false);assert.equal(hotelResult.results.hotels[0].customerEstimateMinor,500000);
+ releaseContent();const enriched=await contentResponse;assert.equal(enriched.status,200);
+ const properties=(await enriched.json()).properties;assert.deepEqual(Object.keys(properties),['100001']);assert.equal(properties['100001'].starRating,4);
+ assert.ok(!JSON.stringify(properties).includes('customerEstimateMinor'));assert.equal(contentCalls,1);
+ await pool.query("UPDATE supplier_searches SET expires_at=now()-interval '1 minute' WHERE id=$1",[hotelResult.searchId]);
+ assert.equal((await content(request(contentInput,guestCookie))).status,409);assert.equal(contentCalls,1);
+ await pool.query("UPDATE supplier_searches SET expires_at=now()+interval '14 minutes' WHERE id=$1",[hotelResult.searchId]);
+ console.log('PASS rates returned before slow static metadata; enrichment keeps owned subset, freshness and pricing isolation');
  const selection={searchId:hotelResult.searchId,hid:'100001'};
  const subsetBefore=providerCalls;assert.equal((await detail(request({...selection,hid:'100002'},guestCookie))).status,400);assert.equal(providerCalls,subsetBefore);
  assert.equal((await detail(request(selection,guestCookie))).status,200);

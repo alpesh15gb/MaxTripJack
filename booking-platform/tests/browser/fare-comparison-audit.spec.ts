@@ -24,7 +24,7 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
   expect(await qualifier.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(14);
  }
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'audit-fare-comparison');
- await offers.first().getByRole('button',{name:'Select fare',exact:true}).click();
+ await offers.first().getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  const selectedSummary=page.locator('.selected-itinerary .fare-comparison>summary');
  await expect(selectedSummary).toContainText('Selected fare');
