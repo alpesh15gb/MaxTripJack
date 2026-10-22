@@ -29,6 +29,10 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  const selectedSummary=page.locator('.selected-itinerary .fare-comparison>summary');
  await expect(selectedSummary).toContainText('Selected fare');
  await expect(selectedSummary).toContainText('Estimated total · all travellers');
+ const priceBlock=selectedSummary.locator(':scope > strong');
+ const priceGeometry=await priceBlock.evaluate(node=>{const parent=node.parentElement!;const style=getComputedStyle(parent);return {maxWidth:getComputedStyle(node).maxWidth,width:node.getBoundingClientRect().width,available:parent.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)};});
+ expect(priceGeometry.maxWidth).toBe('none');
+ expect(Math.abs(priceGeometry.width-priceGeometry.available)).toBeLessThan(1);
  expect((await selectedSummary.boundingBox())?.height).toBeLessThan(160);
  for(const qualifier of await selectedSummary.locator('small').all()) expect(await qualifier.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(14);
  await capture(page,testInfo,'audit-selected-fare-receipt');

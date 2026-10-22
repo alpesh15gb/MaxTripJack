@@ -368,5 +368,5 @@
   display:block; height:auto; min-height:44px;
 }
 .booking-workflow .selected-itinerary .is-readonly .fare-comparison>summary>strong {
-  display:block; margin-top:8px;
+  display:block; margin-top:8px; width:100%; max-width:none; text-align:left;
 }
