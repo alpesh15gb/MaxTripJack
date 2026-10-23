@@ -114,7 +114,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const [results,setResults]=useState<Results|null>(null),[quote,setQuote]=useState<Quote|null>(null);
   const [hasFullSearchResults,setHasFullSearchResults]=useState(false);
   const [searchRecovery,setSearchRecovery]=useState(false);
-  const [rooms,setRooms]=useState<{hid:string;name:string;options:HotelOption[];property?:HotelPropertyDetails}|null>(null);
+  const [rooms,setRooms]=useState<{searchId:string;hid:string;name:string;options:HotelOption[];property?:HotelPropertyDetails}|null>(null);
   const [roomView,setRoomView]=useState(false);
   const roomReturn=useRef<{trigger:HTMLButtonElement;scrollY:number}|null>(null);
   const restoreRoomReturn=useRef(false);
@@ -169,23 +169,26 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const mounted=useRef(true),verificationStarted=useRef(false);
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();if(searchFocusFrame.current!==null)cancelAnimationFrame(searchFocusFrame.current);};},[]);
+  const propertyContentGeneration=useRef(0);
   const resultSearchId=results?.searchId;
   const propertyContentPending=results?.propertyContentPending===true;
   useEffect(()=>{
+    const generation=++propertyContentGeneration.current;
     if(!resultSearchId||!propertyContentPending)return;
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),8000);
     let active=true;
+    const isCurrent=()=>active&&propertyContentGeneration.current===generation;
     // Optional static content must never hold up rates or overwrite a newer search.
     void api<{searchId:string;properties:Record<string,HotelPropertyDetails>;propertyContentStatuses?:Record<string,'resolved'|'unavailable'>}>('/api/travel/hotel-content',{searchId:resultSearchId},controller.signal).then(content=>{
-      if(!active)return;
+      if(!isCurrent())return;
       if(content.searchId!==resultSearchId){
-        setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:true}:current);
+        setResults(current=>isCurrent()&&current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:true}:current);
         return;
       }
-      setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:Object.values(content.propertyContentStatuses??{}).includes('unavailable'),results:{...current.results,hotels:current.results.hotels?.map((hotel):Hotel=>({...hotel,propertyContentStatus:content.propertyContentStatuses?(content.propertyContentStatuses[hotel.tjHotelId]??'unavailable'):'resolved',property:content.properties[hotel.tjHotelId]??hotel.property}))}}:current);
+      setResults(current=>isCurrent()&&current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:Object.values(content.propertyContentStatuses??{}).includes('unavailable'),results:{...current.results,hotels:current.results.hotels?.map((hotel):Hotel=>({...hotel,propertyContentStatus:content.propertyContentStatuses?(content.propertyContentStatuses[hotel.tjHotelId]??'unavailable'):'resolved',property:content.properties[hotel.tjHotelId]??hotel.property}))}}:current);
     }).catch(()=>{
-      if(active)setResults(current=>current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:true}:current);
+      if(isCurrent())setResults(current=>isCurrent()&&current?.searchId===resultSearchId?{...current,propertyContentPending:false,propertyContentUnavailable:true}:current);
     }).finally(()=>clearTimeout(timeout));
     return()=>{active=false;clearTimeout(timeout);controller.abort();};
   },[resultSearchId,propertyContentPending]);
@@ -407,9 +410,10 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[resumeSelection,results,checkoutSession?.user.emailVerified,recovery.blocked]);
   async function chooseHotel(hotel:Hotel,trigger:HTMLButtonElement){
+    const searchId=results?.searchId;if(!searchId)return;
     const task=begin('Checking room availability');if(!task)return;setCheckingHotelId(hotel.tjHotelId);
     roomReturn.current={trigger,scrollY:window.scrollY};
-    try{const detail=await api<{options:HotelOption[];property?:HotelPropertyDetails}>('/api/travel/hotel-detail',{searchId:results?.searchId,hid:hotel.tjHotelId},task.signal);if(current(task.id)){setRooms({hid:hotel.tjHotelId,name:hotel.name,options:detail.options,property:detail.property??hotel.property});setRoomView(true);}}catch(error){report(error,task.id);}finally{finish(task.id);}
+    try{const detail=await api<{options:HotelOption[];property?:HotelPropertyDetails}>('/api/travel/hotel-detail',{searchId,hid:hotel.tjHotelId},task.signal);if(current(task.id)){setRooms({searchId,hid:hotel.tjHotelId,name:hotel.name,options:detail.options,property:detail.property??hotel.property});setRoomView(true);}}catch(error){report(error,task.id);}finally{finish(task.id);}
   }
   function chooseFare(group:string,fare:FlightFare,trigger:HTMLButtonElement){
     flightReturn.current={trigger,scrollY:window.scrollY};
@@ -494,6 +498,10 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     }catch(error){if(mounted.current){recovery.invalidate();setMessage(error instanceof Error?error.message:'Check the existing payment in My trips.');busyRef.current=false;setBusy(false);setActivity('');}}
   }
 
+  // Enrichment is display-only: never replace the chosen room's live rates or policies.
+  // Deriving from matching results also handles content arriving before room detail.
+  const roomListing=rooms?.searchId===results?.searchId?results?.results.hotels?.find(hotel=>hotel.tjHotelId===rooms?.hid):undefined;
+  const roomProperty=roomListing?.propertyContentStatus==='resolved'?roomListing.property??rooms?.property:rooms?.property??roomListing?.property;
   return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} onProductChange={switchProduct}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow${results||quote?' has-journey':''}${!quote?' booking-shopping':''}${busy&&activity==='Finding available journeys'?' is-searching':''}${product==='HOTEL'&&results&&!quote?' hotel-results-page':''}${results&&!quote&&!pairedFares?' results-only':''}`}>
     {loadRazorpay&&<Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onReady={()=>{const order=queuedCheckout.current;queuedCheckout.current=null;if(order&&mounted.current)openCheckout(order);}} onError={()=>{queuedCheckout.current=null;busyRef.current=false;setBusy(false);setActivity('');setMessage('Checkout could not load. Your existing order is preserved. Check My trips before trying again.');}}/>}
     <Link href="/" className="back">← Back to explore</Link>
@@ -542,7 +550,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
         </>}
         {product==='HOTEL'&&<HotelResults key={results.searchId} hotels={results.results.hotels??[]} context={hotelStayContext} checkingHotelId={checkingHotelId} metadataStatus={results.propertyContentPending?'loading':results.propertyContentUnavailable||results.results.hotels?.some(hotel=>hotel.propertyContentStatus==='unavailable')?'unavailable':'ready'} busy={busy} onChoose={(hotel,trigger)=>void chooseHotel(hotel,trigger)}/>}
       </section>}
-      {rooms&&roomView&&!quote&&product==='HOTEL'&&<HotelRoomView name={rooms.name} options={rooms.options} property={rooms.property} context={hotelStayContext} busy={busy} checkingOptionId={checkingSelection?.optionId} selectedOptionId={selectedRoom?.optionId} now={now} onBack={backToStays} onReview={optionId=>void review({hid:rooms.hid,optionId})}/>}
+      {rooms&&roomView&&!quote&&product==='HOTEL'&&<HotelRoomView name={rooms.name} options={rooms.options} property={roomProperty} context={hotelStayContext} busy={busy} checkingOptionId={checkingSelection?.optionId} selectedOptionId={selectedRoom?.optionId} now={now} onBack={backToStays} onReview={optionId=>void review({hid:rooms.hid,optionId})}/>}
       {quote&&<form ref={checkoutForm} id="booking-review" aria-label="Review and travellers" className="white-card booking-review" onSubmit={event=>{event.preventDefault();void submitCheckout(event.currentTarget);}}>
         <div className="page-heading"><div>{checkoutStep==='payment'&&<div className="eyebrow">ONE LAST LOOK</div>}<h2 id="booking-review-title" tabIndex={-1}>{!checkoutConfigured?'Your reviewed selection':checkoutStep==='payment'?'Review your booking':'Who’s coming along?'}</h2>{(checkoutStep==='payment'||(quote.product==='FLIGHT'&&!selectedJourney.some(flight=>flight.sI.length)))&&<h3>{summaryTitle}</h3>}<p>{quote.summary?.date||quote.summary?.checkIn}{(quote.summary?.returnDate||quote.summary?.checkOut)?` — ${quote.summary?.returnDate||quote.summary?.checkOut}`:''} · {party.length} traveller{party.length===1?'':'s'}{quote.product==='HOTEL'?` · ${reviewedRooms.length} room${reviewedRooms.length===1?'':'s'}`:''}</p></div><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{if(checkoutForm.current)privateDraft.current={party:party.join(','),values:Array.from(new FormData(checkoutForm.current).entries()).filter((entry):entry is [string,string]=>typeof entry[1]==='string'&&entry[0]!=='consent')};setQuote(null);setExtrasPending(false);setCheckoutStep('travellers');if(product==='HOTEL'&&rooms)setRoomView(true);else backToFlightResults();}}>Change selection</button></div>
         {!checkoutConfigured&&<section className="review-unavailable" aria-label="Payment unavailable"><h3>Payment unavailable</h3><p>This selection has been reviewed, but no booking has been made. Online payment and traveller entry are disabled.</p><div><button type="button" className="primary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{setQuote(null);setExtrasPending(false);if(product==='HOTEL')backToStays();else backToFlightResults();}}>Back to results</button><Link className="secondary" href="/customer-support">Contact MaxTravel</Link></div></section>}

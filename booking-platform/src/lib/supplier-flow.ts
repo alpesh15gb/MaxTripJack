@@ -50,7 +50,10 @@ export async function hotelDetail(searchId:string,hid:string,actor:Actor){const 
 export async function customerHotelDetail(searchId:string,hid:string,actor:Actor){
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
  if(search.product!=="HOTEL"||!search.criteria.hotelIds.includes(hid))throw new HttpError(400,"Hotel not part of this search.");
- const [data,rule,properties]=await Promise.all([hotelDetail(searchId,hid,actor),pricingRule("HOTEL",actor),hotelContentForSearch([hid],search.criteria.hotelIds)]);
+ const [data,rule]=await Promise.all([hotelDetail(searchId,hid,actor),pricingRule("HOTEL",actor)]);
+ // Room availability and mandatory rate policies must not wait for optional static content.
+ // The owned hotel-content request enriches the UI separately; never start detached work here.
+ const properties=hotelContentForSearch.peek([hid],search.criteria.hotelIds);
  return {...customerHotelOptions(data,rule),property:properties[hid]};
 }
 export async function reviewSupplier(searchId:string,selection:{priceIds?:string[];hid?:string;optionId?:string},actor:Actor){
