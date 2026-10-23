@@ -10,6 +10,7 @@ import { POST as verifyPayment } from "../src/app/api/payments/verify/route";
 import { runBookingJob } from "../src/lib/booking-runner";
 import { signature,crmSignature } from "../src/lib/signatures";
 import { database } from "../src/lib/db";
+import { verifyReportNextHttp } from "./booking-report-next-http";
 const base=process.env.BETTER_AUTH_URL!;
 if(!base||new URL(base).hostname!=="127.0.0.1")throw Error("Local development only.");
 const originalFetch=globalThis.fetch;
@@ -82,6 +83,8 @@ try{
  console.log("PASS mixed room occupancy: mocked Hotel v3 listing → pricing → review → Razorpay → re-review → book → confirmed status.");
  const commandSecret=randomBytes(32).toString("hex");process.env.CRM_COMMAND_KEYS=JSON.stringify({test:commandSecret});process.env.CRM_STAFF_ACTORS=JSON.stringify({"crm-staff":userId});
  await pool.query('UPDATE "user" SET "twoFactorEnabled"=true WHERE id=$1',[userId]);await pool.query("INSERT INTO admin_grants(user_id,permissions,active) VALUES($1,$2,true)",[userId,["bookings:read","finance:read","cancellations:manage","cancellations:execute","integrations:manage"]]);
+ const reportDate=(await pool.query("SELECT to_char(created_at AT TIME ZONE 'Asia/Kolkata','YYYY-MM-DD') AS date FROM orders WHERE id=$1",[bookingId])).rows[0].date;
+ await verifyReportNextHttp({base,cookie,transport:originalFetch,date:reportDate,bookingId,authorized:true});
  async function command(action:string,data:object={},targetId?:string,id=randomUUID(),valid=true){const payload={id,bookingId,actorId:"crm-staff",action,...(targetId?{targetId}:{}),data};const raw=JSON.stringify(payload),timestamp=String(Math.floor(Date.now()/1000));return {id,payload,response:await crmCommand(new Request(base+"/api/integrations/crm/commands",{method:"POST",headers:{"Content-Type":"application/json","x-maxtravel-key-id":"test","x-maxtravel-timestamp":timestamp,"x-maxtravel-command-id":id,"x-maxtravel-signature":valid?crmSignature(timestamp,id,raw,commandSecret):"0".repeat(64)},body:raw}))};}
  assert.equal((await command("STATUS",{},undefined,randomUUID(),false)).response.status,401);
  const live=await command("STATUS");assert.equal(live.response.status,200);const liveBody=await live.response.json();assert.equal(liveBody.order.status,"TICKETED");assert.equal("guests_encrypted" in liveBody.order,false);assert.equal("payments" in liveBody,false);
@@ -95,10 +98,13 @@ try{
  assert.equal((await command("CANCELLATION_CHARGES",{},randomUUID())).response.status,404);
  const sync=await command("RESYNC");assert.equal(sync.response.status,200);assert.equal((await command("RESYNC",{},undefined,sync.id)).response.status,200);
  await pool.query("UPDATE admin_grants SET active=false WHERE user_id=$1",[userId]);assert.equal((await command("STATUS")).response.status,403);
+ await verifyReportNextHttp({base,cookie,transport:originalFetch,date:reportDate,bookingId,authorized:false});
+ console.log("PASS actual Next report page/JSON/CSV with existing real session, finance grant, seeded booking, safe generic projection, and revoked-grant denial; no production auth bypass.");
  console.log("PASS CRM commands: separate-key signatures, mapped MFA grants, command replay/collision, scoped targets, cancellation review/offers, customer-consent gate, durable resync and revoked-grant denial.");
 
 }finally{
  globalThis.fetch=originalFetch;for(const [key,value]of Object.entries(before)){if(value===undefined)delete process.env[key];else process.env[key]=value;}
+ if(userId)await pool.query("DELETE FROM audit_events WHERE actor_id=$1 AND action='ADMIN_REPORT_EXPORTED'",[userId]);
  const ownedFixtures=userId?(await pool.query("SELECT id FROM orders WHERE user_id=$1",[userId])).rows.map(r=>r.id):fixtureBookings;
  for(const id of ownedFixtures){await pool.query("DELETE FROM crm_commands WHERE booking_id=$1",[id]);await pool.query("DELETE FROM cancellation_requests WHERE order_id=$1",[id]);for(const table of ["customer_notifications","supplier_booking_payloads","booking_jobs","gateway_intents","payments"])await pool.query(`DELETE FROM ${table} WHERE order_id=$1`,[id]);for(const table of ["outbox_events","audit_events"])await pool.query(`DELETE FROM ${table} WHERE ${table==="outbox_events"?"aggregate_id":"entity_id"}=$1`,[id]);await pool.query("DELETE FROM orders WHERE id=$1",[id]);}
  for(const id of fixtureQuotes)await pool.query("DELETE FROM supplier_quotes WHERE id=$1",[id]);for(const id of fixtureSearches)await pool.query("DELETE FROM supplier_searches WHERE id=$1",[id]);if(userId)await pool.query('DELETE FROM admin_grants WHERE user_id=$1',[userId]);if(userId)await pool.query('DELETE FROM "user" WHERE id=$1',[userId]);await pool.end();await database().end();

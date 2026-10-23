@@ -49,6 +49,7 @@ jobs:
           JS
           node --import tsx tests/guest-shopping-postgres.mts
           node --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/guest-shopping-routes.mts
+          node --import tsx tests/booking-report-postgres.mts
       - run: npm run lint && npm test && npm run test:refunds && npm run test:cancellations && npm run build && npm run build:workers
       - name: Start fixture server and check flows
         run: |

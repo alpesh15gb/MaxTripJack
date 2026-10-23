@@ -5,7 +5,7 @@ import { database,transaction } from "@/lib/db";
 import { body,json,failure,sameOrigin,HttpError } from "@/lib/http";
 import { resources,Resource } from "@/lib/admin-resources";
 import { refundableAmount } from "@/lib/booking-policy";
-function resourceName(value:string):Resource{if(!(value in resources))throw new HttpError(404,"Resource not found.");return value as Resource;}
+function resourceName(value:string):Resource{if(!Object.hasOwn(resources,value))throw new HttpError(404,"Resource not found.");return value as Resource;}
 type Context={params:Promise<{resource:string}>};
 export async function GET(request:Request,context:Context){try{const name=resourceName((await context.params).resource);await administrator(request,resources[name].permission);const page=z.coerce.number().int().min(1).max(10000).parse(new URL(request.url).searchParams.get("page")||1);const result=await database().query(resources[name].sql+" LIMIT 51 OFFSET $1",[(page-1)*50]);return json({rows:result.rows.slice(0,50),page,hasMore:result.rows.length>50});}catch(e){return failure(e);}}
 export async function POST(request:Request,context:Context){try{

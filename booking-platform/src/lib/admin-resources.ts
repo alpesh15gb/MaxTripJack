@@ -1,5 +1,6 @@
 export const resources={
- bookings:{permission:"bookings:read",sql:"SELECT id,reference,parent_order_id,service_kind,product,status,user_id,company_id,total_minor::text,supplier_minor::text,supplier_booking_id,created_at FROM orders ORDER BY created_at DESC"},
+ // Supplier cost belongs to finance-only reports, never the generic bookings desk/export.
+ bookings:{permission:"bookings:read",sql:"SELECT id,reference,parent_order_id,service_kind,product,status,user_id,company_id,total_minor::text,supplier_booking_id,created_at FROM orders ORDER BY created_at DESC"},
  companies:{permission:"companies:manage",sql:"SELECT c.id,c.name,c.gst_number,c.status,a.user_id,c.created_at FROM companies c LEFT JOIN customer_accounts a ON a.company_id=c.id ORDER BY c.created_at DESC"},
  pricing:{permission:"pricing:manage",sql:"SELECT p.id,p.product,p.company_id,c.name AS company_name,p.markup_minor::text,p.markup_basis_points,p.service_fee_minor::text,p.active,p.created_at FROM pricing_rules p LEFT JOIN companies c ON c.id=p.company_id ORDER BY p.created_at DESC"},
  cancellations:{permission:"cancellations:manage",sql:"SELECT c.id,o.reference,o.product,c.status,c.poll_attempts,c.is_partial,c.scope,c.reason,c.review_note,c.reviewed_by,c.created_at FROM cancellation_requests c JOIN orders o ON o.id=c.order_id ORDER BY c.created_at DESC"},
