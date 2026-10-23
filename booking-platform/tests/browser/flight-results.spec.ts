@@ -1,3 +1,4 @@
+import {travelDateLabel} from '../../src/lib/travel-date';
 import {test,expect,capture,departure,returning,flight,searchId,reviewedQuote,expectNoHorizontalOverflow} from './fixtures';
 import type {Flight} from '../../src/lib/booking-presentation';
 test('flight shopping preserves local dates, airport identity and party fare contracts while filtering',async({page,provider},testInfo)=>{
@@ -9,6 +10,8 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'DEL',to:'NMI',date:departure,adults:'2',children:'1',infants:'1',cabin:'ECONOMY',autoSearch:'1'}));
  const cards=page.locator('.flight-shopping-list .live-flight-card');await expect(cards).toHaveCount(3);
  await expect(cards.first()).toContainText('IndiGo');await expect(cards.last()).toContainText('Price at review');
+ await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(departure));
+ await expect(page.locator('#booking-search>summary')).not.toContainText(departure);
  await expect(page.locator('#booking-search>summary')).toContainText('4 travellers');await expect(page.locator('#booking-search>summary')).toContainText('ECONOMY');
  await page.locator('#flight-results-title').evaluate(node=>(node as HTMLElement).focus({preventScroll:true}));
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
@@ -23,7 +26,7 @@ test('flight shopping preserves local dates, airport identity and party fare con
  const shot=await page.screenshot({path:testInfo.outputPath(`flight-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});await testInfo.attach('flight-shopping viewport',{body:shot,contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-shopping-loaded');
  const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
- await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
+ await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');await expect(page.getByLabel('Active flight filters')).toContainText('Up to ₹7000 · all travellers');await expect(page.getByLabel('Active flight filters')).not.toContainText('/ party');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
  await page.getByRole('button',{name:'Reset flight filters',exact:true}).click();await expect(cards).toHaveCount(3);
  await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('EVENING');await expect(cards).toHaveCount(2);
  await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('13000');await expect(cards).toHaveCount(1);
@@ -39,7 +42,7 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await cards.first().locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['night-flex']});
- expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/search')[0].body).toMatchObject({date:departure});expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 

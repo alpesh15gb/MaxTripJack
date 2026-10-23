@@ -1,5 +1,5 @@
-import type {Page} from '@playwright/test';
-import {test,expect,openFlightSearch,departure,returning,searchId,syntheticSession} from './fixtures';
+import type {Locator,Page,TestInfo} from '@playwright/test';
+import {test,expect,openFlightSearch,departure,returning,searchId,syntheticSession,expectNoHorizontalOverflow} from './fixtures';
 
 const key='maxtravel:selection:v1';
 async function chooseFlight(page:Page){
@@ -17,6 +17,36 @@ async function followAccountLink(page:Page,selection=true){
  await expect(page.getByRole('heading',{level:1,name:selection?'Sign in to review your selection':'Sign in to continue your search',exact:true})).toBeVisible();
  return accountUrl;
 }
+async function naturalViewportEvidence(page:Page,info:TestInfo,name:string,critical:Locator[]){
+ // Observe the application's own focus/scroll. Never scroll a locator or take a
+ // full-page capture before recording the actual viewport seen by the traveller.
+ const settled=await page.evaluate(async()=>{
+  await document.fonts.ready;
+  return new Promise<boolean>(resolve=>{let last=scrollY,stable=0,frames=0;const tick=()=>{stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8)resolve(true);else if(++frames>=120)resolve(false);else requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+ });
+ expect(settled,'natural viewport must settle before evidence capture').toBe(true);
+ await expectNoHorizontalOverflow(page);
+ const focusedElement=await page.evaluateHandle(()=>document.activeElement);
+ const viewport=await page.evaluate(()=>({scrollX,scrollY,width:innerWidth,height:innerHeight,visualLeft:visualViewport?.offsetLeft??0,visualTop:visualViewport?.offsetTop??0,visualWidth:visualViewport?.width??innerWidth,visualHeight:visualViewport?.height??innerHeight,focusedId:document.activeElement?.id??null,focusedTag:document.activeElement?.tagName??null}));
+ const bounds=await Promise.all(critical.map(locator=>locator.evaluate(node=>{
+  const r=node.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+  return {text:node.textContent,top:r.top,bottom:r.bottom,left:r.left,right:r.right,centerVisible:Boolean(hit&&node.contains(hit))};
+ })));
+ const path=info.outputPath(`${name}-${info.project.name}-synthetic-viewport.png`);
+ await page.screenshot({path,fullPage:false,animations:'disabled'});
+ await info.attach(`${name} · natural viewport · synthetic provider data`,{path,contentType:'image/png'});
+ await info.attach(`${name} · natural viewport geometry`,{body:JSON.stringify({viewport,bounds},null,2),contentType:'application/json'});
+ for(const bound of bounds){
+  expect(bound.top,`${bound.text}: complete top in natural viewport`).toBeGreaterThanOrEqual(viewport.visualTop-1);
+  expect(bound.bottom,`${bound.text}: complete bottom in natural viewport`).toBeLessThanOrEqual(viewport.visualTop+viewport.visualHeight+1);
+  expect(bound.left,`${bound.text}: complete left in natural viewport`).toBeGreaterThanOrEqual(viewport.visualLeft-1);
+  expect(bound.right,`${bound.text}: complete right in natural viewport`).toBeLessThanOrEqual(viewport.visualLeft+viewport.visualWidth+1);
+  expect(bound.centerVisible,`${bound.text}: not obscured at its center`).toBe(true);
+ }
+ expect(await page.evaluate(()=>({scrollX,scrollY,focusedId:document.activeElement?.id??null}))).toEqual({scrollX:viewport.scrollX,scrollY:viewport.scrollY,focusedId:viewport.focusedId});
+ expect(await page.evaluate(previous=>document.activeElement===previous,focusedElement),'capture must preserve the actual focused element').toBe(true);
+ await focusedElement.dispose();
+}
 async function savedSelection(page:Page){
  const saved=page.getByRole('region',{name:'Saved selection',exact:true});
  await expect(saved).toBeVisible();
@@ -25,7 +55,7 @@ async function savedSelection(page:Page){
  return saved;
 }
 
-test('flight sign-in interruption preserves visible choice through Back, Forward and reload without repeat supplier calls',async({page,provider})=>{
+test('flight sign-in interruption preserves visible choice through Back, Forward and reload without repeat supplier calls',async({page,provider},info)=>{
  provider.session=null;
  provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await openFlightSearch(page);await chooseFlight(page);
@@ -46,6 +76,8 @@ test('flight sign-in interruption preserves visible choice through Back, Forward
  await page.reload();
  const saved=await savedSelection(page);
  await expect(saved).toContainText('BOM → DEL');await expect(saved).toContainText('Selected fare: STANDARD');
+ await expect(saved).toBeFocused();
+ await naturalViewportEvidence(page,info,'saved-flight-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'BOM → DEL',exact:true}),saved.getByText('Selected fare: STANDARD',{exact:true}),saved.getByRole('link',{name:'Sign in to review selection',exact:true}),saved.getByRole('button',{name:'Search again',exact:true})]);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(1);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -71,7 +103,7 @@ test('verified history return remains view-only; explicit account Continue check
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('hotel account interruption retains property, room and meals but never a cached price',async({page,provider})=>{
+test('hotel account interruption retains property, room and meals but never a cached price',async({page,provider},info)=>{
  provider.session=null;
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Palm House',customerEstimateMinor:800000}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'deluxe',roomInfo:[{name:'Deluxe twin room'}],mealBasis:'BREAKFAST',pricing:{totalPrice:8000},cancellation:{isRefundable:false,penalties:[]}}]}};
@@ -90,6 +122,8 @@ test('hotel account interruption retains property, room and meals but never a ca
  await page.reload();
  const saved=await savedSelection(page);
  await expect(saved).toContainText('Palm House');await expect(saved).toContainText('Deluxe twin room');await expect(saved).toContainText('BREAKFAST');
+ await expect(saved).toBeFocused();
+ await naturalViewportEvidence(page,info,'saved-hotel-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'Palm House',exact:true}),saved.getByText('Deluxe twin room',{exact:true}),saved.getByRole('link',{name:'Sign in to review selection',exact:true}),saved.getByRole('button',{name:'Search again',exact:true})]);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(1);
@@ -157,7 +191,7 @@ test('same return URL in a separate tab cannot invent a saved selection or call 
  }finally{await separate.close();}
 });
 
-test('slow fare check stays beside the chosen fare and blocks repeated clicks',async({page,provider})=>{
+test('slow fare check stays beside the chosen fare and blocks repeated clicks',async({page,provider},info)=>{
  let release!:()=>void;
  const gate=new Promise<void>(resolve=>{release=resolve;});
  await page.route('**/api/travel/review',async route=>{await gate;await route.fallback();});
@@ -167,6 +201,7 @@ test('slow fare check stays beside the chosen fare and blocks repeated clicks',a
   await expect(option.getByRole('button',{name:'Checking fare…',exact:true})).toBeDisabled();
   await expect(status).toBeVisible();
   await expect.poll(()=>status.evaluate(node=>{const r=node.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;})).toBe(true);
+  await naturalViewportEvidence(page,info,'selected-fare-check-pending',[status,option.getByRole('button',{name:'Checking fare…',exact:true})]);
   await option.locator('button').last().evaluate(node=>{(node as HTMLButtonElement).click();(node as HTMLButtonElement).click();});
   release();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
@@ -189,7 +224,7 @@ test('selection that expires while open is not sent for supplier review',async({
  expect(await page.evaluate(key=>sessionStorage.getItem(key),key)).toBeNull();
 });
 
-test('slow room review stays beside its rate and blocks repeated clicks',async({page,provider})=>{
+test('slow room review stays beside its rate and blocks repeated clicks',async({page,provider},info)=>{
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Palm House',customerEstimateMinor:800000}]}};
  let release!:()=>void;
  const gate=new Promise<void>(resolve=>{release=resolve;});
@@ -202,6 +237,7 @@ test('slow room review stays beside its rate and blocks repeated clicks',async({
   await expect(option.getByRole('button',{name:'Checking room…',exact:true})).toBeDisabled();
   await expect(status).toBeVisible();
   await expect.poll(()=>status.evaluate(node=>{const r=node.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;})).toBe(true);
+  await naturalViewportEvidence(page,info,'selected-room-check-pending',[status,option.getByRole('button',{name:'Checking room…',exact:true})]);
   await option.locator('button').last().evaluate(node=>{(node as HTMLButtonElement).click();(node as HTMLButtonElement).click();});
   release();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
@@ -209,7 +245,7 @@ test('slow room review stays beside its rate and blocks repeated clicks',async({
  }finally{release();}
 });
 
-test('room availability progress stays with the chosen property and prevents duplicate detail calls',async({page,provider})=>{
+test('room availability progress stays with the chosen property and prevents duplicate detail calls',async({page,provider},info)=>{
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Palm House',customerEstimateMinor:800000}]}};
  let release!:()=>void;
  const gate=new Promise<void>(resolve=>{release=resolve;});
@@ -221,6 +257,7 @@ test('room availability progress stays with the chosen property and prevents dup
   await expect(property.getByRole('button',{name:'Checking rooms…',exact:true})).toBeDisabled();
   await expect(status).toBeVisible();
   await expect.poll(()=>status.evaluate(node=>{const r=node.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;})).toBe(true);
+  await naturalViewportEvidence(page,info,'property-room-availability-pending',[status,property.getByRole('button',{name:'Checking rooms…',exact:true})]);
   await page.keyboard.press('Enter');release();
   await expect(page.getByRole('region',{name:'Room options',exact:true})).toBeVisible();
   expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
