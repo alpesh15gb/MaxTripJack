@@ -3,12 +3,28 @@ import { test, expect, capture, departure, expectNoHorizontalOverflow, synthetic
 
 const destination='/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',resumeSelection:'1'});
 const account='/account?'+new URLSearchParams({returnTo:destination});
-async function evidence(page:Page,info:TestInfo,name:string){
- await expectNoHorizontalOverflow(page);
- await capture(page,info,name);
- const path=info.outputPath(`${name}-viewport-${info.project.name}-synthetic.png`);
- await page.screenshot({path,animations:'disabled'});
- await info.attach(`${name} actual viewport`,{path,contentType:'image/png'});
+async function evidence(page:Page,info:TestInfo,name:string,naturalFeedback=false){
+ const snapshots:unknown[]=[];
+ const snapshot=async(stage:string)=>snapshots.push(await page.evaluate(stage=>{
+  const alert=document.querySelector('#booking-feedback [role="alert"]'),rect=alert?.getBoundingClientRect(),active=document.activeElement;
+  return {stage,scrollY,viewportHeight:innerHeight,visualTop:visualViewport?.offsetTop??0,visualHeight:visualViewport?.height??innerHeight,alertRect:rect?{top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right}:null,focusedTag:active?.tagName??null,focusedId:active?.id??null,alertFocused:active===alert};
+ },stage));
+ try{
+  await expectNoHorizontalOverflow(page);
+  await page.evaluate(()=>document.fonts.ready);
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  await snapshot('before-viewport');
+  if(naturalFeedback)await expectNaturalHandoffFeedback(page);
+  const path=info.outputPath(`${name}-viewport-${info.project.name}-synthetic.png`);
+  await page.screenshot({path,animations:'disabled'});
+  await snapshot('after-viewport');
+  await info.attach(`${name} actual viewport`,{path,contentType:'image/png'});
+  await snapshot('before-full-page');
+  await capture(page,info,name);
+  await snapshot('after-full-page');
+ }finally{
+  await info.attach(`${name} capture geometry`,{body:JSON.stringify(snapshots,null,2),contentType:'application/json'});
+ }
 }
 
 async function expectNaturalHandoffFeedback(page:Page){
@@ -101,7 +117,7 @@ test('expired selection returns to honest retained-criteria search without autom
  await page.getByRole('link',{name:'Continue to review selection',exact:true}).click();
  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Your previous selection has expired');
  await expectNaturalHandoffFeedback(page);
- await evidence(page,info,'selection-expired-visible');
+ await evidence(page,info,'selection-expired-visible',true);
  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
@@ -163,10 +179,11 @@ test('missing tab selection is not described as expired and never starts a provi
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNaturalHandoffFeedback(page);
- await evidence(page,info,'selection-missing-this-tab');
+ await evidence(page,info,'selection-missing-this-tab',true);
  // Go back to retained criteria through real controls; updates must not pull focus/scroll back.
  await page.locator('.booking-party-picker>summary').click();
- const adults=page.getByLabel('Adults',{exact:true});
+ const adults=page.getByRole('combobox',{name:'Adults',exact:true});
+ await expect(adults).toHaveAccessibleName('Adults');
  await adults.focus();await adults.selectOption('2');
  const editingScroll=await page.evaluate(()=>scrollY);
  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
