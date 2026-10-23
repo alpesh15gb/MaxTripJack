@@ -11,6 +11,12 @@ async function evidence(page:Page,info:TestInfo,name:string){
  await info.attach(`${name} actual viewport`,{path,contentType:'image/png'});
 }
 
+async function expectNaturalHandoffFeedback(page:Page){
+ const alert=page.locator('#booking-feedback').getByRole('alert');
+ await expect(alert).toBeFocused();
+ await expect.poll(()=>alert.evaluate(node=>{const r=node.getBoundingClientRect(),view=visualViewport;const top=view?.offsetTop??0,bottom=top+(view?.height??innerHeight);return r.top>=top&&r.bottom<=bottom&&node.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));})).toBe(true);
+}
+
 test('booking return explains sign-in purpose without authenticating or claiming a reservation',async({page,provider},info)=>{
  provider.session=null;
  await page.goto(account);
@@ -89,11 +95,13 @@ test('return without selection intent offers search rather than pretending a far
  await expect(page.getByRole('link',{name:'Continue to review selection',exact:true})).toHaveCount(0);
 });
 
-test('expired selection returns to honest retained-criteria search without automatic provider calls',async({page,provider})=>{
+test('expired selection returns to honest retained-criteria search without automatic provider calls',async({page,provider},info)=>{
  await page.goto(account);
  await page.evaluate(()=>sessionStorage.setItem('maxtravel:selection:v1',JSON.stringify({version:1,savedAt:0,product:'FLIGHT',searchId:'11111111-1111-4111-8111-111111111111',selection:{priceIds:['synthetic-expired']},flights:[]})));
  await page.getByRole('link',{name:'Continue to review selection',exact:true}).click();
  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Your previous selection has expired');
+ await expectNaturalHandoffFeedback(page);
+ await evidence(page,info,'selection-expired-visible');
  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
@@ -154,7 +162,20 @@ test('missing tab selection is not described as expired and never starts a provi
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expectNaturalHandoffFeedback(page);
  await evidence(page,info,'selection-missing-this-tab');
+ // Go back to retained criteria through real controls; updates must not pull focus/scroll back.
+ await page.locator('.booking-party-picker>summary').click();
+ const adults=page.getByLabel('Adults',{exact:true});
+ await adults.focus();await adults.selectOption('2');
+ const editingScroll=await page.evaluate(()=>scrollY);
+ await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+ await expect(adults).toBeFocused();
+ expect(await page.evaluate(()=>scrollY)).toBeCloseTo(editingScroll,0);
+ await expect(adults).toHaveValue('2');
+ expect(provider.requests('/api/travel/search')).toHaveLength(0);
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 test('corrupt or future tab selections fail closed without claiming expiry',async({page,provider})=>{
@@ -165,6 +186,7 @@ test('corrupt or future tab selections fail closed without claiming expiry',asyn
   const feedback=page.locator('#booking-feedback').getByRole('alert');
   await expect(feedback).toContainText('We couldn’t recover your selection in this tab');
   await expect(feedback).not.toContainText('has expired');
+  await expectNaturalHandoffFeedback(page);
  }
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
@@ -179,6 +201,7 @@ test('unreadable browser storage gives a recoverable search explanation, not inv
  await page.goto(destination);
  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('We couldn’t recover your selection in this tab');
  await expect(page.locator('#booking-feedback')).not.toContainText('has expired');
+ await expectNaturalHandoffFeedback(page);
  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);

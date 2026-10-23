@@ -72,6 +72,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const [freshSearchRequired,setFreshSearchRequired]=useState(false);
   const [resumeSelection,setResumeSelection]=useState<Selection|null>(null);
   const handoffRead=useRef(false);
+  const handoffFeedbackFocus=useRef<string|null>(null);
   const privateDraft=useRef<{party:string;values:[string,string][]}|null>(null);
   const recovery=useCheckoutRecovery();
   const initialProduct:Product=prefill.product==='HOTEL'?'HOTEL':'FLIGHT';
@@ -90,6 +91,21 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const [hotelStayContext,setHotelStayContext]=useState<HotelStayContext|null>(null);
   const [busy,setBusy]=useState(false),[activity,setActivity]=useState(''),[message,setMessage]=useState(prefill.searchInvalid==='1'?'This search link is invalid or its dates have passed. Please choose your journey again.':'');
   const [searchValidation,setSearchValidation]=useState(false);
+  // One route-entry handoff failure, after its alert commits. Never refocus later
+  // messages or interrupt a person who has already started using a control.
+  useEffect(()=>{
+    const expected=handoffFeedbackFocus.current;if(!expected)return;
+    if(message!==expected){handoffFeedbackFocus.current=null;return;}
+    const frame=requestAnimationFrame(()=>{
+      if(handoffFeedbackFocus.current!==expected)return;
+      handoffFeedbackFocus.current=null;
+      const active=document.activeElement;
+      if(active instanceof HTMLElement&&active.matches('input,textarea,select,button,a[href],summary,[contenteditable="true"]'))return;
+      const alert=document.querySelector<HTMLElement>('#booking-feedback [role="alert"]');
+      alert?.focus({preventScroll:true});alert?.scrollIntoView({behavior:'auto',block:'center'});
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[message]);
   useEffect(()=>{if(busy||!stoppedSearchFocus.current)return;const frame=requestAnimationFrame(()=>{stoppedSearchFocus.current=false;if(document.activeElement!==document.body&&document.activeElement!==document.documentElement)return;const input=searchForm.current?.querySelector<HTMLInputElement>('input:not([type=hidden])');input?.focus();});return()=>cancelAnimationFrame(frame);},[busy]);
   const [results,setResults]=useState<Results|null>(null),[quote,setQuote]=useState<Quote|null>(null);
   const [hasFullSearchResults,setHasFullSearchResults]=useState(false);
@@ -206,7 +222,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     try{recovered=inspectBookingHandoff(JSON.parse(sessionStorage.getItem(BOOKING_HANDOFF_KEY)||'null'));}catch{}
     const timer=setTimeout(()=>{
       handoffRead.current=true;
-      if(recovered.state!=='ready'){setMessage(recovered.state==='expired'?'Your previous selection has expired. Search again for current availability.':'We couldn’t recover your selection in this tab. Return to the original tab, or search again for current availability.');return;}
+      if(recovered.state!=='ready'){const feedback=recovered.state==='expired'?'Your previous selection has expired. Search again for current availability.':'We couldn’t recover your selection in this tab. Return to the original tab, or search again for current availability.';handoffFeedbackFocus.current=feedback;setMessage(feedback);return;}
       const handoff=recovered.handoff;
       setProduct(handoff.product);setHasFullSearchResults(false);setResults({searchId:handoff.searchId,results:{}});setSelectedJourney(handoff.flights);setResumeSelection(handoff.selection);
     },0);
@@ -467,7 +483,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
           <p className="muted search-footnote">{product==='FLIGHT'?'Up to 9 adults and children, plus infants. All results show your party’s estimated total.':'Set guests for each room. Child ages must match their dates of birth at check-in.'}</p><button className="primary booking-search-submit" disabled={busy}>{busy?'Checking availability…':product==='FLIGHT'?'Search flights':'Search stays'}</button>
         </fieldset>{quote&&<p className="muted">To edit your search, return to your selection first.</p>}
       </form></details>
-      <div id="booking-feedback" tabIndex={-1}>{message&&<div className={`booking-status info-message${signInRequired||signInWithoutSelection?' signin-review-gate':''}`} role="alert">
+      <div id="booking-feedback" tabIndex={-1}>{message&&<div className={`booking-status info-message${signInRequired||signInWithoutSelection?' signin-review-gate':''}`} role="alert" tabIndex={-1}>
         {(signInRequired||signInWithoutSelection)&&<h2 id="booking-signin-title" tabIndex={-1}>{signInRequired?'Sign in to review your selection':'Sign in, then search again'}</h2>}<p>{message}</p>
         {signInRequired&&<div className="signin-selection-context"><strong>{product==='HOTEL'?rooms?.name||'Selected stay':'Selected flight'}</strong><p>{product==='HOTEL'?hotelRoomLabel({roomInfo:selectedRoom?.roomInfo??[]}):selectedJourney.map(flight=>`${flight.sI[0]?.da.code} → ${flight.sI.at(-1)?.aa.code} · ${flight.sI[0]?.dt.replace('T',' ').slice(0,16)}`).join(' / ')}</p><div className="signin-selection-actions"><Link className="primary" href={accountHref('/book?'+new URLSearchParams({...submittedSearch,resumeSelection:'1'}).toString())}>Sign in to review selection</Link><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{if(!hasFullSearchResults){recoverSearch();return;}if(product==='HOTEL'&&!roomView){setRoomView(true);return;}const target=document.getElementById(product==='HOTEL'?'room-choice-title':'flight-results-title');target?.focus({preventScroll:true});target?.scrollIntoView({behavior:'auto',block:'start'});}}>{product==='HOTEL'?'Back to room options':'Back to fares'}</button></div></div>}
         {!signInRequired&&/sign in/i.test(message)&&<Link className={signInWithoutSelection?"primary signin-search-again":"inline-link"} href={accountHref('/book?'+new URLSearchParams(Object.fromEntries(Object.entries(submittedSearch).filter(([key])=>!signInWithoutSelection||!['resumeSelection','autoSearch'].includes(key)))).toString())}>{signInWithoutSelection?'Sign in, then search again':'Sign in or create an account'}</Link>}
