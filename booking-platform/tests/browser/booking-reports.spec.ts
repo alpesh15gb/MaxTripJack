@@ -36,7 +36,7 @@ test("reports keep draft filters separate, export the applied whole cohort, and 
   await expect(page.getByRole("heading", { name: "Know where every booking stands." })).toBeVisible();
   await expect(page.getByText(reportRow.reference, { exact: true })).toBeVisible();
   await expect(page.getByText("Current state, not period cash flow.", { exact: true })).toBeVisible();
-  await page.getByLabel("Product", { exact: true }).selectOption("HOTEL");
+  await page.getByRole("combobox", { name: "Product", exact: true }).selectOption("HOTEL");
   await expect(page.getByText(/You have unapplied changes/)).toBeVisible();
   expect(requests).toHaveLength(1);
   await expect(page.getByLabel("Applied report filters")).toContainText("All products");
@@ -70,7 +70,7 @@ test("a newer applied cohort wins a slow response; revoked access clears all fin
     finally { if (product === "ALL") routeSettled(); }
   });
   await page.goto("/operations/reports?from=2026-10-23&to=2026-10-23"); await pending;
-  await page.getByLabel("Product", { exact: true }).selectOption("HOTEL"); await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await page.getByRole("combobox", { name: "Product", exact: true }).selectOption("HOTEL"); await page.getByRole("button", { name: "Apply filters", exact: true }).click();
   await expect(page.getByText("SYNTHETIC-HOTEL-REPORT", { exact: true })).toBeVisible();
   release();
   await obsoleteSettled;
