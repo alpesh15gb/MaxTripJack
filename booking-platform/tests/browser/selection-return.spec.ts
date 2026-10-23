@@ -6,6 +6,17 @@ async function chooseFlight(page:Page){
  await page.locator('.fare-comparison > summary').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
 }
+async function followAccountLink(page:Page,selection=true){
+ const link=page.getByRole('link',{name:selection?'Sign in to review selection':'Sign in, then search again',exact:true});
+ const href=await link.getAttribute('href');expect(href).not.toBeNull();
+ const accountUrl=new URL(href!,page.url()).href;
+ await link.click();
+ // Next client navigation completes after the click handler. Before reading the
+ // URL, reloading or pressing Back, prove the destination/history entry committed.
+ await expect(page).toHaveURL(accountUrl);
+ await expect(page.getByRole('heading',{level:1,name:selection?'Sign in to review your selection':'Sign in to continue your search',exact:true})).toBeVisible();
+ return accountUrl;
+}
 async function savedSelection(page:Page){
  const saved=page.getByRole('region',{name:'Saved selection',exact:true});
  await expect(saved).toBeVisible();
@@ -25,7 +36,7 @@ test('flight sign-in interruption preserves visible choice through Back, Forward
  const historyUrl=page.url();
  expect(new URL(historyUrl).searchParams.get('resumeReview')).toBe('0');
  expect(new URL(historyUrl).searchParams.get('selectionKey')).toMatch(/^[0-9a-f-]{36}$/);
- await page.getByRole('link',{name:'Sign in to review selection',exact:true}).click();
+ await followAccountLink(page);
  await expect(page).toHaveURL(/\/account\?/);
  await page.goBack();
  await expect(page).toHaveURL(historyUrl);
@@ -45,8 +56,7 @@ test('verified history return remains view-only; explicit account Continue check
  await openFlightSearch(page);await chooseFlight(page);
  await expect(page.locator('#booking-signin-title')).toBeVisible();
  const historyUrl=page.url();
- await page.getByRole('link',{name:'Sign in to review selection',exact:true}).click();
- const accountUrl=page.url();
+ const accountUrl=await followAccountLink(page);
  provider.session=syntheticSession();delete provider.overrides['POST /api/travel/review'];
  await page.goto(historyUrl);
  const saved=await savedSelection(page);
@@ -71,8 +81,13 @@ test('hotel account interruption retains property, room and meals but never a ca
  await page.getByRole('button',{name:'Review stay',exact:true}).click();
  await expect(page.locator('.signin-selection-context')).toContainText('Deluxe twin room');
  const historyUrl=page.url();
- await page.getByRole('link',{name:'Sign in to review selection',exact:true}).click();await page.goBack();
- await expect(page).toHaveURL(historyUrl);await page.reload();
+ await followAccountLink(page);await page.goBack();
+ await expect(page).toHaveURL(historyUrl);
+ await expect(page.getByRole('main')).toContainText('Deluxe twin room');
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
+ expect(provider.requests('/api/travel/review')).toHaveLength(1);
+ await page.reload();
  const saved=await savedSelection(page);
  await expect(saved).toContainText('Palm House');await expect(saved).toContainText('Deluxe twin room');await expect(saved).toContainText('BREAKFAST');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -87,7 +102,7 @@ for(const corruption of ['expired','malformed','malformed-key','superseded'] as 
   await openFlightSearch(page);await chooseFlight(page);
   await expect(page.locator('#booking-signin-title')).toBeVisible();
   const historyUrl=page.url();
-  await page.getByRole('link',{name:'Sign in to review selection',exact:true}).click();
+  await followAccountLink(page);
   await page.evaluate(({key,corruption})=>{
    const handoff=JSON.parse(sessionStorage.getItem(key)!);
    if(corruption==='expired')handoff.savedAt=Date.now()-14*60*1000;
@@ -275,7 +290,7 @@ test('an older account Continue link cannot adopt a newer saved selection',async
  const returnTarget=new URL(accountTarget.searchParams.get('returnTo')!,'http://127.0.0.1:3100');
  expect(returnTarget.searchParams.get('selectionKey')).toBe(originalKey);
  expect(returnTarget.searchParams.get('resumeReview')).toBe('1');
- await signIn.click();
+ await followAccountLink(page);
  await page.evaluate(key=>{
   const handoff=JSON.parse(sessionStorage.getItem(key)!);
   handoff.key='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';handoff.selection={priceIds:['different-newer-fare']};
@@ -320,7 +335,7 @@ test('failed storage replacement clears old selection and keeps account Back fre
  const historyUrl=page.url();
  expect(new URL(historyUrl).searchParams.has('resumeSelection')).toBe(false);
  expect(new URL(historyUrl).searchParams.has('autoSearch')).toBe(false);
- await page.getByRole('link',{name:'Sign in, then search again',exact:true}).click();
+ await followAccountLink(page,false);
  await page.goBack();await expect(page).toHaveURL(historyUrl);
  await expect(page.locator('#booking-search')).toBeVisible();
  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));

@@ -101,3 +101,15 @@ jobs:
             booking-platform/test-results-payglocal/
           if-no-files-found: warn
           retention-days: 14
+      - name: Preserve lightweight visual review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: booking-ui-screenshots-and-errors
+          path: |
+            booking-platform/test-results/**/*.png
+            booking-platform/test-results/**/error-context.md
+            booking-platform/test-results-payglocal/**/*.png
+            booking-platform/test-results-payglocal/**/error-context.md
+          if-no-files-found: warn
+          retention-days: 14
