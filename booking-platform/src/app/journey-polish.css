@@ -118,7 +118,7 @@
  .journey-flow.booking-workflow .traveller-card>.muted{font-size:14px;line-height:1.4;margin:0 0 8px}
  .journey-flow.booking-workflow .traveller-identity{display:flex;flex-wrap:wrap;gap:8px}
  .journey-flow.booking-workflow .traveller-identity>label:nth-child(n+3){flex-basis:100%}
- .journey-flow.booking-workflow .traveller-identity>label{min-width:0;font-size:16px;margin:0;flex:1 1 7em}
- .journey-flow.booking-workflow .traveller-identity>label:first-child{flex:0 1 6em}
+ .journey-flow.booking-workflow .traveller-identity>label{min-width:0;font-size:16px;margin:0;flex:1 1 6em}
+ .journey-flow.booking-workflow .traveller-identity>label:first-child{flex:0 1 7em}
  .journey-flow.booking-workflow .traveller-identity :is(input,select){min-width:0;width:100%;min-height:44px;padding:10px 8px}
 }

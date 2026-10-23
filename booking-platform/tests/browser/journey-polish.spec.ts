@@ -25,6 +25,14 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
    await expect.poll(()=>page.evaluate(()=>((window as unknown as {__feedbackTiming:{visible:number}}).__feedbackTiming.visible))).toBeGreaterThan(0);
    const timing=await page.evaluate(()=>((window as unknown as {__feedbackTiming:{submitted:number;visible:number}}).__feedbackTiming));expect(timing.visible-timing.submitted).toBeGreaterThanOrEqual(0);expect(timing.visible-timing.submitted).toBeLessThan(1000);
    await info.attach('synthetic-submit-to-visible-feedback-ms',{body:JSON.stringify(timing),contentType:'application/json'});
+   const motion=await pending.locator(product==='FLIGHT'?'.journey-search-plane':'.journey-search-stay').evaluate(async node=>{
+    const animation=node.getAnimations()[0];if(!animation)throw new Error('Expected a running decorative search animation');
+    const initial={currentTime:Number(animation.currentTime),transform:getComputedStyle(node).transform,playState:animation.playState};
+    const observed=await new Promise<typeof initial>((resolve,reject)=>{let frames=0;const tick=()=>{const next={currentTime:Number(animation.currentTime),transform:getComputedStyle(node).transform,playState:animation.playState};if(next.currentTime-initial.currentTime>=16&&next.transform!==initial.transform)resolve(next);else if(++frames>=120)reject(new Error('Decorative animation did not advance across animation frames'));else requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+    return {initial,observed};
+   });
+   expect(motion.initial.playState).toBe('running');expect(motion.observed.playState).toBe('running');expect(motion.observed.currentTime).toBeGreaterThan(motion.initial.currentTime);expect(motion.observed.transform).not.toBe(motion.initial.transform);
+   await info.attach(`${product.toLowerCase()}-animation-frame-evidence`,{body:JSON.stringify(motion),contentType:'application/json'});
    await shot(page,info,`${product.toLowerCase()}-animated-pending`,[pending.getByRole('heading'),pending.getByRole('button',{name:'Stop search & edit',exact:true})]);
    await pending.getByRole('button',{name:'Stop search & edit',exact:true}).click();await expect(pending).toHaveCount(0);await expect(page.locator('#booking-feedback')).toContainText('Search stopped on this page');
    await expect(page.getByRole('form',{name:'Search availability'}).locator('input:not([type=hidden])').first()).toBeFocused();
@@ -61,6 +69,13 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   const expiryWidth=await page.locator('.booking-expiry').evaluate(node=>{const content=node.firstElementChild!.getBoundingClientRect(),box=node.getBoundingClientRect();return {content:content.width,available:box.width-22};});
   if((page.viewportSize()?.width??1440)<=600)expect(expiryWidth.content).toBeGreaterThanOrEqual(expiryWidth.available-1);
   await shot(page,info,'compact-traveller-entry',[page.locator('.selected-reviewed-total'),page.locator('.booking-expiry'),page.getByRole('textbox',{name:'First name',exact:true})]);
+  await expect(page.locator('.mobile-booking-action')).toHaveCount(0);
+  const firstName=page.getByRole('textbox',{name:'First name',exact:true});
+  const firstVisibility=await firstName.evaluate(node=>{const r=node.getBoundingClientRect(),view=visualViewport;return {top:r.top,bottom:r.bottom,viewportTop:view?.offsetTop??0,viewportBottom:(view?.offsetTop??0)+(view?.height??innerHeight),hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===node};});
+  expect(firstVisibility.top).toBeGreaterThanOrEqual(firstVisibility.viewportTop);expect(firstVisibility.bottom).toBeLessThanOrEqual(firstVisibility.viewportBottom);expect(firstVisibility.hit).toBe(true);
+  await expect(page.locator('#booking-review-title')).toBeFocused();
+  for(let tabs=0;tabs<12&&!await firstName.evaluate(node=>node===document.activeElement);tabs++)await page.keyboard.press('Tab');
+  await expect(firstName).toBeFocused();
   await page.getByText('Original search details & fare',{exact:true}).click();await expect(page.locator('.selected-source-details')).toContainText('₹7,200.50');await expect(page.locator('.selected-source-details')).toContainText('Estimated total');
   if((page.viewportSize()?.width??1440)<=600){
    const title=page.locator('select[name="title-0"]');await title.selectOption('Master');
