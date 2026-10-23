@@ -6,8 +6,16 @@ const fare=z.object({id:z.string(),fareIdentifier:z.string(),customerEstimateMin
 const schema=z.object({version:z.literal(1),savedAt:z.number(),product:z.enum(['FLIGHT','HOTEL']),searchId:z.string().uuid(),selection:z.object({priceIds:z.array(z.string()).max(12).optional(),hid:z.string().optional(),optionId:z.string().optional()}),flights:z.array(z.object({sI:z.array(segment).max(24),totalPriceList:z.array(fare).max(12)})).max(12)});
 export type BookingHandoff=z.infer<typeof schema>;
 export const BOOKING_HANDOFF_KEY='maxtravel:selection:v1';
-export function parseBookingHandoff(value:unknown,now=Date.now()):BookingHandoff|null{
- const parsed=schema.safeParse(value);if(!parsed.success)return null;
+export type BookingHandoffState={state:'ready';handoff:BookingHandoff}|{state:'expired'|'unavailable'};
+/** Expiry is known only after the full stored selection validates. Missing, corrupt,
+ * inaccessible or future-dated tab data must not be described as an expired fare. */
+export function inspectBookingHandoff(value:unknown,now=Date.now()):BookingHandoffState{
+ const parsed=schema.safeParse(value);if(!parsed.success||!Number.isFinite(now))return {state:'unavailable'};
  const age=now-parsed.data.savedAt;
- return age>=0&&age<14*60*1000?parsed.data:null;
+ if(age<0)return {state:'unavailable'};
+ return age<14*60*1000?{state:'ready',handoff:parsed.data}:{state:'expired'};
+}
+export function parseBookingHandoff(value:unknown,now=Date.now()):BookingHandoff|null{
+ const result=inspectBookingHandoff(value,now);
+ return result.state==='ready'?result.handoff:null;
 }

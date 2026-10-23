@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
 import {hotelCancellationLabel,hotelRoomLabel,type HotelPropertyDetails,type HotelRoomOption} from '@/lib/hotel-presentation';
-import {BOOKING_HANDOFF_KEY,parseBookingHandoff} from '@/lib/booking-handoff';
+import {BOOKING_HANDOFF_KEY,inspectBookingHandoff,parseBookingHandoff} from '@/lib/booking-handoff';
 import {completeHotelRooms,type DraftHotelRoom} from '@/lib/hotel-occupancy';
 import {bookingSearchUrl,searchRooms,searchLegs} from '@/lib/booking-search-state';
 import {accountHref} from '@/lib/account-return';
@@ -202,11 +202,12 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
 
   useEffect(()=>{
     if(prefill.resumeSelection!=='1'||handoffRead.current)return;
-    let handoff=null;
-    try{handoff=parseBookingHandoff(JSON.parse(sessionStorage.getItem(BOOKING_HANDOFF_KEY)||'null'));}catch{}
+    let recovered=inspectBookingHandoff(null);
+    try{recovered=inspectBookingHandoff(JSON.parse(sessionStorage.getItem(BOOKING_HANDOFF_KEY)||'null'));}catch{}
     const timer=setTimeout(()=>{
       handoffRead.current=true;
-      if(!handoff){setMessage('Your previous selection has expired. Search again for current availability.');return;}
+      if(recovered.state!=='ready'){setMessage(recovered.state==='expired'?'Your previous selection has expired. Search again for current availability.':'We couldn’t recover your selection in this tab. Return to the original tab, or search again for current availability.');return;}
+      const handoff=recovered.handoff;
       setProduct(handoff.product);setHasFullSearchResults(false);setResults({searchId:handoff.searchId,results:{}});setSelectedJourney(handoff.flights);setResumeSelection(handoff.selection);
     },0);
     return()=>clearTimeout(timer);
