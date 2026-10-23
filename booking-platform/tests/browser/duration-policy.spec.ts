@@ -22,14 +22,14 @@ test(`hotel policy windows are readable and positive amount meaning stays unveri
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
  await page.getByRole('button',{name:'Choose room',exact:true}).click();await expect(page.locator('#room-choice-title')).toBeFocused();await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeInViewport();
  await page.getByText('Full cancellation policy & room details',{exact:true}).click();const timeline=page.getByRole('region',{name:'Hotel cancellation windows'});
- await expect(timeline).toContainText('India Standard Time');await expect(timeline).toContainText('21 Oct 2026');await expect(timeline).toContainText('Reported amount: 1000. Currency, units and calculation basis are not specified.');
+ await expect(timeline).toContainText('India Standard Time');await expect(timeline).toContainText('21 Oct 2026');await expect(timeline).toContainText('The exact charge cannot be confirmed: the supplier has not specified the currency, units or calculation basis.');
  await expect(timeline).not.toContainText('₹');await timeline.getByText('Original supplier policy details',{exact:true}).click();await expect(timeline).toContainText('2026-10-21T00:00:00');
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-policy-windows-synthetic');expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.getByRole('button',{name:'Review stay',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();
  await expect(page.locator('#booking-review-title')).toHaveText('Who’s coming along?');
  await page.getByText('Fare conditions, cancellation & documents',{exact:true}).click();
- const reviewed=page.getByRole('region',{name:'Hotel cancellation windows'});await expect(reviewed).toContainText('Reported amount: 1000. Currency, units and calculation basis are not specified.');
+ const reviewed=page.getByRole('region',{name:'Hotel cancellation windows'});await expect(reviewed).toContainText('The exact charge cannot be confirmed: the supplier has not specified the currency, units or calculation basis.');
  expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toMatchObject({optionId:'exact-policy-room'});
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-reviewed-policy-synthetic');

@@ -29,3 +29,13 @@ test('URLs remain bounded and never truncate selected hotel inventory',()=>{
  const maxLegs=bookingSearchUrl({product:'FLIGHT',legs:JSON.stringify(Array(6).fill(legs[0])),adults:'9',infants:'9',cabin:'PREMIUM_ECONOMY'},today)!;
  assert.ok(maxLegs.length<2000);assert.deepEqual(params(safeAccountReturn(maxLegs+'&resumeSelection=1')),params(maxLegs+'&resumeSelection=1'));
 });
+
+test('selection history intent and opaque key are bounded and survive a safe return URL',()=>{
+ const selectionKey='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ const criteria={product:'FLIGHT',resumeSelection:'1',resumeReview:'0',selectionKey};
+ assert.deepEqual(bookingSearchPrefill(criteria),criteria);
+ const url=bookingSearchUrl(criteria);
+ assert.ok(url?.includes('resumeReview=0'));
+ assert.ok(url?.includes(`selectionKey=${selectionKey}`));
+ for(const extra of [{selectionKey:'not-a-key'},{resumeReview:'yes'}])assert.equal(bookingSearchPrefill({...criteria,...extra}).searchInvalid,'1');
+});

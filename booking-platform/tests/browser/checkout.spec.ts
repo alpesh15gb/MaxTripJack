@@ -199,7 +199,7 @@ test('unknown local-time duration is not guessed and COMBO journeys are not conn
   unknownDuration.sI[0].duration = 0;
   provider.search = { searchId, results: { searchResult: { tripInfos: { ONWARD: [unknownDuration] } } } };
   await openFlightSearch(page);
-  await expect(page.getByText('Times shown in local airport time', { exact: true })).toBeVisible();
+  await expect(page.getByText('Total duration unavailable', { exact: true })).toBeVisible();
   const combo = { ...flight(), sI: [...flight().sI, ...flight('RETURN').sI] };
   provider.search = { searchId, results: { searchResult: { tripInfos: { COMBO: [combo] } } } };
   await openFlightSearch(page, { roundTrip: true });
@@ -455,7 +455,7 @@ test('guest selection survives sign-in without persisting private fields or an o
 test('changing fare preserves private traveller draft only in the current page',async({page})=>{
  await openReviewedFlight(page);await fillDomesticTraveller(page);
  await page.getByRole('button',{name:'Change selection',exact:true}).click();
- await selectVisibleFare(page);
+ await selectVisibleFare(page,'Selected');
  await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
  await expect(page.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
@@ -518,7 +518,7 @@ test('forbidden fare review is not presented as a sign-in bypass or a saved book
  await openFlightSearch(page);await selectVisibleFare(page);
  await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
  provider.overrides['POST /api/travel/review']={status:403,body:{error:'Your account is suspended. Contact support.'}};
- await selectVisibleFare(page);
+ await selectVisibleFare(page,'Selected');
  await expect(page.locator('#booking-feedback')).toContainText('Your account is suspended. Contact support.');
  await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toHaveCount(0);
  await expect(page.getByRole('form',{name:'Review and travellers'})).toHaveCount(0);
@@ -588,7 +588,7 @@ test('saved selection opened while signed out explains the account step without 
 test('expired selection abandons obsolete account handoff without an automatic new supplier search',async({page,provider})=>{
  await savedGuestSelection(page,provider);
  provider.overrides['POST /api/travel/review']={status:409,body:{error:'This search has expired. Search again for current availability.'}};
- await selectVisibleFare(page);await page.getByRole('button',{name:'Start a fresh search',exact:true}).click();
+ await selectVisibleFare(page,'Selected');await page.getByRole('button',{name:'Start a fresh search',exact:true}).click();
  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
  await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toHaveCount(0);
  await expect(page.locator('.signin-selection-context')).toHaveCount(0);

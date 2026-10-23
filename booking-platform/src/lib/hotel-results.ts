@@ -1,4 +1,4 @@
-import type {HotelPropertyDetails} from './hotel-presentation';
+import {hotelStringList,type HotelPropertyDetails} from './hotel-presentation';
 import type {HotelContentStatus} from './hotel-content-cache';
 export type HotelResult={tjHotelId:string;name:string;customerEstimateMinor?:number|null;property?:HotelPropertyDetails;propertyContentStatus?:HotelContentStatus};
 export type HotelStayContext={checkIn:string;checkOut:string;rooms:number;guests:number};
@@ -9,8 +9,15 @@ export function stayNights(context:HotelStayContext|null):number|null{
  const nights=(Date.parse(context.checkOut+'T00:00:00Z')-Date.parse(context.checkIn+'T00:00:00Z'))/86400000;
  return Number.isInteger(nights)&&nights>0?nights:null;
 }
-export function hotelAmenities(items:string[]=[]):string[]{
- const seen=new Set<string>();return items.map(item=>item.trim()).filter(item=>{const key=item.toLocaleLowerCase();if(!key||seen.has(key))return false;seen.add(key);return true;});
+/** These are benefit badges, not a complete accessibility statement. Preserve
+ * the supplier text; exclude negations rather than turning them into positives. */
+export function hotelAmenities(items:unknown=[]):string[]{
+ const seen=new Set<string>();
+ return hotelStringList(items).filter(item=>{
+  const key=item.toLocaleLowerCase();
+  if(seen.has(key)||/\b(?:no|not|without|unavailable|unprovided)\b/i.test(item))return false;
+  seen.add(key);return true;
+ });
 }
 export function knownHotelTotal(hotel:HotelResult):number|null{
  const value=hotel.customerEstimateMinor;return typeof value==='number'&&Number.isSafeInteger(value)&&value>0?value:null;

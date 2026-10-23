@@ -122,3 +122,19 @@
  .journey-flow.booking-workflow .traveller-identity>label:first-child{flex:0 1 7em}
  .journey-flow.booking-workflow .traveller-identity :is(input,select){min-width:0;width:100%;min-height:44px;padding:10px 8px}
 }
+
+/* Keep the comparison facts beside the price without an empty full-width row. */
+.journey-flow .room-option-card{align-items:start;align-content:start;min-width:0}
+.journey-flow .room-option-info,.journey-flow .room-option-action,.journey-flow .room-option-details{min-width:0;overflow-wrap:anywhere}
+.journey-flow .room-option-card.is-selected{border-color:#5c82e6;box-shadow:inset 3px 0 #2455e7}
+.journey-flow .room-selection-label{display:inline-block;margin:0 0 8px;color:#153ec2;font-size:13px;font-weight:650}
+.journey-flow .room-workspace-heading .room-stay-dates{font-size:14px;line-height:1.5;margin:4px 0 0;color:#52616a}
+.journey-flow .flight-total-duration{font-weight:600;color:#304d61}
+.journey-flow .booking-selection-status{padding:10px 12px;margin:8px 0 0!important;background:#edf5ff;border:1px solid #c4d7ef;border-radius:8px;color:#23538c;font-size:14px!important;line-height:1.5!important;text-align:left;overflow-wrap:anywhere}
+.journey-flow .hotel-cancellation-policy .policy-charge-heading{font-size:14px;line-height:1.5;color:#304d61}
+.journey-flow .hotel-cancellation-policy .policy-row p{margin:4px 0 0}
+@media(min-width:601px){
+ .journey-flow .room-option-card:not(:has(>.room-option-details[open])){grid-template-rows:auto 1fr;column-gap:18px;row-gap:10px}
+ .journey-flow .room-option-card:not(:has(>.room-option-details[open]))>.room-option-details{grid-column:1;grid-row:2;padding-top:4px}
+ .journey-flow .room-option-card:not(:has(>.room-option-details[open]))>.room-option-action{grid-column:2;grid-row:1 / span 2}
+}

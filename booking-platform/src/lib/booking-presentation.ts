@@ -29,7 +29,7 @@ export function estimatedFare(flight: Flight) {
 }
 /** Return/multicity COMBO contains several journeys, not connecting stops. */
 export function flightStops(flight: Flight, group: string): number | null {
-  if (group === 'COMBO') return null;
+  if (group === 'COMBO' || !flight.sI.length) return null;
   return Math.max(0, flight.sI.length - 1);
 }
 /** Local airport timestamps have no common timezone. Use supplier duration for a
@@ -37,13 +37,20 @@ export function flightStops(flight: Flight, group: string): number | null {
 export function journeyMinutes(flight: Flight, group?: string): number | null {
   if (group === 'COMBO' || !flight.sI.length) return null;
   if (flight.sI.length === 1 && suppliedMinutes(flight.sI[0].duration)!==null) return suppliedMinutes(flight.sI[0].duration);
-  const start=supplierInstant(flight.sI[0].dt),end=supplierInstant(flight.sI.at(-1)!.at);
-  if(start===null||end===null)return null;
-  const minutes=(end-start)/60000;
+  const times=flight.sI.map(segment=>({start:supplierInstant(segment.dt),end:supplierInstant(segment.at)}));
+  // A connected itinerary needs an offset-bearing, chronological segment chain.
+  // Segment durations alone do not include layovers; never sum them as a trip total.
+  if(times.some((time,index)=>{
+    if(time.start===null||time.end===null||time.end<=time.start)return true;
+    if(index===0)return false;
+    const previous=flight.sI[index-1],current=flight.sI[index];
+    return current.isRs!==previous.isRs||!previous.aa.code||previous.aa.code!==current.da.code||times[index-1].end!>time.start;
+  }))return null;
+  const minutes=(times.at(-1)!.end!-times[0].start!)/60000;
   return Number.isSafeInteger(minutes)&&minutes>0?minutes:null;
 }
 export function durationLabel(minutes: number | null) {
-  return minutes === null ? 'Times shown in local airport time' : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  return minutes === null || !Number.isSafeInteger(minutes) || minutes <= 0 ? 'Total duration unavailable' : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 export function groupLabel(group: string) {
   if (group === 'ONWARD') return 'Outbound';

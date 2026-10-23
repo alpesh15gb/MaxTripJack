@@ -23,10 +23,10 @@ test('flight shopping preserves local dates, airport identity and party fare con
  const shot=await page.screenshot({path:testInfo.outputPath(`flight-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});await testInfo.attach('flight-shopping viewport',{body:shot,contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-shopping-loaded');
  const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
- await page.getByLabel('Maximum party total (₹)',{exact:true}).fill('7000');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
+ await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
  await page.getByRole('button',{name:'Reset flight filters',exact:true}).click();await expect(cards).toHaveCount(3);
  await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('EVENING');await expect(cards).toHaveCount(2);
- await page.getByLabel('Maximum party total (₹)',{exact:true}).fill('13000');await expect(cards).toHaveCount(1);
+ await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('13000');await expect(cards).toHaveCount(1);
  await expect(cards.first()).toContainText('+1 calendar day');await expect(cards.first()).toContainText('NMI');await expect(cards.first()).toContainText('Navi Mumbai');
  await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');await expect(page.getByRole('heading',{name:'No flights match these filters'})).toBeVisible();
  await page.getByRole('button',{name:'Reset filters',exact:true}).click();await expect(cards).toHaveCount(3);
@@ -49,11 +49,11 @@ test('automatic return advance clears group filters but preserves selected outbo
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,returnDate:returning,adults:'1',autoSearch:'1'}));
  const toggle=page.getByRole('button',{name:/^Filters/});await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
  if(await toggle.isVisible())await toggle.click();
- await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('MORNING');await page.getByLabel('Maximum party total (₹)',{exact:true}).fill('7000');
+ await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('MORNING');await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');
  await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Choose this outbound fare',exact:true}).click();
  await expect(page.getByRole('button',{name:/^Return/})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('₹10,000');
  if(await toggle.isVisible()&&await toggle.getAttribute('aria-expanded')==='false')await toggle.click();
- await expect(page.getByRole('combobox',{name:'Departure time',exact:true})).toHaveValue('ALL');await expect(page.getByLabel('Maximum party total (₹)',{exact:true})).toHaveValue('');
+ await expect(page.getByRole('combobox',{name:'Departure time',exact:true})).toHaveValue('ALL');await expect(page.getByLabel('Maximum total for all travellers (₹)',{exact:true})).toHaveValue('');
  await page.getByRole('button',{name:/^Outbound/}).click();await expect(page.getByRole('button',{name:'Selected',exact:true})).toHaveAttribute('aria-pressed','true');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

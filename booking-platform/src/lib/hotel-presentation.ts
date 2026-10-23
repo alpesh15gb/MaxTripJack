@@ -48,13 +48,19 @@ export function safeHotelPhotoUrl(value: unknown): value is string {
     return !url.port && !url.username && !url.password && !url.search && !url.hash && url.href.startsWith(prefix);
   } catch { return false; }
 }
+/** Supplier storage labels are not customer-facing photo descriptions. */
+export function hotelPhotoCaption(value: unknown): string | undefined {
+  const caption=hotelText(value);
+  if(!caption||/^(?:cover|hero|property)?[ _-]*(?:image|photo)(?:[ _-]*\d+)?$/i.test(caption))return undefined;
+  return caption;
+}
 function hotelPhotos(source: unknown): NonNullable<HotelPropertyDetails['photos']> {
   return (Array.isArray(source) ? source : []).slice(0, 30).flatMap(raw => {
     const photo = hotelObject(raw), links = hotelObject(photo.links);
     // Preserve Standard support; UAT static content supplies the observed XXL variant.
     const href = [hotelObject(links.Standard).href, hotelObject(links.XXL).href].find(safeHotelPhotoUrl);
     if (!href) return [];
-    return [{url: href, ...(hotelText(photo.caption) ? {caption: hotelText(photo.caption)} : {}), isHero: photo.is_hero_image === true}];
+    return [{url: href, ...(hotelPhotoCaption(photo.caption) ? {caption: hotelPhotoCaption(photo.caption)} : {}), isHero: photo.is_hero_image === true}];
   }).slice(0, 10);
 }
 export function hotelPropertyDetails(source: unknown): HotelPropertyDetails {
