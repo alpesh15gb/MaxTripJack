@@ -90,9 +90,35 @@
  .journey-flow .booking-review>.page-heading h3,.journey-flow .booking-review>.page-heading p{margin-bottom:6px}
 }
 @media(max-width:600px){
- .journey-flow .booking-review>.booking-expiry{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:10px;align-items:center}
+ .journey-flow .booking-review>.booking-expiry{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-items:stretch}
  .journey-flow .booking-review>.booking-expiry>.secondary{min-width:0;min-height:44px;padding:8px;font-size:14px;white-space:normal}
  .journey-flow .booking-review>.page-heading h2{font-size:28px;margin-bottom:8px}
  .journey-flow .booking-review .traveller-card>p{margin-bottom:8px}
 }
 .journey-flow .booking-pending.journey-search-scene{scroll-margin-top:20px}
+
+/* The legacy mobile secondary spans all columns: keep validity copy full width. */
+@media(max-width:600px){
+ .journey-flow.booking-workflow .booking-review{padding:16px}
+ .journey-flow.booking-workflow .booking-review>.page-heading{gap:6px;margin:0 0 8px}
+ .journey-flow.booking-workflow .booking-review>.page-heading h2{font-size:26px;line-height:1.2;margin:6px 0 8px}
+ .journey-flow.booking-workflow .booking-review>.page-heading h3{margin:0 0 4px}
+ .journey-flow.booking-workflow .booking-review>.page-heading p{margin:0 0 4px;line-height:1.4}
+ .journey-flow.booking-workflow .booking-review>.page-heading .secondary{font-size:14px;min-height:44px;padding:8px 12px}
+ .journey-flow.booking-workflow .compact-selected-itinerary{margin:8px 0;padding:10px}
+ .journey-flow.booking-workflow .selected-source-details{margin:4px 0 0}
+ .journey-flow.booking-workflow .selected-source-details>summary{padding:6px 0;line-height:1.4}
+ .journey-flow.booking-workflow .booking-review>.booking-expiry{margin:8px 0;padding:10px}
+ .journey-flow.booking-workflow .booking-review>.booking-expiry>div{grid-column:1/-1;min-width:0;width:100%}
+ .journey-flow.booking-workflow .booking-review>.booking-expiry strong{font-size:14px;line-height:1.4}
+ .journey-flow.booking-workflow .booking-review>.booking-expiry>.secondary{width:100%;align-self:stretch;grid-column:1/-1}
+ .journey-flow.booking-workflow .review-conditions{margin:8px 0}
+ .journey-flow.booking-workflow .review-conditions>summary{padding:6px 0;line-height:1.4}
+ .journey-flow.booking-workflow .traveller-card{padding:12px;margin:12px 0}
+ .journey-flow.booking-workflow .traveller-card>.muted{font-size:14px;line-height:1.4;margin:0 0 8px}
+ .journey-flow.booking-workflow .traveller-identity{display:flex;flex-wrap:wrap;gap:8px}
+ .journey-flow.booking-workflow .traveller-identity>label:nth-child(n+3){flex-basis:100%}
+ .journey-flow.booking-workflow .traveller-identity>label{min-width:0;font-size:16px;margin:0;flex:1 1 7em}
+ .journey-flow.booking-workflow .traveller-identity>label:first-child{flex:0 1 6em}
+ .journey-flow.booking-workflow .traveller-identity :is(input,select){min-width:0;width:100%;min-height:44px;padding:10px 8px}
+}

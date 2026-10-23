@@ -39,9 +39,9 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   await page.route('**/api/travel/search',async route=>{await held;await route.abort().catch(()=>{});});
   try{await page.goto(flightQuery());await expect(page.getByRole('button',{name:'Stop search & edit',exact:true})).toBeVisible();
    await page.evaluate(()=>{requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('input[aria-label="To airport"]')?.focus());(Array.from(document.querySelectorAll('button')).find(button=>button.textContent==='Stop search & edit') as HTMLButtonElement).click();});
-   await expect(page.getByRole('textbox',{name:'To airport',exact:true})).toBeFocused();
+   await expect(page.locator('input[aria-label="To airport"]')).toBeFocused();
    await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
-   await expect(page.getByRole('textbox',{name:'To airport',exact:true})).toBeFocused();
+   await expect(page.locator('input[aria-label="To airport"]')).toBeFocused();
   }finally{release();}
  });
  test('reduced motion and failed search keep honest feedback and a working retry',async({page,provider},info)=>{
@@ -58,8 +58,18 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   await shot(page,info,'compact-fare-comparison',[offers.first().getByRole('button',{name:'Check fare & continue',exact:true}),offers.nth(1).locator('.fare-option-heading')]);
   await offers.nth(1).getByRole('button',{name:'Check fare & continue',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeFocused();
   await expect(page.locator('.selected-reviewed-total')).toContainText('₹7,400.50');await expect(page.locator('.selected-reviewed-total')).not.toContainText('₹7,200.50');
+  const expiryWidth=await page.locator('.booking-expiry').evaluate(node=>{const content=node.firstElementChild!.getBoundingClientRect(),box=node.getBoundingClientRect();return {content:content.width,available:box.width-22};});
+  if((page.viewportSize()?.width??1440)<=600)expect(expiryWidth.content).toBeGreaterThanOrEqual(expiryWidth.available-1);
   await shot(page,info,'compact-traveller-entry',[page.locator('.selected-reviewed-total'),page.locator('.booking-expiry'),page.getByRole('textbox',{name:'First name',exact:true})]);
   await page.getByText('Original search details & fare',{exact:true}).click();await expect(page.locator('.selected-source-details')).toContainText('₹7,200.50');await expect(page.locator('.selected-source-details')).toContainText('Estimated total');
+  if((page.viewportSize()?.width??1440)<=600){
+   const title=page.locator('select[name="title-0"]');await title.selectOption('Master');
+   for(const enlarged of [false,true]){
+    const fit=await title.evaluate((node,enlarge)=>{const label=node.closest('label')!;if(enlarge){label.style.fontSize='32px';node.style.fontSize='32px';}const style=getComputedStyle(node),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d')!;ctx.font=style.font;const r=node.getBoundingClientRect(),row=node.closest('.traveller-identity')!.getBoundingClientRect();return {width:r.width,needed:ctx.measureText((node as HTMLSelectElement).selectedOptions[0].text).width+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+24,left:r.left,right:r.right,rowLeft:row.left,rowRight:row.right};},enlarged);
+    expect(fit.width).toBeGreaterThanOrEqual(fit.needed);expect(fit.left).toBeGreaterThanOrEqual(fit.rowLeft);expect(fit.right).toBeLessThanOrEqual(fit.rowRight+1);
+   }
+   await expectNoHorizontalOverflow(page);
+  }
   expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['flex-exact-id']});expect(provider.requests('/api/payments/create')).toHaveLength(0);
  });
  test('hotel reviewed receipt never inherits a stale zero-charge window from room search',async({page,provider})=>{
