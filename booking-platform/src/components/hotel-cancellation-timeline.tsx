@@ -9,6 +9,6 @@ export default function HotelCancellationTimeline({value}:{value:unknown}){
    <div><strong>From {window.from} IST</strong><p>Until {window.until} IST</p></div>
    <div><strong className="policy-charge-heading">{window.chargeKnown?'Supplied policy':'Exact charge needs confirmation'}</strong><p>{window.charge}</p></div>
   </li>)}</ol>:<p className="policy-note">We cannot confirm the cancellation schedule. Complete, unambiguous terms were not supplied; check the full policy before payment.</p>}
-  <details><summary>Original supplier policy details</summary><p className="policy-note">Original values are shown below for reference. An amount without a verified currency, unit and calculation basis is not a confirmed cancellation charge.</p><SupplierPolicy title="Supplier cancellation terms" value={value}/></details>
+  <details><summary>Supported supplier policy details</summary><p className="policy-note">Supported values are shown below for reference; other terms may be unavailable. An amount without a verified currency, unit and calculation basis is not a confirmed cancellation charge.</p><SupplierPolicy title="Supplier cancellation terms" value={value}/></details>
  </section>;
 }

@@ -1,3 +1,4 @@
+import {publicSupplierPolicy,publicSupplierAlerts} from '@/lib/public-supplier-policy';
 const FRIENDLY_LABELS: Record<string, string> = {
   amount: "Amount",
   cancellable: "Cancellation allowed",
@@ -53,6 +54,7 @@ function PolicyValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
 export default function SupplierPolicy({ title, value }: { title: string; value: unknown }) {
   return <section className="supplier-policy" aria-label={title}>
     <h4>{title}</h4>
-    <PolicyValue value={value}/>
+    <p className="policy-note">Only supported supplier policy details are shown. Other terms may be unavailable; contact support for complete conditions before paying.</p>
+    <PolicyValue value={publicSupplierPolicy(value)??publicSupplierAlerts(value)??"Comparable policy details unavailable. Do not assume there are no restrictions."}/>
   </section>;
 }

@@ -1,4 +1,6 @@
 import "server-only";
+import {publicSupplierPolicy,publicSupplierAlerts} from "./public-supplier-policy";
+import {reviewedTerms} from "./reviewed-terms";
 import { randomUUID } from "node:crypto";
 import { database } from "./db";
 import { HttpError } from "./http";
@@ -82,5 +84,5 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  if(!Number.isFinite(seconds)||seconds<30)throw new HttpError(409,"Supplier review session unavailable or too short. Review again.");
  const expiresAt=new Date(reviewedAt+Math.min(seconds,180)*1000);if(expiresAt.getTime()-Date.now()<30000)throw new HttpError(409,"Supplier review expired while loading the rules. Review again.");
  const id=randomUUID();await database().query("INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",[id,searchId,actor.userId,actor.companyId,product,chosen,data,data.bookingId,supplierMinor,totalMinor,expiresAt]);
- return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:{conditions:data.conditions,fareRules:data.fareRules,alerts:data.alerts,option:data.option?{roomInfo:hotelRoomInfo(data.option.roomInfo),inclusions:hotelStringList(data.option.inclusions),mealBasis:hotelText(data.option.mealBasis),optionType:hotelText(data.option.optionType),cancellation:data.option.cancellation,compliance:data.option.compliance,bookingNotes:data.option.bookingNotes,pricing:{mf:data.option.pricing?.mf,mft:data.option.pricing?.mft}}:undefined}};
+ return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:{terms:reviewedTerms(product,data),conditions:data.conditions,fareRules:publicSupplierPolicy(data.fareRules),alerts:publicSupplierAlerts(data.alerts),option:data.option?{roomInfo:hotelRoomInfo(data.option.roomInfo),inclusions:hotelStringList(data.option.inclusions),mealBasis:hotelText(data.option.mealBasis),optionType:hotelText(data.option.optionType),cancellation:publicSupplierPolicy(data.option.cancellation),compliance:data.option.compliance,bookingNotes:data.option.bookingNotes,pricing:{mf:data.option.pricing?.mf,mft:data.option.pricing?.mft}}:undefined}};
 }

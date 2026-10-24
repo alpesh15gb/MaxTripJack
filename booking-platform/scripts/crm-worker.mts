@@ -1,5 +1,5 @@
 import { bookingDocument } from "../src/lib/booking-document";
-import { createHash } from "node:crypto";
+import { crmDeliveryPayload } from "../src/lib/crm-delivery";
 import { heartbeat } from "../src/lib/worker-health";
 import { Pool } from "pg";
 import { randomUUID } from "node:crypto";
@@ -25,10 +25,16 @@ try {
     if (!event) { await new Promise(r => setTimeout(r, 2000)); continue; }
     const timestamp = String(Math.floor(Date.now() / 1000));
     try {
-      let payload=event.delivery_payload as string|null;
-      if(!payload){const snapshot=await crmSnapshot(event.aggregate_id);let document:unknown;
-      if(["TICKETED","CONFIRMED"].includes(snapshot.status)&&!snapshot.cancellations.length&&!snapshot.replacementBookings.length){const response=await bookingDocument(event.aggregate_id);const bytes=Buffer.from(await response.arrayBuffer());if(bytes.length>524288)throw Error("Generated CRM PDF exceeds transport limit");const current=await pool.query("SELECT revision FROM orders WHERE id=$1",[event.aggregate_id]);if(current.rows[0]?.revision!==snapshot.revision)throw Error("Booking changed during document generation");document={filename:`${snapshot.reference}.pdf`,sha256:createHash("sha256").update(bytes).digest("hex"),base64:bytes.toString("base64")};}
-      payload=JSON.stringify({ schemaVersion: event.schema_version, eventId: event.id, eventType: event.event_type, aggregateId: event.aggregate_id, occurredAt: event.created_at, revision:snapshot.revision,payload: {...snapshot,...(document?{document}:{})} });const saved=await pool.query("UPDATE outbox_events SET delivery_payload=$3 WHERE id=$1 AND lease_token=$2 AND delivery_payload IS NULL RETURNING delivery_payload",[event.id,lease,payload]);if(!saved.rowCount)throw new Error("Delivery lease lost");}
+      const payload = await crmDeliveryPayload(event, {
+        snapshot: crmSnapshot,
+        document: bookingDocument,
+        revision: async id => (await pool.query("SELECT revision FROM orders WHERE id=$1", [id])).rows[0]?.revision,
+        persist: async (body, documentRevision) => Boolean((await pool.query(`UPDATE outbox_events SET delivery_payload=$3
+          WHERE id=$1 AND lease_token=$2 AND delivery_payload IS NULL
+          AND ($4::integer IS NULL OR EXISTS (SELECT 1 FROM orders WHERE id=outbox_events.aggregate_id AND revision=$4))
+          RETURNING delivery_payload`, [event.id, lease, body, documentRevision])).rowCount),
+        omitted: reason => console.warn("CRM optional document omitted", { eventId: event.id, reason }),
+      });
       const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-MaxTravel-Key-Id": keyId, "X-MaxTravel-Timestamp": timestamp, "X-MaxTravel-Event-Id": event.id, "X-MaxTravel-Signature": crmSignature(timestamp, event.id, payload, key) }, body: payload, signal: AbortSignal.timeout(15000), redirect: "error" });
       if (!response.ok) throw new Error("Delivery rejected");
       await pool.query("UPDATE outbox_events SET delivered_at=now(),lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2", [event.id, lease]);
