@@ -1,11 +1,31 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
+import BookingReportRows from "../src/components/booking-report-rows";
 import { defaultReportFilters, parseReportFilters, reportParams } from "../src/lib/booking-report";
 import { bookingReportQuery } from "../src/lib/booking-report-query";
 import { bookingReportCsv, reportCsvCell, reportInrDecimal } from "../src/lib/booking-report-csv";
 import { reportHarness, type Harness } from "./report-harness";
-import { reportFixture, reportRow, databaseReport } from "./booking-report-fixture";
+import { reportFixture, reportRow, databaseReport, reportFixtureForProduct } from "./booking-report-fixture";
+
+test("synthetic hotel confirmation and status buckets agree; responsive rows share one identity and financial record", () => {
+  for (const product of ["ALL", "FLIGHT", "HOTEL"] as const) {
+    const fixture = reportFixtureForProduct(product), row = fixture.rows[0];
+    assert.equal(row.status, row.product === "HOTEL" ? "CONFIRMED" : "TICKETED");
+    assert.deepEqual(fixture.statuses, [{ status: row.status, count: fixture.totals.orders }]);
+    assert.equal(row.totalMinor, fixture.totals.confirmedBaseValueMinor);
+    assert.equal(row.capturedMinor, fixture.totals.capturedMinor);
+    const html = renderToStaticMarkup(createElement(BookingReportRows, { rows: fixture.rows }));
+    assert.equal(html.split(row.reference).length - 1, 1, "one responsive row, not duplicate mobile/desktop copies");
+    assert.equal(html.split('role="rowheader"').length - 1, 1);
+    assert.match(html, /role="table"/); assert.match(html, /role="columnheader"/);
+    assert.ok(html.indexOf(row.reference) < html.indexOf('class="reports-row-status"'));
+    assert.match(html, /<summary>View breakdown<\/summary>/);
+    assert.match(html, /Quoted supplier cost/); assert.ok(html.includes(row.id));
+    assert.match(html, /reports-cell-label" aria-hidden="true">Order value/);
+  }
+});
 
 test("strict IST creation dates, enum filters and inclusive 366-day ceiling", () => {
   assert.deepEqual(defaultReportFilters(new Date("2026-10-31T19:00Z")), { from: "2026-11-01", to: "2026-11-01", product: "ALL", status: "ALL", scope: "ALL" });

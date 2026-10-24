@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { build } from "esbuild";
 import { resolve } from "node:path";
-import { reportFixture, reportRow } from "../booking-report-fixture";
+import { reportFixture, reportRow, reportFixtureForProduct } from "../booking-report-fixture";
 import type { BookingReport } from "../../src/lib/booking-report";
 
 // Browser coverage uses the ACTUAL client component with a bundled fixture shell.
@@ -24,7 +24,7 @@ async function shell(page: Page) {
   await page.route("**/operations/reports**", route => route.fulfill({ contentType: "text/html", body: `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;font-family:Arial,sans-serif}${asset.css}</style></head><body><div id="root"></div><script src="/__report_client_fixture.js"></script></body></html>` }));
 }
 function fixture(product = "ALL"): BookingReport {
-  return { ...reportFixture, filters: { ...reportFixture.filters, product: product as "ALL" | "HOTEL" }, rows: [{ ...reportRow, reference: product === "HOTEL" ? "SYNTHETIC-HOTEL-REPORT" : reportRow.reference, product: product === "HOTEL" ? "HOTEL" : "FLIGHT" }] };
+  return reportFixtureForProduct(product === "HOTEL" ? "HOTEL" : product === "FLIGHT" ? "FLIGHT" : "ALL");
 }
 test("reports keep draft filters separate, export the applied whole cohort, and fit mobile", async ({ page }, testInfo) => {
   await shell(page);
@@ -43,8 +43,29 @@ test("reports keep draft filters separate, export the applied whole cohort, and 
   await page.getByRole("button", { name: "Apply filters", exact: true }).click();
   await expect(page.getByText("SYNTHETIC-HOTEL-REPORT", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Applied report filters")).toContainText("hotel products");
+  const rows = page.getByRole("region", { name: "Booking report rows", exact: true });
+  const reference = rows.getByText("SYNTHETIC-HOTEL-REPORT", { exact: true });
+  await expect(rows.getByText("confirmed", { exact: true })).toBeVisible();
+  await expect(rows.getByText("ticketed", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^confirmed 1$/i })).toBeVisible();
+  await expect(rows.getByRole("table", { name: "Booking-level reconciliation", exact: true })).toBeVisible();
   await page.getByText("View breakdown", { exact: true }).click();
   await expect(page.getByText("Quoted supplier cost", { exact: true })).toBeVisible();
+  // Visibility alone passes for a horizontally clipped table. Check the actual
+  // identity bounds and row scroll area after expansion, without resetting scroll.
+  if ((page.viewportSize()?.width ?? 1440) <= 600) {
+    const identityFits = () => reference.evaluate(element => { const box = element.getBoundingClientRect(); return box.left >= 0 && box.right <= window.innerWidth; });
+    await expect.poll(identityFits).toBe(true);
+    expect(await rows.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    await expect(rows.getByRole("rowheader", { name: /SYNTHETIC-HOTEL-REPORT/ })).toHaveCount(1);
+    const details = rows.locator("details");
+    await rows.getByText("View breakdown", { exact: true }).press("Enter");
+    await expect(details).not.toHaveAttribute("open", "");
+    await expect.poll(identityFits).toBe(true);
+    await rows.getByText("View breakdown", { exact: true }).press("Enter");
+    await expect(details).toHaveAttribute("open", "");
+    await expect.poll(identityFits).toBe(true);
+  }
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export full cohort CSV", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("maxtravel-booking-cohort-2026-10-23-2026-10-23.csv");

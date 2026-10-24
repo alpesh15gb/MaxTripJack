@@ -3,14 +3,14 @@ import { z } from "zod";
 import { unstable_rethrow } from "next/navigation";
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public fields?: {path:string;message:string}[]) { super(message); }
 }
 export function json(data: unknown, status = 200) {
   return Response.json(data, { status, headers: { "Cache-Control": "private, no-store" } });
 }
 export function failure(error: unknown) {
   unstable_rethrow(error);
-  if (error instanceof HttpError) return json({ error: error.message }, error.status);
+  if (error instanceof HttpError) return json({ error: error.message, ...(error.fields?.length?{fields:error.fields}:{}) }, error.status);
   if (error instanceof z.ZodError) return json({ error: "Invalid request fields.", fields: error.issues.map(i => ({ path: i.path.join("."), message: i.message })) }, 400);
   const reference = randomUUID();
   // Never log request bodies, provider responses, cookies, credentials or database URLs.

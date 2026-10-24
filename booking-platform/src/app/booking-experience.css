@@ -370,3 +370,13 @@
 .booking-workflow .selected-itinerary .is-readonly .fare-comparison>summary>strong {
   display:block; margin-top:8px; width:100%; max-width:none; text-align:left;
 }
+
+/* Traveller validation stays readable and actionable on narrow screens. */
+.guest-error-summary { margin: 1rem 0; padding: 1rem; border: 1px solid #b42318; border-radius: 12px; background: #fff7f5; color: #7a271a; overflow-wrap: anywhere; }
+.guest-error-summary h3 { margin-top: 0; }
+.guest-error-summary ul { padding-left: 1.25rem; }
+.guest-error-summary li + li { margin-top: .5rem; }
+.guest-error-summary button { padding: .35rem 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; text-decoration: underline; cursor: pointer; }
+.guest-error-summary button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.guest-field-error { display: block; margin-top: .35rem; color: #b42318; font-size: .85rem; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+.booking-review [aria-invalid="true"] { border-color: #b42318; }

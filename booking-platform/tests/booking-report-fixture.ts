@@ -12,6 +12,11 @@ export const reportFixture: BookingReport = {
   totals: { orders: "1", orderValueMinor: "10000", confirmedBaseBookings: "1", confirmedBaseValueMinor: "10000", capturedPayments: "1", capturedMinor: "10000", completedRefunds: "0", completedRefundMinor: "0", pendingRefunds: "0", pendingRefundMinor: "0" },
   statuses: [{ status: "TICKETED", count: "1" }], scopes: [{ scope: "BASE", count: "1" }], rows: [reportRow], nextCursor: null,
 };
+export function reportFixtureForProduct(product: "ALL" | "FLIGHT" | "HOTEL" = "ALL"): BookingReport {
+  const hotel = product === "HOTEL";
+  const row: ReportRow = { ...reportRow, product: hotel ? "HOTEL" : "FLIGHT", status: hotel ? "CONFIRMED" : "TICKETED", reference: hotel ? "SYNTHETIC-HOTEL-REPORT" : reportRow.reference };
+  return { ...reportFixture, filters: { ...reportFixture.filters, product }, statuses: [{ status: row.status, count: "1" }], rows: [row] };
+}
 export function databaseReport(rows = reportFixture.rows) {
   return { checked_at: new Date(reportFixture.checkedAt), totals: reportFixture.totals, statuses: reportFixture.statuses, scopes: reportFixture.scopes, rows };
 }

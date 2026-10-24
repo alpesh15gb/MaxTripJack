@@ -10,7 +10,7 @@ import { owned,assertFresh } from "@/lib/supplier-flow";
 import { guestSchema } from "@/lib/providers/contracts";
 import { razorpay,razorpayKey } from "@/lib/providers/razorpay";
 import { seal,unseal } from "@/lib/vault";
-import { validateParty } from "@/lib/guest-validation";
+import { validateParty, validateGuestReview } from "@/lib/guest-validation";
 import { tripjack } from "@/lib/providers/tripjack";
 import { markGatewayIntentUnknown, persistGatewayOrder } from "@/lib/payment-intent";
 import { FareValidationBlockedError } from "@/lib/fare-validation";
@@ -23,9 +23,7 @@ export async function POST(request:Request){try{
  if(quote.service_kind){const parent=await owned("orders",search.parent_order_id,actor);if(parent.status!=="TICKETED")throw new HttpError(409,"Original booking is no longer active.");const original=guestSchema.parse(unseal(parent.guests_encrypted,parent.id));guests=quote.service_kind==="REISSUE"?{...original,travellers:quote.service_payload.travellerIndexes.map((i:number)=>original.travellers[i])}:original;}
  if(!guests)throw new HttpError(400,"Traveller details are required.");
  if(quote.service_kind!=="ANCILLARY")validateParty(search.criteria,guests);
- const conditions=quote.review.conditions??{};const compliance=quote.review.option?.compliance??{};
- for(const t of guests.travellers){if((conditions.pcs?.pm||compliance.passportRequired)&&(!t.pNum||!t.pNat||!t.eD))throw new HttpError(400,"Passport number, nationality and expiry are required.");if(conditions.pcs?.pped&&!t.eD)throw new HttpError(400,"Passport expiry required.");if((t.pt==="ADULT"?conditions.dob?.adobr:t.pt==="CHILD"?conditions.dob?.cdobr:conditions.dob?.idobr)&&!t.dob)throw new HttpError(400,"Date of birth required.");if((conditions.ipa||compliance.panRequired)&&t.pt==="ADULT"&&!t.pan)throw new HttpError(400,"PAN required.");}
- if((conditions.gst?.igm||["PASSTHROUGH","RESELLER"].includes(compliance.gstType))&&!guests.gstInfo)throw new HttpError(400,"GST information required for this option.");if(conditions.iecr&&!guests.contactInfo)throw new HttpError(400,"Emergency contact required.");
+ validateGuestReview(guests,quote.review);
  if(Number(quote.total_minor)===0){const freeExisting=await database().query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(freeExisting.rowCount)return json({bookingId:freeExisting.rows[0].id,free:true,amount:0,currency:"INR"});}
  const existingIntent=await database().query("SELECT o.id,o.guests_encrypted,g.provider FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.quote_id=$1",[quote.id]);
  // Existing provider wins over configuration. Free services never contact a gateway.

@@ -69,7 +69,13 @@ applied report or export until Apply.
   grants or identities and does not disable authentication limits.
 
 Report styles are namespaced under `reports-*`; controls override the shared
-global defaults and the page has an explicit responsive width. The isolated
+global defaults and the page has an explicit responsive width. At phone widths
+the same semantic table rows become labeled cards: booking identity precedes
+its amounts and expandable breakdown, with no horizontal scrolling. Explicit
+table roles and visually hidden column headers preserve the table's structure.
+Browser fixtures check identity bounds after expanding and keyboard-toggling
+details, not merely page overflow. Their hotel fixture uses CONFIRMED with a
+matching status bucket, while flight fixtures use TICKETED. The isolated
 component screenshots do not validate the full root layout, Geist font, global
 CSS cascade or deployed rendering. Those still require authenticated browser QA.
 
@@ -77,6 +83,7 @@ Relevant technical references:
 - PostgreSQL date/time comparisons: https://www.postgresql.org/docs/current/functions-datetime.html
 - PostgreSQL statement snapshots: https://www.postgresql.org/docs/current/transaction-iso.html
 - CSV safety limitations: https://community.owasp.org/attacks/CSV_Injection
+- CSS display/table accessibility: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/display#tables
 
 Historical cash-activity reporting needs separate evidence work. Payment/refund
 rows lack `captured_at`/`completed_at`; outbox dates are system-recorded times,
