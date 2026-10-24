@@ -130,7 +130,7 @@ for (const scenario of [
   {name:'legacy raw sensitive terms',review:{conditions:{st:180,apiKey:'never-display-this-secret'},alerts:['never-display-this-secret']},blocked:true},
   {name:'malformed disclosure line',review:{version:1,blocked:false,lines:[{label:'Supplier notice',text:{secret:'never-display-this-secret'}}]},blocked:true},
   {name:'unrecognized financial field',review:{version:1,blocked:false,lines:[{label:'Commission',text:'never-display-this-secret'}]},blocked:true},
-]) test(`flight extras: ${scenario.name}`, async ({ page, provider }) => {
+]) test(`flight extras: ${scenario.name}`, async ({ page, provider }, testInfo) => {
   provider.bookingsPages['1']={hasMore:false,bookings:[trip(ticketId,'MX-SERVICES','TICKETED','DEL')]};
   provider.overrides[`GET /api/bookings/${ticketId}/cancellation-offer`]={body:{requests:[]}};
   provider.overrides[`POST /api/bookings/${ticketId}/services`]={body:{searchId:'synthetic-service-search',kind:'ANCILLARY',results:{segments:[{id:'segment1',label:'BOM → DEL',pax:[{id:'pax1',name:'Synthetic Traveller',type:'ADULT'}],options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:50000}]}]}}};
@@ -156,4 +156,5 @@ for (const scenario of [
   await expect(page.getByText('never-display-this-secret')).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
+  await capture(page,testInfo,`service-disclosure-synthetic-${scenario.name.replaceAll(' ','-')}`);
 });
