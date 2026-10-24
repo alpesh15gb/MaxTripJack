@@ -17,3 +17,14 @@ test("expired, unknown, authorized, captured and terminal checkouts never reopen
     assert.equal("amount" in result, false);
   }
 });
+test('service terms gate resumed charging without losing pending or captured recovery identity',()=>{
+ const valid={...record,service_kind:'REISSUE',review:{conditions:{st:180},alerts:['Changes subject to availability']}};
+ assert.equal(paymentResumeStatus(valid,now).canResume,true);
+ for(const review of [undefined,null,{}, {conditions:{st:180,commission:123}}, {conditions:{st:180},alerts:{apiKey:'private'}}]){
+  const pending=paymentResumeStatus({...valid,review},now);
+  assert.equal(pending.canResume,false);assert.equal(pending.checkoutResolved,false);assert.equal(pending.bookingId,record.id);
+  assert.equal('orderId' in pending,false);assert.equal('amount' in pending,false);
+  const captured=paymentResumeStatus({...valid,review,payment_status:'CAPTURED',status:'PAID'},now);
+  assert.equal(captured.canResume,false);assert.equal(captured.checkoutResolved,true);assert.equal(captured.bookingId,record.id);
+ }
+});

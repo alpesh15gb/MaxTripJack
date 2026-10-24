@@ -1,3 +1,4 @@
+import { serviceDisclosure } from "./service-conditions";
 import { flightFareDetails } from "./flight-fare-details";
 import "server-only";
 import { randomUUID } from "node:crypto";
@@ -68,5 +69,5 @@ export async function reviewFlightService(input:z.infer<typeof serviceReviewSche
  payload={...search.service_context,oldBookingId:parent.supplier_booking_id};}
  const rule=await pricingRule("FLIGHT",actor);const totalMinor=supplierMinor===0&&(!rule||Number(rule.markup_minor)+Number(rule.service_fee_minor)===0)?0:customerTotal(supplierMinor,rule);if(totalMinor>0&&totalMinor<100)throw new HttpError(409,"The additional total is below the gateway minimum. Contact support.");const seconds=Math.min(Number(review.conditions?.st??180),180);if(!Number.isFinite(seconds)||seconds<30)throw new HttpError(409,"Service quote expired. Search again.");const expiresAt=new Date(Date.now()+seconds*1000),id=randomUUID();
  await database().query("INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at,service_kind,service_payload) VALUES($1,$2,$3,$4,'FLIGHT',$5,$6,$7,$8,$9,$10,$11,$12)",[id,search.id,actor.userId,actor.companyId,{priceIds:input.priceId?[input.priceId]:[]},review,bookingId,supplierMinor,totalMinor,expiresAt,search.service_kind,payload]);
- return {quoteId:id,kind:search.service_kind,totalMinor,expiresAt,summary:search.criteria,review:{conditions:review.conditions,alerts:review.alerts},parentReference:parent.reference};
+ return {quoteId:id,kind:search.service_kind,totalMinor,expiresAt,summary:search.criteria,review:serviceDisclosure(review),parentReference:parent.reference};
 }

@@ -1,3 +1,4 @@
+import { serviceDisclosure } from "./service-conditions";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { database,transaction } from "./db";
@@ -12,6 +13,19 @@ export async function runFlightServiceJob(job:Row,order:Row,lease:string){
  await database().query("UPDATE booking_jobs SET lease_until=now()+interval '600 seconds' WHERE order_id=$1 AND lease_token=$2",[order.id,lease]);
  const product=order.service_kind;const parent=(await database().query("SELECT * FROM orders WHERE id=$1",[order.parent_order_id])).rows[0];
  if(!job.attempted){
+  // Legacy captured checkouts may predate the public disclosure boundary. Do not
+  // submit an undisclosed service, or classify captured money as a failed booking.
+  // Already-attempted jobs bypass this gate only to reconcile their existing result.
+  if(serviceDisclosure(order.review).blocked){
+   await transaction(async tx=>{
+    const current=await tx.query("SELECT o.id FROM orders o JOIN booking_jobs j ON j.order_id=o.id WHERE o.id=$1 AND j.lease_token=$2 AND j.attempted=false AND o.status IN ('PAID','BOOKING_PENDING') FOR UPDATE OF o,j",[order.id,lease]);
+    if(!current.rowCount)return;
+    await tx.query("UPDATE orders SET status='MANUAL_REVIEW',revision=revision+1,updated_at=now() WHERE id=$1",[order.id]);
+    await tx.query("UPDATE booking_jobs SET state='REVIEW',lease_token=NULL,lease_until=NULL WHERE order_id=$1 AND lease_token=$2",[order.id,lease]);
+    await tx.query("INSERT INTO outbox_events(id,aggregate_id,event_type,payload) VALUES($1,$2,'booking.review_required',$3)",[randomUUID(),order.id,{bookingId:order.id,status:"MANUAL_REVIEW",reason:"SERVICE_TERMS_UNAVAILABLE"}]);
+   });
+   return true;
+  }
   if(parent?.status!=="TICKETED")throw Error("Original booking no longer active");
   const paid=Number(order.total_minor)===0||(await database().query("SELECT id FROM payments WHERE order_id=$1 AND status='CAPTURED' AND amount_minor=$2",[order.id,order.total_minor])).rowCount;
   if(!paid)throw Error("No verified service payment");

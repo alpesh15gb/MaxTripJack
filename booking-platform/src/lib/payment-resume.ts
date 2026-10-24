@@ -1,4 +1,6 @@
+import { serviceDisclosure } from "./service-conditions";
 export type PaymentResumeRecord = {
+  service_kind?: string | null; review?: unknown;
   id: string; status: string; total_minor: number | string;
   quote_expires_at: Date | string | null;
   fare_validation_state: string | null; booking_validation_state: string | null;
@@ -9,7 +11,8 @@ export type PaymentResumeRecord = {
 export function paymentResumeStatus(record: PaymentResumeRecord, now = Date.now()) {
   const fresh = record.quote_expires_at !== null && new Date(record.quote_expires_at).getTime() > now;
   const amount = Number(record.total_minor);
-  const canResume = record.status === "PAYMENT_PENDING" && record.intent_state === "CREATED"
+  const safeService = !record.service_kind || !serviceDisclosure(record.review).blocked;
+  const canResume = safeService && record.status === "PAYMENT_PENDING" && record.intent_state === "CREATED"
     && (record.fare_validation_state === null || record.fare_validation_state === "SUCCEEDED") && record.booking_validation_state === null
     && record.payment_status === "CREATED" && fresh && /^order_[A-Za-z0-9]+$/.test(record.gateway_order_id ?? "")
     && Number.isSafeInteger(amount) && amount > 0 && Number(record.amount_minor) === amount && record.currency === "INR";

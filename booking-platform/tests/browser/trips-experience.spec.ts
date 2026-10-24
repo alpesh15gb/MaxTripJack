@@ -123,20 +123,37 @@ test('trip organiser groups real travel dates, keeps pending separate and explai
   expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
 });
 
-test('flight extras display supplier conditions as labelled terms and block unsafe terms', async ({ page, provider }) => {
+for (const scenario of [
+  {name:'valid bounded disclosure',review:{version:1,blocked:false,lines:[{label:'Supplier quote validity (seconds)',text:'180'},{label:'Service restriction',text:'Extras cannot be refunded'},{label:'Supplier notice',text:'Seat eligibility still applies'}]},blocked:false},
+  {name:'blocked disclosure',review:{version:1,blocked:true,lines:[]},blocked:true},
+  {name:'missing disclosure',review:undefined,blocked:true},
+  {name:'legacy raw sensitive terms',review:{conditions:{st:180,apiKey:'never-display-this-secret'},alerts:['never-display-this-secret']},blocked:true},
+  {name:'malformed disclosure line',review:{version:1,blocked:false,lines:[{label:'Supplier notice',text:{secret:'never-display-this-secret'}}]},blocked:true},
+  {name:'unrecognized financial field',review:{version:1,blocked:false,lines:[{label:'Commission',text:'never-display-this-secret'}]},blocked:true},
+]) test(`flight extras: ${scenario.name}`, async ({ page, provider }) => {
   provider.bookingsPages['1']={hasMore:false,bookings:[trip(ticketId,'MX-SERVICES','TICKETED','DEL')]};
   provider.overrides[`GET /api/bookings/${ticketId}/cancellation-offer`]={body:{requests:[]}};
   provider.overrides[`POST /api/bookings/${ticketId}/services`]={body:{searchId:'synthetic-service-search',kind:'ANCILLARY',results:{segments:[{id:'segment1',label:'BOM → DEL',pax:[{id:'pax1',name:'Synthetic Traveller',type:'ADULT'}],options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:50000}]}]}}};
-  provider.overrides['POST /api/travel/service-review']={body:{quoteId:'synthetic-service-quote',kind:'ANCILLARY',parentReference:'MX-SERVICES',totalMinor:50000,expiresAt:'2099-01-01T12:00:00Z',review:{conditions:{st:180,restriction:'Extras cannot be refunded',apiKey:'never-display-this-secret'},alerts:['Seat eligibility still applies']}}};
+  provider.overrides['POST /api/travel/service-review']={body:{quoteId:'synthetic-service-quote',kind:'ANCILLARY',parentReference:'MX-SERVICES',totalMinor:50000,expiresAt:'2099-01-01T12:00:00Z',review:scenario.review}};
   await page.goto('/my-trips');
   await page.locator('.trip-management > summary').click();
   await page.getByRole('button',{name:'Add seats, meals & baggage'}).click();
   await page.getByRole('combobox',{name:'meal for Synthetic Traveller · BOM → DEL',exact:true}).selectOption('MEAL1');
   await page.getByRole('button',{name:'Review extras total'}).click();
-  await expect(page.getByRole('region',{name:'Supplier conditions'})).toContainText('Extras cannot be refunded');
-  await expect(page.getByRole('region',{name:'Supplier conditions'})).toContainText('Seat eligibility still applies');
+  const terms=page.getByRole('region',{name:'Supplier conditions'});
+  if(scenario.blocked){
+    await expect(terms).toContainText('Confirmation is unavailable');
+    await expect(page.getByRole('button',{name:'Confirm & pay'})).toBeDisabled();
+    // Programmatic form submission must also refuse, not just the disabled button.
+    await page.locator('form').filter({has:terms}).evaluate(form=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+  }else{
+    await expect(terms).toContainText('Supplier quote validity (seconds)');
+    await expect(terms).toContainText('180');
+    await expect(terms).toContainText('Extras cannot be refunded');
+    await expect(terms).toContainText('Seat eligibility still applies');
+    await expect(page.getByRole('button',{name:'Confirm & pay'})).toBeEnabled();
+  }
   await expect(page.getByText('never-display-this-secret')).toHaveCount(0);
-  await expect(page.getByRole('button',{name:'Confirm & pay'})).toBeDisabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
 });

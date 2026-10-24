@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       .parse({ bookingId: params.get("bookingId") ?? undefined, quoteId: params.get("quoteId") ?? undefined });
     if (input.quoteId) await owned("supplier_quotes", input.quoteId, actor);
     const found = await database().query<PaymentResumeRecord & { provider: string | null }>(
-      `SELECT o.id,o.status,o.total_minor,q.expires_at AS quote_expires_at,q.fare_validation_state,q.booking_validation_state,
+      `SELECT o.id,o.status,o.total_minor,q.expires_at AS quote_expires_at,q.fare_validation_state,q.booking_validation_state,o.service_kind,q.review,
        g.provider,g.state AS intent_state,g.gateway_order_id,p.status AS payment_status,p.amount_minor,p.currency
        FROM orders o LEFT JOIN supplier_quotes q ON q.id=o.quote_id
        LEFT JOIN gateway_intents g ON g.order_id=o.id
