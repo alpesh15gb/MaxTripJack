@@ -3,6 +3,49 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  isolated-production-image:
+    name: Booking production Docker image · isolated context
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Use exactly the production Dockerfile and context: no sibling mobile app,
+      # monorepo node_modules, local env files or generated build output is sent.
+      - name: Build complete production image with TypeScript checks enabled
+        run: docker build --progress=plain --file booking-platform/Dockerfile --tag booking-isolation:${{ github.sha }} booking-platform
+      - name: Verify non-root runtime artifacts and external worker imports offline
+        run: |
+          docker run --rm -i --network none --read-only --entrypoint node booking-isolation:${{ github.sha }} --conditions=react-server --import ./scripts/standalone-server.mjs --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {accessSync, constants, readdirSync, statSync} from 'node:fs';
+          import {join} from 'node:path';
+          assert.equal(process.getuid(), 10001);
+          for (const path of ['server.js', '.next/BUILD_ID', '.next/required-server-files.json', 'scripts/standalone-server.mjs', 'scripts/migrate.mjs', 'scripts/provision-runtime-role.mjs', 'scripts/release-check.mjs']) accessSync(path, constants.R_OK);
+          function readableTree(path) {
+            accessSync(path, constants.R_OK);
+            if (statSync(path).isDirectory()) {
+              accessSync(path, constants.X_OK);
+              for (const child of readdirSync(path)) readableTree(join(path, child));
+            }
+          }
+          for (const path of ['.next/static', 'public', 'db', 'dist']) readableTree(path);
+          for (const name of ['booking-worker', 'crm-worker', 'notification-worker', 'migrate-auth', 'sync-catalogue', 'refund-worker', 'maintenance-worker', 'cancellation-worker']) accessSync(`dist/${name}.mjs`, constants.R_OK);
+          // Import only libraries; never execute server.js, workers or migrations.
+          for (const name of ['next', 'next/navigation', 'pg', 'nodemailer', 'pdfkit', 'better-auth', 'zod', 'server-only']) await import(name);
+          console.log('Non-root runtime artifacts and library imports verified offline.');
+          JS
+  cross-app-contracts:
+    name: Web/native disclosure contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: booking-platform/package-lock.json
+      - run: npm ci --prefix booking-platform
+      - name: Verify actual web projection against native disclosure
+        run: booking-platform/node_modules/.bin/tsx --test tests/contracts/*.test.ts
   verify:
     runs-on: ubuntu-latest
     defaults:

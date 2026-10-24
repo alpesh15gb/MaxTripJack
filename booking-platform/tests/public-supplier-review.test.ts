@@ -43,10 +43,3 @@ test('hotel compliance flags independently retain required passport, PAN and GST
   const raw={option:{compliance}},issues=reviewGuestIssues(guests,raw);assert.ok(issues.length);assert.deepEqual(reviewGuestIssues(guests,publicSupplierReview('HOTEL',raw)),issues);
  }
 });
-test('projected API review is consumed by the native named disclosure contract',async()=>{
- const {reviewDisclosure}=await import('../../mobile-app/src/review-disclosure');
- const raw={conditions:{pcs:{pm:true,pped:true},dob:{adobr:true,cdobr:true,idobr:true},gst:{igm:true},iecr:true,ipa:true},fareRules:{fareRule:{miscInfo:'Known fare rule'}},option:{roomInfo:[{name:'Deluxe'}],bookingNotes:'Bring ID',compliance:{passportRequired:true,panRequired:true,gstType:'RESELLER'}}};
- const output=reviewDisclosure(publicSupplierReview('HOTEL',raw));
- for(const label of ['Passport','Passport expiry','Adult date of birth','Child date of birth','Infant date of birth','GST information','Emergency contact','Adult PAN'])assert.ok(output.includes(`${label}: required`));
- for(const text of ['Known fare rule','Rooms: Deluxe','Booking notes: Bring ID','GST type: RESELLER'])assert.ok(output.includes(text));
-});
