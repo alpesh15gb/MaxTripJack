@@ -112,7 +112,7 @@ for(const metadataFirst of [false,true]){
    const option=rooms.locator('.room-option-card');
    await expect(option).toContainText('₹18,400.00');
    await option.locator('.room-option-details>summary').click();
-   await option.getByText('Original supplier policy details',{exact:true}).click();
+   await option.getByText('Supported supplier policy details',{exact:true}).click();
    await expect(option).toContainText('Cancellation charges apply after the displayed deadline.');
    const rateAndPolicy=await option.innerText();
    if(!metadataFirst){await expect(rooms.locator('.room-gallery')).toHaveCount(0);releaseContent();}

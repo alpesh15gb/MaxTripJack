@@ -36,7 +36,7 @@ test('hotel amenities, photo labels and cancellation charges show only supported
  const timeline=page.getByRole('region',{name:'Hotel cancellation windows'});
  await expect(timeline.getByText('Exact charge needs confirmation',{exact:true})).toBeVisible();
  await expect(timeline.locator('ol')).not.toContainText('2407.09');await expect(timeline.locator('ol')).not.toContainText('₹');
- await timeline.getByText('Original supplier policy details',{exact:true}).click();
+ await timeline.getByText('Supported supplier policy details',{exact:true}).click();
  await expect(timeline.getByRole('region',{name:'Supplier cancellation terms'})).toContainText('2407.09');
  await expect(page.getByText('CoverImage',{exact:true})).toHaveCount(0);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'readable-hotel-policy-synthetic');

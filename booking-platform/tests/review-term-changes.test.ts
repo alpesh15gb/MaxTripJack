@@ -104,3 +104,28 @@ test('public policy projection and refreshed/current policy rendering never expo
  const boundary=readFileSync(new URL('../src/lib/supplier-flow.ts',import.meta.url),'utf8');
  assert.match(boundary,/fareRules:publicSupplierPolicy\(data.fareRules\)/);assert.match(boundary,/cancellation:publicSupplierPolicy\(data.option.cancellation\)/);
 });
+
+test('existing scalar hotel policy text remains supported without admitting nested supplier fields',async()=>{
+ const {publicSupplierPolicy}=await import('../src/lib/public-supplier-policy');
+ const policy='Cancellation charges apply after the displayed deadline.';
+ const safe=publicSupplierPolicy({policy,supplierAuthToken:'SYNTHETIC_PRIVATE_TOKEN',fC:{NF:987654321}});
+ assert.deepEqual(safe,{policy});
+ assert.equal(publicSupplierPolicy({policy:{text:policy,supplierAuthToken:'SYNTHETIC_PRIVATE_TOKEN'}}),null);
+ assert.equal(publicSupplierPolicy({policy:'a'.repeat(2001)}),null);
+ const {createElement}=await import('react'),{renderToStaticMarkup}=await import('react-dom/server');
+ const {default:Timeline}=await import('../src/components/hotel-cancellation-timeline');
+ const html=renderToStaticMarkup(createElement(Timeline,{value:{policy,supplierAuthToken:'SYNTHETIC_PRIVATE_TOKEN',fC:{NF:987654321}}}));
+ assert.match(html,/Supported supplier policy details/);assert.ok(html.includes(policy));assert.match(html,/cannot confirm the cancellation schedule/);
+ assert.doesNotMatch(html,/SYNTHETIC_PRIVATE_TOKEN|987654321|₹/);
+});
+
+test('supported policy disclosure retains raw dates and amounts without inventing currency or units',async()=>{
+ const {createElement}=await import('react'),{renderToStaticMarkup}=await import('react-dom/server');
+ const {default:Timeline}=await import('../src/components/hotel-cancellation-timeline');
+ for(const amount of [1000,2407.09]){
+  const html=renderToStaticMarkup(createElement(Timeline,{value:{isRefundable:true,penalties:[{from:'2026-10-21T00:00:00',to:'2026-10-22T00:00:00',amount}]}}));
+  assert.match(html,/2026-10-21T00:00:00/);assert.ok(html.includes(String(amount)));assert.match(html,/currency, units or calculation basis/);assert.doesNotMatch(html,/₹/);
+  const timeline=html.slice(html.indexOf('<ol'),html.indexOf('</ol>'));
+  assert.ok(!timeline.includes(String(amount)),'Readable timeline must not imply a numeric charge without verified units');
+ }
+});

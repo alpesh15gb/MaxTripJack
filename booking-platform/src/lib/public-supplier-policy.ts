@@ -11,7 +11,7 @@ export function policyText(value:unknown):string|null {
 export function publicSupplierPolicy(source:unknown):Record<string,unknown>|null {
  const raw=hotelObject(source),out:Record<string,unknown>={};
  const note=policyText(source);if(note)out.policyText=note;
- for(const key of ['policyText','cancellation'] as const){const value=policyText(raw[key]);if(value)out[key]=value;}
+ for(const key of ['policyText','policy','cancellation'] as const){const value=policyText(raw[key]);if(value)out[key]=value;}
  const misc=policyText(hotelObject(raw.fareRule).miscInfo);if(misc)out.fareRule={miscInfo:misc};
  const policy=hotelCancellation(raw);
  if(typeof policy.isRefundable==='boolean')out.isRefundable=policy.isRefundable;

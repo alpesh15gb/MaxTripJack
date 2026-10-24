@@ -22,6 +22,11 @@ production-security checks; this suite does not replace or relax them.
 - Optional versus supplier-required documents, stale-price refresh retaining
   traveller fields, explicit reviewed-total acceptance, and friendly required
   details rather than raw supplier flags disguised as cancellation terms.
+- Refreshed terms at the same price: before/after flight baggage/refund and hotel
+  room/meal/cancellation changes, stable reordered journeys, unknown malformed
+  fields, retained traveller drafts, fresh consent, Back/change selection and
+  unchanged uncertain-payment/same-order-resume safeguards. Dedicated coverage:
+  `refreshed-terms.spec.ts` (7 scenarios on both configured viewports).
 - Payment dismissal, same-order resume with a fresh server status check,
   captured/expired-order lockout, 409/503 uncertainty and pending My trips.
 - Interrupted/reloaded checkout recovery, no-order-yet and inaccessible-401/404 lockout,
@@ -62,3 +67,17 @@ Screenshots are review evidence rather than pixel-perfect baseline approvals.
 The assertions verify behavior, request payloads, safety states and horizontal
 overflow; a human should inspect the actual screenshot artifacts before visual
 sign-off. All traveller names and details in evidence are synthetic.
+
+## Refreshed-terms acceptance evidence
+
+`refreshed-terms.spec.ts` drives the production booking page using the shared
+fail-closed API/SDK interceptor. Its synthetic raw supplier values pass through
+the production public-policy/term projection in the test runner; independent UI
+assertions check the expected values rather than rendering a separate demo.
+It attaches before/after, unknown-coverage, fresh-consent, uncertainty and
+same-order-recovery screenshots on desktop and mobile. The normal `browser-ui`
+job discovers these tests and preserves their screenshots and intercepted API logs.
+
+Authoring checks do **not** constitute browser acceptance: no local browser was
+launched for this addition. CI must actually run all 14 viewport cases and produce
+artifacts before visual review or main-promotion approval.
