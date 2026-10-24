@@ -220,9 +220,10 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     return()=>clearTimeout(timer);
   },[prefill.autoSearch,prefill.resumeSelection,recovery.blocked,paymentUncertain]);
   const reviewedQuoteId=quote?.quoteId;
+  const focusRefreshedTerms=useRef(false);
   useEffect(()=>{
     if(!reviewedQuoteId)return;
-    const frame=requestAnimationFrame(()=>{document.getElementById('booking-review-title')?.focus({preventScroll:true});document.getElementById('booking-review')?.scrollIntoView({behavior:'auto',block:'start'});});
+    const frame=requestAnimationFrame(()=>{const target=document.getElementById(focusRefreshedTerms.current?'refreshed-terms-title':'booking-review-title');focusRefreshedTerms.current=false;target?.focus({preventScroll:true});target?.scrollIntoView({behavior:'auto',block:'start'});});
     return()=>cancelAnimationFrame(frame);
   },[reviewedQuoteId,checkoutStep]);
   useEffect(()=>{
@@ -417,7 +418,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     try{
       const value=await api<Quote>('/api/travel/review',{searchId:results?.searchId,...nextSelection},task.signal);
       if(current(task.id)){
-        setPreviousReview(renew?quote:null);setGuestErrors([]);setQuote(value);setSelection(nextSelection);clearSelectionHandoff();setReviewBase(value.totalMinor);setNow(null);setExtrasPending(false);setCheckoutStep('travellers');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
+        focusRefreshedTerms.current=renew;setPreviousReview(renew?quote:null);setGuestErrors([]);setQuote(value);setSelection(nextSelection);clearSelectionHandoff();setReviewBase(value.totalMinor);setNow(null);setExtrasPending(false);setCheckoutStep('travellers');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
         if(!renew){setGstEntered(false);setEmergencyEntered(false);}
         if(renew)setMessage(`Latest total ${money(value.totalMinor)}${quote&&quote.totalMinor!==value.totalMinor?` (previously ${money(quote.totalMinor)})`:''}. Price and rules refreshed. Your traveller details are kept on this page. Review optional extras again and accept the latest total before payment.`);
       }

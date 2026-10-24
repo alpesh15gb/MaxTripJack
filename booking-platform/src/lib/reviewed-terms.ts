@@ -2,6 +2,7 @@ import {flightFareDetails} from './flight-fare-details';
 import {hotelCancellation,hotelObject} from './hotel-presentation';
 import {refundLabel} from './booking-presentation';
 import {supplierInstant} from './supplier-time';
+import {hotelPolicyDateTime} from './hotel-cancellation-timeline';
 
 import type {ReviewTerm} from './review-term-changes';
 import {policyText as text} from './public-supplier-policy';
@@ -20,7 +21,7 @@ function itineraryKey(source:unknown):string|null {
  * expiry, supplier totals or commission. Missing values do not mean “none”. */
 export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown):ReviewTerm[]{
  const review=hotelObject(source),rows:ReviewTerm[]=[];
- const add=(key:string,label:string,value:string|null)=>rows.push({key,label,value});
+ const add=(key:string,label:string,value:string|null,display?:string)=>rows.push({key,label,value,...(display?{display}:{})});
  if(product==='HOTEL'){
   const option=hotelObject(review.option),raw=hotelObject(option.cancellation),policy=hotelCancellation(raw);
   add('room','Room',completeList(option.roomInfo,4,item=>text(hotelObject(item).name))?.join(' + ')??null);
@@ -30,7 +31,10 @@ export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown):ReviewTer
   // Explicit canonical schedule, independent of array order and timestamp formatting.
   // Supplier amount units are unverified: never render them as rupees or percentages.
   const penalties=policy.penalties;
-  add('cancellation','Cancellation schedule',Array.isArray(raw.penalties)&&penalties.length>0&&penalties.length===raw.penalties.length?penalties.map(row=>({from:supplierInstant(row.from,'+05:30')!,to:supplierInstant(row.to,'+05:30')!,amount:row.amount})).sort((a,b)=>a.from-b.from||a.to-b.to||a.amount-b.amount).map(row=>`${new Date(row.from).toISOString()} to ${new Date(row.to).toISOString()}: supplier amount ${row.amount} (currency, units and basis unverified)`).join('; '):null);
+  const schedule=Array.isArray(raw.penalties)&&penalties.length>0&&penalties.length===raw.penalties.length?penalties.map(row=>({from:supplierInstant(row.from,'+05:30')!,to:supplierInstant(row.to,'+05:30')!,amount:row.amount})).sort((a,b)=>a.from-b.from||a.to-b.to||a.amount-b.amount):null;
+  // Canonical comparison identity stays independent of customer date formatting.
+  add('cancellation','Cancellation schedule',schedule?.map(row=>`${new Date(row.from).toISOString()} to ${new Date(row.to).toISOString()}: supplier amount ${row.amount} (currency, units and basis unverified)`).join('; ')??null,
+   schedule?.map(row=>`${hotelPolicyDateTime(row.from)} IST → ${hotelPolicyDateTime(row.to)} IST · Supplier amount ${row.amount} (currency, units and basis unverified)`).join('; '));
   add('notes','Booking notes',text(option.bookingNotes));
  }else{
   const trips=Array.isArray(review.tripInfos)&&review.tripInfos.length<=12?review.tripInfos:[];

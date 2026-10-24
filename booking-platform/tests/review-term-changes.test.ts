@@ -102,7 +102,9 @@ test('public policy projection and refreshed/current policy rendering never expo
   assert.match(html,/Known policy/);assert.doesNotMatch(html,/PRIVATE_TOKEN|987654|Supplier Auth Token/);assert.match(html,/Other terms may be unavailable/);
  }
  const boundary=readFileSync(new URL('../src/lib/supplier-flow.ts',import.meta.url),'utf8');
- assert.match(boundary,/fareRules:publicSupplierPolicy\(data.fareRules\)/);assert.match(boundary,/cancellation:publicSupplierPolicy\(data.option.cancellation\)/);
+ assert.match(boundary,/review:publicSupplierReview\(product,data\)/);
+ const projection=readFileSync(new URL('../src/lib/public-supplier-review.ts',import.meta.url),'utf8');
+ assert.match(projection,/fareRules:publicSupplierPolicy\(data.fareRules\)/);assert.match(projection,/cancellation:publicSupplierPolicy\(option.cancellation\)/);
 });
 
 test('existing scalar hotel policy text remains supported without admitting nested supplier fields',async()=>{
@@ -128,4 +130,24 @@ test('supported policy disclosure retains raw dates and amounts without inventin
   const timeline=html.slice(html.indexOf('<ol'),html.indexOf('</ol>'));
   assert.ok(!timeline.includes(String(amount)),'Readable timeline must not imply a numeric charge without verified units');
  }
+});
+
+test('cancellation comparison displays readable IST dates while canonical equality remains stable',async()=>{
+ const before=hotel(),after=hotel();after.option.cancellation.penalties[0].amount=100;
+ const old=reviewedTerms('HOTEL',before),next=reviewedTerms('HOTEL',after),change=compareReviewedTerms(old,next)[0];
+ assert.match(change.after,/1 Jan 2027, 12:00 am IST → 2 Jan 2027, 12:00 am IST/);
+ assert.match(change.after,/Supplier amount 100 \(currency, units and basis unverified\)/);assert.doesNotMatch(change.after,/T18:30:00|₹/);
+ const term=next.find(row=>row.key==='cancellation')!;assert.match(term.value!,/2026-12-31T18:30:00.000Z/);
+ assert.deepEqual(compareReviewedTerms(next,next.map(row=>({...row,display:'Different display formatting only'}))),[]);
+ const {createElement}=await import('react'),{renderToStaticMarkup}=await import('react-dom/server');
+ const {default:RefreshedTerms}=await import('../src/components/refreshed-terms');
+ const html=renderToStaticMarkup(createElement(RefreshedTerms,{before:{totalMinor:100,review:{terms:old}},after:{totalMinor:100,review:{terms:next}}}));
+ assert.match(html,/1 Jan 2027, 12:00 am IST/);assert.doesNotMatch(html,/2026-12-31T18:30:00.000Z/);
+ assert.match(html,/Same price does not mean same terms/);assert.match(html,/id="refreshed-terms-title" tabindex="-1"/);
+ assert.ok(html.indexOf('This comparison does not cover every supplier rule')>html.indexOf('<details>'),'Longer coverage explanation stays in disclosure');
+});
+
+test('readable hotel policy boundaries preserve nonzero seconds and milliseconds',async()=>{
+ const {hotelPolicyDateTime}=await import('../src/lib/hotel-cancellation-timeline');
+ assert.match(hotelPolicyDateTime(Date.parse('2027-01-01T00:00:12.345+05:30')),/12:00:12\.345 am/);
 });

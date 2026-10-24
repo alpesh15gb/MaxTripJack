@@ -6,8 +6,8 @@ body{background:var(--travel-surface);color:var(--ink);font-size:15px;line-heigh
 :where(h1,h2,h3){text-wrap:balance}
 :where(button,a){touch-action:manipulation}
 .primary,.secondary{min-height:44px;font-size:14px;border-radius:12px}
-.travel-skip{position:fixed;left:16px;top:-100px;z-index:1000;background:var(--travel-navy);color:white;border-radius:12px;padding:14px 20px}
-.travel-skip:focus{top:12px}
+.travel-skip{clip-path:inset(50%);position:fixed;left:16px;top:-100px;z-index:1000;background:var(--travel-navy);color:white;border-radius:12px;padding:14px 20px}
+.travel-skip:focus{clip-path:none;top:12px}
 .travel-environment{display:flex;align-items:center;justify-content:center;gap:9px;min-height:32px;padding:5px 16px;background:#edf2ff;color:#334b7a;font-size:12px;font-weight:650;text-align:center}
 .travel-environment>span:first-child{width:6px;height:6px;background:#627aaf;border-radius:50%;flex-shrink:0}
 .travel-environment-detail{font-weight:450}

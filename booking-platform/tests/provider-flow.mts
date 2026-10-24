@@ -18,7 +18,9 @@ const pool=new Pool({connectionString:process.env.DATABASE_URL});
 const email=`provider-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",bookingId="",searchId="",quoteId="",bookCalls=0,reviewCalls=0,validateCalls=0,walletBalance=100000;
 let gatewayOrder=`order_${randomUUID().replaceAll("-","")}`,gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
 const fixtureBookings:string[]=[],fixtureQuotes:string[]=[],fixtureSearches:string[]=[];
-const hotelOption={optionId:"hotel-option",pricing:{totalPrice:5000 as unknown,currency:"INR",mf:0,mft:0},cancellation:{isRefundable:true,penalties:[]},compliance:{panRequired:false,passportRequired:false,gstType:"NA"}};
+const privateReviewMarker="SYNTHETIC_REVIEW_PRIVATE";
+const flightConditions={st:300,isa:false,pcs:{pm:false,pped:false,privateReviewMarker},dob:{adobr:false,cdobr:false,idobr:false,privateReviewMarker},gst:{igm:false,privateReviewMarker},iecr:false,ipa:false,privateReviewMarker};
+const hotelOption={optionId:"hotel-option",pricing:{totalPrice:5000 as unknown,currency:"INR",mf:0,mft:0,privateReviewMarker},cancellation:{isRefundable:true,penalties:[]},compliance:{panRequired:false,passportRequired:false,gstType:"NA",privateReviewMarker},bookingNotes:{privateReviewMarker}};
 const before={TRIPJACK_FLIGHT_API_KEY:process.env.TRIPJACK_FLIGHT_API_KEY,TRIPJACK_HOTEL_API_KEY:process.env.TRIPJACK_HOTEL_API_KEY,RAZORPAY_KEY_ID:process.env.RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET:process.env.RAZORPAY_KEY_SECRET};
 try{
  const signup=await originalFetch(base+"/api/auth/sign-up/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password,name:"Provider Contract Test"})});assert.equal(signup.status,200);userId=(await signup.json()).user.id;
@@ -31,7 +33,7 @@ try{
   if(url.startsWith("https://apitest.tripjack.com")){
    assert.equal(new Headers(init?.headers).get("apikey"),"contract-test-key");
    if(url.endsWith("air-search-all"))return ok({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[{da:{code:"BOM"},aa:{code:"DEL"},dt:"2026-12-20T10:00"}],totalPriceList:[{id:"price-contract",fD:{ADULT:{fC:{TF:5000}}}}]}]}}});
-   if(url.endsWith("/review")){reviewCalls++;return ok({status:{success:true},bookingId:"TJ-contract",conditions:{st:300},totalPriceInfo:{totalFareDetail:{fC:{TF:5000}}}});}
+   if(url.endsWith("/review")){reviewCalls++;return ok({status:{success:true},bookingId:"TJ-contract",conditions:flightConditions,totalPriceInfo:{totalFareDetail:{fC:{TF:5000}}}});}
    if(url.endsWith("/farerule"))return ok({status:{success:true},fareRule:{miscInfo:"Contract cancellation policy"}});
    if(url.endsWith("/fare-validate")){validateCalls++;return ok({status:{success:true}});}
    if(url.endsWith("/air/book")){bookCalls++;assert.equal(payload.paymentInfos[0].amount,5000);throw new Error("Simulated connection loss AFTER supplier accepted booking");}
@@ -56,6 +58,10 @@ try{
  await pool.query("UPDATE supplier_searches SET results=jsonb_set(results, '{searchResult,tripInfos,ONWARD}', (results #> '{searchResult,tripInfos,ONWARD}') || $2::jsonb) WHERE id=$1",[searchId,JSON.stringify([{sI:[{da:{code:"NMI"},aa:{code:"DEL"},dt:"2026-12-20T10:00"}],totalPriceList:[{id:"alternate-airport"}]}])]);
  const beforeReview=reviewCalls;await assert.rejects(()=>reviewSupplier(searchId,{priceIds:["alternate-airport"]},actor),/current search/);assert.equal(reviewCalls,beforeReview);
  const quote=await reviewSupplier(searchId,{priceIds:["price-contract"]},actor);quoteId=quote.quoteId;fixtureQuotes.push(quoteId);
+ assert.doesNotMatch(JSON.stringify(quote.review),/SYNTHETIC_REVIEW_PRIVATE|"st"|"isa"/);
+ assert.equal(quote.review.conditions.pcs.pm,false);assert.equal(quote.review.conditions.gst.igm,false);
+ const savedFlightReview=(await pool.query("SELECT review FROM supplier_quotes WHERE id=$1",[quoteId])).rows[0].review;
+ assert.deepEqual(savedFlightReview.conditions,flightConditions,"raw review must retain private and server-only fields");
  const readPaymentStatus=(query:string)=>paymentStatus(new Request(base+`/api/payments/status?${query}`,{headers:{cookie}}));
  const unseen=await readPaymentStatus(`quoteId=${quoteId}`);assert.equal(unseen.status,200);assert.deepEqual({found:(await unseen.clone().json()).found,canResume:(await unseen.json()).canResume},{found:false,canResume:false});
  assert.equal((await readPaymentStatus(`quoteId=${randomUUID()}`)).status,404);
@@ -102,6 +108,10 @@ try{
  hotelOption.pricing.totalPrice=5000;
  assert.equal((await pool.query("SELECT count(*)::int AS n FROM supplier_quotes WHERE search_id=$1",[hotelSearch.searchId])).rows[0].n,0,"invalid hotel prices must not create a payable quote");
  const hotelQuote=await reviewSupplier(hotelSearch.searchId,{hid:"100001",optionId:"hotel-option"},actor);fixtureQuotes.push(hotelQuote.quoteId);
+ assert.doesNotMatch(JSON.stringify(hotelQuote.review),/SYNTHETIC_REVIEW_PRIVATE|"pricing"|"mf"|"mft"/);
+ assert.equal(hotelQuote.review.option?.bookingNotes,null);assert.equal(hotelQuote.review.option?.compliance.panRequired,false);
+ const savedHotelReview=(await pool.query("SELECT review FROM supplier_quotes WHERE id=$1",[hotelQuote.quoteId])).rows[0].review;
+ assert.deepEqual(savedHotelReview.option,hotelOption,"hotel raw compliance, notes and pricing remain available for booking recheck");
  const hotelPayment=await createPayment(request("/api/payments/create",{quoteId:hotelQuote.quoteId,guests,acceptedTotalMinor:hotelQuote.totalMinor}));assert.equal(hotelPayment.status,200);const hotelGateway=await hotelPayment.json();fixtureBookings.push(hotelGateway.bookingId);
  const hotelVerified=await verifyPayment(request("/api/payments/verify",{bookingId:hotelGateway.bookingId,razorpay_order_id:gatewayOrder,razorpay_payment_id:gatewayPayment,razorpay_signature:signature(`${gatewayOrder}|${gatewayPayment}`,"contract-test-secret")}));assert.equal(hotelVerified.status,200);
  await runBookingJob();assert.equal((await pool.query("SELECT status FROM orders WHERE id=$1",[hotelGateway.bookingId])).rows[0].status,"CONFIRMED");assert.equal(bookCalls,2);

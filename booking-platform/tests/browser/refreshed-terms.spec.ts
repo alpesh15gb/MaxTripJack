@@ -46,14 +46,16 @@ async function retainedTraveller(page:Page){
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
 }
 async function reviewPayment(page:Page){await page.getByRole('button',{name:'Review booking',exact:true}).click();await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();}
-async function refresh(page:Page){await page.getByRole('button',{name:'Refresh reviewed price',exact:true}).click();await expect(disclosure(page)).toBeVisible();await expect(page.getByRole('button',{name:'Review booking',exact:true})).toBeEnabled();}
+async function refresh(page:Page){await page.getByRole('button',{name:'Refresh reviewed price',exact:true}).click();await expect(disclosure(page)).toBeVisible();await expect(page.getByRole('button',{name:'Review booking',exact:true})).toBeEnabled();await expect(page.locator('#refreshed-terms-title')).toBeFocused();await expect(page.locator('.travel-skip')).not.toBeFocused();await expect(page.locator('.travel-skip')).toHaveCSS('clip-path','inset(50%)');}
 async function prepareRefreshedFlight(page:Page,provider:ProviderFixture){
  provider.quote=flightQuote([fare()]);await openFlight(page);await fillTraveller(page);
  provider.quote=flightQuote([fare('ONWARD',0,'No allowance')],renewedId);await refresh(page);await retainedTraveller(page);await reviewPayment(page);
 }
 
 test('same-price flight baggage/refund changes retain travellers, reset consent, and survive Back',async({page,provider},testInfo)=>{
- provider.quote=flightQuote([fare()]);await openFlight(page);await fillTraveller(page);await reviewPayment(page);await consent(page).check();
+ provider.quote=flightQuote([fare()]);await openFlight(page);
+ await page.locator('.travel-skip').focus();await expect(page.locator('.travel-skip')).toBeFocused();await expect(page.locator('.travel-skip')).toHaveCSS('clip-path','none');await expect(page.locator('.travel-skip')).toBeInViewport();
+ await fillTraveller(page);await reviewPayment(page);await consent(page).check();
  provider.quote=flightQuote([fare('ONWARD',0,'No allowance')],renewedId);await refresh(page);
  await expect(disclosure(page).getByRole('status')).toContainText('Total unchanged. 2 reviewed details have changed');
  await expect(changedRow(page,'ADULT checked baggage')).toContainText('Previously: 15 Kg');await expect(changedRow(page,'ADULT checked baggage')).toContainText('Now: No allowance');
@@ -77,7 +79,9 @@ test('same-price hotel room, meal and cancellation changes show explicit previou
  await expect(disclosure(page).getByRole('status')).toContainText('Total unchanged. 5 reviewed details have changed');
  await expect(changedRow(page,'Room')).toContainText('Previously: Deluxe twin room');await expect(changedRow(page,'Room')).toContainText('Now: Standard double room');
  await expect(changedRow(page,'Meal plan')).toContainText('Previously: BREAKFAST');await expect(changedRow(page,'Meal plan')).toContainText('Now: ROOM ONLY');
- await expect(changedRow(page,'Refundability')).toContainText('Now: Non-refundable');await expect(changedRow(page,'Cancellation schedule')).toContainText('supplier amount 0');await expect(changedRow(page,'Cancellation schedule')).toContainText('supplier amount 100 (currency, units and basis unverified)');
+ await expect(changedRow(page,'Refundability')).toContainText('Now: Non-refundable');await expect(changedRow(page,'Cancellation schedule')).toContainText('Supplier amount 0');await expect(changedRow(page,'Cancellation schedule')).toContainText('Supplier amount 100 (currency, units and basis unverified)');
+ const schedule=changedRow(page,'Cancellation schedule');await expect(schedule).toContainText('IST →');await expect(schedule).not.toContainText('T18:30:00.000Z');await expect(schedule).not.toContainText('₹');
+ await expect(disclosure(page)).toContainText('Same price does not mean same terms.');
  await retainedTraveller(page);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'same-price-hotel-room-meal-cancellation');
  await reviewPayment(page);await expect(consent(page)).not.toBeChecked();await page.getByRole('button',{name:/^Pay .* securely$/}).click();expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.getByRole('button',{name:'Back to travellers',exact:true}).click();await retainedTraveller(page);expect(provider.requests('/api/travel/review')).toHaveLength(2);

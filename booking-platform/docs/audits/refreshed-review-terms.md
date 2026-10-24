@@ -30,3 +30,14 @@ The independent review found three adversarial gaps in the first patch: lossy ro
 - Adversarial regression tests cover malformed lists, long text, reorder/duplicate/missing itinerary identity, and synthetic nested secrets/net values in both current and refreshed rendered HTML.
 
 Hardening checks: 314/314 unit tests passed (14 refreshed-term cases), ESLint, production build, TypeScript, and diff checks passed. Independent re-review requested against these changes; no browser or live-provider verification claimed.
+
+## Visual acceptance refinement
+After remote CI passed the refreshed-term scenarios, the real screenshot evidence still showed machine-oriented UTC timestamp strings in hotel cancellation comparisons. The canonical strings now remain comparison-only; a separate presentation value uses readable India Standard Time (IST) dates and preserves seconds/milliseconds at non-minute boundaries. Supplier amounts retain the explicit unverified-currency/unit/basis warning. Cosmetic formatting cannot create a term difference.
+
+The comparison presents a short “Same price does not mean same terms” warning and honest missing-data coverage; the longer scope explanation sits in the existing expandable policy disclosure. All material changes and unknown values remain expanded.
+
+Renewal now explicitly focuses the refreshed-terms heading; ordinary checkout-step navigation still focuses the review heading. New browser assertions check the focused heading and that the skip link is not focused. The prior full-page screenshot alone could not prove skip-link focus: its fixed `top:-100px` offscreen positioning can show up inside a scrolled full-page capture. The unfocused link is now clipped as well, and the existing focus style restores it; browser assertions also verify it remains focusable and visible when deliberately focused. No capture-specific DOM mutation hides the link.
+
+No local browser was launched for this refinement. Updated CI assertions require readable IST labels, no UTC-machine strings in the visible comparison, unverified units, correct focus, and retained keyboard-accessible skip navigation on both viewports. Fresh CI/screenshots remain required for visual acceptance.
+
+Refinement checks: 351 unit tests, ESLint, production build, fresh TypeScript and diff checks passed; 14 refreshed-term viewport cases discovered without browser launch. Unit rendering verifies readable IST, unchanged canonical equality across display-only changes, explicit monetary uncertainty, and sub-minute boundary precision.
