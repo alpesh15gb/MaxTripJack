@@ -623,7 +623,7 @@ test('flight sign-in gate dismisses on Back to fares and only the new fare reach
  const itinerary=flight();itinerary.totalPriceList.push({...itinerary.totalPriceList[0],id:'replacement-flexible-id',fareIdentifier:'FLEXIBLE',customerEstimateMinor:720000});
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[itinerary]}}}};
  await openFlightSearch(page);await selectVisibleFare(page);await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: STANDARD');
- await page.getByRole('button',{name:'Back to fares',exact:true}).click();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ await page.getByRole('button',{name:'Back to fares',exact:true}).click();await expect(page.locator('#flight-results-title')).toBeFocused();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
  const comparison=page.locator('.flight-shopping-list .fare-comparison').first();if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
  await page.locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: FLEXIBLE');await expect(page.locator('.signin-selection-context')).not.toContainText('STANDARD');
