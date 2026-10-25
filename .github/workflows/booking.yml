@@ -114,6 +114,12 @@ jobs:
           # Prior fixture flows share loopback identity; retain production rate limits.
           sleep 60
           node --env-file=.env.local --import tsx tests/account-mail-next-http.mts
+      - name: Prove real MFA enrollment and single-use backup recovery on disposable services
+        timeout-minutes: 4
+        run: |
+          # Preserve production rate limits between loopback synthetic identities.
+          sleep 60
+          node --env-file=.env.local --import tsx tests/mfa-next-http.mts
       - run: npm audit --omit=dev --audit-level=high
   browser-ui:
     name: Booking UI · synthetic providers · desktop and mobile

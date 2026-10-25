@@ -32,6 +32,14 @@ test('lost service create stays locked through duplicate submission, refresh and
  await expect(page.getByRole('button',{name:'Add seats, meals & baggage'})).toBeDisabled();
  await page.goto('/account');await page.goBack();await openManagement(page);await expect(recovery(page)).toBeVisible();
  expect(provider.requests('/api/payments/create')).toHaveLength(1);
+ const controls=recovery(page).locator('button, a');
+ await expect(controls).toHaveCount(4);
+ const boxes=await controls.evaluateAll(nodes=>nodes.map(node=>{const b=node.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};}));
+ for(const box of boxes){expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);}
+ for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
+  const a=boxes[i],b=boxes[j];expect(a.x+a.width<=b.x||b.x+b.width<=a.x||a.y+a.height<=b.y||b.y+b.height<=a.y).toBe(true);
+ }
+ await info.attach('service-recovery-controls-natural-viewport',{body:await page.screenshot(),contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,info,'service-create-unknown-reload');
 });
 
