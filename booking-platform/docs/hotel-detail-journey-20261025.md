@@ -11,7 +11,7 @@ Room combinations are grouped by the complete ordered room ID/name sequence. Rat
 
 ## Navigation and privacy
 
-Next 16.4.1 installed documentation (`01-app/01-getting-started/04-linking-and-navigating.md`, Native History API) explicitly supports native `pushState`/`replaceState` integration without a page reload. This preserves the mounted results/filter state rather than remounting the existing `/book` workspace keyed by server prefill.
+Next 16.4.1 installed documentation (`01-app/01-getting-started/04-linking-and-navigating.md`, Native History API) explicitly supports native `pushState`/`replaceState` integration without a page reload. A stable, account-keyed client boundary preserves mounted results/filter state across native traversal; genuine same-route Next Link navigation adopts validated new public criteria only after checkout-lock checks. A server-prefill-derived React key must not own this workspace.
 
 Public URL steps use `browseSearch`, `stay`, `gallery`, `stayStep`. Only validated public search criteria are copied; unknown/auth fields are removed. URLs over 2,000 characters retain only the validated owned search/property pointer, never truncated room occupancy. The snapshot endpoint restores authoritative search criteria and the Modify search controls. Browser Back/Forward returns between property/gallery/results; returning from review restores the selected rate. Pending review and stale snapshot responses cannot resurrect abandoned state.
 
@@ -25,7 +25,7 @@ No invented property description, reviews, map, room beds/size/capacity, nightly
 
 ## Verification
 
-Final local production build, TypeScript and full lint passed; the full unit suite passed 405/405. Playwright discovery found 28 desktop/mobile cases in the new journey spec. Focused tests cover snapshot boundaries, URL/storage privacy and grouped UI contracts.
+Final local production build, TypeScript and full lint passed; the full unit suite passed 405/405. Playwright discovery found 32 desktop/mobile cases in the new journey spec (104 across that spec and checkout). Focused tests cover snapshot boundaries, URL/storage privacy and grouped UI contracts.
 
 `tests/browser/hotel-detail-journey.spec.ts` covers name/photo entry, gallery keyboard/history, room/review, Back/Forward/reload, filters, pointer-only authoritative criteria, expired/foreign searches, missing photos/content, empty/error rates, multi-room option IDs and interrupted request races on desktop 1440 and mobile 390. Existing affected browser scenarios were updated rather than bypassed.
 
@@ -36,3 +36,11 @@ Final local production build, TypeScript and full lint passed; the full unit sui
 Official rendered [TripJack bulk Hotel Content documentation](https://tripjack.com/page/api-doc#hotel-content) documents `hotels[].descriptions.headline` and `descriptions.default` as a JSON string. Its illustrative optional `Overview`/`Snippet` fields are not guaranteed. The separate static-detail response is a different schema and is not used.
 
 The existing bulk payload now projects a 200-character headline and at most 4,000 characters of Overview (otherwise Snippet), parsed once only from bounded 32KB input. Unknown structures, arrays, prototype keys and nonstring values are rejected. Conservative plain-text conversion removes markup, scripts/styles/comments and controls; consumers render React text only, never HTML. Missing descriptions remain explicitly unavailable rather than substituting an address or generated prose. Long descriptions have a 600-character preview with an explicit full-description disclosure. No new supplier request, credentials, static-room schema or property-policy/cancellation inference was added.
+
+## CI review and browse-return follow-up
+
+The `cc1ac31151537f5bea4fdf31890413ca3c7c9a75` candidate completed 511 browser cases with 2 selector failures and 1 mobile history retry; this is not a clean final acceptance result. Its exact-head desktop and mobile screenshots were inspected: the supplied About text is visible, room/rate grouping is distinct, and expanded cancellation content occupies its own row without covering the Review action. The remaining pointer-restore select assertions now use exact combobox roles rather than ambiguous implicit labels.
+
+Explicit Back to rooms/stays/fares abandons a pending sign-in selection, removes its tab handoff and invalidates an outstanding review response. Actual Sign in navigation preserves that handoff. Payment, uncertain-payment and recovery locks are checked before any dismissal. Synthetic regressions cover returning to browsing, choosing a different hotel/rate or flight fare, and retaining only the new selection at authentication.
+
+The mobile history trace exposed an additional real issue: a restored Next server tree could remount the workspace through its URL-derived React key, issuing another snapshot request after Back. Navigation ownership and genuine same-route Link behavior are tested separately from native property history; final CI must prove both, including protected checkout navigation.

@@ -26,7 +26,7 @@ async function filters(page:Page,open:boolean){
  // them before deciding whether this viewport has a visible filter toggle.
  await expect(page.locator('#booking-results')).toBeVisible();
  const toggle=page.getByRole('button',{name:/^Filters/});
- if(await toggle.isVisible()){if((await toggle.getAttribute('aria-expanded')==='true')!==open)await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded',String(open));}
+ if(await page.evaluate(()=>matchMedia('(max-width: 900px)').matches)){await expect(toggle).toBeVisible();if((await toggle.getAttribute('aria-expanded')==='true')!==open)await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded',String(open));}
 }
 const card=(page:Page)=>page.getByRole('article',{name,exact:true});
 const title=(page:Page)=>card(page).locator('h3').getByRole('link');
@@ -74,6 +74,14 @@ test('photo opens overview before rooms finish and failed room loading can retry
 });
 
 test('Back, Forward and refresh retain filtered search, submitted dates and occupancy without a new availability search',async({page,provider},testInfo)=>{
+ // Record node identity and disclosure state across Next/native history commits.
+ // This diagnoses late workspace replacement without retry-clicking the UI.
+ await page.addInitScript(()=>{
+  const log:unknown[]=[],ids=new WeakMap<Element,number>();let nextId=0,last='';
+  Object.assign(window,{__hotelFilterLifecycle:log});
+  const record=()=>{const result=document.getElementById('booking-results'),toggle=document.querySelector('.hotel-filter-toggle');for(const node of [result,toggle])if(node&&!ids.has(node))ids.set(node,++nextId);const state={resultsId:result?ids.get(result):null,hidden:result?.hidden??null,toggleId:toggle?ids.get(toggle):null,expanded:toggle?.getAttribute('aria-expanded')??null,path:location.pathname+location.search};const encoded=JSON.stringify(state);if(encoded!==last){last=encoded;log.push({time:performance.now(),...state});if(log.length>80)log.shift();}};
+  new MutationObserver(record).observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','aria-expanded']});window.addEventListener('popstate',record);record();
+ });
  await page.goto(searchUrl());await expect(card(page)).toBeVisible();await filters(page,true);
  await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Palm');await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');await filters(page,false);
  await title(page).click();await expect(page.locator('#hotel-detail-title')).toBeVisible();await page.goBack();
@@ -83,7 +91,7 @@ test('Back, Forward and refresh retain filtered search, submitted dates and occu
  await expect(page.locator('#booking-rooms')).toContainText('2 guests');await expect(page.locator('#booking-rooms')).toContainText(travelDateLabel(departure));
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
  await filters(page,true);await expect(page.getByRole('searchbox',{name:'Property name',exact:true})).toHaveValue('Palm');await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');
- await capture(page,testInfo,'hotel-search-restored-after-refresh');expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await capture(page,testInfo,'hotel-search-restored-after-refresh');expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 for(const reason of ['expired','foreign'])test(`${reason} property deep link offers search recovery and never requests room availability or review`,async({page,provider})=>{
@@ -168,10 +176,10 @@ test('pointer-only property URL hydrates authoritative dates, destination, natio
  await page.locator('#booking-search>summary').click();
  const form=page.getByRole('form',{name:'Search availability',exact:true});
  await expect(form.getByLabel('Destination',{exact:true})).toHaveValue(authoritative.city);await expect(form.locator('input[name="hotelIds"]')).toHaveValue('10001,10002');
- await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue(returning);await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('2');await expect(form.getByLabel('Guest nationality',{exact:true})).toHaveValue('222');
+ await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue(returning);await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('2');await expect(form.getByRole('combobox',{name:'Guest nationality',exact:true})).toHaveValue('222');
  const first=form.getByRole('group',{name:'Room 1 · Guests',exact:true}),second=form.getByRole('group',{name:'Room 2 · Guests',exact:true});
- await expect(first.getByLabel('Adults',{exact:true})).toHaveValue('2');await expect(first.getByLabel('Children',{exact:true})).toHaveValue('0');
- await expect(second.getByLabel('Adults',{exact:true})).toHaveValue('1');await expect(second.getByLabel('Children',{exact:true})).toHaveValue('1');await expect(second.getByLabel('Child 1 age at check-in',{exact:true})).toHaveValue('7');
+ await expect(first.getByRole('combobox',{name:'Adults',exact:true})).toHaveValue('2');await expect(first.getByRole('combobox',{name:'Children',exact:true})).toHaveValue('0');
+ await expect(second.getByRole('combobox',{name:'Adults',exact:true})).toHaveValue('1');await expect(second.getByRole('combobox',{name:'Children',exact:true})).toHaveValue('1');await expect(second.getByLabel('Child 1 age at check-in',{exact:true})).toHaveValue('7');
  expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')[0].body).toEqual({searchId,hid:'10001'});expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });
 
@@ -199,4 +207,34 @@ test('switching to Flights supersedes a held hotel snapshot without reopening th
   await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();await expect(page.locator('#hotel-detail-title')).toHaveCount(0);await expect(page.locator('.hotel-shopping-card')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Restoring your hotel search…',exact:true})).toHaveCount(0);
   expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  }finally{release();}
+});
+
+// Retain diagnostic evidence on both success and failure; no customer data is recorded.
+test.afterEach(async({page},testInfo)=>{
+ if(!testInfo.title.startsWith('Back, Forward and refresh retain'))return;
+ const log=await page.evaluate(()=>(window as Window&{__hotelFilterLifecycle?:unknown[]}).__hotelFilterLifecycle??[]).catch(()=>[]);
+ await testInfo.attach('hotel-filter-history-lifecycle.json',{body:JSON.stringify(log,null,2),contentType:'application/json'});
+});
+
+
+test('real same-book Next Link applies new public criteria without a document reload or stale hotel state',async({page,provider})=>{
+ await page.goto(searchUrl());await title(page).click();await expect(page.locator('.room-option-card')).toHaveCount(2);
+ await page.evaluate(()=>Object.assign(window,{__sameBookNavigationProof:'document-retained'}));
+ const link=page.getByRole('contentinfo').getByRole('link',{name:'Plan a stay',exact:true});await expect(link).toHaveAttribute('href','/book?product=HOTEL');await link.click();
+ await expect(page).toHaveURL(/\/book\?product=HOTEL$/);
+ const form=page.getByRole('form',{name:'Search availability',exact:true});await expect(form).toBeVisible();
+ await expect(form.getByLabel('Destination',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue('');await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('1');
+ await expect(page.locator('#hotel-detail-title')).toHaveCount(0);await expect(page.locator('.hotel-shopping-card')).toHaveCount(0);await expect(page.getByRole('button',{name:'Search stays',exact:true})).toBeEnabled();
+ expect(await page.evaluate(()=>(window as Window&{__sameBookNavigationProof?:string}).__sameBookNavigationProof)).toBe('document-retained');
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);
+});
+
+test('pointer-only reload followed by Back to stays uses exactly one new snapshot and no availability search',async({page,provider})=>{
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',browseSearch:searchId,stay:'10001'}));await expect(page.locator('#hotel-detail-title')).toHaveText(name);
+ expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(1);
+ await page.reload();await expect(page.locator('#hotel-detail-title')).toHaveText(name);expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(2);
+ await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(page.locator('#booking-results')).toBeVisible();await filters(page,true);
+ await expect(page.getByRole('searchbox',{name:'Property name',exact:true})).toBeVisible();await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Palm');await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
+ await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(departure));await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(returning));
+ expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(2);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });

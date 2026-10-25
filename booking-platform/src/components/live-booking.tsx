@@ -3,13 +3,13 @@ import '@/app/booking-experience.css';
 import { useCallback,useEffect,useRef,useState } from 'react';
 import { guestDetailsIssues,type GuestIssue,type PartySearch } from '@/lib/guest-validation-rules';
 import { guestIssueField,guestNativeIssues,guestsFromForm,parseGuestIssues } from '@/lib/guest-form';
-import { useRouter } from 'next/navigation';
+import { useRouter,useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
 import {hotelCancellationLabel,hotelRoomLabel,type HotelPropertyDetails,type HotelRoomOption} from '@/lib/hotel-presentation';
 import {BOOKING_HANDOFF_KEY,inspectBookingHandoff,parseBookingHandoff,type BookingHandoff} from '@/lib/booking-handoff';
 import {completeHotelRooms,type DraftHotelRoom} from '@/lib/hotel-occupancy';
-import {bookingSearchUrl,searchRooms,searchLegs} from '@/lib/booking-search-state';
+import {bookingSearchPrefill,bookingSearchUrl,searchRooms,searchLegs} from '@/lib/booking-search-state';
 import {accountHref} from '@/lib/account-return';
 import {type AvailableHotelOption} from './hotel-room-view';
 import HotelDetailView from './hotel-detail-view';
@@ -69,11 +69,26 @@ export default function LiveBooking({prefill={},checkoutConfigured=false}:{prefi
   },[isPending,error,resolvedIdentity]);
   const changingIdentity=!isPending&&!error&&stableIdentity!==resolvedIdentity;
   if(stableIdentity===null||changingIdentity)return <><TravelHeader/><main id="main-content" className="page-shell live-booking"><div className="white-card" role="status"><h1>{error?'Let’s reconnect your account.':'Getting your journey ready…'}</h1><p>{error?'We could not verify your session. Try again before continuing.':'Checking secure access to your booking workspace.'}</p>{error&&<button className="primary" type="button" onClick={()=>void refetch()}>Check secure session again</button>}</div></main></>;
-  return <LiveBookingWorkspace key={stableIdentity} prefill={prefill} checkoutConfigured={checkoutConfigured}/>;
+  return <BookingRouteWorkspace key={stableIdentity} prefill={prefill} checkoutConfigured={checkoutConfigured}/>;
 }
 
-function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<string,string>;checkoutConfigured:boolean}){
+// Server route trees may be restored after our native history handler has run.
+// Keep the account boundary stable; only the mounted workspace may accept a new
+// route, after checking its current URL, search ownership and checkout locks.
+function BookingRouteWorkspace({prefill,checkoutConfigured}:{prefill:Record<string,string>;checkoutConfigured:boolean}){
+  const [entry,setEntry]=useState(()=>({prefill:typeof window==='undefined'?prefill:currentRoutePrefill(),revision:0}));
+  const adoptRoute=useCallback((next:Record<string,string>)=>setEntry(current=>({prefill:next,revision:current.revision+1})),[]);
+  return <LiveBookingWorkspace key={entry.revision} prefill={entry.prefill} routePrefill={prefill} adoptRoute={adoptRoute} checkoutConfigured={checkoutConfigured}/>;
+}
+function currentRoutePrefill(){
+  const params=new URLSearchParams(window.location.search),query:Record<string,string|string[]>={};
+  for(const key of new Set(params.keys())){const values=params.getAll(key);query[key]=values.length===1?values[0]:values;}
+  return bookingSearchPrefill(query);
+}
+function routeFingerprint(value:Record<string,string>){return JSON.stringify(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)));}
+function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfigured}:{prefill?:Record<string,string>;routePrefill:Record<string,string>;adoptRoute:(next:Record<string,string>)=>void;checkoutConfigured:boolean}){
   const router=useRouter();
+  const routeSearch=useSearchParams().toString();
   const {data:checkoutSession}=authClient.useSession();
   const [signInRequired,setSignInRequired]=useState(false);
   const [signInWithoutSelection,setSignInWithoutSelection]=useState(false);
@@ -150,7 +165,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     const frame=requestAnimationFrame(()=>{const heading=document.getElementById('booking-signin-title');heading?.focus({preventScroll:true});heading?.scrollIntoView({behavior:'auto',block:'start'});});
     return()=>cancelAnimationFrame(frame);
   },[signInRequired,signInWithoutSelection,message,busy]);
-  function backToFlightResults(){if(!hasFullSearchResults){recoverSearch();return;}restoreFlightResults.current=true;setQuote(null);}
+  function backToFlightResults(){if(!dismissSelectionGate())return;if(!hasFullSearchResults){recoverSearch();return;}restoreFlightResults.current=true;setQuote(null);if(!quote)requestAnimationFrame(()=>{const saved=flightReturn.current;if(saved?.trigger.isConnected){saved.trigger.focus({preventScroll:true});window.scrollTo({top:saved.scrollY,behavior:'auto'});}else document.getElementById('flight-results-title')?.focus();});}
   function recoverSearch(){snapshotController.current?.abort();setSnapshotLoading(false);hotelRequest.current?.abort();++hotelGeneration.current;const recoveryUrl=new URL(window.location.href);for(const key of ['browseSearch','stay','gallery','stayStep'])recoveryUrl.searchParams.delete(key);window.history.replaceState(null,'',recoveryUrl.pathname+recoveryUrl.search);setGalleryOpen(false);clearSelectionHandoff();setHasFullSearchResults(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;roomReturn.current=null;flightReturn.current=null;flightSelectionFocus.current=null;setQuote(null);setResults(null);setRooms(null);setRoomView(false);setSelection(null);setSelectedFares({});setSelectedJourney([]);setSelectedRoom(null);setFreshSearchRequired(false);setSearchRecovery(true);setMessage('');}
   useEffect(()=>{
     if(!searchRecovery)return;
@@ -167,7 +182,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   // Rate arrival must not steal focus from gallery or room controls.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[roomView,rooms?.hid,quote]);
-  function backToStays(){if(!hasFullSearchResults){recoverSearch();return;}
+  function backToStays(){if(!dismissSelectionGate())return;if(!hasFullSearchResults){recoverSearch();return;}
     if(window.history.state?.hotelEntry==='detail'&&!galleryOpen){window.history.back();return;}
     if(results)window.history.replaceState(null,'',hotelJourneyUrl(results.searchId));
     restoreRoomReturn.current=true;setRoomView(false);setGalleryOpen(false);
@@ -195,6 +210,35 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const mounted=useRef(true),verificationStarted=useRef(false);
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();hotelRequest.current?.abort();snapshotController.current?.abort();if(searchFocusFrame.current!==null)cancelAnimationFrame(searchFocusFrame.current);};},[]);
+  const ownedRoute=useRef<{url:string;state:unknown}>({url:'/book?'+new URLSearchParams(prefill).toString(),state:null});
+  useEffect(()=>{
+    const rememberRoute=()=>{
+      const hotelEntry=window.history.state?.hotelEntry;
+      // Keep only our own state; Next must manage its private router tree.
+      ownedRoute.current={url:window.location.pathname+window.location.search,state:['detail','gallery','review'].includes(hotelEntry)?{hotelEntry}:null};
+    };
+    const currentRoute=currentRoutePrefill();
+    // Native property/list/gallery traversal belongs to this loaded snapshot,
+    // including the initial restoration while its request is still pending.
+    if(currentRoute.browseSearch&&(currentRoute.browseSearch===results?.searchId||currentRoute.browseSearch===prefill.browseSearch)){rememberRoute();return;}
+    if(routeFingerprint(currentRoute)===routeFingerprint(submittedSearch)){rememberRoute();return;}
+    if(currentRoute.selectionKey&&currentRoute.selectionKey===savedHandoff?.key){rememberRoute();return;}
+    // A cached server tree is not authority for the current browser entry. Do
+    // not remember a mismatching URL: it may be a new Link awaiting its RSC data.
+    if(routeFingerprint(currentRoute)!==routeFingerprint(routePrefill))return;
+    const timer=setTimeout(()=>{
+      if(routeFingerprint(currentRoutePrefill())!==routeFingerprint(currentRoute))return;
+      if(payment||paymentUncertain||recovery.blocked||busyRef.current){
+        window.history.replaceState(ownedRoute.current.state,'',ownedRoute.current.url);
+        setMessage(payment||paymentUncertain||recovery.blocked?'Finish checking your current payment before starting a different search.':'Finish or stop the current availability or review request before starting a different search.');
+        return;
+      }
+      // Unmount cleanup invalidates in-flight requests and private drafts. It is
+      // deliberate only for a genuine new route, never a same-search traversal.
+      adoptRoute(currentRoute);
+    },0);
+    return()=>clearTimeout(timer);
+  },[routeSearch,routePrefill,submittedSearch,results?.searchId,prefill.browseSearch,savedHandoff?.key,payment,paymentUncertain,recovery.blocked,adoptRoute]);
   const propertyContentGeneration=useRef(0);
   const resultSearchId=results?.searchId;
   const propertyContentPending=results?.propertyContentPending===true;
@@ -381,6 +425,20 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     const url=new URL(window.location.href);for(const key of ['resumeSelection','resumeReview','selectionKey','autoSearch'])url.searchParams.delete(key);
     window.history.replaceState(null,'',url.pathname+url.search);
   }
+  /** An explicit return to browsing abandons the pending selection, not an
+   * actual Sign in navigation. Never clear or restart an uncertain checkout. */
+  function dismissSelectionGate(){
+    if(payment||paymentUncertain||recovery.blocked)return false;
+    if(checkingSelection){++operation.current;requestController.current?.abort();busyRef.current=false;setBusy(false);setActivity('');setCheckingSelection(null);}
+    if(signInRequired||signInWithoutSelection||savedHandoff){resumeReviewAllowed.current=false;clearSelectionHandoff();setMessage('');setSelection(null);setPreviousReview(null);}
+    return true;
+  }
+  function returnToRoomOptions(){
+    if(!dismissSelectionGate())return;
+    if(!hasFullSearchResults||!rooms){recoverSearch();return;}
+    setRoomView(true);window.history.replaceState(null,'',hotelJourneyUrl(rooms.searchId,rooms.hid));
+    requestAnimationFrame(()=>{const selected=selectedRoom?document.querySelector<HTMLElement>(`[data-room-option-id="${CSS.escape(selectedRoom.optionId)}"] button.primary`):null;const target=selected??document.getElementById('hotel-room-options-title');target?.focus({preventScroll:true});target?.scrollIntoView({behavior:'auto',block:'center'});});
+  }
   function switchProduct(next:Product){
     if(busyRef.current||payment||paymentUncertain||recovery.blocked)return;
     // A permitted product change supersedes asynchronous hotel browsing, but never
@@ -471,7 +529,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     }catch(error){if(mounted.current&&generation===hotelGeneration.current&&!controller.signal.aborted){setRoomsStatus('error');setRoomsError(error instanceof Error?error.message:'Room availability could not be checked. Try again.');if(error instanceof BookingApiError&&[404,409].includes(error.status)&&/search.*(expired|no longer available)|expired.*search/i.test(error.message)){setFreshSearchRequired(true);setMessage(error.message);}}}
   }
   function chooseHotel(hotel:Hotel,trigger:HTMLElement){
-    const searchId=results?.searchId;if(!searchId||busyRef.current)return;
+    const searchId=results?.searchId;if(!searchId||busyRef.current||!dismissSelectionGate())return;
     roomReturn.current={trigger,scrollY:window.scrollY};writeHotelBrowse(searchId,{scrollY:window.scrollY});
     window.history.replaceState(null,'',hotelJourneyUrl(searchId));
     window.history.pushState({hotelEntry:'detail'},'',hotelJourneyUrl(searchId,hotel.tjHotelId));
@@ -492,7 +550,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
       if(payment||paymentUncertain||recovery.blocked||(busyRef.current&&!checkingSelection)){if(results&&rooms)window.history.replaceState(null,'',hotelJourneyUrl(results.searchId,rooms.hid,false,Boolean(quote)));return;}
       if(checkingSelection){++operation.current;requestController.current?.abort();busyRef.current=false;setBusy(false);setActivity('');setCheckingSelection(null);}
       if(quote){restoreSelectedRate.current=true;if(checkoutForm.current)privateDraft.current={party:party.join(','),values:Array.from(new FormData(checkoutForm.current).entries()).filter((entry):entry is [string,string]=>typeof entry[1]==='string'&&entry[0]!=='consent')};}
-      setQuote(null);setGalleryOpen(params.get('gallery')==='1'&&Boolean(id));
+      dismissSelectionGate();setQuote(null);setGalleryOpen(params.get('gallery')==='1'&&Boolean(id));
       if(!id){if(results&&params.get('browseSearch')!==results.searchId)window.history.replaceState(null,'',hotelJourneyUrl(results.searchId));restoreRoomReturn.current=true;setRoomView(false);return;}
       const hotel=results?.results.hotels?.find(item=>item.tjHotelId===id);
       if(!hotel||params.get('browseSearch')!==results?.searchId){if(results)window.history.replaceState(null,'',hotelJourneyUrl(results.searchId));setRoomView(false);setGalleryOpen(false);setMessage('This property is not in your current search. Search again to continue.');return;}
@@ -504,7 +562,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
     // The handler uses the committed search/checkout context, never persisted rates.
     // Party is read only when preserving an already rendered private in-memory draft.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[results,rooms,payment,paymentUncertain,recovery.blocked,checkingSelection,quote,product]);
+  },[results,rooms,payment,paymentUncertain,recovery.blocked,checkingSelection,quote,product,signInRequired,signInWithoutSelection,savedHandoff]);
   useEffect(()=>{
     if(snapshotRead.current||prefill.resumeSelection==='1'||!prefill.browseSearch||prefill.searchInvalid)return;
     snapshotRead.current=true;autoSearchStarted.current=true;
@@ -528,7 +586,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   },[]);
   function chooseFare(group:string,fare:FlightFare,trigger:HTMLButtonElement){
     flightReturn.current={trigger,scrollY:window.scrollY};
-    if(busyRef.current)return;
+    if(busyRef.current||!dismissSelectionGate())return;
     if(!pairedFares){setSelectedFares({[group]:fare.id});void review({priceIds:[fare.id]});return;}
     flightSelectionFocus.current=fareGroups[fareGroups.indexOf(group)+1]?'results':'review';
     setSelectedFares(previous=>{
@@ -656,7 +714,7 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
       </form></details>
       <div id="booking-feedback" tabIndex={-1}>{message&&<div className={`booking-status info-message${signInRequired||signInWithoutSelection?' signin-review-gate':''}`} role="alert" tabIndex={-1}>
         {(signInRequired||signInWithoutSelection)&&<h2 id="booking-signin-title" tabIndex={-1}>{signInRequired?'Sign in to review your selection':'Sign in, then search again'}</h2>}<p>{message}</p>
-        {signInRequired&&<div className="signin-selection-context"><strong>{product==='HOTEL'?rooms?.name||savedHandoff?.hotel?.name||'Selected stay':'Selected flight'}</strong><p>{product==='HOTEL'?(savedHandoff?.hotel?.roomLabel||hotelRoomLabel({roomInfo:selectedRoom?.roomInfo??[]})):selectedJourney.map(flight=>`${flight.sI[0]?.da.code} → ${flight.sI.at(-1)?.aa.code} · ${travelDateTimeLabel(flight.sI[0]?.dt)}`).join(' / ')}</p>{product==='FLIGHT'&&<p>Selected fare: {selectedJourney.flatMap(flight=>flight.totalPriceList.map(fare=>fare.fareIdentifier.replaceAll('_',' '))).join(' / ')}</p>}<div className="signin-selection-actions"><Link className="primary" href={accountHref(selectionReturnUrl())}>Sign in to review selection</Link><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{if(!hasFullSearchResults){recoverSearch();return;}if(product==='HOTEL'&&!roomView){setRoomView(true);return;}const target=document.getElementById(product==='HOTEL'?'hotel-detail-title':'flight-results-title');target?.focus({preventScroll:true});target?.scrollIntoView({behavior:'auto',block:'start'});}}>{product==='HOTEL'?'Back to room options':'Back to fares'}</button></div></div>}
+        {signInRequired&&<div className="signin-selection-context"><strong>{product==='HOTEL'?rooms?.name||savedHandoff?.hotel?.name||'Selected stay':'Selected flight'}</strong><p>{product==='HOTEL'?(savedHandoff?.hotel?.roomLabel||hotelRoomLabel({roomInfo:selectedRoom?.roomInfo??[]})):selectedJourney.map(flight=>`${flight.sI[0]?.da.code} → ${flight.sI.at(-1)?.aa.code} · ${travelDateTimeLabel(flight.sI[0]?.dt)}`).join(' / ')}</p>{product==='FLIGHT'&&<p>Selected fare: {selectedJourney.flatMap(flight=>flight.totalPriceList.map(fare=>fare.fareIdentifier.replaceAll('_',' '))).join(' / ')}</p>}<div className="signin-selection-actions"><Link className="primary" href={accountHref(selectionReturnUrl())}>Sign in to review selection</Link><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{if(product==='HOTEL')returnToRoomOptions();else backToFlightResults();}}>{product==='HOTEL'?'Back to room options':'Back to fares'}</button></div></div>}
         {!signInRequired&&/sign in/i.test(message)&&<Link className={signInWithoutSelection?"primary signin-search-again":"inline-link"} href={accountHref('/book?'+new URLSearchParams(Object.fromEntries(Object.entries(submittedSearch).filter(([key])=>!signInWithoutSelection||!['resumeSelection','resumeReview','selectionKey','autoSearch'].includes(key)))).toString())}>{signInWithoutSelection?'Sign in, then search again':'Sign in or create an account'}</Link>}
         {freshSearchRequired&&!payment&&!paymentUncertain&&<button className="secondary" type="button" disabled={busy||recovery.blocked} onClick={recoverSearch}>Start a fresh search</button>}{(payment||paymentUncertain)&&<Link className="inline-link" href="/my-trips">View payment and booking status →</Link>}
       </div>}</div>

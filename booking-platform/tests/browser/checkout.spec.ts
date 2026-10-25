@@ -596,20 +596,60 @@ test('expired selection abandons obsolete account handoff without an automatic n
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('hotel sign-in feedback can reopen existing room options after returning to stays',async({page,provider})=>{
+test('hotel sign-in gate dismisses on room and results returns, then only the new hotel selection remains',async({page,provider})=>{
  provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
- provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Synthetic room recovery stay',customerEstimateMinor:800000}]}};
- provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'retained-room-id',roomInfo:[{name:'Twin room'}],pricing:{totalPrice:8000,currency:'INR'}}]}};
- await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Delhi',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
- await page.getByRole('button',{name:'Choose room',exact:true}).click();
- await page.getByRole('button',{name:'Review stay',exact:true}).click();
- await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
- await page.getByRole('button',{name:'Back to stays',exact:true}).click();
- await expect(page.locator('#booking-results')).toBeVisible();
- await page.getByRole('button',{name:'Back to room options',exact:true}).click();
- await expect(page.locator('#hotel-detail-title')).toBeFocused();
- await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
- expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
- expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'retained-room-id'}]);
- expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'First synthetic stay',customerEstimateMinor:800000},{tjHotelId:'10002',name:'Second synthetic stay',customerEstimateMinor:900000}]}};
+ provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'first-room-id',roomInfo:[{name:'First twin room'}],pricing:{totalPrice:8000,currency:'INR'}}]}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Delhi',hotelIds:'10001,10002',date:departure,end:returning,adults:'1',autoSearch:'1'}));
+ await page.getByRole('article',{name:'First synthetic stay',exact:true}).getByRole('button',{name:'Choose room',exact:true}).click();
+ await page.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Back to room options',exact:true}).click();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);
+ await expect(page.locator('.room-option-card')).toContainText('First twin room');await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ await page.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('#booking-signin-title')).toBeVisible();
+ await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(page.locator('#booking-results')).toBeVisible();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);
+ provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'second-room-id',roomInfo:[{name:'Second suite'}],pricing:{totalPrice:9000,currency:'INR'}}]}};
+ await page.getByRole('article',{name:'Second synthetic stay',exact:true}).getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Review stay',exact:true}).click();
+ const context=page.locator('.signin-selection-context');await expect(context).toContainText('Second synthetic stay');await expect(context).toContainText('Second suite');await expect(context).not.toContainText('First synthetic stay');await expect(context).not.toContainText('First twin room');
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(2);
+ expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'first-room-id'},{searchId,hid:'10001',optionId:'first-room-id'},{searchId,hid:'10002',optionId:'second-room-id'}]);
+ const before=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!));expect(before.selection).toEqual({hid:'10002',optionId:'second-room-id'});
+ await page.getByRole('link',{name:'Sign in to review selection',exact:true}).click();await expect(page).toHaveURL(/\/account\?/);
+ expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!))).toEqual(before);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('flight sign-in gate dismisses on Back to fares and only the new fare reaches authentication',async({page,provider})=>{
+ provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
+ const itinerary=flight();itinerary.totalPriceList.push({...itinerary.totalPriceList[0],id:'replacement-flexible-id',fareIdentifier:'FLEXIBLE',customerEstimateMinor:720000});
+ provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[itinerary]}}}};
+ await openFlightSearch(page);await selectVisibleFare(page);await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: STANDARD');
+ await page.getByRole('button',{name:'Back to fares',exact:true}).click();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ const comparison=page.locator('.flight-shopping-list .fare-comparison').first();if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
+ await page.locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: FLEXIBLE');await expect(page.locator('.signin-selection-context')).not.toContainText('STANDARD');
+ const before=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!));expect(before.selection).toEqual({priceIds:['replacement-flexible-id']});
+ await page.getByRole('link',{name:'Sign in to review selection',exact:true}).click();await expect(page).toHaveURL(/\/account\?/);expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!))).toEqual(before);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,priceIds:['onward-standard']},{searchId,priceIds:['replacement-flexible-id']}]);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('same-book Next Link cannot reset a created payment or start another search',async({page,provider})=>{
+ await openReviewedFlight(page);await showPaymentReview(page);await openSyntheticPayment(page);await page.evaluate('window.__syntheticGateway.dismiss()');
+ const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
+ await page.getByRole('contentinfo').getByRole('link',{name:'Plan a stay',exact:true}).click();
+ await expect(page.getByRole('alert').filter({hasText:'Finish checking your current payment before starting a different search.'})).toBeVisible();
+ await expect(page.getByRole('form',{name:'Review and travellers',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Resume secure checkout',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);
+ await expect(page.getByRole('button',{name:'Search stays',exact:true})).toHaveCount(0);expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(1);
+ expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
+});
+
+test('same-book Next Link cannot reset unresolved checkout recovery or enable a fresh search',async({page,provider})=>{
+ await page.addInitScript(({quoteId,bookingId})=>sessionStorage.setItem('maxtravel.pending-checkout.v1',JSON.stringify({quoteId,bookingId})),{quoteId,bookingId});
+ provider.overrides['GET /api/payments/status']={body:{found:false,quoteId,canResume:false,checkoutResolved:false,status:'OUTCOME_UNCONFIRMED',message:'An interrupted payment is unresolved. Do not create another payment.'}};
+ await openFlightSearch(page,{auto:false});const recovery=page.getByRole('region',{name:'Interrupted checkout',exact:true});await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');
+ const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
+ await page.getByRole('contentinfo').getByRole('link',{name:'Plan a stay',exact:true}).click();
+ await expect(page.getByRole('alert').filter({hasText:'Finish checking your current payment before starting a different search.'})).toBeVisible();
+ await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Search stays',exact:true})).toHaveCount(0);
+ expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);expect(provider.requests('/api/payments/status')).toHaveLength(1);
 });
