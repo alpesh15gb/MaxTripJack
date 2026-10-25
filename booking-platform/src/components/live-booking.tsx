@@ -383,6 +383,11 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   }
   function switchProduct(next:Product){
     if(busyRef.current||payment||paymentUncertain||recovery.blocked)return;
+    // A permitted product change supersedes asynchronous hotel browsing, but never
+    // bypasses an in-flight checkout or uncertain-payment guard above.
+    ++operation.current;snapshotController.current?.abort();hotelRequest.current?.abort();++hotelGeneration.current;
+    setSnapshotLoading(false);setGalleryOpen(false);setRoomsStatus('ready');setRoomsError('');
+    const url=new URL(window.location.href);for(const key of ['browseSearch','stay','gallery','stayStep'])url.searchParams.delete(key);url.searchParams.set('product',next);window.history.replaceState(null,'',url.pathname+url.search);
     clearSelectionHandoff();setHasFullSearchResults(false);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;privateDraft.current=null;setProduct(next);setResults(null);setQuote(null);setRooms(null);setRoomView(false);setSelectedFares({});setMessage('');setSelection(null);setCheckoutStep('travellers');setExtrasPending(false);
   }
   async function search(form:HTMLFormElement){

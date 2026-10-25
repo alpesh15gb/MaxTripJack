@@ -259,7 +259,7 @@ test('room availability progress stays with the chosen property and prevents dup
   await expect(property.getByRole('button',{name:'Review stay',exact:true})).toHaveCount(0);
   await naturalViewportEvidence(page,info,'property-room-availability-pending',[property.locator('#hotel-detail-title')]);
   // Exploring the property while availability loads must not start duplicate requests.
-  await property.locator('.stay-heading-cta').click();
+  await property.locator('.stay-rate-preview > .primary').click();
   await page.keyboard.press('Enter');release();
   await expect(property.locator('.room-option-card')).toBeVisible();
   expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);

@@ -43,7 +43,7 @@ test('hotel NAME opens property overview, gallery, room rate, review and reversi
  await capture(page,testInfo,'hotel-gallery-open');await page.keyboard.press('Escape');
  await expect(page.getByRole('dialog')).not.toBeVisible();await expect(gallery).toBeFocused();await expect(page).not.toHaveURL(/gallery=1/);
  await gallery.click();await page.goBack();await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('#hotel-detail-title')).toBeVisible();
- await page.locator('.stay-heading-cta').click();await expect(page.locator('#hotel-room-options-title')).toBeInViewport();
+ await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeInViewport();
  const breakfast=page.locator('.room-option-card').filter({hasText:'₹9,200'});await expect(breakfast).toContainText('BREAKFAST');
  await expect(page.locator('.room-option-card')).toHaveCount(2);await capture(page,testInfo,'hotel-room-rate-comparison');
  await breakfast.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
@@ -179,4 +179,18 @@ test('rate plans group only identical room compositions without losing bundled o
  await expect(groups.nth(1).locator('.room-option-card')).toHaveCount(1);await expect(groups.nth(1)).toContainText('Twin room + Family room');await expect(groups.nth(1).locator('[data-room-option-id="exact-combination"]')).toContainText('₹12,000');
  await groups.nth(1).getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,hid:'10001',optionId:'exact-combination'});expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+
+test('switching to Flights supersedes a held hotel snapshot without reopening the hotel journey',async({page,provider})=>{
+ let release!:()=>void,settle!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;}),settled=new Promise<void>(resolve=>{settle=resolve;});let requested=false;
+ await page.route('**/api/travel/hotel-search-snapshot',async route=>{requested=true;provider.calls.push({method:'POST',path:'/api/travel/hotel-search-snapshot',query:{},body:route.request().postDataJSON()});await held;await route.fulfill({json:{searchId,expiresAt:new Date(Date.now()+10*60_000).toISOString(),criteria:criteria(),results:{hotels}}}).catch(()=>{}).finally(settle);});
+ try{
+  await page.goto(detailUrl());await expect.poll(()=>requested).toBe(true);
+  await page.locator('.booking-product-tabs').getByRole('button',{name:/Flights/}).click();
+  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();await expect(page).toHaveURL(/product=FLIGHT/);await expect(page).not.toHaveURL(/browseSearch=|stay=|gallery=|stayStep=/);
+  release();await settled;await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();await expect(page.locator('#hotel-detail-title')).toHaveCount(0);await expect(page.locator('.hotel-shopping-card')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Restoring your hotel search…',exact:true})).toHaveCount(0);
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ }finally{release();}
 });

@@ -94,7 +94,7 @@ test('room workspace and back preserve the exact filtered search without another
  await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#hotel-detail-title')).toBeFocused();
  await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
  await reference(page,testInfo,'journey-property-overview');
- await page.locator('.stay-heading-cta').click();await expect(page.locator('#hotel-room-options-title')).toBeFocused();
+ await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeFocused();
  await reference(page,testInfo,'journey-room-workspace');
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(choose).toBeFocused();
  await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
