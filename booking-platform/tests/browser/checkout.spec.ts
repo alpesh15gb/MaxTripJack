@@ -607,7 +607,7 @@ test('hotel sign-in feedback can reopen existing room options after returning to
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();
  await expect(page.locator('#booking-results')).toBeVisible();
  await page.getByRole('button',{name:'Back to room options',exact:true}).click();
- await expect(page.locator('#room-choice-title')).toBeFocused();
+ await expect(page.locator('#hotel-detail-title')).toBeFocused();
  await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'retained-room-id'}]);

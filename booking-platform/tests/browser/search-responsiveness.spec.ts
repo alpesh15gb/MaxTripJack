@@ -104,20 +104,18 @@ for(const metadataFirst of [false,true]){
    await expect.poll(()=>detailRequested).toBe(true);
    if(metadataFirst){
     releaseContent();
-    await expect(page.getByRole('article',{name:'Room First Stay'})).toContainText('Verified room property address');
+    await expect(page.locator('#booking-rooms')).toContainText('Verified room property address');
     releaseDetail();
    }
-   const rooms=page.getByRole('region',{name:'Room options'});
+   const rooms=page.locator('#booking-rooms');
    await expect(rooms).toBeVisible();
    const option=rooms.locator('.room-option-card');
    await expect(option).toContainText('₹18,400.00');
-   await option.locator('.room-option-details>summary').click();
+   await option.locator('.stay-room-conditions>summary').click();
    await option.getByText('Supported supplier policy details',{exact:true}).click();
    await expect(option).toContainText('Cancellation charges apply after the displayed deadline.');
    const rateAndPolicy=await option.innerText();
-   if(!metadataFirst){await expect(rooms.locator('.room-gallery')).toHaveCount(0);releaseContent();}
-   await expect(rooms.locator('.room-gallery')).toBeVisible();
-   await rooms.locator('.room-gallery>summary').click();
+   if(!metadataFirst){await expect(rooms).not.toContainText('Verified room property address');releaseContent();}
    await expect(rooms).toContainText('Verified room property address');
    expect(await option.innerText()).toBe(rateAndPolicy);
    await rooms.getByRole('button',{name:'Review stay',exact:true}).click();
@@ -136,13 +134,12 @@ test('late property content cannot follow a traveller into a different hotel roo
   await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001,10002',date:departure,end:returning,adults:'1',autoSearch:'1'}));
   await expect.poll(()=>requested).toBe(true);
   await page.getByRole('article',{name:'First Stay'}).getByRole('button',{name:/Choose room/}).click();
-  const rooms=page.getByRole('region',{name:'Room options'});
+  const rooms=page.locator('#booking-rooms');
   await expect(rooms.getByRole('heading',{name:'First Stay',exact:true})).toBeVisible();
   await rooms.getByRole('button',{name:'Back to stays',exact:true}).click();
   await page.getByRole('article',{name:'Second Stay'}).getByRole('button',{name:/Choose room/}).click();
   await expect(rooms.getByRole('heading',{name:'Second Stay',exact:true})).toBeVisible();
   release();
-  await rooms.locator('.room-gallery>summary').click();
   await expect(rooms).toContainText('Second hotel verified address');
   await expect(rooms).not.toContainText('First hotel only address');
   await expect(rooms.locator('.room-option-card')).toContainText('₹18,400.00');
@@ -163,7 +160,7 @@ test('leaving the search and reopening the same hotel rejects the old metadata g
   await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
   await expect.poll(()=>requested).toBe(true);
   await page.getByRole('button',{name:/Choose room/}).click();
-  const rooms=page.getByRole('region',{name:'Room options'});
+  const rooms=page.locator('#booking-rooms');
   await expect(rooms).toBeVisible();
   await rooms.getByRole('button',{name:'Back to stays',exact:true}).click();
   provider.search={searchId:newerSearchId,results:{hotels:[{tjHotelId:'10001',name:'New Search Stay',customerEstimateMinor:1840000,property:{address:'Current search address',amenities:[]}}]}};
@@ -171,7 +168,6 @@ test('leaving the search and reopening the same hotel rejects the old metadata g
   await page.getByRole('button',{name:'Search stays',exact:true}).click();
   await page.getByRole('article',{name:'New Search Stay'}).getByRole('button',{name:/Choose room/}).click();
   await expect(rooms.getByRole('heading',{name:'New Search Stay',exact:true})).toBeVisible();
-  await rooms.locator('.room-gallery>summary').click();
   await expect(rooms).toContainText('Current search address');
   release();
   // Drain the intercepted old request and the next render; no old content may enter the current workspace.

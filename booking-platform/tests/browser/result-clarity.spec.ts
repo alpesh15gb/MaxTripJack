@@ -30,7 +30,7 @@ test('hotel amenities, photo labels and cancellation charges show only supported
  await expect(card).not.toContainText('No Accessible Shuttle');
  await expect(card.locator('img')).toHaveAttribute('alt','Clarity fixture stay · supplier property photo 1');
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
- await expect(page.locator('.room-stay-dates')).toContainText(travelDateLabel(departure));
+ await expect(page.locator('.stay-date-strip')).toContainText(travelDateLabel(departure));
  await expect(page.locator('.room-option-card')).toContainText('All selected rooms and guests');
  await page.getByText('Full cancellation policy & room details',{exact:true}).click();
  const timeline=page.getByRole('region',{name:'Hotel cancellation windows'});

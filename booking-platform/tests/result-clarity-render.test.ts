@@ -10,7 +10,7 @@ import HotelCancellationTimeline from '../src/components/hotel-cancellation-time
 
 const flightProps:ComponentProps<typeof BookingFlightCard>={flight:{sI:[{dt:'2026-10-31T10:00:00',at:'2026-10-31T12:00:00',da:{code:'BOM'},aa:{code:'DEL'},fD:{aI:{name:'Test airline'},fN:'1'}}],totalPriceList:[{id:'fare-1',fareIdentifier:'STANDARD',customerEstimateMinor:500000,fD:{}}]},group:'ONWARD',selectedFareId:'fare-1',busy:false,onSelect:()=>{}};
 const roomProps:ComponentProps<typeof HotelRoomView>={name:'Test hotel',options:[{optionId:'room-1',roomInfo:[{name:'Twin room'}],pricing:{totalPrice:4000}}],context:{checkIn:'2026-10-31',checkOut:'2026-11-02',rooms:2,guests:3},busy:false,now:0,onBack:()=>{},onReview:()=>{}};
-const hotelProps:ComponentProps<typeof HotelResults>={hotels:[{tjHotelId:'h-1',name:'Test stay',customerEstimateMinor:400000,property:{amenities:['No Accessible Shuttle','Parking']}}],context:null,busy:false,onChoose:()=>{}};
+const hotelProps:ComponentProps<typeof HotelResults>={searchId:'11111111-1111-4111-8111-111111111111',hotels:[{tjHotelId:'h-1',name:'Test stay',customerEstimateMinor:400000,property:{amenities:['No Accessible Shuttle','Parking']}}],context:null,busy:false,onChoose:()=>{}};
 
 test('flight card uses readable local dates and truthful total scope without invented duration',()=>{
  const html=renderToStaticMarkup(createElement(BookingFlightCard,flightProps));

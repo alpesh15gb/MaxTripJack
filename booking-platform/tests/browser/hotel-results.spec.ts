@@ -56,12 +56,12 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await page.getByLabel('Sort stays',{exact:true}).selectOption('price-desc');await expect(cards.first()).toHaveAttribute('aria-label','Palm House');
  await expect(cards.last()).toHaveAttribute('aria-label','Unknown Stay');
  await cards.first().getByRole('button',{name:'Choose room'}).click();
- await expect(page.getByRole('heading',{name:'Deluxe twin room',exact:true})).toBeVisible();
- await expect(page.locator('#room-choice-title')).toHaveRole('heading');
- await expect(page.locator('#room-choice-title')).toHaveText('Choose your room');
+ await expect(page.locator('.room-option-card').getByRole('heading',{name:'Deluxe twin room',exact:true})).toBeVisible();
+ await expect(page.locator('#hotel-detail-title')).toHaveRole('heading');
+ await expect(page.locator('#hotel-detail-title')).toHaveText('Palm House');
  await expect(page.getByRole('heading',{level:1,name:'Your stay',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Choose your room',exact:true})).toHaveCount(1);
- await expect(page.locator('#room-choice-title')).toBeFocused();
+ await expect(page.locator('#hotel-detail-title')).toBeFocused();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10001'});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/search')[0].body).toMatchObject({checkIn:departure,checkOut:returning});expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-shopping-room-options');
