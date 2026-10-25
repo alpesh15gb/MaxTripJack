@@ -3,7 +3,7 @@ import {suppliedMinutes,supplierInstant} from './supplier-time';
 export type FlightSegment = {
   dt: string; at: string; duration?: number; isRs?: boolean;
   fD: { aI: { name: string; code?: string }; fN: string };
-  da: { code: string; city?: string }; aa: { code: string; city?: string };
+  da: { code: string; name?: string; city?: string; country?: string }; aa: { code: string; name?: string; city?: string; country?: string };
 };
 export type FlightFare = {
   id: string; fareIdentifier: string; customerEstimateMinor?: number | null;

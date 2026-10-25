@@ -15,6 +15,7 @@ import "./experience-system.css";
 import "./journey-studio.css";
 import "./journey-flow.css";
 import "./journey-polish.css";
+import "./flight-decision.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
