@@ -4,12 +4,12 @@ const parent='81111111-1111-4111-8111-111111111111';
 const markerKey='maxtravel.pending-checkout.v1';
 async function openManagement(page:Page){if(await page.locator('.trip-management').getAttribute('open')===null)await page.locator('.trip-management > summary').click();}
 async function refreshedManagement(page:Page,provider:ProviderFixture,before:number){await expect.poll(()=>provider.requests('/api/bookings').length).toBeGreaterThan(before);await expect(page.getByRole('button',{name:'Refresh booking updates'})).toBeEnabled();await openManagement(page);}
-async function prepare(page:Page,provider:ProviderFixture,expired=false,totalMinor=50000){
+async function prepare(page:Page,provider:ProviderFixture,expired=false,totalMinor=50000,navigate?:()=>Promise<void>){
  provider.bookingsPages['1']={hasMore:false,bookings:[{id:parent,reference:'MX-SYNTHETIC-SERVICE',status:'TICKETED',product:'FLIGHT',currency:'INR',total_minor:'654000',created_at:'2026-10-01T12:00:00Z',itinerary_summary:{from:'BOM',to:'DEL',date:departure,adults:1}}]};
  provider.overrides[`GET /api/bookings/${parent}/cancellation-offer`]={body:{requests:[]}};
  provider.overrides[`POST /api/bookings/${parent}/services`]={body:{searchId:'synthetic-service-search',kind:'ANCILLARY',results:{segments:[{id:'seg',label:'BOM → DEL',pax:[{id:'pax',name:'Synthetic Traveller',type:'ADULT'}],options:[{kind:'MEAL',code:'MEAL',label:'Vegetarian meal',amountMinor:50000}]}]}}};
  provider.overrides['POST /api/travel/service-review']={body:{quoteId,kind:'ANCILLARY',parentReference:'MX-SYNTHETIC-SERVICE',totalMinor,expiresAt:expired?'2020-01-01T12:00:00Z':provider.quote.expiresAt,review:{version:1,blocked:false,lines:[{label:'Service restriction',text:'Extras cannot be refunded'}]}}};
- await page.goto('/my-trips');await openManagement(page);
+ if(navigate)await navigate();else await page.goto('/my-trips');await openManagement(page);
  await page.getByRole('button',{name:'Add seats, meals & baggage'}).click();
  await page.getByRole('combobox',{name:'meal for Synthetic Traveller · BOM → DEL',exact:true}).selectOption('MEAL');
  await page.getByRole('button',{name:'Review extras total'}).click();
@@ -99,13 +99,34 @@ test('expired existing service order cannot open gateway or create a replacement
  await expect(recovery(page).getByRole('link',{name:'Contact support about this checkout'})).toHaveAttribute('href','/customer-support');
 });
 
-test('pending service create cannot launch checkout after leaving the page',async({page,provider})=>{
+test('pending service create cannot launch checkout after real Link intent before route commit',async({page,provider})=>{
+ let releaseNavigation!:()=>void;const navigationHeld=new Promise<void>(resolve=>{releaseNavigation=resolve;});
+ await page.route('**/customer-support*',async route=>{await navigationHeld;await route.continue();});
  await prepare(page,provider);
  let release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;});
- await page.route('**/api/payments/create',async route=>{await held;try{await route.fulfill({json:{bookingId,orderId:'order_SYNTHETICONLY',amount:50000,currency:'INR',keyId:'rzp_test_SYNTHETICONLY'}});}catch{/* Navigation may cancel the browser request. */}});
- await pay(page);await expect(recovery(page)).toBeVisible();
- await page.getByRole('link',{name:'Contact support about this checkout'}).click();
- release();await expect(page).toHaveURL(/\/customer-support$/);
+ let requested=false;await page.route('**/api/payments/create',async route=>{requested=true;await held;try{await route.fulfill({json:{bookingId,orderId:'order_SYNTHETICONLY',amount:50000,currency:'INR',keyId:'rzp_test_SYNTHETICONLY'}});}catch{/* Navigation may cancel the browser request. */}});
+ try{
+  await pay(page);await expect.poll(()=>requested).toBe(true);await expect(recovery(page)).toBeVisible();
+  await page.getByRole('link',{name:'Contact support about this checkout'}).click({noWaitAfter:true});
+  const response=page.waitForResponse('**/api/payments/create');release();await response;
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  // The original component is still mounted: support RSC/navigation is held.
+  expect(await page.evaluate('window.__syntheticGateway?.opens.length??0')).toBe(0);
+  expect(await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)!),markerKey)).toEqual({quoteId});
+ }finally{release();releaseNavigation();}
+ await expect(page).toHaveURL(/\/customer-support$/);
+ expect(await page.evaluate('window.__syntheticGateway?.opens.length??0')).toBe(0);
+});
+
+test('browser Back intent preserves pending service recovery and cannot launch its late checkout',async({page,provider})=>{
+ await page.goto('/account');
+ await prepare(page,provider,false,50000,async()=>{await page.locator('.account-card').getByRole('link',{name:'My trips',exact:true}).click();});
+ let release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;});let requested=false;
+ await page.route('**/api/payments/create',async route=>{requested=true;await held;try{await route.fulfill({json:{bookingId,orderId:'order_SYNTHETICONLY',amount:50000,currency:'INR',keyId:'rzp_test_SYNTHETICONLY'}});}catch{/* The old route may already be gone. */}});
+ await pay(page);await expect.poll(()=>requested).toBe(true);
+ await page.evaluate(()=>{window.addEventListener('popstate',()=>{Object.assign(window,{__serviceBackIntent:true});},{once:true});});
+ const back=page.goBack();await expect.poll(()=>page.evaluate('Boolean(window.__serviceBackIntent)')).toBe(true);
+ release();await back;await expect(page).toHaveURL(/\/account$/);
  expect(await page.evaluate('window.__syntheticGateway?.opens.length??0')).toBe(0);
  expect(await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)!),markerKey)).toEqual({quoteId});
 });
