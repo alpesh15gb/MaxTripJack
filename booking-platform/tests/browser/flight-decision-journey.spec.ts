@@ -17,8 +17,8 @@ for(const width of [null,320])test(`aligned fare decisions expose duplicate labe
  const offers=card.locator('.fare-option');await expect(offers).toHaveCount(3);
  await expect(offers.nth(0).getByRole('heading')).toHaveText('CORPORATE · Option 1');await expect(offers.nth(1).getByRole('heading')).toHaveText('CORPORATE · Option 2');
  for(const offer of await offers.all()){
-  const rows=offer.locator('.fare-decision-dimensions>div');await expect(rows).toHaveCount(7);
-  for(const label of ['Seat inclusion','Change terms','Eligibility'])await expect(rows.filter({has:page.locator('dt',{hasText:label})})).toContainText('Not supplied');
+  const rows=offer.locator('.fare-decision-dimensions>div');await expect(rows).toHaveCount(4);
+  await expect(offer.locator('.fare-unknown-conditions')).toHaveText('Seat inclusion, change terms and eligibility: Not supplied.');
  }
  await expect(offers.first()).toContainText('child: cabin baggage 5 Kg · checked baggage 10 Kg');await expect(offers.last()).toContainText('Price at review');await expect(offers.nth(1).locator('.fare-decision-dimensions')).toContainText('5 (unit not supplied)');await expect(offers.nth(1).locator('.fare-decision-dimensions')).not.toContainText('5 Kg');
  await expect(card.locator('.fare-itinerary-dates')).toContainText(travelDateTimeLabel(journey.sI[0].dt));
@@ -38,8 +38,20 @@ for(const unknown of [false,true])test(`complete return selection shows exact da
  await page.goto(query(true));await chooseLeg(page);await chooseLeg(page);
  const summary=page.getByRole('region',{name:'Selected flight context'});
  await expect(summary).toContainText(travelDateTimeLabel(outbound.sI[0].dt));await expect(summary).toContainText(travelDateTimeLabel(back.sI[0].at));await expect(summary).toContainText('+1 calendar day');
- await expect(summary.locator('.selection-combined-total')).toContainText(unknown?'Complete total checked at review':'₹13,080 estimated total');
+ await expect(summary.locator('.selection-combined-total')).toContainText(unknown?'Complete total checked at review':'₹13,080.00 estimated total');
  await expect(summary).toContainText('Search estimates are not a quote');
+ const reviewAction=summary.getByRole('button',{name:'Review selected journey (2/2)'});
+ await expect(reviewAction).toBeFocused();
+ const viewport=page.viewportSize()!;
+ for(const element of [summary.locator('.selection-combined-total'),reviewAction]){
+  const box=await element.boundingBox();expect(box).not.toBeNull();expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.y+box!.height).toBeLessThanOrEqual(viewport.height);
+ }
+ const summaryBox=await summary.boundingBox();expect(summaryBox).not.toBeNull();
+ if(summaryBox!.height<=viewport.height-32){expect(summaryBox!.y).toBeGreaterThanOrEqual(0);expect(summaryBox!.y+summaryBox!.height).toBeLessThanOrEqual(viewport.height);}
+ else{const lastLeg=await summary.locator('li').last().boundingBox();expect(lastLeg!.y+lastLeg!.height).toBeGreaterThan(0);}
+ await info.attach('completed-return-natural-viewport',{body:await page.screenshot(),contentType:'image/png'});
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+
  expect(provider.requests('/api/travel/review')).toHaveLength(0);await expectNoHorizontalOverflow(page);await capture(page,info,unknown?'return-price-unknown':'return-complete-decision');
  await summary.getByRole('button',{name:'Change outbound'}).click();await expect(page.getByRole('heading',{name:'Choose your outbound flight'})).toBeVisible();await expect(summary).toContainText('DEL → BOM');
  let writes=0,release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;});
@@ -64,4 +76,21 @@ test('COMBO fare decisions retain every flight and never invent total itinerary 
  await expectNoHorizontalOverflow(page);await capture(page,info,'combo-fare-decisions');expect(provider.requests('/api/travel/review')).toHaveLength(0);
  await card.getByRole('button',{name:'Check fare & continue'}).click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['combo-decision']});
+});
+
+test('selected fare progress and action stay together in a short mobile viewport',async({page,provider},info)=>{
+ await page.setViewportSize({width:320,height:600});
+ let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
+ await page.route('**/api/travel/review',async route=>{await gate;await route.fallback();});
+ try{
+  await page.goto(query());await page.locator('.fare-comparison>summary').first().click();
+  const option=page.locator('.fare-option').first();await option.getByRole('button',{name:'Check fare & continue'}).click();
+  const status=option.getByRole('status'),action=option.getByRole('button',{name:'Checking fare…'});
+  await expect(status).toBeVisible();await expect(action).toBeDisabled();
+  for(const element of [status,action]){
+   const box=await element.boundingBox();expect(box).not.toBeNull();expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.y+box!.height).toBeLessThanOrEqual(600);
+  }
+  await info.attach('selected-fare-short-natural-viewport',{body:await page.screenshot(),contentType:'image/png'});
+  release();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();expect(provider.requests('/api/travel/review')).toHaveLength(1);
+ }finally{release();}
 });

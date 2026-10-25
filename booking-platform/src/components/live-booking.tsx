@@ -318,7 +318,15 @@ function LiveBookingWorkspace({prefill={},checkoutConfigured}:{prefill?:Record<s
   const allSelected=fareGroups.every(group=>selectedFares[group]);
   useEffect(()=>{
     const target=flightSelectionFocus.current;if(!target)return;
-    const frame=requestAnimationFrame(()=>{flightSelectionFocus.current=null;const element=document.getElementById(target==='review'&&allSelected?'review-selected-journey':'flight-results-title');element?.focus({preventScroll:true});element?.scrollIntoView({behavior:'auto',block:'start'});});
+    const frame=requestAnimationFrame(()=>{
+      flightSelectionFocus.current=null;
+      const reviewing=target==='review'&&allSelected;
+      const element=document.getElementById(reviewing?'review-selected-journey':'flight-results-title');
+      element?.focus({preventScroll:true});
+      const context=reviewing?element?.closest<HTMLElement>('.flight-selection-summary'):null;
+      if(context&&context.getBoundingClientRect().height<=window.innerHeight-32)context.scrollIntoView({behavior:'auto',block:'start'});
+      else element?.scrollIntoView({behavior:'auto',block:reviewing?'end':'start'});
+    });
     return()=>cancelAnimationFrame(frame);
   },[selectedFares,shownGroup,allSelected]);
   const step=quote?(checkoutStep==='payment'?3:2):results?1:0;
