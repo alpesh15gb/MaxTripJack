@@ -6,7 +6,7 @@ import {travelDateLabel} from '../../src/lib/travel-date';
 // All inventory and images below are synthetic fixtures. No supplier or payment is contacted.
 const name='Palm House · synthetic property';
 const photos=Array.from({length:3},(_,index)=>({url:`https://i.travelapi.com/lodging/123/journey-${index}.jpg`,isHero:index===0,caption:`Illustrative destination image ${index+1}, not an actual property photograph`}));
-const property={starRating:4,propertyType:'Hotel',address:'Fixture Road, Goa — synthetic address',amenities:['Wi-Fi','Parking','Restaurant'],photos};
+const property={starRating:4,propertyType:'Hotel',descriptionHeadline:'A relaxed base for your Goa stay',description:'Synthetic supplier description: explore the property and compare the available room plans for your selected dates.',address:'Fixture Road, Goa — synthetic address',amenities:['Wi-Fi','Parking','Restaurant'],photos};
 const hotels=[{tjHotelId:'10001',name,customerEstimateMinor:800000,property},{tjHotelId:'10002',name:'Other synthetic stay',customerEstimateMinor:900000,property:{amenities:[]}}];
 const options=[
  {optionId:'exact-room-only',roomInfo:[{id:'twin',name:'Twin room'}],mealBasis:'ROOM_ONLY',inclusions:['Wi-Fi'],pricing:{totalPrice:8000,currency:'INR'},cancellation:{isRefundable:false,penalties:[]}},
@@ -21,7 +21,13 @@ function fixture(provider:ProviderFixture){
  provider.overrides['POST /api/travel/hotel-search-snapshot']={body:{searchId,expiresAt:new Date(Date.now()+10*60_000).toISOString(),criteria:criteria(),results:{hotels}}};
  provider.quote=reviewedQuote({product:'HOTEL',hotelName:name,totalMinor:920000,summary:{checkIn:departure,checkOut:returning,adults:2,children:0,rooms:[{adults:2,children:0,childAge:[]}]},review:{conditions:{},option:options[1]}});
 }
-async function filters(page:Page,open:boolean){const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible()&&(await toggle.getAttribute('aria-expanded')==='true')!==open)await toggle.click();}
+async function filters(page:Page,open:boolean){
+ // Results remain mounted while detail is visible. Wait for popstate to reveal
+ // them before deciding whether this viewport has a visible filter toggle.
+ await expect(page.locator('#booking-results')).toBeVisible();
+ const toggle=page.getByRole('button',{name:/^Filters/});
+ if(await toggle.isVisible()){if((await toggle.getAttribute('aria-expanded')==='true')!==open)await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded',String(open));}
+}
 const card=(page:Page)=>page.getByRole('article',{name,exact:true});
 const title=(page:Page)=>card(page).locator('h3').getByRole('link');
 
@@ -34,7 +40,7 @@ test('hotel NAME opens property overview, gallery, room rate, review and reversi
  await page.goto(searchUrl());await expect(card(page)).toBeVisible();
  await title(page).click();
  await expect(page).toHaveURL(/stay=10001/);await expect(page.locator('#hotel-detail-title')).toHaveText(name);await expect(page.locator('#booking-results')).toBeHidden();
- await expect(page.locator('#booking-rooms')).toContainText(property.address);await expect(page.locator('#booking-rooms')).toContainText('4');
+ await expect(page.locator('#booking-rooms')).toContainText(property.address);await expect(page.locator('.stay-about')).toContainText(property.description);await expect(page.locator('.stay-about')).toContainText(property.descriptionHeadline);await expect(page.locator('#booking-rooms')).toContainText('4');
  await expect(page.locator('#booking-rooms')).toContainText(travelDateLabel(departure));await expect(page.locator('#booking-rooms')).toContainText(travelDateLabel(returning));
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-name-opened-overview');
  const gallery=page.getByRole('button',{name:/View all.*photos/i});await gallery.click();
@@ -106,7 +112,7 @@ test('missing photos and static content do not invent property facts or block re
  provider.search={searchId,propertyContentUnavailable:true,results:{hotels:[{tjHotelId:'10001',name,propertyContentStatus:'unavailable'}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options}};
  await page.goto(searchUrl());await title(page).click();await expect(page.locator('#hotel-detail-title')).toHaveText(name);
- await expect(page.locator('#booking-rooms')).toContainText('Property address not supplied');await expect(page.locator('#booking-rooms')).toContainText(/photos unavailable|No property photos supplied/i);
+ await expect(page.locator('#booking-rooms')).toContainText('Property address unavailable right now');await expect(page.locator('#booking-rooms')).toContainText(/photos unavailable|No property photos supplied/i);
  await expect(page.locator('#booking-rooms')).not.toContainText('4-star');await expect(page.getByRole('button',{name:/View all.*photos/i})).toHaveCount(0);
  await expect(page.locator('.room-option-card')).toHaveCount(2);await expect(page.locator('.room-option-card').first()).toContainText('Non-refundable');
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-missing-static-content-usable-rates');expect(provider.requests('/api/travel/review')).toHaveLength(0);
@@ -162,7 +168,7 @@ test('pointer-only property URL hydrates authoritative dates, destination, natio
  await page.locator('#booking-search>summary').click();
  const form=page.getByRole('form',{name:'Search availability',exact:true});
  await expect(form.getByLabel('Destination',{exact:true})).toHaveValue(authoritative.city);await expect(form.locator('input[name="hotelIds"]')).toHaveValue('10001,10002');
- await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue(returning);await expect(form.getByLabel('Rooms',{exact:true})).toHaveValue('2');await expect(form.getByLabel('Guest nationality',{exact:true})).toHaveValue('222');
+ await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue(returning);await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('2');await expect(form.getByLabel('Guest nationality',{exact:true})).toHaveValue('222');
  const first=form.getByRole('group',{name:'Room 1 · Guests',exact:true}),second=form.getByRole('group',{name:'Room 2 · Guests',exact:true});
  await expect(first.getByLabel('Adults',{exact:true})).toHaveValue('2');await expect(first.getByLabel('Children',{exact:true})).toHaveValue('0');
  await expect(second.getByLabel('Adults',{exact:true})).toHaveValue('1');await expect(second.getByLabel('Children',{exact:true})).toHaveValue('1');await expect(second.getByLabel('Child 1 age at check-in',{exact:true})).toHaveValue('7');

@@ -79,3 +79,20 @@
  .stay-mobile-action>div { display:flex; flex-direction:column; gap:4px; min-width:0; }.stay-mobile-action small { font-size:10px; color:var(--stay-muted); }.stay-mobile-action strong { font-size:20px; line-height:1.3; letter-spacing:-.4px; }.stay-mobile-action .primary { display:flex; align-items:center; gap:12px; flex-shrink:0; font-size:13px; padding:13px 17px; }
 }
 @media(max-width:520px){.stay-room-group { padding:5px; }.stay-room-group-heading { padding:13px 10px 17px; }.stay-room-group-heading h3 { font-size:19px; }.stay-mobile-action { padding-inline:16px; }.stay-mobile-action strong { font-size:18px; }}
+
+/* Explicit areas keep expanded policy content below BOTH rate facts and price.
+ * The legacy room workspace uses :not(:has(.room-option-details[open])) and
+ * spans its action across two rows. Detail cards have a different disclosure,
+ * so that legacy selector remains true. These scoped selectors intentionally
+ * outrank it; no overlay, pointer-event or stacking workaround is involved. */
+.journey-flow .stay-detail .room-option-card.stay-room-rate[data-room-option-id] {
+ grid-template-areas:"facts price" "conditions conditions";
+ grid-template-rows:auto auto;
+ gap:0;
+}
+.journey-flow .stay-detail .room-option-card.stay-room-rate[data-room-option-id]>.stay-room-rate-main { grid-area:facts; min-width:0; }
+.journey-flow .stay-detail .room-option-card.stay-room-rate[data-room-option-id]>.room-option-action { grid-area:price; min-width:0; }
+.journey-flow .stay-detail .room-option-card.stay-room-rate[data-room-option-id]>.stay-room-conditions { grid-area:conditions; min-width:0; }
+@media(max-width:520px){
+ .journey-flow .stay-detail .room-option-card.stay-room-rate[data-room-option-id] { grid-template-areas:"facts" "price" "conditions"; grid-template-rows:auto auto auto; }
+}

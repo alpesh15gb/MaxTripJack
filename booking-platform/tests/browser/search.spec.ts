@@ -128,7 +128,7 @@ test('a hotel with no available room options never exposes a review action', asy
   const query = new URLSearchParams({ product: 'HOTEL', city: 'Goa, India', hotelIds: '10001', date: departure, end: returning, autoSearch: '1' });
   await page.goto(`/book?${query}`);
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'No rooms available', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No rooms available for this stay', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Review stay', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   await capture(page, testInfo, 'hotel-no-rooms');

@@ -21,12 +21,18 @@ Only bounded filters/sort/scroll are stored per tab: 20 entries maximum, 30-minu
 
 ## Truthful-data limits
 
-No invented property description, reviews, map, room beds/size/capacity, nightly tax split or property-wide free-cancellation promise. Current static projection provides category/type/address/amenities/photos only. Prices remain estimates until existing review; property-payable charges are not independently verified. Photos remain on exact allowlisted supplier hosts with no referrer/proxy.
+No invented property description, reviews, map, room beds/size/capacity, nightly tax split or property-wide free-cancellation promise. Static projection provides category/type/address/amenities/photos plus optional bounded supplier description as documented below. Prices remain estimates until existing review; property-payable charges are not independently verified. Photos remain on exact allowlisted supplier hosts with no referrer/proxy.
 
 ## Verification
 
-Final local production build, TypeScript and full lint passed; the full unit suite passed 400/400. Playwright discovery found 26 desktop/mobile cases in the new journey spec. Focused tests cover snapshot boundaries, URL/storage privacy and grouped UI contracts.
+Final local production build, TypeScript and full lint passed; the full unit suite passed 405/405. Playwright discovery found 28 desktop/mobile cases in the new journey spec. Focused tests cover snapshot boundaries, URL/storage privacy and grouped UI contracts.
 
 `tests/browser/hotel-detail-journey.spec.ts` covers name/photo entry, gallery keyboard/history, room/review, Back/Forward/reload, filters, pointer-only authoritative criteria, expired/foreign searches, missing photos/content, empty/error rates, multi-room option IDs and interrupted request races on desktop 1440 and mobile 390. Existing affected browser scenarios were updated rather than bypassed.
 
 **Browser execution and visual screenshots are NOT locally verified.** Playwright browser download returned invalid/empty archives; a system-browser smoke launch was denied by sandbox and escalation startup failed. Further attempts were stopped. Existing `browser-ui` CI runs the full synthetic-provider suite and uploads `booking-ui-synthetic-provider-evidence`; successful CI and inspection of its screenshots are required before claiming user-flow/visual acceptance. No live supplier, payment, VPS, remote push or deployment was performed by this local work.
+
+## Optional supplier About content follow-up
+
+Official rendered [TripJack bulk Hotel Content documentation](https://tripjack.com/page/api-doc#hotel-content) documents `hotels[].descriptions.headline` and `descriptions.default` as a JSON string. Its illustrative optional `Overview`/`Snippet` fields are not guaranteed. The separate static-detail response is a different schema and is not used.
+
+The existing bulk payload now projects a 200-character headline and at most 4,000 characters of Overview (otherwise Snippet), parsed once only from bounded 32KB input. Unknown structures, arrays, prototype keys and nonstring values are rejected. Conservative plain-text conversion removes markup, scripts/styles/comments and controls; consumers render React text only, never HTML. Missing descriptions remain explicitly unavailable rather than substituting an address or generated prose. Long descriptions have a 600-character preview with an explicit full-description disclosure. No new supplier request, credentials, static-room schema or property-policy/cancellation inference was added.

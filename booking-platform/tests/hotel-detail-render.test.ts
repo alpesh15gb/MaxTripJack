@@ -61,3 +61,13 @@ test('new property category and room-direction decorations are SVG and the mobil
  assert.match(html,/Explore the available property information/);assert.match(html,/class="stay-stars"[^>]*><svg/);
  assert.match(html,/class="stay-mobile-action" aria-label="Quick room selection" hidden=""/);
 });
+
+test('About renders optional supplier prose as text with a bounded preview and honest missing fallback',async()=>{
+ const description='A supplied coastal property description. '.repeat(30);
+ const html=await render({property:{amenities:[],address:'Real address',descriptionHeadline:'A supplier headline',description}});
+ assert.match(html,/A supplier headline/);assert.match(html,/Read the full property description/);assert.match(html,/A supplied coastal property description/);
+ const missing=await render({property:{amenities:[],address:'An address is not a description'}});
+ assert.match(missing,/The supplier has not provided a property description/);
+ const escaped=await render({property:{amenities:[],descriptionHeadline:'<img src=x onerror=alert(1)>',description:'<script>alert(1)</script>'}});
+ assert.doesNotMatch(escaped,/<script>|<img src="?x/);assert.match(escaped,/&lt;script&gt;/);
+});
