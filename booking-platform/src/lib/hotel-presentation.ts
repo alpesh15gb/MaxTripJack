@@ -22,6 +22,8 @@ export type HotelPropertyDetails = {
   starRating?: number;
   propertyType?: string;
   address?: string;
+  descriptionHeadline?: string;
+  description?: string;
   amenities: string[];
   photos?: {url: string; caption?: string; isHero: boolean}[];
 };
@@ -63,11 +65,58 @@ function hotelPhotos(source: unknown): NonNullable<HotelPropertyDetails['photos'
     return [{url: href, ...(hotelPhotoCaption(photo.caption) ? {caption: hotelPhotoCaption(photo.caption)} : {}), isHero: photo.is_hero_image === true}];
   }).slice(0, 10);
 }
+/** Bulk Hotel API v3 content: hotels[].descriptions.headline and .default
+ * (a JSON string with optional Overview/Snippet text), documented at
+ * https://tripjack.com/page/api-doc#hotel-content. This is NOT the separate
+ * static-detail schema. Descriptions are optional catalogue prose, never rates,
+ * room inventory, cancellation promises or verified guest reviews. */
+function hotelDescription(source: unknown): Pick<HotelPropertyDetails, 'descriptionHeadline' | 'description'> {
+  const plain = (value: unknown): value is Record<string, unknown> => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const prototype = Object.getPrototypeOf(value);
+    return (prototype === Object.prototype || prototype === null) &&
+      !Object.keys(value).some(key => ['__proto__', 'prototype', 'constructor'].includes(key));
+  };
+  if (!plain(source)) return {};
+  const text = (value: unknown, max: number): string | undefined => {
+    if (typeof value !== 'string' || value.length > 32000) return undefined;
+    const entities: Record<string, string> = {amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', bull: '•', hellip: '…', copy: '©', reg: '®'};
+    // Decode once, before removing markup, so encoded scripts are not displayed.
+    // This is a conservative text projection, NOT an HTML sanitizer: consumers
+    // MUST render the result as React text, never innerHTML.
+    const decoded = value.replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]+);/gi, (entity, name: string) => {
+      if (name[0] !== '#') return entities[name.toLowerCase()] ?? entity;
+      const point = name[1].toLowerCase() === 'x' ? Number.parseInt(name.slice(2), 16) : Number.parseInt(name.slice(1), 10);
+      return point > 0 && point <= 0x10ffff && !(point >= 0xd800 && point <= 0xdfff) ? String.fromCodePoint(point) : '';
+    });
+    const cleaned = decoded
+      .replace(/<!--[\s\S]*?(?:-->|$)/g, ' ')
+      .replace(/<(script|style)\b[^>]*>[\s\S]*?(?:<\/\1\s*>|$)/gi, ' ')
+      .replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ')
+      .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, '')
+      .replace(/\s+/g, ' ').trim();
+    // Broken markup is omitted rather than shown as a misleading description.
+    return cleaned && !/[<>]/.test(cleaned) ? cleaned.slice(0, max) : undefined;
+  };
+  const headline = Object.hasOwn(source, 'headline') ? text(source.headline, 200) : undefined;
+  let description: string | undefined;
+  if (Object.hasOwn(source, 'default') && typeof source.default === 'string' && source.default.length <= 32000) {
+    try {
+      const parsed: unknown = JSON.parse(source.default);
+      if (plain(parsed) && Object.values(parsed).every(value => typeof value === 'string')) {
+        const overview = Object.hasOwn(parsed, 'Overview') ? text(parsed.Overview, 4000) : undefined;
+        description = overview ?? (Object.hasOwn(parsed, 'Snippet') ? text(parsed.Snippet, 4000) : undefined);
+      }
+    } catch { /* Missing/malformed optional catalogue content remains unavailable. */ }
+  }
+  return {...(headline ? {descriptionHeadline: headline} : {}), ...(description ? {description} : {})};
+}
 export function hotelPropertyDetails(source: unknown): HotelPropertyDetails {
   const data = hotelObject(source), address = hotelObject(hotelObject(data.locale).address);
   const rating = typeof data.star_rating === 'string' || typeof data.star_rating === 'number' ? Number(data.star_rating) : NaN;
   const photos = hotelPhotos(data.images);
   return {
+    ...hotelDescription(Object.hasOwn(data, 'descriptions') ? data.descriptions : undefined),
     ...(photos.length ? {photos} : {}),
     ...(Number.isInteger(rating) && rating >= 1 && rating <= 5 ? {starRating: rating} : {}),
     ...(hotelText(hotelObject(data.property_type).name) ? {propertyType: hotelText(hotelObject(data.property_type).name)} : {}),

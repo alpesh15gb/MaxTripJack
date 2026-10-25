@@ -1,0 +1,43 @@
+/* Flight decision surfaces only: no hotel or transaction-state selectors. */
+.journey-flow .fare-decision-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
+.journey-flow.booking-workflow .fare-decision-grid .fare-option-compact{display:flex;flex-direction:column;margin:0;gap:10px;align-content:start;align-items:stretch}
+.journey-flow .fare-decision-grid .fare-option-heading{width:100%;display:grid;gap:4px;align-content:start;min-height:68px}
+.journey-flow .fare-decision-dimensions{width:100%;margin:0;display:grid;gap:0;font-size:14px;line-height:1.45}
+.journey-flow .fare-decision-dimensions>div{display:grid;grid-template-columns:minmax(90px,.9fr) minmax(0,1.1fr);gap:8px;padding:7px 0;border-bottom:1px solid #e1e8eb;min-height:35px;align-items:baseline}
+.journey-flow .fare-decision-dimensions dt{font-weight:500;color:#52616a}
+.journey-flow .fare-decision-dimensions dd{margin:0;font-weight:600;color:#183747;overflow-wrap:anywhere}
+.journey-flow.booking-workflow .fare-decision-grid .fare-option-action{display:grid;gap:6px;margin-top:auto}
+.journey-flow .fare-decision-grid .fare-option-action .primary{min-width:0;width:100%}
+.journey-flow .fare-choice-heading .fare-itinerary-dates{font-size:14px;line-height:1.5;margin:4px 0}
+.journey-flow .fare-choice-heading small{font-size:14px;line-height:1.5;color:#52616a}
+.journey-flow .fare-passenger-baggage{border-left:2px solid #91b9af;padding-left:8px}
+@media(max-width:900px){
+ .journey-flow .fare-decision-grid{grid-template-columns:minmax(0,1fr)}
+ .journey-flow .fare-decision-grid .fare-option-heading{display:flex;min-height:0}
+ .journey-flow .fare-decision-dimensions>div{padding:3px 0;min-height:27px;grid-template-columns:minmax(105px,.85fr) minmax(0,1.15fr)}
+}
+.journey-flow .flight-selection-summary h3{margin:0 0 12px;font-size:18px;color:#183747}
+.journey-flow .flight-selection-summary ol{gap:12px}
+.journey-flow .flight-selection-summary li{min-width:0;gap:6px;align-content:start}
+.journey-flow .flight-selection-summary li>strong{font-size:15px;line-height:1.45;overflow-wrap:anywhere}
+.journey-flow .flight-selection-summary .selection-leg-dates{font-size:14px;line-height:1.55;margin:0;color:#294654}
+.journey-flow .flight-selection-summary .selection-leg-duration,.journey-flow .flight-selection-summary .selection-leg-fare{font-size:14px;line-height:1.5}
+.journey-flow .flight-selection-summary .selection-leg-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#52616a}
+.journey-flow .selection-combined-total{display:grid;gap:4px;padding:14px 0 0;border-top:1px solid #cadbd8;margin-top:12px}
+.journey-flow .selection-combined-total>span{font-size:14px;color:#52616a}
+.journey-flow .selection-combined-total>strong{font-size:20px;color:#163f35;font-variant-numeric:tabular-nums}
+.journey-flow .selection-combined-total p{margin:0;font-size:13px;line-height:1.5;color:#52616a;max-width:65ch}
+.journey-flow .flight-selection-summary #review-selected-journey{margin-top:12px;min-height:48px}
+.journey-flow .selection-combo-segments{display:grid;gap:8px}
+.journey-flow .selection-segment{border-top:1px solid #cadbd8;padding-top:8px}
+@media(max-width:600px){
+ .journey-flow .flight-selection-summary ol{grid-template-columns:minmax(0,1fr)}
+ .journey-flow .flight-selection-summary #review-selected-journey{width:100%}
+ .journey-flow .selection-combined-total>strong{font-size:18px}
+}
+.journey-flow .flight-selection-summary .selection-airports{font-size:13px;line-height:1.45;color:#52616a;overflow-wrap:anywhere}
+.journey-flow .flight-selection-summary ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:600px){.journey-flow .flight-selection-summary ol{grid-template-columns:minmax(0,1fr)}}
+
+.journey-flow .flight-selection-summary{scroll-margin-top:16px}
+.journey-flow .flight-selection-summary #review-selected-journey{scroll-margin-bottom:16px}

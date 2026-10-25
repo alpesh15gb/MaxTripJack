@@ -91,9 +91,11 @@ test('room workspace and back preserve the exact filtered search without another
  if(await toggle.isVisible())await toggle.click();await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Goa');
  await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');if(await toggle.isVisible())await toggle.click();
  const choose=page.getByRole('button',{name:'Choose room',exact:true});await choose.click();
- await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#room-choice-title')).toBeFocused();
+ await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#hotel-detail-title')).toBeFocused();
  await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
- await reference(page,testInfo,'journey-room-workspace',[page.getByRole('button',{name:'Review stay',exact:true}).first(),page.locator('.room-option-action strong').first()]);
+ await reference(page,testInfo,'journey-property-overview');
+ await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeFocused();
+ await reference(page,testInfo,'journey-room-workspace');
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(choose).toBeFocused();
  await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
  await reference(page,testInfo,'journey-stays-restored');

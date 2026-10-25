@@ -128,7 +128,7 @@ test('a hotel with no available room options never exposes a review action', asy
   const query = new URLSearchParams({ product: 'HOTEL', city: 'Goa, India', hotelIds: '10001', date: departure, end: returning, autoSearch: '1' });
   await page.goto(`/book?${query}`);
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'No rooms available', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No rooms available for this stay', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Review stay', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   await capture(page, testInfo, 'hotel-no-rooms');
@@ -201,12 +201,14 @@ test(`hotel real supplier metadata and photos render with a truthful broken-phot
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('loading','lazy');
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('referrerpolicy','no-referrer');
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Deluxe room',exact:true})).toBeVisible();
- await page.locator('.room-gallery > summary').click();
- await expect(page.locator('.room-gallery .hotel-property-gallery')).toBeVisible();
+ await expect(page.locator('.room-option-card').getByRole('heading',{name:'Deluxe room',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'View all 1 photo',exact:true}).click();
+ await expect(page.getByRole('dialog')).toBeVisible();
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-real-metadata-gallery');
- await page.locator('.room-gallery .hotel-property-gallery img').dispatchEvent('error');
- await expect(page.locator('.room-gallery .hotel-photo-unavailable')).toContainText('Property photos not available');
+ await page.locator('.stay-gallery-stage img').dispatchEvent('error');
+ await expect(page.getByRole('dialog')).toContainText('These photos could not be loaded');
+ await page.getByRole('button',{name:'Close photo gallery',exact:true}).click();
+ await expect(page.locator('.stay-photo-placeholder')).toContainText('No property photos supplied');
 });
 
 }

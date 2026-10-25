@@ -14,7 +14,7 @@ export function searchLegs(value?:string):SearchLeg[]|undefined {try{return legs
 /** Only bounded, public search criteria survive refresh/authentication. Never copy form data wholesale. */
 export function bookingSearchPrefill(query:Record<string,string|string[]|undefined>,today=indiaToday()):Record<string,string>{
   const result:Record<string,string>={};
-  const limits:Record<string,number>={product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36};
+  const limits:Record<string,number>={product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36,browseSearch:36,stay:30,gallery:1,stayStep:8};
   let invalid=false;
   for(const [key,max] of Object.entries(limits)){
     const value=query[key];if(value===undefined)continue;
@@ -26,6 +26,10 @@ export function bookingSearchPrefill(query:Record<string,string|string[]|undefin
   for(const key of ['adults','children','infants'])if(result[key]&&!/^\d$/.test(result[key]))invalid=true;
   if(result.adults==='0'||Number(result.adults??1)+Number(result.children??0)>9||Number(result.infants??0)>Number(result.adults??1))invalid=true;
   if(result.selectionKey&&!z.string().uuid().safeParse(result.selectionKey).success)invalid=true;
+  if(result.browseSearch&&!z.string().uuid().safeParse(result.browseSearch).success)invalid=true;
+  if(result.stay&&!/^\d{1,30}$/.test(result.stay))invalid=true;
+  if(result.gallery&&result.gallery!=='1')invalid=true;
+  if(result.stayStep&&result.stayStep!=='review')invalid=true;
   if(result.resumeReview&&!['0','1'].includes(result.resumeReview))invalid=true;
   if(result.cabin&&!['ECONOMY','PREMIUM_ECONOMY','BUSINESS','FIRST'].includes(result.cabin))invalid=true;
   if(result.hotelIds&&!/^\d+(,\d+){0,99}$/.test(result.hotelIds))invalid=true;

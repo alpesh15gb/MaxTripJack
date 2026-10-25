@@ -20,10 +20,16 @@ test(`hotel policy windows are readable and positive amount meaning stays unveri
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Policy fixture stay',customerEstimateMinor:800000}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'exact-policy-room',roomInfo:[{name:'Twin room'}],mealBasis:'Room only',pricing:{totalPrice:8000,currency:'INR'},cancellation:policy}]}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
- await page.getByRole('button',{name:'Choose room',exact:true}).click();await expect(page.locator('#room-choice-title')).toBeFocused();await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeInViewport();
+ await page.getByRole('button',{name:'Choose room',exact:true}).click();await expect(page.locator('#hotel-detail-title')).toBeFocused();await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeFocused();
  await page.getByText('Full cancellation policy & room details',{exact:true}).click();const timeline=page.getByRole('region',{name:'Hotel cancellation windows'});
  await expect(timeline).toContainText('India Standard Time');await expect(timeline).toContainText('21 Oct 2026');await expect(timeline).toContainText('The exact charge cannot be confirmed: the supplier has not specified the currency, units or calculation basis.');
  await expect(timeline).not.toContainText('₹');await timeline.getByText('Supported supplier policy details',{exact:true}).click();await expect(timeline).toContainText('2026-10-21T00:00:00');
+ // Expanded policy must occupy its own row, not cover the priced action.
+ const rate=page.locator('.room-option-card').first(),review=rate.getByRole('button',{name:'Review stay',exact:true});
+ const geometry=await rate.evaluate(node=>{const box=(selector:string)=>node.querySelector(selector)!.getBoundingClientRect();return {policyTop:box('.stay-room-conditions').top,mainBottom:box('.stay-room-rate-main').bottom,actionBottom:box('.room-option-action').bottom};});
+ expect(geometry.policyTop).toBeGreaterThanOrEqual(Math.max(geometry.mainBottom,geometry.actionBottom)-1);
+ await review.scrollIntoViewIfNeeded();
+ await expect.poll(()=>review.evaluate(node=>{const r=node.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return Boolean(hit&&(hit===node||node.contains(hit)));})).toBe(true);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-policy-windows-synthetic');expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.getByRole('button',{name:'Review stay',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();

@@ -253,13 +253,15 @@ test('room availability progress stays with the chosen property and prevents dup
  try{
   await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
   await page.getByRole('button',{name:'Choose room',exact:true}).click();
-  const property=page.getByRole('article',{name:'Palm House',exact:true}),status=property.getByRole('status');
-  await expect(property.getByRole('button',{name:'Checking rooms…',exact:true})).toBeDisabled();
-  await expect(status).toBeVisible();
-  await expect.poll(()=>status.evaluate(node=>{const r=node.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;})).toBe(true);
-  await naturalViewportEvidence(page,info,'property-room-availability-pending',[status,property.getByRole('button',{name:'Checking rooms…',exact:true})]);
+  const property=page.locator('#booking-rooms');
+  await expect(property.locator('#hotel-detail-title')).toHaveText('Palm House');
+  await expect(property.locator('#hotel-room-options')).toContainText('Checking available rooms');
+  await expect(property.getByRole('button',{name:'Review stay',exact:true})).toHaveCount(0);
+  await naturalViewportEvidence(page,info,'property-room-availability-pending',[property.locator('#hotel-detail-title')]);
+  // Exploring the property while availability loads must not start duplicate requests.
+  await property.locator('.stay-rate-preview > .primary').click();
   await page.keyboard.press('Enter');release();
-  await expect(page.getByRole('region',{name:'Room options',exact:true})).toBeVisible();
+  await expect(property.locator('.room-option-card')).toBeVisible();
   expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);

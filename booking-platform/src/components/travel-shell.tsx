@@ -4,13 +4,14 @@ import Link from "next/link";
 import "./package-navigation.css";
 import { businessProfile } from "@/lib/business-profile";
 
-type IconName = "plane" | "hotel" | "arrow" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
+type IconName = "plane" | "hotel" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
 
 export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, string> = {
     plane: "m22 2-7 20-4-9-9-4L22 2ZM11 13l6-6",
     hotel: "M3 21V3h12v18M15 9h6v12M7 7h4M7 11h4M7 15h4M7 21v-3h4v3M19 13v2M19 17v2",
     arrow: "M5 12h14m-6-6 6 6-6 6",
+    "arrow-up-right": "M7 17 17 7M7 7h10v10",
     shield: "M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Zm-4 9 3 3 5-6",
     bag: "M4 7h16v14H4V7Zm4 0V3h8v4M8 11v5m8-5v5",
     user: "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-3a8 8 0 0 1 16 0v3",
@@ -41,7 +42,7 @@ export function TravelHeader({ active, onProductChange }: { active?: "flights" |
         })}
         <Link href="/packages" aria-current={active === "packages" ? "page" : undefined}>Packages</Link>
         <Link href="/my-trips" aria-current={active === "trips" ? "page" : undefined}>My trips</Link>
-        <Link className="travel-business-nav" href="/office">Our office <span aria-hidden="true">↗</span></Link>
+        <Link className="travel-business-nav" href="/office">Our office <span aria-hidden="true"><TravelIcon name="arrow-up-right" size={14} /></span></Link>
       </nav>
       <div className="travel-header-actions"><span className="travel-currency">INR <span>₹</span></span><Link className="travel-account" href="/account" aria-current={active === "account" ? "page" : undefined}><TravelIcon name="user" size={17} /><span>My account</span></Link></div>
     </header>
