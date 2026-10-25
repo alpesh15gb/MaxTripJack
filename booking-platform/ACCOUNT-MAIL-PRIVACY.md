@@ -45,3 +45,26 @@ Full unit suite: 375 tests passed. Browser was not launched. The scheduler test 
 `tests/account-mail-next-http.mts` starts an unmodified built production Next server and local synthetic SMTP sink, using the existing disposable CI PostgreSQL database. It is restricted to `CI=true`, loopback database and `maxtravel_ci`. It uses real `after`, real BetterAuth/PostgreSQL, and real bounded Nodemailer: success, rejected DATA, and withheld DATA acknowledgements. Every known/unknown HTTP initiation must finish within five seconds, and the held phase verifies all three SMTP sockets are still open when responses finish. Production socket timeouts must subsequently close them and emit sanitized delivery-unconfirmed outcomes. Signup comparison does not normalize nullable fields in this PostgreSQL test. Origin rejection remains asserted; real per-IP rate limits remain enabled with 61-second waits between scenarios. Only per-run synthetic data/processes/sockets are cleaned up. The CI step is bounded to ten minutes.
 
 **Execution status:** TypeScript and ESLint passed locally. The real PostgreSQL/Next lifecycle test has **not run in this executor**: Docker/PostgreSQL binaries/services are unavailable. It is wired into the existing PostgreSQL/Mailpit CI job after the production build and existing HTTP flows. Passing this new CI gate is required before claiming the deployed-lifecycle/PostgreSQL response-shape gate is closed. No CI run was triggered or deployment performed by this change.
+
+## Cookie-less initiation Origin boundary (recovered follow-up)
+
+The pinned BetterAuth 1.7.7 `origin-check.mjs` generic `validateOrigin`
+returns without validating a supplied Origin when cookies are absent unless its
+caller forces validation. Account-mail initiation cannot rely on that generic
+check alone. The three exact POST initiation routes now validate supplied browser
+Origin/Referer evidence before SMTP configuration checks or account lookup. The
+shared trusted-origin list retains the configured web origin and `maxtravel://`.
+Headerless native requests remain supported unless explicitly cross-site. Token
+completion, sign-in, and OAuth routes keep their existing BetterAuth behavior.
+The recovery workspace’s installed Next 16.4.0 route-handler documentation confirms the standard Request
+header interface used here; no Next lifecycle hook was changed.
+
+Focused tests cover configured/unconfigured mail, known/unknown addresses,
+trailing-slash paths, rejected origins before infrastructure calls, canonical web
+origins, native/headerless requests, malformed browser evidence, and unrelated
+route delegation. The real Next/Postgres fixture retains and expands its 403
+assertion to all three initiation endpoints, with known and unknown addresses.
+That expanded integration assertion still requires CI execution; unit mocks are
+not evidence of a real server/Postgres run.
+
+Recovery verification note: the origin and browser follow-ups used a shared Next 16.4.0 dependency tree, while the repository lock targets 16.4.1. Fresh locked combined checks and real Next/PostgreSQL CI remain separate requirements; this recovery does not claim the lost local commit or its evidence was restored.

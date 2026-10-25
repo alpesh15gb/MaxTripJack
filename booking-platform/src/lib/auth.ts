@@ -8,6 +8,7 @@ import { HttpError } from "./http";
 import { sendAccountMail } from "./mail";
 import { after } from "next/server";
 import { createAccountMailDispatcher } from "./account-mail-dispatch";
+import { authTrustedOrigins } from "./auth-origin";
 
 const dispatchAccountMail = createAccountMailDispatcher({
   schedule: after, send: sendAccountMail,
@@ -23,7 +24,7 @@ function createAuth() {
   const baseURL = process.env.BETTER_AUTH_URL;
   if (!secret || secret.length < 32 || !baseURL) throw new HttpError(503, "Authentication is not configured.");
   return betterAuth({
-    appName: "Max Travel", secret, baseURL, database: database(), trustedOrigins: [new URL(baseURL).origin,"maxtravel://"],
+    appName: "Max Travel", secret, baseURL, database: database(), trustedOrigins: authTrustedOrigins(baseURL),
     emailAndPassword: { enabled: true, minPasswordLength: 12, maxPasswordLength: 128, requireEmailVerification: true,revokeSessionsOnPasswordReset:true,
       sendResetPassword: async ({ user, url }) => { dispatchAccountMail("reset", user.email, url); } },
     emailVerification: { sendOnSignUp: true, autoSignInAfterVerification: false,

@@ -124,7 +124,7 @@ test('verification resend uses the supported endpoint and prevents immediate rep
   await page.getByRole('button', { name: 'Need a verification email?' }).click();
   await page.getByLabel('Email for verification').fill('person@example.test');
   await page.getByRole('button', { name: 'Resend verification email', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('If this email has an unverified account');
+  await expect(page.getByRole('status')).toContainText('If this account needs verification, we’ll attempt to send a link. Delivery is not confirmed.');
   await expect(page.getByRole('button', { name: /Resend available in/ })).toBeDisabled();
   const calls = provider.requests('/api/auth/send-verification-email');
   expect(calls).toHaveLength(1);

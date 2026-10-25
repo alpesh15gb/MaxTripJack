@@ -45,7 +45,8 @@ test('support booking task reaches an honest authentication gate and preserves a
  await page.goto('/customer-support');
  await page.getByRole('main').getByRole('link',{name:'Manage a booking',exact:true}).click();
  await expect(page).toHaveURL('/my-trips');
- await expect(page.getByRole('heading',{name:'Let’s get you to your bookings.'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Your trips are private.'})).toBeVisible();
+ await expect(page.getByRole('main').getByRole('alert')).toHaveText('Sign in to view your private booking updates. This does not change your payment or booking status.');
  await expect(page.getByRole('link',{name:'Open account',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
 });

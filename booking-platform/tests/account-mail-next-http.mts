@@ -44,7 +44,11 @@ try {
  const signupBody={name:"Synthetic Lifecycle",password};
  const initial=await call("sign-up/email",{...signupBody,email:known});assert.equal(initial.status,200);ids.push(initial.body.user.id);
  await until(()=>accepted===1&&sockets.size===0);
- assert.equal((await call("request-password-reset",{email:known},"https://untrusted.example.test")).status,403);
+ for(const endpoint of ["request-password-reset","send-verification-email","sign-up/email"]){
+  for(const email of [known,`lifecycle-untrusted-${randomUUID()}@example.test`]){
+   assert.equal((await call(endpoint,{...signupBody,email},"https://untrusted.example.test")).status,403);
+  }
+ }
  // Preserve real DB-backed per-IP limits; independent scenarios wait their full window.
  await new Promise(r=>setTimeout(r,61_000));
  for(const scenario of ["success","reject","hold"]){

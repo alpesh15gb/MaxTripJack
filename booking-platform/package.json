@@ -35,7 +35,7 @@
     "@better-auth/expo": "^1.7.7",
     "better-auth": "^1.7.7",
     "next": "16.4.1",
-    "nodemailer": "^10.1.1",
+    "nodemailer": "10.1.4",
     "pdfkit": "^0.20.2",
     "pg": "^8.23.1",
     "react": "19.3.0",

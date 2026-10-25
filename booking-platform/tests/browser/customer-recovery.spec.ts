@@ -10,7 +10,7 @@ test('lost reset response offers reconciliation, preserves destination and never
  await page.route('**/api/auth/reset-password',route=>{writes++;return route.abort('failed');});
  await page.goto(reset);await fillReset(page);
  await page.getByRole('button',{name:'Update password',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText('could not confirm whether your password changed');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('could not confirm whether your password changed');
  await expect(page.getByRole('heading',{name:'Password updated',exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Update password',exact:true})).toBeDisabled();
  await expect(page.getByLabel('New password',{exact:true})).toHaveValue('SyntheticNewPassword123');
@@ -30,7 +30,7 @@ test('overdue reset ignores late success and duplicate submit events',async({pag
   await expect.poll(()=>writes).toBe(1);
   await page.locator('form').evaluate(form=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
   await page.clock.fastForward(15_001);
-  await expect(page.getByRole('alert')).toContainText('could not confirm whether your password changed');
+  await expect(page.getByRole('main').getByRole('alert')).toContainText('could not confirm whether your password changed');
  }finally{const response=page.waitForResponse('**/api/auth/reset-password');release();await response;}
  await page.clock.fastForward(100);
  await expect(page.getByRole('button',{name:'Update password',exact:true})).toBeDisabled();
@@ -41,7 +41,7 @@ test('explicit expired reset remains recoverable and missing link goes directly 
  provider.session=null;
  provider.overrides['POST /api/auth/reset-password']={status:400,body:{message:'Reset link expired. Request a new link.'}};
  await page.goto(reset);await fillReset(page);await page.getByRole('button',{name:'Update password',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText('Reset link expired');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('Reset link expired');
  await expect(page.getByRole('button',{name:'Update password',exact:true})).toBeEnabled();
  await page.goto('/reset-password?returnTo=%2Ftravellers');
  await page.getByRole('link',{name:'Back to account recovery',exact:true}).click();
@@ -65,7 +65,7 @@ test('lost access during pending-status refresh removes private records and stop
  await page.goto('/my-trips');await expect(page.getByText(pending.reference,{exact:true})).toBeVisible();
  provider.overrides['GET /api/bookings']={status:401,body:{error:'Sign in required.'}};
  await page.clock.fastForward(5_000);
- await expect(page.getByRole('alert')).toContainText('Sign in again to view your private booking updates');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('Sign in again to view your private booking updates');
  await expect(page.getByText(pending.reference,{exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Load older trips',exact:true})).toHaveCount(0);
  const reads=provider.requests('/api/bookings').length;await page.clock.fastForward(20_000);expect(provider.requests('/api/bookings')).toHaveLength(reads);
@@ -79,14 +79,14 @@ test('lost access during older-trip loading clears retained private records',asy
  await expect(page.getByText(pending.reference,{exact:true})).toBeVisible();
  provider.overrides['GET /api/bookings']={status:403,body:{error:'Verified account required.'}};
  await page.getByRole('button',{name:'Load older trips',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText('Access to these booking details is no longer available');await expect(page.getByText(pending.reference,{exact:true})).toHaveCount(0);
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('Access to these booking details is no longer available');await expect(page.getByText(pending.reference,{exact:true})).toHaveCount(0);
 });
 
 test('unknown reset retires the token from current history so reload cannot replay it',async({page,provider})=>{
  provider.session=null;let writes=0;
  await page.route('**/api/auth/reset-password',route=>{writes++;return route.abort('failed');});
  await page.goto(reset);await fillReset(page);await page.getByRole('button',{name:'Update password',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText('could not confirm whether your password changed');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('could not confirm whether your password changed');
  await expect(page).not.toHaveURL(/token=/);
  await page.reload();await expect(page.getByLabel('New password',{exact:true})).toHaveCount(0);
  await expect(page.getByRole('link',{name:'Back to account recovery',exact:true})).toBeVisible();expect(writes).toBe(1);
@@ -145,7 +145,7 @@ test('pending reset retires its URL token before reload and browser Back cannot 
 test('a malformed successful HTTP reset response is still an unknown password outcome',async({page,provider})=>{
  provider.session=null;provider.overrides['POST /api/auth/reset-password']={body:{}};
  await page.goto(reset);await fillReset(page);await page.getByRole('button',{name:'Update password',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText('could not confirm whether your password changed');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('could not confirm whether your password changed');
  await expect(page.getByRole('heading',{name:'Password updated',exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Update password',exact:true})).toBeDisabled();
 });
@@ -194,7 +194,7 @@ test('a late A confirmation cannot surface or revoke access after B becomes the 
  await expect.poll(()=>finished).toBe(true);
  await expect(page.getByText('MX-ACCOUNT-A',{exact:true})).toHaveCount(0);
  await expect(page.getByText('MX-ACCOUNT-B',{exact:true})).toBeVisible();
- await expect(page.getByRole('alert')).toHaveCount(0);
+ await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
 });
 
 for(const status of [401,403] as const)test(`confirmation ${status} removes the whole private workspace with truthful access feedback`,async({page,provider})=>{
@@ -202,8 +202,8 @@ for(const status of [401,403] as const)test(`confirmation ${status} removes the 
  provider.overrides[`GET /api/bookings/${pending.id}/details`]={status,body:{error:'Synthetic access change'}};
  await page.goto('/my-trips');await page.getByRole('searchbox',{name:'Search loaded bookings'}).fill('MX-PRIVATE');
  await page.getByRole('button',{name:'View confirmation details',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText(status===401?'Sign in again':'Access to these booking details is no longer available');
- if(status===403)await expect(page.getByRole('alert')).toContainText('does not establish that you were signed out');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText(status===401?'Sign in again':'Access to these booking details is no longer available');
+ if(status===403)await expect(page.getByRole('main').getByRole('alert')).toContainText('does not establish that you were signed out');
  await expect(page.getByText(pending.reference,{exact:true})).toBeHidden();
  await expect(page.getByRole('link',{name:'Download confirmation PDF',exact:true})).toHaveCount(0);
  await expect(page.getByRole('searchbox',{name:'Search loaded bookings'})).toHaveCount(0);
@@ -213,12 +213,12 @@ for(const status of [401,403] as const)test(`confirmation ${status} removes the 
 test('settled trips hide on network uncertainty and clear on confirmed sign-out',async({page,provider})=>{
  provider.bookingsPages['1']={bookings:[{...pending,status:'TICKETED'}],hasMore:false};await page.goto('/my-trips');await expect(page.getByText(pending.reference,{exact:true})).toBeVisible();
  provider.overrides['GET /api/auth/get-session']={status:503,body:{message:'Synthetic unavailable'}};await refreshSession(page);
- await expect(page.getByRole('alert')).toContainText('couldn’t verify account access');
- await expect(page.getByRole('alert')).toContainText('does not establish that you were signed out');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('couldn’t verify account access');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('does not establish that you were signed out');
  await expect(page.getByText(pending.reference,{exact:true})).toBeHidden();
  delete provider.overrides['GET /api/auth/get-session'];provider.session=null;
  await page.getByRole('button',{name:'Check account access',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText('Sign in to view your private booking updates');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('Sign in to view your private booking updates');
  await expect(page.getByText(pending.reference,{exact:true})).toHaveCount(0);
  await expect(page.getByRole('link',{name:'Open account',exact:true})).toBeVisible();
 });
@@ -228,11 +228,12 @@ test('MFA enrollment secrets and pending completion are scoped to the authentica
  provider.overrides['POST /api/auth/two-factor/enable']={body:{totpURI:'otpauth://totp/SYNTHETIC-A?secret=NOTAREALSECRET',backupCodes:['SYNTHETIC-A-BACKUP']}};
  await page.goto('/account');await page.locator('.account-card').getByLabel('Current password',{exact:true}).first().fill('SyntheticPassword123');
  await page.getByRole('button',{name:'Set up authenticator',exact:true}).click();
- await expect(page.getByLabel('Authenticator setup URI',{exact:true})).toHaveValue('otpauth://totp/SYNTHETIC-A?secret=NOTAREALSECRET');
+ await expect(page.getByRole('textbox',{name:'Authenticator setup URI',exact:true})).toHaveValue('otpauth://totp/SYNTHETIC-A?secret=NOTAREALSECRET');
  provider.session=syntheticSession('account-b');await refreshSession(page);
  await expect(page.getByRole('button',{name:'Set up authenticator',exact:true})).toBeVisible();
- await expect(page.getByLabel('Authenticator setup URI',{exact:true})).toHaveCount(0);
- await expect(page.getByLabel('Backup codes',{exact:true})).toHaveCount(0);
+ await expect(page.getByRole('textbox',{name:'Authenticator setup URI',exact:true,includeHidden:true})).toHaveCount(0);
+ await expect(page.getByRole('textbox',{name:'Backup codes',exact:true,includeHidden:true})).toHaveCount(0);
+ await expect(page.locator('.account-card textarea')).toHaveCount(0);
  await expect(page.locator('.account-card').getByLabel('Current password',{exact:true}).first()).toHaveValue('');
  let release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;});let requested=false;
  await page.route('**/api/auth/two-factor/enable',async route=>{requested=true;await held;await route.fulfill({json:{totpURI:'otpauth://totp/SYNTHETIC-B?secret=NOTAREALSECRET',backupCodes:['SYNTHETIC-B-BACKUP']}});});
@@ -241,7 +242,8 @@ test('MFA enrollment secrets and pending completion are scoped to the authentica
   provider.session=syntheticSession('account-c');await refreshSession(page);await expect(page.getByRole('button',{name:'Set up authenticator',exact:true})).toBeVisible();
  }finally{const response=page.waitForResponse('**/api/auth/two-factor/enable');release();await response;}
  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
- await expect(page.getByLabel('Authenticator setup URI',{exact:true})).toHaveCount(0);await expect(page.getByLabel('Backup codes',{exact:true})).toHaveCount(0);
+ await expect(page.getByRole('textbox',{name:'Authenticator setup URI',exact:true,includeHidden:true})).toHaveCount(0);await expect(page.getByRole('textbox',{name:'Backup codes',exact:true,includeHidden:true})).toHaveCount(0);
+ await expect(page.locator('.account-card textarea')).toHaveCount(0);
 });
 
 test('a transient session check hides security without clearing an unknown password-write lock',async({page,provider})=>{
@@ -295,7 +297,7 @@ test('lost cancellation preserves its same-request key across a transient sessio
  await expect(page.getByRole('button',{name:'Retry existing cancellation request',exact:true})).toBeVisible();
  await expect(page.getByLabel('Reason for cancellation',{exact:true})).toBeDisabled();
  provider.overrides['GET /api/auth/get-session']={status:503,body:{message:'Synthetic temporary outage'}};await refreshSession(page);
- await expect(page.getByRole('alert')).toContainText('couldn’t verify account access');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('couldn’t verify account access');
  await expect(page.locator('.trip-cancellation-request')).toBeHidden();
  delete provider.overrides['GET /api/auth/get-session'];await page.getByRole('button',{name:'Check account access',exact:true}).click();
  await expect(page.getByRole('button',{name:'Retry existing cancellation request',exact:true})).toBeVisible();

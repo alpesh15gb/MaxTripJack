@@ -1,9 +1,12 @@
 import { getAuth } from "@/lib/auth";
 import { failure, HttpError } from "@/lib/http";
 import { mailReady } from "@/lib/mail";
+import { accountMailOriginAllowed } from "@/lib/auth-origin";
 async function handle(request: Request) {
   try {
     const path = new URL(request.url).pathname.replace(/\/+$/, "");
+    const initiatesMail = ["/api/auth/sign-up/email", "/api/auth/request-password-reset", "/api/auth/send-verification-email"].includes(path);
+    if (request.method === "POST" && initiatesMail && !accountMailOriginAllowed(request, process.env.BETTER_AUTH_URL)) throw new HttpError(403, "Untrusted account request origin.");
     // Privileged accounts cannot remove MFA through a generic client endpoint.
     if (path.endsWith("/two-factor/disable")) throw new HttpError(403, "Contact account administration for MFA recovery.");
     // Email delivery is a release dependency. Do not silently create unusable public accounts.

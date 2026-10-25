@@ -68,7 +68,7 @@ test('unverified existing session can request verification with cooldown and con
  await expect(context.getByRole('link',{name:'Continue to review selection',exact:true})).toHaveCount(0);
  expect(provider.requests('/api/auth/send-verification-email')).toHaveLength(0);
  await context.getByRole('button',{name:'Send verification email',exact:true}).click();
- await expect(context.getByRole('status')).toContainText('If this email has an unverified account');
+ await expect(context.getByRole('status')).toContainText('If this account needs verification, we’ll attempt to send a link. Delivery is not confirmed.');
  await expect(context.getByRole('button',{name:/Resend available in/})).toBeDisabled();
  expect(provider.requests('/api/auth/send-verification-email')).toHaveLength(1);
  expect(provider.requests('/api/auth/send-verification-email')[0].body).toEqual({email:session.user.email,callbackURL:account});
