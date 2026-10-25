@@ -74,3 +74,16 @@ test('cancellation boundary formatting retains nonzero seconds and milliseconds'
  const row=hotelCancellationTimeline({penalties:[{from:'2026-10-23T00:00:30.250',to:'2026-10-24T00:00:15',amount:0}]})![0];
  assert.match(row.from,/12:00:30\.250/);assert.match(row.until,/12:00:15/);
 });
+
+test('civil travel labels are independent of the viewer timezone',()=>{
+ const original=process.env.TZ;
+ try {
+  for(const zone of ['America/Los_Angeles','Asia/Kolkata','Pacific/Kiritimati']){
+   process.env.TZ=zone;
+   assert.equal(travelDateLabel('2026-11-07'),'7 Nov 2026');
+   assert.equal(travelDateLabel('2026-11-07T00:30:00+14:00'),'7 Nov 2026');
+   assert.equal(travelTimeLabel('2026-11-07T00:30:00+14:00'),'00:30');
+   assert.equal(travelDateLabel('2026-11-08T01:30:00-10:00'),'8 Nov 2026');
+  }
+ } finally {if(original===undefined)delete process.env.TZ;else process.env.TZ=original;}
+});

@@ -90,3 +90,65 @@ rows lack `captured_at`/`completed_at`; outbox dates are system-recorded times,
 not provider settlement dates. Refund request/approval also emits `refund.updated`,
 so only explicitly completed, linked events could support an observed-activity
 report, with missing-evidence counts. Do not silently relabel `created_at`.
+
+## Generic operational exports (2026-10-25 review)
+
+`/api/admin/export/[resource]` retains each resource's existing permission and
+cost-safe SQL projection. It now uses an explicit column allowlist, so empty
+exports have the same headers as populated exports and unexpected result fields
+cannot leak. CSV uses the finance export's formula/control escaping; timestamps
+are ISO UTC strings (not JSON strings with extra quote characters). Dates select
+**the selected resource's creation time** in Asia/Kolkata, inclusive, up to 366
+days and 5,000 rows. Refund creation is not refund completion; payment creation
+is not capture. Headers and audit detail identify the timezone and date basis.
+The operations form explains that distinction and paise/text-import conventions.
+CSV is not XLSX: spreadsheet auto-conversion of identifiers and large numbers,
+and formula behavior after re-saving, remain application-specific. Import IDs
+and exact minor amounts as text when exact preservation is needed.
+
+`tests/operations-export.test.ts` runs the actual route with synthetic auth/DB
+boundaries: empty/populated schema, timezone SQL, date rejection, oversized
+result rejection, full-width formula text, ISO date formatting, bigint text and
+unexpected-cost-field omission. Actual database timezone-boundary execution and
+Excel/LibreOffice visual/import QA are not claimed by those tests.
+
+## Confirmation record semantics
+
+`booking-document.ts` labels a fully cancelled order **Cancelled booking record**
+and explicitly says it is not valid for travel and not evidence of a completed
+refund. Ancillary documents say confirmation, not receipt. Booking and agreed
+refund amounts use exact integer paise conversion rather than JS Number.
+Supplier-confirmed eligibility gates and the existing revision-bound, best-effort
+CRM PDF attachment behavior are unchanged. Authoritative CRM snapshots remain
+separate from delivery acknowledgement; neither acknowledgement nor a PDF means
+a refund completed or cash settled.
+
+`tests/booking-document.test.ts` exercises actual renderer control flow using
+synthetic database/vault/PDF boundaries for cancelled, ticketed and paid states
+and values beyond JS safe integer range. It does not prove final PDF pagination,
+fonts, customer document correctness or live supplier behavior.
+
+Research basis (design guidance, not claims of these integrations):
+- Booking.com post-booking lifecycle: confirm cancellation result before changing
+  status; keep order information current; asynchronous notifications can duplicate
+  or arrive out of order: https://developers.booking.com/demand/docs/development-guide/application-flows/post-booking
+- Stripe refund state model distinguishes pending/action-needed/succeeded/failed/
+  cancelled, supporting separate refund semantics rather than treating a request
+  as money returned: https://docs.stripe.com/api/refunds
+- OWASP CSV injection guidance and spreadsheet re-save limitations:
+  https://community.owasp.org/attacks/CSV_Injection
+
+Independent-review follow-up: nullable legacy cancellation offers are shown as
+unavailable, never zero or a document-generation failure. Historical partial
+cancellation wording describes its scope without asserting travel is still active
+following a later full cancellation. The renderer regression includes both.
+Real PDFKit synthetic cancelled/ticketed/28-traveller hotel fixtures were rendered
+with Poppler and visually inspected: all one page, readable amounts/warnings,
+no observed clipping or overlap. This covers those fixtures only, not arbitrary
+names/scripts or all itinerary sizes. The existing disposable PostgreSQL fixture
+now also asserts the actual generic export route's IST boundary inclusion/exclusion
+under Honolulu session timezone and stable empty headers. That extension is
+CI-pending; local PostgreSQL executables/disposable DB are unavailable.
+Reproduce those synthetic real-renderer PDFs from the booking app with
+`node tests/render-booking-documents.mjs /tmp/booking-document-qa`, then render
+with `pdftoppm -png`. The script defaults to a fresh temporary output directory.

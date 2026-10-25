@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { TravelFooter, TravelHeader, TravelIcon } from "./travel-shell";
 import SeoJsonLd from "./seo-json-ld";
-import { businessProfile, businessStructuredData } from "@/lib/business-profile";
+import { businessProfile } from "@/lib/business-profile";
+import { editorialDiscoveryGraph } from "@/lib/discovery-graph";
+import { getPublicPage } from "@/lib/public-pages";
 import { accountHref } from "@/lib/account-return";
 import "./support-experience.css";
 
@@ -13,6 +15,12 @@ const tasks = [
 ];
 
 export default function SupportExperience() {
+  const page = getPublicPage("customer-support")!;
+  // This task-oriented page has no visible editorial date; do not invent one.
+  const schema = editorialDiscoveryGraph(
+    { path: "/customer-support", title: page.title, description: page.description },
+    [{ label: "Home", href: "/" }, { label: "Customer support", href: "/customer-support" }],
+  );
   return <><TravelHeader/><main id="main-content" className="support-experience page-shell">
     <nav className="support-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><span aria-current="page">Customer support</span></nav>
     <header className="support-intro"><div><p className="support-eyebrow">MAX TRAVEL · CUSTOMER SUPPORT</p><h1>Let’s find your next step.</h1><p>A trip to manage, a question to clear up, or a new place to go?</p></div><a className="support-contact-jump" href="#contact-team">Talk to our team <TravelIcon name="arrow" size={18}/></a></header>
@@ -20,5 +28,5 @@ export default function SupportExperience() {
     <aside className="support-contact" id="contact-team" aria-labelledby="support-contact-heading" tabIndex={-1}><span className="support-task-icon"><TravelIcon name="user" size={25}/></span><p className="support-eyebrow">A REAL PERSON. A DIRECT CONTACT.</p><h2 id="support-contact-heading">Talk to MaxTravel</h2><p className="support-hours"><TravelIcon name="clock" size={18}/><span>{businessProfile.hours.display}</span></p><div className="support-contact-actions"><a href={businessProfile.phoneHref}>Call {businessProfile.phone}<TravelIcon name="arrow" size={17}/></a><a href={businessProfile.whatsappHref} target="_blank" rel="noopener noreferrer">Message on WhatsApp <span aria-hidden="true">↗</span><span className="support-sr-only"> (opens in a new tab)</span></a><a href={businessProfile.emailHref}>Email {businessProfile.email}<TravelIcon name="arrow" size={17}/></a></div><p className="support-external-note">These links open your phone, messaging or email app. Nothing is sent from this page.</p><div className="support-prepare"><h3>For an existing booking</h3><p>Keep your booking reference and a short description ready. Share identifiers only in the private conversation—never passwords, payment-card details or one-time codes.</p></div><Link className="support-office-link" href="/office"><TravelIcon name="pin" size={17}/>Visit our Secunderabad office <span aria-hidden="true">→</span></Link></aside></div>
     <section className="support-answers" aria-labelledby="support-answers-heading"><div><p className="support-eyebrow">WHEN THE NEXT STEP ISN’T CLEAR</p><h2 id="support-answers-heading">A few useful answers.</h2><p>For the status of a specific booking, use My trips or contact the team privately.</p></div><div className="support-question-list"><details><summary>Money deducted, but no confirmed booking?</summary><p>Check the existing booking in My trips. A payment notification alone is not a confirmed flight or stay. Keep the receipt and contact the team if the result is pending or unclear; do not pay again until it has been checked.</p><Link href="/my-trips">Check the existing booking →</Link></details><details><summary>My flight is coming up soon. What should I do?</summary><p>Check your confirmation documents and the operating airline’s official flight-status and airport guidance. Contact MaxTravel during the office hours shown above. We do not provide 24-hour emergency support or override airline operational decisions.</p><a href="#contact-team">See contact options →</a></details><details><summary>How do I follow up on an unresolved issue?</summary><p>Email the team with a short timeline, what has already been checked and the outcome you need. Refund eligibility and completion depend on the particular booking and payment outcome; no blanket refund deadline applies here.</p><a href={businessProfile.emailHref}>Email the support team →</a></details><details><summary>Can I make a live booking through this website?</summary><p>The online platform is currently in TripJack UAT. Test results and online checkout do not create live travel bookings or payments. Contact MaxTravel about your travel needs; an enquiry is not a confirmed booking.</p><Link href="/services">Explore available travel assistance →</Link></details></div></section>
     <div className="support-resource-links"><Link href="/flight-booking-guide">Flight booking guide <span aria-hidden="true">↗</span></Link><Link href="/pricing-transparency">Understand prices & confirmation <span aria-hidden="true">↗</span></Link><Link href="/contact">All contact details <span aria-hidden="true">↗</span></Link></div>
-  </main><TravelFooter/><SeoJsonLd data={businessStructuredData()}/></>;
+  </main><TravelFooter/><SeoJsonLd data={schema}/></>;
 }

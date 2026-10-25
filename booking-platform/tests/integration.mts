@@ -12,16 +12,23 @@ async function api(path: string, data?: unknown) {
  const response = await fetch(`${base}${path}`, { method: data ? "POST" : "GET", headers: { origin: base, "Content-Type": "application/json", ...(cookie ? { cookie } : {}) }, ...(data ? { body: JSON.stringify(data) } : {}) });
  return { response, data: await response.json() };
 }
+async function waitForMail(subject: string) {
+ const deadline = Date.now() + 35_000;
+ do {
+  const list = await (await fetch("http://127.0.0.1:18025/api/v1/messages", {signal:AbortSignal.timeout(3000)})).json();
+  const message = list.messages.find((m: {Subject:string; To:{Address:string}[]}) => m.Subject === subject && m.To.some(to=>to.Address===email));
+  if(message) return (await fetch(`http://127.0.0.1:18025/api/v1/message/${message.ID}`, {signal:AbortSignal.timeout(3000)})).json();
+  await new Promise(resolve=>setTimeout(resolve,200));
+ } while(Date.now()<deadline);
+ throw Error(`Expected synthetic ${subject} email did not reach local Mailpit within 35 seconds`);
+}
 try {
  assert.equal((await api("/api/bookings")).response.status, 401);
  const signup = await api("/api/auth/sign-up/email", { email, password, name: "Integration Traveller", callbackURL: "/account" });
  assert.equal(signup.response.status, 200, "registration failed"); userId = signup.data.user.id;
  const beforeVerification = await api("/api/auth/sign-in/email", { email, password });
  assert.equal(beforeVerification.response.status, 403, "unverified email must not sign in");
- const mailList = await (await fetch("http://127.0.0.1:18025/api/v1/messages")).json();
- const message = mailList.messages.find((m: { To: { Address: string }[] }) => m.To.some(to => to.Address === email));
- assert.ok(message, "verification email must reach local Mailpit");
- const mail = await (await fetch(`http://127.0.0.1:18025/api/v1/message/${message.ID}`)).json();
+ const mail = await waitForMail("Verify your Max Travel email");
  const verificationURL = mail.Text.match(/https?:\/\/[^\s]+/)?.[0];
  assert.ok(verificationURL);
  assert.equal(new URL(verificationURL).origin, base);
@@ -46,7 +53,17 @@ try {
  assert.equal((await pool.query("SELECT count(*)::int AS n FROM outbox_events WHERE aggregate_id=$1", [ownOrder])).rows[0].n, 1);
  await api("/api/auth/sign-out", {}); cookie = "";
  assert.equal((await api("/api/bookings")).response.status, 401);
- console.log("PASS: registration, local email verification, sign-in/out, admin denial, booking isolation, cancellation idempotency, active-travel preservation and transactional outbox.");
+ const resetRequest=await api("/api/auth/request-password-reset",{email,redirectTo:"/reset-password"});
+ assert.equal(resetRequest.response.status,200);
+ const resetMail=await waitForMail("Reset your Max Travel password");
+ const resetURL=resetMail.Text.match(/https?:\/\/[^\s]+/)?.[0];assert.ok(resetURL);
+ assert.equal(new URL(resetURL).origin,base);
+ const token=new URL(resetURL).pathname.split("/").at(-1);
+ const replacement=randomBytes(24).toString("hex");
+ assert.equal((await api("/api/auth/reset-password",{token,newPassword:replacement})).response.status,200);
+ assert.equal((await api("/api/auth/reset-password",{token,newPassword:replacement})).response.status,400);
+ assert.equal((await api("/api/auth/sign-in/email",{email,password:replacement})).response.status,200);
+ console.log("PASS: registration, asynchronous local verification/reset mail, consumed reset token, sign-in/out, admin denial, booking isolation, cancellation idempotency, active-travel preservation and transactional outbox.");
 } finally {
  // Remove only synthetic fixtures created by this run; preserve other development data.
  await pool.query("DELETE FROM customer_notifications WHERE order_id=ANY($1::uuid[])", [[ownOrder, otherOrder]]);

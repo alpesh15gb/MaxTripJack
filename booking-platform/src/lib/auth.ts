@@ -6,6 +6,17 @@ import { expo } from "@better-auth/expo";
 import { database } from "./db";
 import { HttpError } from "./http";
 import { sendAccountMail } from "./mail";
+import { after } from "next/server";
+import { createAccountMailDispatcher } from "./account-mail-dispatch";
+
+const dispatchAccountMail = createAccountMailDispatcher({
+  schedule: after, send: sendAccountMail,
+  report: (kind, outcome) => {
+    // Fixed vocabulary only: never log recipient, URL, token, or transport error.
+    if (outcome === "delivery-unconfirmed") console.error("Account mail", { kind, outcome });
+    else console.info("Account mail", { kind, outcome });
+  },
+});
 
 function createAuth() {
   const secret = process.env.BETTER_AUTH_SECRET;
@@ -14,9 +25,9 @@ function createAuth() {
   return betterAuth({
     appName: "Max Travel", secret, baseURL, database: database(), trustedOrigins: [new URL(baseURL).origin,"maxtravel://"],
     emailAndPassword: { enabled: true, minPasswordLength: 12, maxPasswordLength: 128, requireEmailVerification: true,revokeSessionsOnPasswordReset:true,
-      sendResetPassword: async ({ user, url }) => { await sendAccountMail(user.email, "Reset your Max Travel password", url); } },
+      sendResetPassword: async ({ user, url }) => { dispatchAccountMail("reset", user.email, url); } },
     emailVerification: { sendOnSignUp: true, autoSignInAfterVerification: false,
-      sendVerificationEmail: async ({ user, url }) => { await sendAccountMail(user.email, "Verify your Max Travel email", url); } },
+      sendVerificationEmail: async ({ user, url }) => { dispatchAccountMail("verification", user.email, url); } },
     session: { expiresIn: 60 * 60 * 12, updateAge: 60 * 30, cookieCache: { enabled: false } },
     rateLimit: { enabled: true, storage: "database", window: 60, max: 30, customRules: { "/sign-in/email": { window: 60, max: 5 }, "/sign-up/email": { window: 60, max: 3 },"/request-password-reset":{window:60,max:3},"/two-factor/verify-totp":{window:60,max:5},"/two-factor/verify-backup-code":{window:60,max:5} } },
     plugins: [expo(),twoFactor(), nextCookies()],

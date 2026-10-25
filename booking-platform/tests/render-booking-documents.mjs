@@ -1,0 +1,13 @@
+// Synthetic real-PDFKit visual-QA fixture. Run from booking-platform. No database, provider, or email calls.
+import {createRequire} from 'node:module';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+const output=process.argv[2] ? path.resolve(process.argv[2]) : fs.mkdtempSync(path.join(os.tmpdir(),'booking-document-qa-'));fs.mkdirSync(output,{recursive:true});console.log('Synthetic PDFs:',output);
+const local=createRequire(path.join(process.cwd(),'package.json'));const {build}=local('esbuild');
+(async()=>{for(const scenario of ['cancelled','ticketed','long-hotel']){
+ const travellers=Array.from({length:scenario==='long-hotel'?28:2},(_,i)=>({ti:'Mr',fN:'Synthetic',lN:`Traveller${i+1}`,pt:'ADULT',...(scenario==='long-hotel'?{roomIndex:Math.floor(i/4)}:{})}));
+ const state={order:{id:'synthetic',reference:'SYNTHETIC-QA-ONLY',status:scenario==='cancelled'?'CANCELLED':scenario==='long-hotel'?'CONFIRMED':'TICKETED',product:scenario==='long-hotel'?'HOTEL':'FLIGHT',supplier_booking_id:'SYNTHETIC-SUPPLIER',total_minor:'9007199254740993',created_at:'2026-10-01',updated_at:'2026-10-25',itinerary_summary:scenario==='long-hotel'?{checkIn:'2026-11-01',checkOut:'2026-11-05'}:{from:'BOM',to:'DEL',date:'2026-11-01'}},travellers};global.__pdfqa=state;
+ const mocks={'@/lib/db':`export function database(){return {async query(sql){if(sql.includes('SELECT * FROM orders'))return {rows:[globalThis.__pdfqa.order]};if(sql.includes('cancellation_requests'))return globalThis.__pdfqa.order.status==='CANCELLED'?{rowCount:2,rows:[{is_partial:true,refund_offer_minor:null,scope:{trips:[]}},{is_partial:false,refund_offer_minor:'9007199254740991',scope:{trips:[{src:'BOM',dest:'DEL',departureDate:'2026-11-01',travellers:[{fn:'Synthetic',ln:'Traveller1'}]}]}}]}:{rowCount:0,rows:[]};return {rows:[]}}}}`,'@/lib/vault':`export function unseal(){return {travellers:globalThis.__pdfqa.travellers}}`};
+ const built=await build({entryPoints:[path.resolve('src/lib/booking-document.ts')],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'synthetic-data',setup(p){p.onResolve({filter:/.*/},a=>Object.hasOwn(mocks,a.path)?{path:a.path,namespace:'mock'}:undefined);p.onLoad({filter:/.*/,namespace:'mock'},a=>({contents:mocks[a.path],loader:'js',resolveDir:process.cwd()}));}}]});const compiled={exports:{}};new Function('module','exports','require',built.outputFiles[0].text)(compiled,compiled.exports,local);const res=await compiled.exports.bookingDocument('synthetic');fs.writeFileSync(path.join(output,`${scenario}.pdf`),Buffer.from(await res.arrayBuffer()));console.log(scenario,res.status);
+}})().catch(e=>{console.error(e);process.exitCode=1});

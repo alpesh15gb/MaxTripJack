@@ -46,6 +46,38 @@ function inspectSchema(value) {
   }
   Object.values(value).forEach(inspectSchema);
 }
+function inspectDiscoveryGraph(schemas, html, path) {
+  const nodes = schemas.flat();
+  const definitions = new Map(nodes.filter(node => node["@id"]).map(node => [node["@id"], node]));
+  equal(definitions.size, nodes.length, `${path}: every discovery node has a unique identity`);
+  const website = definitions.get(`${origin}/#website`);
+  check(website?.["@type"] === "WebSite" && website.name === "MaxTravel", `${path}: consistent real website identity`);
+  equal(website.url, origin + "/", `${path}: website canonical origin`);
+  check(definitions.has(`${origin}/#organization`), `${path}: publisher identity resolved in document`);
+  function inspect(value) {
+    if (!value || typeof value !== "object") return;
+    if (Object.keys(value).length === 1 && value["@id"]) check(definitions.has(value["@id"]), `${path}: no unresolved entity references`);
+    check(!("potentialAction" in value), `${path}: no invented search or booking action`);
+    Object.values(value).forEach(inspect);
+  }
+  nodes.forEach(inspect);
+  if (path === "/") return;
+  const page = definitions.get(`${origin}${path}#webpage`);
+  equal(page?.url, origin + path, `${path}: WebPage identity matches canonical`);
+  const descriptions = tags(html, "meta").filter(tag => tag.name === "description");
+  equal(page.description, descriptions[0]?.content, `${path}: schema description matches real metadata`);
+  if (path === "/customer-support") check(!page.dateModified, "Task-oriented support page does not invent an editorial review date");
+  else check(tags(html, "time").some(tag => tag.datetime === page.dateModified), `${path}: schema review date visible in article`);
+  const breadcrumbs = definitions.get(`${origin}${path}#breadcrumb`);
+  const visible = cleanText(html);
+  for (const item of breadcrumbs.itemListElement) check(visible.includes(item.name), `${path}: breadcrumb label is visible`);
+  equal(breadcrumbs.itemListElement.at(-1).item, origin + path, `${path}: trail ends at actual page`);
+  for (const citation of page.citation ?? []) {
+    check(tags(html, "a").some(tag => tag.href === citation.url), `${path}: schema citation has a visible source link`);
+    check(visible.includes(citation.name), `${path}: schema citation label is visible`);
+  }
+}
+
 function inspectDocument(response, html, label) {
   equal(response.headers.get("x-robots-tag"), "noindex, nofollow", `${label}: loopback/preview always noindex`);
   check(response.headers.get("cache-control")?.includes("no-store"), `${label}: document not shared-cacheable`);
@@ -145,7 +177,7 @@ await withServer({ SEO_INDEXING_ENABLED: "false", SEO_SITE_ORIGIN: origin }, asy
     // parsed URLs so / and the empty root path remain the same resource.
     equal(new URL(canonicals[0]).href, new URL(origin + path).href, `${path}: self canonical`);
     check(robotsValues(html).some(value => value.includes("noindex")), `${path}: UAT meta noindex`);
-    const schemas = jsonLd(html); check(schemas.length > 0, `${path}: JSON-LD server-rendered`); schemas.forEach(inspectSchema);
+    const schemas = jsonLd(html); check(schemas.length > 0, `${path}: JSON-LD server-rendered`); schemas.forEach(inspectSchema); inspectDiscoveryGraph(schemas, html, path);
     check(!/(?:₹|INR\s*)\s*[0-9][0-9,]*(?:\.[0-9]+)?/.test(cleanText(html)), `${path}: no invented public fare`);
     check(!/guaranteed (?:lowest|cheapest|first.place)|\b\d[\d,]*\s+(?:happy customers|verified reviews)\b/i.test(cleanText(html)), `${path}: no unsupported superlatives/testimonials`);
     if (path === "/") {

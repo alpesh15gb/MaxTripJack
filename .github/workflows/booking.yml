@@ -108,6 +108,12 @@ jobs:
           npm run test:crm-commands
           sleep 60
           npm run test:flight-services
+      - name: Prove account mail lifecycle with real Next and local SMTP faults
+        timeout-minutes: 10
+        run: |
+          # Prior fixture flows share loopback identity; retain production rate limits.
+          sleep 60
+          node --env-file=.env.local --import tsx tests/account-mail-next-http.mts
       - run: npm audit --omit=dev --audit-level=high
   browser-ui:
     name: Booking UI · synthetic providers · desktop and mobile

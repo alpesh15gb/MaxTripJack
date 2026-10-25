@@ -1,6 +1,7 @@
 import {test,expect,flight,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
 import type {Locator,Page,TestInfo} from '@playwright/test';
 import path from 'node:path';
+import {travelDateLabel} from '../../src/lib/travel-date';
 
 async function reference(page:Page,testInfo:TestInfo,name:string,critical:Locator[]=[]){
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;const tick=()=>{stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);};requestAnimationFrame(tick);});});
@@ -29,6 +30,9 @@ test('flight decision has an explicit next action and reversible fare choice',as
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[row]}}}};
  provider.quote=reviewedQuote({totalMinor:720050});
  await page.goto(flightQuery());
+ await expect(page.locator('#flight-results-title')).toHaveText('Available flights');
+ await expect(page.getByRole('heading',{name:'Choose your flight',exact:true})).toHaveCount(1);
+ await expect(page.getByRole('region',{name:'Available options',exact:true})).toBeVisible();
  const card=page.locator('.flight-shopping-list .live-flight-card').first();
  const action=card.locator('.choose-fare-label');await expect(action).toHaveText('Choose fare →');
  await expect.poll(()=>action.evaluate(node=>{const r=node.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})).toBe(true);
@@ -48,6 +52,10 @@ test('flight decision has an explicit next action and reversible fare choice',as
  await card.locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();
  await expect(page.getByRole('button',{name:'Review booking',exact:true})).toBeVisible();
+ await expect(page.locator('#booking-review')).toContainText(travelDateLabel(departure));
+ await expect(page.locator('.selected-journey-recap')).toContainText(travelDateLabel(departure));
+ await expect(page.locator('#booking-summary')).toContainText(travelDateLabel(departure));
+ await expect(page.locator('.selected-journey-recap')).not.toContainText(departure);
  await reference(page,testInfo,'journey-traveller-review');
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,priceIds:['flex-exact-id']}]);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);

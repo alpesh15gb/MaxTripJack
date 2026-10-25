@@ -7,6 +7,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { Pool } from "pg";
 import { bookingReportQuery } from "../src/lib/booking-report-query";
 import { parseReportFilters, reportParams, type BookingReport, type ReportFilters, type ReportRow } from "../src/lib/booking-report";
+import { resources } from "../src/lib/admin-resources";
 import { reportHarness, type Harness } from "./report-harness";
 
 const input = process.env.TEST_DATABASE_URL;
@@ -108,6 +109,21 @@ try {
   assert.equal(data.rows.reduce((sum, row) => sum + BigInt(row.capturedMinor), BigInt(0)).toString(), data.totals.capturedMinor);
   assert.equal(data.rows.reduce((sum, row) => sum + BigInt(row.completedRefundMinor), BigInt(0)).toString(), data.totals.completedRefundMinor);
   await query("UPDATE admin_grants SET permissions=ARRAY['bookings:read'] WHERE user_id='synthetic-report-user'");
+  const generic = await reportHarness("src/app/api/admin/export/[resource]/route.ts", state);
+  routes.push(generic);
+  const genericContext = { params: Promise.resolve({ resource: "bookings" }) };
+  const genericResponse = await generic.GET(new Request("http://127.0.0.1/api/admin/export/bookings?from=2026-10-20&to=2026-10-20"), genericContext);
+  assert.equal(genericResponse.status, 200);
+  assert.equal(genericResponse.headers.get("X-Report-Timezone"), "Asia/Kolkata");
+  const genericCsv = await genericResponse.text();
+  assert.equal(genericCsv.split("\r\n").length, 3);
+  for (const index of [1, 2]) assert.ok(genericCsv.includes(boundary[index].id));
+  for (const index of [0, 3]) assert.ok(!genericCsv.includes(boundary[index].id));
+  assert.ok(!genericCsv.includes("supplier_minor"));
+  const emptyGeneric = await generic.GET(new Request("http://127.0.0.1/api/admin/export/bookings?from=2026-01-01&to=2026-01-01"), genericContext);
+  assert.equal(emptyGeneric.status, 200);
+  assert.equal(await emptyGeneric.text(), resources.bookings.columns.map(column => `"${column}"`).join(","));
+  console.log("PASS real generic export route: IST midnight cohort under Honolulu session, empty stable columns and cost-safe bookings-only export");
   for (const path of ["/api/admin/reports", "/api/admin/reports/export"]) { const denied = await fetch(`${origin}${path}?${params}&role=admin`); assert.equal(denied.status, 403); assert.ok(!(await denied.text()).includes("supplierMinor")); }
   console.log("PASS loopback HTTP: actual report routes + actual administrator/principal with synthetic session and real grant/ledger SQL, JSON/CSV reconciliation, booking-only denial");
 } finally {

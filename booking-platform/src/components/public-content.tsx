@@ -1,28 +1,11 @@
 import Link from "next/link";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
 import SeoJsonLd from "@/components/seo-json-ld";
-import { businessProfile, businessStructuredData, officeDirectionsHref } from "@/lib/business-profile";
+import { businessProfile, officeDirectionsHref } from "@/lib/business-profile";
 import { flightGuides, flightGuideSearchHref, type FlightGuide } from "@/lib/flight-guides";
 import type { ContentSection, PublicLink, PublicPage } from "@/lib/public-pages";
-import { canonicalUrl } from "@/lib/seo";
+import { editorialDiscoveryGraph, homeDiscoveryGraph, type Breadcrumb } from "@/lib/discovery-graph";
 import "./public-content.css";
-
-type Breadcrumb = { label: string; href: string };
-
-export function breadcrumbStructuredData(items: readonly Breadcrumb[]) {
-  return {
-    "@context": "https://schema.org", "@type": "BreadcrumbList",
-    itemListElement: items.map((item, index) => ({ "@type": "ListItem", position: index + 1, name: item.label, item: canonicalUrl(item.href) })),
-  };
-}
-
-export function editorialStructuredData(path: string, title: string, description: string, reviewedAt: string) {
-  return {
-    "@context": "https://schema.org", "@type": "WebPage", "@id": `${canonicalUrl(path)}#webpage`,
-    url: canonicalUrl(path), name: title, description, dateModified: reviewedAt,
-    inLanguage: "en-IN", publisher: { "@id": `${businessProfile.website}/#organization` },
-  };
-}
 
 function Breadcrumbs({ items }: { items: readonly Breadcrumb[] }) {
   return <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol>{items.map((item, index) => <li key={item.href}>{index === items.length - 1 ? <span aria-current="page">{item.label}</span> : <Link href={item.href}>{item.label}</Link>}</li>)}</ol></nav>;
@@ -84,7 +67,7 @@ export function RouteGuideCards({ exclude }: { exclude?: string }) {
 export function PublicPageView({ page }: { page: PublicPage }) {
   const path = `/${page.slug}`;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: page.slug === "flights" ? "Flights" : page.title.split(" | ")[0], href: path }];
-  const schema = [editorialStructuredData(path, page.title, page.description, page.reviewedAt), breadcrumbStructuredData(breadcrumbs), ...(page.businessSchema ? [businessStructuredData()] : [])];
+  const schema = editorialDiscoveryGraph({ ...page, path }, breadcrumbs, { fullBusinessProfile: page.businessSchema });
   return <div className="public-site">
     <TravelHeader active={page.slug === "flights" ? "flights" : undefined} />
     <main id="main-content" className="public-main">
@@ -111,7 +94,7 @@ export function FlightGuideView({ guide }: { guide: FlightGuide }) {
       <section className="public-sources" aria-labelledby="sources-heading"><h2 id="sources-heading">Official planning references</h2><p>Use the current airport, airline and government guidance before travelling. External references are not endorsements or evidence of a MaxTravel partnership.</p><ul>{guide.sources.map(source => <li key={source.href}><a href={source.href}>{source.label} <span aria-hidden="true">↗</span></a></li>)}</ul><ReviewDate value={guide.reviewedAt} /></section>
     </article><aside className="public-rail"><OfficeContactCard compact /><section className="public-rail-note"><h2>Compare the same journey</h2><p>Use the same passengers, dates, airports and baggage needs when comparing the full price.</p><Link href="/flight-booking-guide">Follow the booking checklist →</Link></section></aside></div>
     <RelatedLinks links={[...related, { label: "All flight planning guides", href: "/flights" }, { label: "Pricing transparency", href: "/pricing-transparency" }]} />
-  </main><TravelFooter /><SeoJsonLd id="route-guide-schema" data={[editorialStructuredData(path, guide.title, guide.description, guide.reviewedAt), breadcrumbStructuredData(breadcrumbs)]} /></div>;
+  </main><TravelFooter /><SeoJsonLd id="route-guide-schema" data={editorialDiscoveryGraph({ ...guide, path }, breadcrumbs, { sources: guide.sources })} /></div>;
 }
 
 /** Rendered by the server and passed through the interactive homepage as children. */
@@ -121,6 +104,6 @@ export function HomePublicIntro() {
     <div className="studio-office-note"><TravelIcon name="pin" size={25}/><h3>Come say hello.</h3><p>{businessProfile.address.display}</p><p><strong>{businessProfile.hours.display}</strong></p><Link href="/office">Office details & directions →</Link><a href={businessProfile.emailHref}>{businessProfile.email}</a></div></div>
     <p className="studio-uat-note">The online platform is currently in UAT. Test searches and checkout are not live travel bookings.</p>
     <nav className="home-public-links" aria-label="Travel planning and agency information"><Link href="/flights">Flight planning</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/flight-booking-guide">Booking guide</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/about">About MaxTravel</Link></nav>
-    <h3 className="home-public-routes-heading">Start with the right airport pair</h3><RouteGuideCards/><SeoJsonLd id="maxtravel-business-schema" data={businessStructuredData()}/>
+    <h3 className="home-public-routes-heading">Start with the right airport pair</h3><RouteGuideCards/><SeoJsonLd id="maxtravel-business-schema" data={homeDiscoveryGraph()}/>
   </section>;
 }

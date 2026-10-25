@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "@/app/trips-experience.css";
+import { authClient } from "@/lib/auth-client";
 import { accountHref } from "@/lib/account-return";
 import { refundStage, sortTrips, tripGroup, tripGroups } from "@/lib/trip-organiser";
 import FlightServices from "./flight-services";
@@ -94,7 +95,7 @@ function mergeBookings(current: Booking[], incoming: Booking[]) {
   return [...new Map([...current, ...incoming].map(booking => [booking.id, booking])).values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
-function BookingRecord({ booking, originalReference, onUpdate }: { booking: Booking; originalReference?: string; onUpdate: () => void }) {
+function BookingRecord({ booking, originalReference, onUpdate, onAccessLost }: { booking: Booking; originalReference?: string; onUpdate: () => void; onAccessLost: (status: 401 | 403) => void }) {
   const status = statusInfo(booking.status);
   const [expanded, setExpanded] = useState(false);
   const [managementOpened, setManagementOpened] = useState(false);
@@ -112,17 +113,20 @@ function BookingRecord({ booking, originalReference, onUpdate }: { booking: Book
     if (details) return;
     detailsInFlight.current = true;
     setDetailsLoading(true); setDetailsError("");
-    controller.current = new AbortController();
+    const request = new AbortController(); controller.current = request;
     try {
-      const response = await fetch(`/api/bookings/${booking.id}/details`, { cache: "no-store", signal: controller.current.signal });
+      const response = await fetch(`/api/bookings/${booking.id}/details`, { cache: "no-store", signal: request.signal });
+      if (request.signal.aborted) return;
+      if (response.status === 401 || response.status === 403) { onAccessLost(response.status); return; }
       const data = await response.json();
+      if (request.signal.aborted) return;
       if (!response.ok) throw Error(data.error || "Confirmation details could not be loaded.");
       setDetails(data);
     } catch (error) {
-      if (!controller.current.signal.aborted) setDetailsError(error instanceof Error ? error.message : "Details unavailable. Please try again.");
+      if (!request.signal.aborted) setDetailsError(error instanceof Error ? error.message : "Details unavailable. Please try again.");
     } finally {
       detailsInFlight.current = false;
-      if (!controller.current.signal.aborted) setDetailsLoading(false);
+      if (!request.signal.aborted) setDetailsLoading(false);
     }
   }
   return <article className={`white-card trip-record trip-tone-${status.tone}`} aria-labelledby={`trip-title-${booking.id}`}>
@@ -142,6 +146,21 @@ function BookingRecord({ booking, originalReference, onUpdate }: { booking: Book
 }
 
 export default function BookingWorkspace({ admin = false }: { admin?: boolean }) {
+  const { data: session, isPending, isRefetching, error, refetch } = authClient.useSession();
+  const checking = isPending || isRefetching;
+  const signedOut = !error && !session || error?.status === 401;
+  // The installed Better Auth hook already subscribes to visibility and cross-tab
+  // session changes. A new settled identity gets a new private component, even if
+  // all previous bookings were settled and no booking poll was running.
+  const ready = !isPending && error?.status !== 401 && error?.status !== 403 && Boolean(session);
+  const blocked = checking || Boolean(error);
+  return <>
+    {(!ready || blocked) && <><TravelHeader active={admin ? undefined : "trips"}/><main className="page-shell trips-workspace" id="main-content"><h1>Your trips are private.</h1>{checking ? <p role="status">Checking secure account access…</p> : error && !signedOut ? <><p role="alert">{error.status === 403 ? "Access to these trips is no longer available. Check your account or contact support; this does not establish that you were signed out." : "We couldn’t verify account access. Your private trips are hidden; this does not establish that you were signed out or change any booking status."}</p><button type="button" className="primary" onClick={()=>void refetch()}>Check account access</button></> : <><p role="alert">Sign in to view your private booking updates. This does not change your payment or booking status.</p><Link className="primary" href={accountHref("/my-trips")}>Open account</Link></>}</main><TravelFooter/></>}
+    {ready && <div hidden={blocked} inert={blocked}><PrivateBookingWorkspace key={`${session!.user.id}:${session!.session.id}:${session!.user.emailVerified}`} admin={admin} paused={blocked}/></div>}
+  </>;
+}
+
+function PrivateBookingWorkspace({ admin, paused }: { admin: boolean; paused: boolean }) {
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -158,63 +177,77 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
   const [journeyFilter, setJourneyFilter] = useState("ALL");
   const moreController = useRef<AbortController | null>(null);
   const moreInFlight = useRef(false);
+  const accessLost = useRef(false);
+  const loseAccess = useCallback((status: 401 | 403) => {
+    accessLost.current = true;
+    moreController.current?.abort(); moreInFlight.current = false;
+    setBookings([]); setMetrics({}); setHasMore(false); setLoadingMore(false);
+    setSearch(""); setPage(1); setFilter("ALL"); setJourneyFilter("ALL"); setListError(""); setSyncError("");
+    setAccessError(true); setError(status === 401 ? "Sign in again to view your private booking updates. This does not change your payment or booking status." : "Access to these booking details is no longer available. Check your account or contact support. This does not establish that you were signed out or change your booking status."); setLoading(false);
+  }, []);
   const hasPending = bookings.some(booking => pendingStatuses.includes(booking.status));
 
   useEffect(() => {
     const controller = new AbortController();
     fetch(admin ? "/api/admin/overview" : "/api/bookings?page=1", { cache: "no-store", signal: controller.signal }).then(async response => {
+      if (controller.signal.aborted || accessLost.current) return;
+      if (response.status === 401 || response.status === 403) { loseAccess(response.status); return; }
       const data = await response.json();
+      if (controller.signal.aborted || accessLost.current) return;
       if (!response.ok) { setAccessError(response.status === 401 || response.status === 403); throw Error(data.error || "Your bookings could not be loaded."); }
       if (admin) setMetrics(data);
       else { setHasMore(Boolean(data.hasMore)); setBookings(data.bookings ?? []); }
     }).catch(error => {
-      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Your bookings could not be loaded.");
+      if (!controller.signal.aborted && !accessLost.current) setError(error instanceof Error ? error.message : "Your bookings could not be loaded.");
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [admin, revision]);
+  }, [admin, revision, loseAccess]);
 
   // Refresh every loaded page, not just page one. A pending older booking must
   // continue to update after the customer opens more history. Recursive timeout
   // prevents overlapping polls if the network is slower than the interval.
   useEffect(() => {
-    if (admin || !hasPending || loading) return;
+    if (admin || paused || !hasPending || loading) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     async function refreshPending() {
       try {
         const pages = await Promise.all(Array.from({ length: page }, async (_, index) => {
           const response = await fetch(`/api/bookings?page=${index + 1}`, { cache: "no-store", signal: controller.signal });
+          if (!controller.signal.aborted && (response.status === 401 || response.status === 403)) { loseAccess(response.status); controller.abort(); }
           const data = await response.json();
           if (!response.ok) throw Error(data.error || "Status updates are temporarily unavailable.");
           return (data.bookings ?? []) as Booking[];
         }));
-        if (!controller.signal.aborted) { setBookings(current => mergeBookings(current, pages.flat())); setSyncError(""); }
+        if (!controller.signal.aborted && !accessLost.current) { setBookings(current => mergeBookings(current, pages.flat())); setSyncError(""); }
       } catch (error) {
-        if (!controller.signal.aborted) setSyncError(error instanceof Error ? error.message : "Status updates are temporarily unavailable.");
+        if (!controller.signal.aborted && !accessLost.current) setSyncError(error instanceof Error ? error.message : "Status updates are temporarily unavailable.");
       } finally {
         if (!controller.signal.aborted) timer = setTimeout(refreshPending, 5000);
       }
     }
     timer = setTimeout(refreshPending, 5000);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [admin, hasPending, loading, page, revision]);
+  }, [admin, paused, hasPending, loading, page, revision, loseAccess]);
   useEffect(() => () => moreController.current?.abort(), []);
 
   function refresh() {
+    accessLost.current = false;
     moreController.current?.abort(); moreInFlight.current = false;
     setPage(1); setLoadingMore(false); setLoading(true); setError(""); setAccessError(false); setListError(""); setSyncError(""); setRevision(value => value + 1);
   }
   async function loadMore() {
-    if (moreInFlight.current) return;
+    if (moreInFlight.current || accessLost.current) return;
     moreInFlight.current = true; setLoadingMore(true); setListError("");
     const controller = new AbortController(); moreController.current = controller;
     try {
       const response = await fetch(`/api/bookings?page=${page + 1}`, { cache: "no-store", signal: controller.signal });
+      if (!controller.signal.aborted && (response.status === 401 || response.status === 403)) { loseAccess(response.status); return; }
       const data = await response.json();
       if (!response.ok) throw Error(data.error || "Older trips could not be loaded.");
-      if (!controller.signal.aborted) { setBookings(current => mergeBookings(current, data.bookings ?? [])); setHasMore(Boolean(data.hasMore)); setPage(current => current + 1); }
+      if (!controller.signal.aborted && !accessLost.current) { setBookings(current => mergeBookings(current, data.bookings ?? [])); setHasMore(Boolean(data.hasMore)); setPage(current => current + 1); }
     } catch (error) {
-      if (!controller.signal.aborted) setListError(error instanceof Error ? error.message : "Older trips could not be loaded.");
+      if (!controller.signal.aborted && !accessLost.current) setListError(error instanceof Error ? error.message : "Older trips could not be loaded.");
     } finally {
       if (!controller.signal.aborted) { moreInFlight.current = false; setLoadingMore(false); }
     }
@@ -225,14 +258,14 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
 
   return <>
     <TravelHeader active={admin ? undefined : "trips"} />
-    <main className="page-shell trips-workspace" id="main-content">
+    <main className="page-shell trips-workspace" id={paused?undefined:"main-content"}>
       <nav className="trips-workspace-nav" aria-label="Your travel workspace"><Link href="/account"><TravelIcon name="user" size={18}/>Account & security</Link><Link href="/my-trips" aria-current="page"><TravelIcon name="bag" size={18}/>My trips</Link><Link href="/travellers"><TravelIcon name="receipt" size={18}/>Saved travellers</Link></nav><div className="page-heading"><div><div className="eyebrow">{admin ? "MAX TRAVEL OPERATIONS" : "EVERY JOURNEY, TOGETHER"}</div><h1>{admin ? "Your operations workspace." : "Your trips. All in one place."}</h1><p>{admin ? "Protected access · Admin permission and authenticator required" : "From the next departure to the memories you bring home."}</p></div><div className="trips-heading-actions">{!accessError&&<button className="secondary" disabled={loading} onClick={refresh} aria-label="Refresh booking updates"><TravelIcon name="refresh" size={16} />Refresh</button>}<Link className="primary" href="/book"><TravelIcon name="plane" size={16} />Plan a trip</Link></div></div>
       {loading ? <div className="trips-loading" role="status" aria-label="Loading your trips"><p>Gathering your journeys…</p><div className="booking-skeleton" /><div className="booking-skeleton" /></div> : error ? <section className="trips-empty trips-access"><span className="trips-empty-icon"><TravelIcon name="shield" size={29} /></span><p className="eyebrow">{accessError ? "YOUR TRIPS ARE PRIVATE" : "LET’S TRY THAT AGAIN"}</p><h2>{accessError ? "Let’s get you to your bookings." : "We couldn’t load your trips."}</h2><p role="alert">{error}</p><div>{accessError && <Link className="primary" href={accountHref("/my-trips")}>Open account</Link>}{!accessError&&<button className="secondary" onClick={refresh}>Try again</button>}</div></section> : admin ? <div className="metric-grid">{Object.entries(metrics).map(([key, value]) => <div className="white-card metric" key={key}><span>{key.replaceAll("_", " ")}</span><strong>{value}</strong><small>Database records</small></div>)}</div> : bookings.length === 0 ? <section className="trips-empty"><span className="trips-empty-icon"><TravelIcon name="bag" size={31} /></span><p className="eyebrow">A BLANK PAGE. A WORLD OF POSSIBILITIES.</p><h2>Your next story starts here.</h2><p>No bookings are linked to this account yet. A weekend away, a long-awaited reunion, or somewhere completely new?</p><Link className="primary" href="/book">Find your next journey<TravelIcon name="arrow" size={17} /></Link><span>Already booked? Check you’re signed in to the right account.</span><Link className="trips-account-link" href="/account">Account & security</Link></section> : <>
         <div className="trips-overview"><div><span>YOUR TRIPS</span><strong>{bookings.length}<small>loaded bookings</small></strong></div><div><span>SUPPLIER CONFIRMED</span><strong>{confirmedCount}<small>confirmed in loaded trips</small></strong></div><div><span>STAY IN THE LOOP</span><strong>{pendingCount}<small>pending in loaded trips</small></strong></div><p><TravelIcon name="shield" size={20} />Payment and supplier confirmation are separate. We’ll show the actual status here.</p></div>
         <div className="trips-dashboard"><div className="trips-dashboard-main"><label className="trips-search"><TravelIcon name="search" size={20} /><span className="trips-visually-hidden">Search loaded bookings</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search destination or booking reference" /><span>Loaded trips</span></label><div className="trips-filter-row"><div className="trips-filters" aria-label="Filter your bookings">{[{ value: "ALL", label: "All trips" }, { value: "FLIGHT", label: "Flights" }, { value: "HOTEL", label: "Hotels" }, { value: "PENDING", label: "In progress" }, { value: "ATTENTION", label: "Needs attention" }].map(item => <button key={item.value} type="button" aria-pressed={filter === item.value} onClick={() => setFilter(item.value)}>{item.label}</button>)}</div><span>{visible.length} loaded bookings shown · Travel-date order</span></div>
         <div className="trips-filters trips-journey-filters" aria-label="Filter by travel dates">{[{value:"ALL",label:"Any travel date"},...tripGroups].map(group=><button type="button" key={group.value} aria-pressed={journeyFilter===group.value} onClick={()=>setJourneyFilter(group.value)}>{group.label}</button>)}</div><p className="trips-loaded-scope">Search, filters and counts cover {bookings.length} loaded bookings only.{hasMore ? " More booking records are available below; upcoming trips may also be in older records." : " All available booking records are loaded."}</p>
         {syncError && <p className="trip-inline-error" role="status">Automatic updates are temporarily unavailable: {syncError} Your last loaded status is shown. We’ll retry automatically.</p>}
-        {visible.length ? <div className="trips-list">{tripGroups.map(group=>{const records=sortTrips(visible.filter(booking=>tripGroup(booking)===group.value),group.value);return records.length?<section className="trip-date-group" key={group.value} aria-label={group.label}><header><h2>{group.label} <span>{records.length}</span></h2><p>{group.description}</p></header>{records.map(booking => <BookingRecord booking={booking} originalReference={bookings.find(original => original.id === booking.parent_order_id)?.reference} key={booking.id} onUpdate={refresh} />)}</section>:null;})}</div> : <section className="trips-filter-empty"><TravelIcon name="search" size={25} /><h2>No bookings in this view.</h2><p>Try a different search or filter, or load older trips if more history is available.</p><button className="secondary" onClick={() => { setFilter("ALL"); setJourneyFilter("ALL"); setSearch(""); }}>Show all trips</button></section>}
+        {visible.length ? <div className="trips-list">{tripGroups.map(group=>{const records=sortTrips(visible.filter(booking=>tripGroup(booking)===group.value),group.value);return records.length?<section className="trip-date-group" key={group.value} aria-label={group.label}><header><h2>{group.label} <span>{records.length}</span></h2><p>{group.description}</p></header>{records.map(booking => <BookingRecord booking={booking} originalReference={bookings.find(original => original.id === booking.parent_order_id)?.reference} key={booking.id} onUpdate={refresh} onAccessLost={loseAccess} />)}</section>:null;})}</div> : <section className="trips-filter-empty"><TravelIcon name="search" size={25} /><h2>No bookings in this view.</h2><p>Try a different search or filter, or load older trips if more history is available.</p><button className="secondary" onClick={() => { setFilter("ALL"); setJourneyFilter("ALL"); setSearch(""); }}>Show all trips</button></section>}
         {listError && <p className="trip-inline-error" role="alert">{listError} Your loaded trips are still here. Try loading older trips again.</p>}
         {hasMore && <div className="trips-load-more"><button className="secondary" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "Loading older trips…" : "Load older trips"}</button></div>}</div><TripSupport /></div>
       </>}
