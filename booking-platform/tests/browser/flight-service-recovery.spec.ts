@@ -32,14 +32,22 @@ test('lost service create stays locked through duplicate submission, refresh and
  await expect(page.getByRole('button',{name:'Add seats, meals & baggage'})).toBeDisabled();
  await page.goto('/account');await page.goBack();await openManagement(page);await expect(recovery(page)).toBeVisible();
  expect(provider.requests('/api/payments/create')).toHaveLength(1);
- const controls=recovery(page).locator('button, a');
+ const actions=recovery(page).locator('.service-recovery-actions');
+ await expect(actions).toHaveCSS('display','flex');
+ await expect(actions).toHaveCSS('row-gap','12px');
+ await expect(actions).toHaveCSS('column-gap','12px');
+ const controls=actions.locator('button, a');
  await expect(controls).toHaveCount(4);
+ await actions.scrollIntoViewIfNeeded();
  const boxes=await controls.evaluateAll(nodes=>nodes.map(node=>{const b=node.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};}));
  for(const box of boxes){expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);}
  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
   const a=boxes[i],b=boxes[j];expect(a.x+a.width<=b.x||b.x+b.width<=a.x||a.y+a.height<=b.y||b.y+b.height<=a.y).toBe(true);
+  const horizontalGap=Math.max(b.x-a.x-a.width,a.x-b.x-b.width),verticalGap=Math.max(b.y-a.y-a.height,a.y-b.y-b.height);
+  expect(Math.max(horizontalGap,verticalGap),'Recovery actions must be visually separated, not merely non-overlapping').toBeGreaterThanOrEqual(11.5);
  }
- await info.attach('service-recovery-controls-natural-viewport',{body:await page.screenshot(),contentType:'image/png'});
+ if(page.viewportSize()!.width<=600){const container=await actions.boundingBox();for(const box of boxes)expect(Math.abs(box.width-container!.width),'Mobile recovery actions must fill their own row').toBeLessThanOrEqual(1);}
+ await info.attach('service-recovery-controls-natural-viewport',{body:await page.screenshot({path:info.outputPath(`service-recovery-controls-${info.project.name}-viewport.png`)}),contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,info,'service-create-unknown-reload');
 });
 

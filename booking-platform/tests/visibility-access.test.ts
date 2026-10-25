@@ -52,7 +52,7 @@ async function harness(entry: string, deniedStatus: number | null = null) {
       plugins: [{ name: "visibility-boundary-doubles", setup(plugin) {
         plugin.onResolve({ filter: /.*/ }, args => {
           if (Object.hasOwn(mocks, args.path)) return { path: args.path, namespace: "mock" };
-          if (args.path.endsWith(".module.css")) return { path: args.path, namespace: "css-mock" };
+          if (args.path.endsWith(".css")) return { path: args.path, namespace: "css-mock" };
         });
         plugin.onLoad({ filter: /.*/, namespace: "mock" }, args => ({ contents: mocks[args.path], loader: "js", resolveDir: process.cwd() }));
         plugin.onLoad({ filter: /.*/, namespace: "css-mock" }, () => ({ contents: "export default {};", loader: "js" }));
@@ -110,6 +110,8 @@ for (const status of [401, 403, 503]) {
       assert.equal(state.dashboardRenders, 0);
       assert.ok(!html.includes("SYNTHETIC_PRIVATE_DASHBOARD"));
       assert.ok(html.includes("No reporting data has been loaded."));
+      assert.ok(html.includes('class="visibility-page"'));
+      assert.ok(html.includes('class="visibility-notice"'));
       assert.deepEqual((exports.metadata as { robots: unknown }).robots, { index: false, follow: false });
     } finally { cleanup(); }
   });

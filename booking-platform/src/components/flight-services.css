@@ -1,12 +1,13 @@
-.recoveryActions {
+/* Explicitly scoped global CSS: the project CSS loader does not preserve module exports. */
+.flight-services .service-recovery-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
   gap: 12px;
   margin-top: 12px;
 }
-.recoveryActions > a,
-.recoveryActions > button {
+.flight-services .service-recovery-actions > a,
+.flight-services .service-recovery-actions > button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -21,6 +22,6 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 600px) {
-  .recoveryActions > a,
-  .recoveryActions > button { width: 100%; }
+  .flight-services .service-recovery-actions > a,
+  .flight-services .service-recovery-actions > button { width: 100%; }
 }
