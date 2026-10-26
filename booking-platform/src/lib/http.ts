@@ -39,6 +39,6 @@ export async function body<T>(request: Request, schema: z.ZodType<T>) {
 }
 export function sameOrigin(request: Request) {
   const configured = process.env.BETTER_AUTH_URL;
-  if (!configured) throw new HttpError(503, "Application origin is not configured.");
+  if (!configured) throw new HttpError(503, "The service is temporarily unavailable. Please try again later.");
   if (request.headers.get("origin") !== new URL(configured).origin || request.headers.get("sec-fetch-site") === "cross-site") throw new HttpError(403, "Request origin rejected.");
 }

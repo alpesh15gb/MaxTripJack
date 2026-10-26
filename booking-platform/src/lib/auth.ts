@@ -22,7 +22,7 @@ const dispatchAccountMail = createAccountMailDispatcher({
 function createAuth() {
   const secret = process.env.BETTER_AUTH_SECRET;
   const baseURL = process.env.BETTER_AUTH_URL;
-  if (!secret || secret.length < 32 || !baseURL) throw new HttpError(503, "Authentication is not configured.");
+  if (!secret || secret.length < 32 || !baseURL) throw new HttpError(503, "Account access is temporarily unavailable. Please try again later.");
   return betterAuth({
     appName: "Max Travel", secret, baseURL, database: database(), trustedOrigins: authTrustedOrigins(baseURL),
     emailAndPassword: { enabled: true, minPasswordLength: 12, maxPasswordLength: 128, requireEmailVerification: true,revokeSessionsOnPasswordReset:true,

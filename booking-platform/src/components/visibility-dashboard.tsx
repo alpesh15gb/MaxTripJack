@@ -37,10 +37,10 @@ export default function VisibilityDashboard() {
       <button className="visibility-button" disabled={loading} onClick={() => { setSnapshot(null); setMessage(""); setRefresh(value => value + 1); }}>{loading ? "Loading ledger…" : "Refresh ledger"}</button>
     </header>
 
-    <aside className="visibility-notice"><h2>Prepared, not activated</h2><p>Optional analytics is off. No analytics tags, visitor identifiers or outbound measurement are installed by this foundation. External account existence and access are unverified; “not connected” means not connected to this dashboard.</p><p>The supplier adapter is UAT-only. Database amounts below are test-environment operational records, <strong>not production revenue, organic sales or a growth baseline</strong>.</p></aside>
+    <aside className="visibility-notice"><h2>Prepared, not activated</h2><p>Optional analytics is off. No analytics tags, visitor identifiers or outbound measurement are installed by this foundation. External account existence and access are unverified; “not connected” means not connected to this dashboard.</p><p>The platform is In Testing. Amounts below are testing records, <strong>not production revenue, organic sales or a growth baseline</strong>.</p></aside>
 
     <section className="visibility-section" aria-labelledby="ledger-heading" aria-busy={loading}>
-      <div className="visibility-sectionHeading"><div><p className="visibility-eyebrow">FIRST-PARTY DATABASE · INR</p><h2 id="ledger-heading">Current ledger snapshot</h2></div><span className="visibility-badge">UAT / test context</span></div>
+      <div className="visibility-sectionHeading"><div><p className="visibility-eyebrow">FIRST-PARTY DATABASE · INR</p><h2 id="ledger-heading">Current ledger snapshot</h2></div><span className="visibility-badge">In Testing</span></div>
       {loading && <p role="status">Loading authorised aggregate records…</p>}
       {message && <p className="visibility-error" role="alert">Ledger unavailable: {message} Values are unknown, not zero.</p>}
       {!loading && snapshot && <>

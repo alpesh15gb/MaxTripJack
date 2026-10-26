@@ -10,7 +10,7 @@ async function handle(request: Request) {
     // Privileged accounts cannot remove MFA through a generic client endpoint.
     if (path.endsWith("/two-factor/disable")) throw new HttpError(403, "Contact account administration for MFA recovery.");
     // Email delivery is a release dependency. Do not silently create unusable public accounts.
-    if (path.endsWith("/sign-up/email") && !mailReady()) throw new HttpError(503, "Registration opens after email verification delivery is configured.");
+    if (path.endsWith("/sign-up/email") && !mailReady()) throw new HttpError(503, "Registration is temporarily unavailable. Please try again later.");
     // Check delivery before account lookup so known and unknown emails have the same outage response.
     if (["/request-password-reset", "/send-verification-email"].some(endpoint => path.endsWith(endpoint)) && !mailReady()) throw new HttpError(503, "Account email is temporarily unavailable. Try again later or contact support.");
     const response = await getAuth().handler(request);

@@ -25,14 +25,14 @@ export async function GET(request: Request) {
     );
     if (!found.rows[0] && input.quoteId) return json({
       found: false, quoteId: input.quoteId, canResume: false, checkoutResolved: false, status: "OUTCOME_UNCONFIRMED",
-      message: "No payment order is visible yet. An interrupted request may still be running. Recheck this status or contact operations; do not start another payment for the same trip.",
+      message: "No payment order is visible yet. An interrupted request may still be running. Recheck this status or contact MaxTravel; do not start another payment for the same trip.",
     });
     if (!found.rows[0]) throw new HttpError(404, "Booking not found.");
     if (found.rows[0].provider === "PAYGLOCAL") return json({
       found: true, provider: "PAYGLOCAL", bookingId: found.rows[0].id,
       status: found.rows[0].status, paymentStatus: found.rows[0].payment_status,
       canResume: false, checkoutResolved: found.rows[0].payment_status === "CAPTURED",
-      message: "PayGlocal verification is not enabled. Check My trips or contact operations; do not pay again. A browser return is not payment confirmation.",
+      message: "Payment confirmation is currently unavailable. Check My trips or contact MaxTravel; do not pay again. Returning from checkout does not confirm payment.",
     });
     const result = paymentResumeStatus(found.rows[0]);
     return json({ found: true, ...result, ...(result.canResume ? { keyId: razorpayKey().id } : {}) });

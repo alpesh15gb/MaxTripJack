@@ -46,7 +46,7 @@ export function OfficeContactCard({ compact = false, id }: { compact?: boolean; 
 }
 
 function PlanningNotice() {
-  return <aside className="public-notice"><TravelIcon name="shield" size={20} /><p><strong>Planning guidance, not live inventory.</strong> The online platform is currently in TripJack UAT. Test results and checkout are not live travel bookings. Contact MaxTravel about your travel needs.</p></aside>;
+  return <aside className="public-notice"><TravelIcon name="shield" size={20} /><p><strong>Planning guidance, not live inventory.</strong> The online platform is currently In Testing. Test results and checkout are not live travel bookings. Contact MaxTravel about your travel needs.</p></aside>;
 }
 
 function RelatedLinks({ links }: { links: readonly PublicLink[] }) {
@@ -102,7 +102,7 @@ export function HomePublicIntro() {
   return <section className="home-public-intro studio-concierge" aria-labelledby="home-public-heading">
     <div className="studio-concierge-band"><div><p className="public-eyebrow">A REAL PERSON, NOT ANOTHER TAB</p><h2 id="home-public-heading">Competitive travel prices.<br/>Real people. A real office.</h2><p>From choosing a route to understanding the next step, speak with our Secunderabad team. Your journey deserves a human point of contact.</p><div className="studio-concierge-actions"><a href={businessProfile.phoneHref}><TravelIcon name="user" size={18}/>Call our team</a><Link href="/customer-support">Find the right help <TravelIcon name="arrow" size={18}/></Link></div></div>
     <div className="studio-office-note"><TravelIcon name="pin" size={25}/><h3>Come say hello.</h3><p>{businessProfile.address.display}</p><p><strong>{businessProfile.hours.display}</strong></p><Link href="/office">Office details & directions →</Link><a href={businessProfile.emailHref}>{businessProfile.email}</a></div></div>
-    <p className="studio-uat-note">The online platform is currently in UAT. Test searches and checkout are not live travel bookings.</p>
+    <p className="studio-uat-note">The online platform is currently In Testing. Test searches and checkout are not live travel bookings.</p>
     <nav className="home-public-links" aria-label="Travel planning and agency information"><Link href="/flights">Flight planning</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/flight-booking-guide">Booking guide</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/about">About MaxTravel</Link></nav>
     <h3 className="home-public-routes-heading">Start with the right airport pair</h3><RouteGuideCards/><SeoJsonLd id="maxtravel-business-schema" data={homeDiscoveryGraph()}/>
   </section>;

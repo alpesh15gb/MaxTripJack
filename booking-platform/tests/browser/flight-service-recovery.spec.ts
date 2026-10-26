@@ -257,9 +257,9 @@ for(const free of [false,true])test(`unknown ${free?'free request':'verification
 
 test('current PayGlocal existing-intent unavailable response retains recovery rather than claiming no payment exists',async({page,provider})=>{
  await prepare(page,provider);
- provider.overrides['POST /api/payments/create']={status:503,body:{error:'PayGlocal checkout is not enabled: merchant UAT contract and verification are pending. No payment was initiated.'}};
- provider.overrides['GET /api/payments/status']={body:{provider:'PAYGLOCAL',bookingId,status:'PAYMENT_PENDING',canResume:false,checkoutResolved:false,message:'PayGlocal verification is not enabled. Check My trips or contact operations; do not pay again.'}};
- await pay(page);await expect(recovery(page)).toContainText('PayGlocal verification is not enabled');
+ provider.overrides['POST /api/payments/create']={status:503,body:{error:'In Testing · Online payment is not available. No payment was initiated.'}};
+ provider.overrides['GET /api/payments/status']={body:{provider:'PAYGLOCAL',bookingId,status:'PAYMENT_PENDING',canResume:false,checkoutResolved:false,message:'Payment confirmation is currently unavailable. Check My trips or contact MaxTravel; do not pay again.'}};
+ await pay(page);await expect(recovery(page)).toContainText('Payment confirmation is currently unavailable');
  await expect(page.getByRole('button',{name:'Confirm & pay'})).toBeDisabled();
  await expect(recovery(page).getByRole('button',{name:'Resume existing checkout'})).toHaveCount(0);
  expect(await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)!),markerKey)).toEqual({quoteId});

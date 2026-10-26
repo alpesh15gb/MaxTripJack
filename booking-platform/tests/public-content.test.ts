@@ -74,5 +74,5 @@ test("public content does not import providers or expose invented price schema",
   assert.match(homepage, /HomePublicIntro/);
   const shell = readFileSync("src/components/travel-shell.tsx", "utf8");
   assert.doesNotMatch(shell, /href=["']\/operations["']/);
-  assert.match(shell, /Test environment/);
+  assert.match(shell, /In Testing/);
 });

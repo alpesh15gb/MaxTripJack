@@ -31,7 +31,7 @@ export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number 
 export function TravelHeader({ active, onProductChange }: { active?: "flights" | "hotels" | "trips" | "account" | "packages"; onProductChange?: (product: "FLIGHT" | "HOTEL") => void }) {
   return <>
     <a className="travel-skip" href="#main-content">Skip to main content</a>
-    <div className="travel-environment"><span />Test environment <span className="travel-environment-detail">TripJack UAT · No live bookings or payments</span></div>
+    <div className="travel-environment"><span />In Testing <span className="travel-environment-detail">No live bookings or payments</span></div>
     <header className="travel-header">
       <Link href="/" className="travel-brand" aria-label="Max Travel home"><span className="travel-brand-symbol"><TravelIcon name="plane" size={22} /></span>max<span>travel</span><i>.</i></Link>
       <nav aria-label="Main navigation">
@@ -57,6 +57,6 @@ export function TravelFooter() {
       <div><h2>Help at every step</h2><Link href="/flight-booking-guide">Flight booking guide</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/customer-support">Customer support</Link><Link href="/my-trips">Manage my trips</Link><Link href="/account">Your account</Link><Link href="/contact">Contact MaxTravel</Link></div>
       <div className="travel-footer-promise"><TravelIcon name="pin" size={25} /><h2>A real office in Secunderabad.</h2><p>{businessProfile.hours.display}</p><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>{businessProfile.email}</a><Link href="/office">Office address & directions</Link><p>Review the full total and supplier rules. Payment alone does not confirm a trip.</p></div>
     </div>
-    <div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>Test environment · Supplier confirmation required</span><span>Made for the journey.</span></div>
+    <div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span><span>Made for the journey.</span></div>
   </footer>;
 }

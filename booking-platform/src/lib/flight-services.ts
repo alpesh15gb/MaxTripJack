@@ -31,7 +31,7 @@ export async function searchFlightService(id:string,input:z.infer<typeof service
   for(const trip of array(ssr.tripInfos))for(const segment of array(trip.sI))for(const pax of array(object(segment.bI).tI)){const matches=guests.travellers.filter(g=>g.fN===pax.fN&&g.lN===pax.lN);if(matches.length!==1)throw new HttpError(409,"Supplier passenger mapping is ambiguous. Contact operations.");pax.pt=matches[0].pt;}
   results={ssr,seats};criteria=parent.itinerary_summary;context={};
  }else{
-  const options=await availableServiceOptions(id,actor);if(options.reissued||parent.service_kind==="REISSUE")throw new HttpError(409,"TripJack permits a booking to be reissued only once.");
+  const options=await availableServiceOptions(id,actor);if(options.reissued||parent.service_kind==="REISSUE")throw new HttpError(409,"This booking can be reissued only once.");
   if(input.tripIndex===undefined||!options.trips[input.tripIndex]||!input.date||!input.travellerIndexes?.length)throw new HttpError(400,"Choose a trip, passengers and new date.");
   if(new Set(input.travellerIndexes).size!==input.travellerIndexes.length||input.travellerIndexes.some(i=>!guests.travellers[i]||options.cancelledUnits.includes(`${input.tripIndex}:${i}`)))throw new HttpError(400,"Choose available passengers only.");
   const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());if(input.date<today)throw new HttpError(400,"New departure must not be in the past.");

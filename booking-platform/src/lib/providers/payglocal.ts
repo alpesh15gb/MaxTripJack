@@ -149,5 +149,5 @@ export function validatePayGlocalUrl(value: unknown, kind: "redirect" | "status"
  * No environment variable or browser request can bypass this guard.
  */
 export function assertPayGlocalTransportReady(): never {
-  throw new HttpError(503, "PayGlocal checkout is not enabled: merchant UAT contract and verification are pending. No payment was initiated.");
+  throw new HttpError(503, "In Testing · Online payment is not available. No payment was initiated.");
 }

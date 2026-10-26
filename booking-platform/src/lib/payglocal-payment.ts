@@ -14,7 +14,7 @@ async function load(tx:Tx,id:string) {
 }
 /** Caller MUST supply a transaction. Never call a provider unless created=true. */
 export async function reservePayGlocalAttempt(tx:Tx,bookingId:string,merchantId:string) {
-  if(!merchantId || merchantId.length>200) throw new HttpError(503,"PayGlocal merchant is not configured.");
+  if(!merchantId || merchantId.length>200) throw new HttpError(503,"Online payment is temporarily unavailable. Check My trips or contact MaxTravel before trying again.");
   const order=(await tx.query<{status:string;total_minor:string;currency:"INR"}>("SELECT status,total_minor,currency FROM orders WHERE id=$1 FOR UPDATE",[bookingId])).rows[0];
   if(!order) throw new HttpError(404,"Booking not found.");
   const intent=(await tx.query<{provider:string}>("SELECT provider FROM gateway_intents WHERE order_id=$1 FOR UPDATE",[bookingId])).rows[0];

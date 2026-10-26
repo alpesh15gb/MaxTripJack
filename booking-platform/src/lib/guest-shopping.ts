@@ -11,7 +11,7 @@ import { enforceShoppingLimits, shoppingPeer, type ShoppingScope } from "./guest
 export type ShoppingAccess = { actor: Actor; cookie?: string };
 function secret() {
   const value = process.env.BETTER_AUTH_SECRET;
-  if (!value || value.length < 32) throw new HttpError(503, "Shopping access is not configured.");
+  if (!value || value.length < 32) throw new HttpError(503, "Search is temporarily unavailable. Please try again later.");
   return value;
 }
 export async function shoppingAccess(request: Request, scope: ShoppingScope): Promise<ShoppingAccess> {
