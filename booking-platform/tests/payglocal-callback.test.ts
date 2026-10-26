@@ -13,5 +13,7 @@ test("browser return is an untrusted hint, not payment verification", async () =
 test("unsigned PayGlocal webhook fails closed without an adapter or database", async () => {
   const response = await webhook();
   assert.equal(response!.status, 503);
-  assert.match((await response!.json()).error, /not enabled/);
+  const { error } = await response!.json();
+  assert.equal(error, "In Testing · Online payment is not available. No payment was initiated.");
+  assert.doesNotMatch(error, /PayGlocal|UAT|merchant|adapter|database/i);
 });

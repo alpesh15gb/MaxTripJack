@@ -18,7 +18,13 @@ test("account mail keeps configuration guard, recipient, subject and reset/verif
     const compiled = { exports: {} as { sendAccountMail: (to: string, subject: string, url: string) => Promise<void> } };
     new Function("module", "exports", "require", output.outputFiles[0].text)(compiled, compiled.exports, createRequire(import.meta.url));
     delete process.env.SMTP_HOST; delete process.env.MAIL_FROM;
-    await assert.rejects(compiled.exports.sendAccountMail("recipient@example.test", "Reset password", "https://example.test/reset"), /not configured/);
+    await assert.rejects(compiled.exports.sendAccountMail("recipient@example.test", "Reset password", "https://example.test/reset"), (error: unknown) => {
+      const failure = error as Error & { status: number };
+      assert.equal(failure.status, 503);
+      assert.equal(failure.message, "Email delivery is temporarily unavailable. Please try again later.");
+      assert.doesNotMatch(failure.message, /SMTP|credentials|configuration|provider/i);
+      return true;
+    });
     assert.equal(calls.length, 0);
     process.env.SMTP_HOST = "smtp.example.test"; process.env.MAIL_FROM = "sender@example.test";
     process.env.SMTP_PORT = "465"; process.env.SMTP_SECURE = "true";
