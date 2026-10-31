@@ -3,16 +3,18 @@ import assert from "node:assert/strict";
 import { createServer, connect, type Socket } from "node:net";
 import { TLSSocket, createSecureContext } from "node:tls";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, existsSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join,dirname,basename } from "node:path";
 import nodemailer from "nodemailer";
 import { boundedMail } from "../src/lib/bounded-mail";
 
 // Ephemeral, test-only CA/key. Never used by application code or a real provider.
 const dir = mkdtempSync(join(tmpdir(), "synthetic-smtp-"));
-execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", join(dir, "key"), "-out", join(dir, "cert"), "-days", "1", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost"], { stdio: "ignore" });
+const openssl=process.platform==="win32"&&existsSync("C:/Program Files/Git/usr/bin/openssl.exe")?"C:/Program Files/Git/usr/bin/openssl.exe":"openssl";
+execFileSync(openssl, ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", join(dir, "key"), "-out", join(dir, "cert"), "-days", "1", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost"], { stdio: "ignore" });
 const key = readFileSync(join(dir, "key")), cert = readFileSync(join(dir, "cert"));
+if(dirname(realpathSync(dir))!==realpathSync(tmpdir())||!basename(dir).startsWith("synthetic-smtp-"))throw Error("Unexpected SMTP fixture path");
 rmSync(dir, { recursive: true });
 const secureContext = createSecureContext({ key, cert });
 

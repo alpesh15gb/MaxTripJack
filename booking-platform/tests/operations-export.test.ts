@@ -10,7 +10,7 @@ for (const empty of [true, false]) test(`generic CSV has stable cost-safe column
   const state: Harness = { permissions: ["bookings:read"], events: [], async query(sql, values) {
     if (sql.startsWith("INSERT")) { assert.equal((values[2] as {timezone: string}).timezone, "Asia/Kolkata"); return { rows: [] }; }
     assert.match(sql, /AT TIME ZONE 'Asia\/Kolkata'/);
-    assert.match(sql, /ORDER BY created_at DESC,id DESC LIMIT 5001/);
+    assert.match(sql, /ORDER BY (?:r\.)?created_at DESC,(?:r\.)?id DESC LIMIT 5001/);
     assert.deepEqual(values, ["2026-10-01", "2026-10-25"]);
     return { rows: empty ? [] : [{ id: "synthetic", reference: " \uFEFF＝1+1", created_at: new Date("2026-10-01T00:00:00Z"), total_minor: "9007199254740993", supplier_minor: "SECRET", extra: "SECRET" }] };
   } };

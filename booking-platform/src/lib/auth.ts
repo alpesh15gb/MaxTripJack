@@ -8,7 +8,7 @@ import { HttpError } from "./http";
 import { sendAccountMail } from "./mail";
 import { after } from "next/server";
 import { createAccountMailDispatcher } from "./account-mail-dispatch";
-import { authTrustedOrigins } from "./auth-origin";
+import { authTrustedOrigins,configuredAuthBaseURL } from "./auth-origin";
 
 const dispatchAccountMail = createAccountMailDispatcher({
   schedule: after, send: sendAccountMail,
@@ -21,7 +21,7 @@ const dispatchAccountMail = createAccountMailDispatcher({
 
 function createAuth() {
   const secret = process.env.BETTER_AUTH_SECRET;
-  const baseURL = process.env.BETTER_AUTH_URL;
+  const baseURL = configuredAuthBaseURL();
   if (!secret || secret.length < 32 || !baseURL) throw new HttpError(503, "Account access is temporarily unavailable. Please try again later.");
   return betterAuth({
     appName: "Max Travel", secret, baseURL, database: database(), trustedOrigins: authTrustedOrigins(baseURL),

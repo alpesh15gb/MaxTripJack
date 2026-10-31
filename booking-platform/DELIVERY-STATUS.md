@@ -1,3 +1,7 @@
+## Experience review — 1 November 2026
+
+Staff operations revamped with role-aware registers, selected-record actions, durable filters and matching CSV exports. 430 unit tests and 606 desktop/phone browser checks passed. See [operations experience](docs/OPERATIONS-EXPERIENCE.md). Real-provider acceptance is separate from these isolated runs.
+
 # Coding delivery status — 18 October 2026
 
 The public/corporate flight and hotel application is implemented locally across the website/backend, Android/iOS source, admin operations and custom CRM integration. Actual provider acceptance remains unverified without TripJack and Razorpay test credentials. This is not provider certification or security certification.

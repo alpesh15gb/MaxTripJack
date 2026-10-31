@@ -29,3 +29,6 @@ export async function administrator(request: Request, permission: string) {
   if (!result.rows[0]?.permissions.includes(permission)) throw new HttpError(403, "You do not have permission for this action.");
   return actor;
 }
+
+/** Current staff capabilities for navigation; every data/action endpoint still authorizes itself. */
+export async function operationsAccess(request:Request){const actor=await principal(request);if(!actor.session.user.twoFactorEnabled)throw new HttpError(403,"Enable two-factor authentication for operations access.");const result=await database().query<{permissions:string[]}>("SELECT permissions FROM admin_grants WHERE user_id=$1 AND active=true",[actor.userId]);if(!result.rows[0])throw new HttpError(403,"An active staff grant is required.");return {...actor,permissions:result.rows[0].permissions};}

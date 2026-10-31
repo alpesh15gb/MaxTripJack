@@ -60,8 +60,9 @@ test('operations tables and desk navigation stay responsive without executing ac
   await expect(page.getByRole('main')).toHaveCount(1);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'operations-bookings');
-  await page.getByRole('navigation', { name: 'Operations desks' }).getByRole('button', { name: 'companies', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Approve a company account', exact: true })).toBeVisible();
+  const menu=page.getByRole('button',{name:'Menu',exact:true});if(await menu.isVisible())await menu.click();
+  await page.getByRole('navigation', { name: 'Operations desks' }).getByRole('link', { name: 'Corporate accounts', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Approve a company account', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'No records to show.', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expect(provider.calls.filter(call => call.method !== 'GET')).toHaveLength(0);

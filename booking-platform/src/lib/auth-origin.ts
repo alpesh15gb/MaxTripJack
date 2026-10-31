@@ -1,3 +1,4 @@
+export function configuredAuthBaseURL(){return process.env.BETTER_AUTH_URL||(process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:undefined);}
 /** Keep the account-mail boundary and BetterAuth's origin policy aligned. */
 export function authTrustedOrigins(baseURL: string): string[] {
   return [new URL(baseURL).origin, "maxtravel://"];
@@ -14,7 +15,7 @@ export function accountMailOriginAllowed(request: Request, baseURL: string | und
   const value = origin ?? referer!;
   if (!value || /[\s\\\u0000-\u001f\u007f-\u009f]/.test(value)) return false;
   let trusted: string[];
-  try { trusted = authTrustedOrigins(baseURL || ""); } catch { return false; }
+  try { trusted = authTrustedOrigins(baseURL || configuredAuthBaseURL() || ""); } catch { return false; }
   // Preserve BetterAuth's scheme-wide native trust, but not lookalike schemes.
   try {
     const url = new URL(value);
