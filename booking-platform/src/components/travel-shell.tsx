@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import "./package-navigation.css";
+import "./workflow-footer.css";
 import { businessProfile } from "@/lib/business-profile";
 
 type IconName = "plane" | "hotel" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
@@ -49,7 +50,8 @@ export function TravelHeader({ active, onProductChange }: { active?: "flights" |
   </>;
 }
 
-export function TravelFooter() {
+export function TravelFooter({compact=false}:{compact?:boolean}={}) {
+  if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span></div></footer>;
   return <footer className="travel-footer">
     <div className="travel-footer-top">
       <div><Link href="/" className="travel-brand">max<span>travel</span><i>.</i></Link><p>Competitive travel prices.<br />Real people. A real office.</p><span className="travel-footer-caption">MaxTravel · Secunderabad, India</span><Link href="/about">About MaxTravel</Link><Link href="/services">Our services</Link></div>

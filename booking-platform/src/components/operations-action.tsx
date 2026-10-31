@@ -42,7 +42,7 @@ const spec: Record<OpsAction, { title: string; help: string; button: string }> =
     },
     "pricing-create": {
       title: "Publish a pricing rule",
-      help: "Review fixed markup, percentage and service fee. Company-specific rules require the company reference from its record.",
+      help: "Review fixed markup, percentage and service fee. Choose an approved company for corporate pricing.",
       button: "Publish pricing rule",
     },
     "supplier-check": {

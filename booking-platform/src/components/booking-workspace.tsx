@@ -270,6 +270,6 @@ function PrivateBookingWorkspace({ admin, paused }: { admin: boolean; paused: bo
         {hasMore && <div className="trips-load-more"><button className="secondary" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "Loading older trips…" : "Load older trips"}</button></div>}</div><TripSupport /></div>
       </>}
     </main>
-    <TravelFooter />
+    <TravelFooter compact />
   </>;
 }

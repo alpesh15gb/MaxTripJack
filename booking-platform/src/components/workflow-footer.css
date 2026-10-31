@@ -1,0 +1,10 @@
+.travel-footer.travel-footer--compact{padding:26px clamp(20px,4vw,64px)}
+.travel-footer--compact .workflow-footer-content{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.travel-footer--compact h2{font-family:inherit;font-size:17px;line-height:1.4;color:#fff;margin:0 0 6px}
+.travel-footer--compact p{font-size:13px;line-height:1.6;margin:0;color:#c6d7e5}
+.travel-footer--compact nav{display:flex;flex-wrap:wrap;gap:8px 22px}
+.travel-footer--compact nav a{display:inline-flex;align-items:center;min-height:44px;color:#e4eff7;font-size:14px;text-underline-offset:4px}
+.travel-footer--compact nav a:hover{text-decoration:underline}
+.travel-footer--compact nav a:focus-visible{outline:2px solid #e1b461;outline-offset:4px;border-radius:4px}
+.travel-footer--compact .travel-footer-bottom{margin-top:16px;padding-top:16px;gap:12px}
+@media(max-width:600px){.travel-footer--compact .workflow-footer-content{align-items:flex-start;gap:12px}.travel-footer--compact nav{gap:0 18px}.travel-footer--compact .travel-footer-bottom{font-size:12px;line-height:1.6}}

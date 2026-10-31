@@ -1,3 +1,4 @@
+import {deploymentProtectionHeaders} from "../src/lib/deployment-protection";
 import { bookingDocument } from "../src/lib/booking-document";
 import { crmDeliveryPayload } from "../src/lib/crm-delivery";
 import { heartbeat } from "../src/lib/worker-health";
@@ -35,7 +36,7 @@ try {
           RETURNING delivery_payload`, [event.id, lease, body, documentRevision])).rowCount),
         omitted: reason => console.warn("CRM optional document omitted", { eventId: event.id, reason }),
       });
-      const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-MaxTravel-Key-Id": keyId, "X-MaxTravel-Timestamp": timestamp, "X-MaxTravel-Event-Id": event.id, "X-MaxTravel-Signature": crmSignature(timestamp, event.id, payload, key) }, body: payload, signal: AbortSignal.timeout(15000), redirect: "error" });
+      const response = await fetch(url, { method: "POST", headers: await deploymentProtectionHeaders(url,{ "Content-Type": "application/json", "X-MaxTravel-Key-Id": keyId, "X-MaxTravel-Timestamp": timestamp, "X-MaxTravel-Event-Id": event.id, "X-MaxTravel-Signature": crmSignature(timestamp, event.id, payload, key) }), body: payload, signal: AbortSignal.timeout(15000), redirect: "error" });
       if (!response.ok) throw new Error("Delivery rejected");
       await pool.query("UPDATE outbox_events SET delivered_at=now(),lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2", [event.id, lease]);
     } catch {
