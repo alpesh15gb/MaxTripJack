@@ -7,12 +7,12 @@ import {chromium} from '@playwright/test';
 
 assert(new URL(process.env.DATABASE_URL).pathname.endsWith('/maxtravel_booking_preview'),'An isolated preview database is required');
 const local='http://127.0.0.1:3410',out=path.resolve('test-results/preview-live');fs.mkdirSync(out,{recursive:true});
-const accessPath=path.resolve('test-results/preview-access.json');
+const accessPath=path.resolve('.env.codex-preview-users.local');
 const access=fs.existsSync(accessPath)?JSON.parse(fs.readFileSync(accessPath,'utf8')):{password:randomBytes(24).toString('hex')+'!7',users:{}};
 const save=()=>fs.writeFileSync(accessPath,JSON.stringify(access,null,2));save();
 const pool=new Pool({connectionString:process.env.DATABASE_URL});
 const browser=await chromium.launch({headless:true,...(process.env.PREVIEW_CHROME_PATH?{executablePath:process.env.PREVIEW_CHROME_PATH}:{})});
-const report={checks:[],screens:[],errors:[]};
+const report={origin:access.cloudBase??local,checks:[],screens:[],errors:[]};
 function totp(secret){const a='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...secret].map(c=>a.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from((bits.match(/.{8}/g)??[]).map(b=>parseInt(b,2))),counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const m=createHmac('sha1',key).update(counter).digest(),i=m[19]&15;return String((m.readUInt32BE(i)&0x7fffffff)%1000000).padStart(6,'0');}
 async function api(c,base,url,data){const r=await c.request[ data?'post':'get'](base+url,{headers:{origin:base},...(data?{data}:{})}),b=await r.json();assert(r.ok(),`${url}: ${r.status()} ${b.message??b.error??''}`);return b;}
 const permissions={admin:['bookings:read','bookings:reconcile','companies:manage','pricing:manage','cancellations:manage','cancellations:execute','integrations:manage','payments:manage','finance:read','refunds:manage','refunds:execute','audit:read'],staff:['bookings:read','bookings:reconcile','companies:manage','pricing:manage','cancellations:manage','cancellations:execute','integrations:manage','audit:read'],viewer:['bookings:read']};
