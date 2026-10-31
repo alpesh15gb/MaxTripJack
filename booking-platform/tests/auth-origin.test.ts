@@ -2,8 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { authTrustedOrigins, accountMailOriginAllowed } from '../src/lib/auth-origin';
+import { sameOrigin } from '../src/lib/http';
 const base='https://example.test';
 const request=(headers:Record<string,string>)=>new Request(base,{headers});
+
+test('write origin policy uses the same deployment origin as sign-in and fails closed',()=>{
+ const old={BETTER_AUTH_URL:process.env.BETTER_AUTH_URL,VERCEL_URL:process.env.VERCEL_URL};
+ const status=(value:number)=>(e:unknown)=>Boolean(e&&typeof e==='object'&&'status'in e&&e.status===value);
+ try{
+  delete process.env.BETTER_AUTH_URL;process.env.VERCEL_URL='booking-preview.example.test';
+  assert.doesNotThrow(()=>sameOrigin(request({origin:'https://booking-preview.example.test'})));
+  for(const origin of ['https://evil.test',base,'null',''])assert.throws(()=>sameOrigin(request({origin})),status(403));
+  assert.throws(()=>sameOrigin(request({origin:'https://booking-preview.example.test','sec-fetch-site':'cross-site'})),status(403));
+  process.env.BETTER_AUTH_URL=base;
+  assert.doesNotThrow(()=>sameOrigin(request({origin:base})));
+  assert.throws(()=>sameOrigin(request({origin:'https://booking-preview.example.test'})),status(403));
+  delete process.env.BETTER_AUTH_URL;delete process.env.VERCEL_URL;
+  assert.throws(()=>sameOrigin(request({origin:base})),status(503));
+ }finally{for(const[key,value]of Object.entries(old))if(value===undefined)delete process.env[key];else process.env[key]=value;}
+});
 test('account origin policy accepts configured web, native scheme and headerless clients',()=>{
  assert.deepEqual(authTrustedOrigins(`${base}/account`),[base,'maxtravel://']);
  for(const headers of ([{},{origin:base},{origin:'maxtravel://'},{origin:'maxtravel://account'},{referer:`${base}/account?return=1`},{referer:'maxtravel://account'}] as Record<string,string>[])) assert.equal(accountMailOriginAllowed(request(headers),base),true,JSON.stringify(headers));

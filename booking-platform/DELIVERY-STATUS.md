@@ -23,7 +23,9 @@ The public/corporate flight and hotel application is implemented locally across 
 
 ## Verification
 
-26 unit/security tests pass. Simulated flight/hotel booking, extras/reissue, partial cancellation, refund, authentication/ownership and CRM receiver flows pass. Web/mobile/CRM TypeScript, web lint/build, worker bundles and Android/iOS JavaScript exports pass. Production HTTP nonce/security checks pass; the production browser form supports selecting multi-city mode and adding flights.
+435 unit/contract checks pass. Simulated flight/hotel booking, extras/reissue, partial cancellation, refund, authentication/ownership and CRM receiver flows pass. Web/mobile/CRM TypeScript, web lint/build, worker bundles and Android/iOS JavaScript exports pass. Production HTTP nonce/security checks pass; the production browser form supports selecting multi-city mode and adding flights.
+
+The 1 November VPS diagnostics supplied by the user show successful direct TripJack UAT flight search (250 results) and hotel nationality lookup (207 entries). Razorpay configuration was missing in the running booking container. See UAT-READINESS.md for the remaining application/provider acceptance scenarios; these initial calls do not establish booking or payment acceptance.
 
 No actual supplier reservations, Razorpay charges/refunds, external customer messages or production deployments were made. The CRM integration was subsequently pushed to alpesh15gb/MaxTravel main as 42e1c8e; the canonical CRM checkout is D:\Travel CRM\travel-os. Subsequent Meta Cloud API and PDF delivery changes are pushed through 2cadfd9. Mobile exports are JavaScript bundles, not signed APK/IPA releases. See SECURITY.md for previously assessed upstream development-tool advisories.
 

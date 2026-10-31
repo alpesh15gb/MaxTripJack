@@ -8,6 +8,7 @@ import { boundedText,HttpError,json } from "./http";
 import { verifySignature } from "./signatures";
 import { crmCommandContext } from "./crm-command-context";
 import { requestLimit } from "./request-limit";
+import { configuredAuthBaseURL } from "./auth-origin";
 export const commandSchema=z.object({id:z.string().uuid(),bookingId:z.string().uuid(),actorId:z.string().min(1).max(100),action:z.enum(["STATUS","RESYNC","RECONCILE","CANCELLATION_REQUEST","CANCELLATION_CHARGES","CANCELLATION_REVIEW","CANCELLATION_OFFER","CANCELLATION_EXECUTE","REFUND_REQUEST","REFUND_APPROVE","REFUND_EXECUTE"]),targetId:z.string().uuid().optional(),data:z.record(z.string(),z.unknown()).default({})}).strict();
 export type CrmCommand=z.infer<typeof commandSchema>;
 const permissions:Record<CrmCommand["action"],string>={STATUS:"bookings:read",RESYNC:"integrations:manage",RECONCILE:"bookings:reconcile",CANCELLATION_REQUEST:"cancellations:manage",CANCELLATION_CHARGES:"cancellations:manage",CANCELLATION_REVIEW:"cancellations:manage",CANCELLATION_OFFER:"cancellations:manage",CANCELLATION_EXECUTE:"cancellations:execute",REFUND_REQUEST:"refunds:manage",REFUND_APPROVE:"refunds:manage",REFUND_EXECUTE:"refunds:execute"};
@@ -35,7 +36,7 @@ export async function verifyCrmCommand(request:Request){
  return {command,userId,permission,hash:createHash("sha256").update(raw).digest("hex")};
 }
 async function dispatch(command:CrmCommand){
- const make=(path:string,data:unknown)=>new Request(new URL(path,process.env.BETTER_AUTH_URL),{method:"POST",headers:{Origin:new URL(process.env.BETTER_AUTH_URL!).origin,"Content-Type":"application/json"},body:JSON.stringify(data)});
+ const make=(path:string,data:unknown)=>{const base=configuredAuthBaseURL();if(!base)throw new HttpError(503,"Booking service origin is unavailable.");return new Request(new URL(path,base),{method:"POST",headers:{Origin:new URL(base).origin,"Content-Type":"application/json"},body:JSON.stringify(data)});};
  const context={params:Promise.resolve({id:command.targetId??command.bookingId})};
  if(command.action==="CANCELLATION_REQUEST"){const {requestCancellation,cancellationRequestSchema}=await import("./cancellation-request");const order=(await database().query("SELECT user_id,company_id FROM orders WHERE id=$1",[command.bookingId])).rows[0];return requestCancellation(command.bookingId,cancellationRequestSchema.parse({...command.data,requestKey:command.id}),{userId:order.user_id,companyId:order.company_id},crmCommandContext.getStore()!.userId);}
  if(command.action==="STATUS"){

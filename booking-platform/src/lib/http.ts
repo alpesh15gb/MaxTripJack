@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { unstable_rethrow } from "next/navigation";
+import { configuredAuthBaseURL } from "./auth-origin";
 
 export class HttpError extends Error {
   constructor(public status: number, message: string, public fields?: {path:string;message:string}[]) { super(message); }
@@ -38,7 +39,7 @@ export async function body<T>(request: Request, schema: z.ZodType<T>) {
   return schema.parse(value);
 }
 export function sameOrigin(request: Request) {
-  const configured = process.env.BETTER_AUTH_URL;
+  const configured = configuredAuthBaseURL();
   if (!configured) throw new HttpError(503, "The service is temporarily unavailable. Please try again later.");
   if (request.headers.get("origin") !== new URL(configured).origin || request.headers.get("sec-fetch-site") === "cross-site") throw new HttpError(403, "Request origin rejected.");
 }

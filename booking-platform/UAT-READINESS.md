@@ -1,4 +1,12 @@
-# Before demo credentials arrive — coding audit, 18 October 2026
+# UAT readiness
+
+## Update — 1 November 2026
+
+User-supplied diagnostics from the running VPS booking container confirm TripJack flight and hotel keys are configured. A direct UAT DEL–BOM search returned HTTP 200, success and 250 results; the hotel nationality lookup returned HTTP 200, success and 207 entries. These checks establish supplier connectivity for those calls, not hotel availability, booking, payment or after-sales acceptance. Razorpay key ID, secret and webhook secret were absent from that container at the time of the check.
+
+Protected Vercel previews use isolated synthetic databases. Cross-app verification remains in local loopback fixtures, as requested. The current unit suite has 435 checks; full provider acceptance below remains separate. Preview origin checks now share the same configured/deployment URL resolution for authentication, writes, guest shopping and internal CRM commands.
+
+## Earlier coding audit — 18 October 2026
 
 This is a source review and simulated verification record. It is not TripJack acceptance, independent security certification, a device test or production approval.
 
@@ -19,7 +27,7 @@ This is a source review and simulated verification record. It is not TripJack ac
 
 See INTEGRATION-GUIDE.md for exact variables, migrations, catalogue sync and worker startup. Do not use production payment keys or production reservations for this acceptance run.
 
-## Provider acceptance matrix — all pending real credentials
+## Remaining provider acceptance matrix
 
 | Flow | Required evidence |
 | --- | --- |
