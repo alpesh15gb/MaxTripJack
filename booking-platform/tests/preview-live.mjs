@@ -24,12 +24,11 @@ try{
   if(!u){const signup=await api(c,local,'/api/auth/sign-up/email',{email:person.email,password:access.password,name:`Preview ${role}`,callbackURL:'/account'});person.userId=signup.user.id;save();}
   u=(await pool.query('SELECT id,"emailVerified","twoFactorEnabled" FROM "user" WHERE email=$1',[person.email])).rows[0];
   if(!u.emailVerified){let mail;const until=Date.now()+35000;do{const list=await(await fetch('http://127.0.0.1:18025/api/v1/messages')).json(),m=list.messages.find(m=>m.Subject==='Verify your Max Travel email'&&m.To.some(t=>t.Address===person.email));if(m){mail=await(await fetch('http://127.0.0.1:18025/api/v1/message/'+m.ID)).json();break;}await new Promise(r=>setTimeout(r,250));}while(Date.now()<until);assert(mail,'Local verification email was not delivered');const url=mail.Text.match(/https?:\/\/[^\s]+/)?.[0];assert.equal(new URL(url).origin,local);await c.request.get(url);}
-  await signedIn(c,local,person);
-  if(!u.twoFactorEnabled){const enrol=await api(c,local,'/api/auth/two-factor/enable',{password:access.password});person.secret=new URL(enrol.totpURI).searchParams.get('secret');person.backupCodes=enrol.backupCodes;save();await api(c,local,'/api/auth/two-factor/verify-totp',{code:totp(person.secret)});}
+  if(!u.twoFactorEnabled){await signedIn(c,local,person);const enrol=await api(c,local,'/api/auth/two-factor/enable',{password:access.password});person.secret=new URL(enrol.totpURI).searchParams.get('secret');person.backupCodes=enrol.backupCodes;save();await api(c,local,'/api/auth/two-factor/verify-totp',{code:totp(person.secret)});}
   const verified=(await pool.query('SELECT id,"emailVerified","twoFactorEnabled" FROM "user" WHERE email=$1',[person.email])).rows[0];assert(verified.emailVerified&&verified.twoFactorEnabled);
   await pool.query('INSERT INTO admin_grants(user_id,permissions,active) VALUES($1,$2,true) ON CONFLICT(user_id) DO UPDATE SET permissions=excluded.permissions,active=true',[verified.id,grants]);person.userId=verified.id;save();await c.close();
  }
- report.checks.push('Three synthetic staff accounts registered, verified through local Mailpit and enrolled with real authenticator verification before scoped grants');
+ report.checks.push('Synthetic staff accounts are email-verified and authenticator-protected before scoped grants');
  const base=access.cloudBase??local;
  for(const role of Object.keys(permissions)){
   const c=await browser.newContext({viewport:{width:1440,height:1000},timezoneId:'UTC'}),p=await c.newPage();if(access.shareableUrl)await p.goto(access.shareableUrl);await signedIn(c,base,access.users[role]);const context=await api(c,base,'/api/admin/context');assert.deepEqual([...context.permissions].sort(),[...permissions[role]].sort());
