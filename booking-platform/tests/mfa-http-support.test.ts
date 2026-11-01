@@ -6,6 +6,13 @@ test('MFA HTTP guard accepts only explicit CI and exact local disposable service
   assert.equal(disposableMfaConfig(config).base, 'http://127.0.0.1:3000');
   for (const change of [{ CI: undefined }, { CI: 'false' }, { DATABASE_URL: 'postgresql://u:p@127.0.0.1:55439/production' }, { DATABASE_URL: 'postgresql://u:p@remote.example:55439/maxtravel_ci' }, { DATABASE_URL: config.DATABASE_URL + '?host=remote.example' }, { DATABASE_URL: config.DATABASE_URL.replace(':55439', ':5432') }, { BETTER_AUTH_URL: 'https://maxtravel.in' }, { BETTER_AUTH_URL: 'http://user:secret@localhost:3000' }, { SMTP_HOST: 'smtp.example.com' }, { SMTP_PORT: '25' }]) assert.throws(() => disposableMfaConfig({ ...config, ...change }));
 });
+test('explicit isolated ports retain disposable database and loopback-only MFA guards', () => {
+  const ports = { database: 49550, app: 3411, smtp: 49552, mail: 49553 };
+  const isolated = { ...config, DATABASE_URL: config.DATABASE_URL.replace(':55439', ':49550'), BETTER_AUTH_URL: 'http://127.0.0.1:3411', SMTP_PORT: '49552', MFA_FIXTURE_PORTS: JSON.stringify(ports) };
+  assert.equal(disposableMfaConfig(isolated).mail, 'http://127.0.0.1:49553');
+  for (const change of [{ CI: 'false' }, { DATABASE_URL: isolated.DATABASE_URL.replace('maxtravel_ci', 'production') }, { DATABASE_URL: isolated.DATABASE_URL.replace('127.0.0.1', 'remote.example') }, { SMTP_HOST: 'smtp.example.com' }, { BETTER_AUTH_URL: 'https://maxtravel.in' }, { MFA_FIXTURE_PORTS: '{}' }, { MFA_FIXTURE_PORTS: 'null' }, { MFA_FIXTURE_PORTS: 'invalid' }, { MFA_FIXTURE_PORTS: JSON.stringify({ ...ports, smtp: 25 }) }, { MFA_FIXTURE_PORTS: JSON.stringify({ ...ports, mail: ports.smtp }) }, { MFA_FIXTURE_PORTS: JSON.stringify({ ...ports, app: '3411' }) }]) assert.throws(() => disposableMfaConfig({ ...isolated, ...change }));
+});
+
 test('local cookie jar rotates, retains unrelated cookies and honours challenge expiry', () => {
   const jar = new LocalAuthCookies();
   jar.update(['session=public-old; Path=/; HttpOnly', 'challenge=public-challenge; Path=/; Max-Age=600']);

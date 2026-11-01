@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { Pool } from "pg";
 const base = process.env.BETTER_AUTH_URL!;
+const mailBase=process.env.MAILPIT_BASE_URL||"http://127.0.0.1:18025";
+if(new URL(mailBase).protocol!=="http:"||!["127.0.0.1","localhost"].includes(new URL(mailBase).hostname)||new URL(mailBase).username||new URL(mailBase).password)throw Error("Mail verification requires an isolated loopback SMTP fixture.");
 if (!base || !process.env.DATABASE_URL || !["127.0.0.1", "localhost"].includes(new URL(base).hostname)) throw new Error("Run only against the configured local development environment.");
 const email = `integration-${randomUUID()}@example.test`;
 const password = randomBytes(24).toString("hex");
@@ -15,9 +17,9 @@ async function api(path: string, data?: unknown) {
 async function waitForMail(subject: string) {
  const deadline = Date.now() + 35_000;
  do {
-  const list = await (await fetch("http://127.0.0.1:18025/api/v1/messages", {signal:AbortSignal.timeout(3000)})).json();
+  const list = await (await fetch(mailBase+"/api/v1/messages", {signal:AbortSignal.timeout(3000)})).json();
   const message = list.messages.find((m: {Subject:string; To:{Address:string}[]}) => m.Subject === subject && m.To.some(to=>to.Address===email));
-  if(message) return (await fetch(`http://127.0.0.1:18025/api/v1/message/${message.ID}`, {signal:AbortSignal.timeout(3000)})).json();
+  if(message) return (await fetch(`${mailBase}/api/v1/message/${message.ID}`, {signal:AbortSignal.timeout(3000)})).json();
   await new Promise(resolve=>setTimeout(resolve,200));
  } while(Date.now()<deadline);
  throw Error(`Expected synthetic ${subject} email did not reach local Mailpit within 35 seconds`);

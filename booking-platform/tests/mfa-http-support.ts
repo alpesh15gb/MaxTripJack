@@ -3,13 +3,23 @@ import { createHmac } from 'node:crypto';
 /** Fail before any HTTP/DB access. No URL is repeated in an error message. */
 export function disposableMfaConfig(env: Readonly<Record<string, string | undefined>>) {
   if (env.CI !== 'true') throw Error('MFA HTTP fixture requires explicit CI=true.');
+  let ports = { database: 55439, app: 3000, smtp: 11025, mail: 18025 };
+  if (env.MFA_FIXTURE_PORTS) {
+    try {
+      const value: unknown = JSON.parse(env.MFA_FIXTURE_PORTS);
+      if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== 'app,database,mail,smtp') throw Error();
+      const selected = value as typeof ports;
+      if (Object.values(selected).some(port => !Number.isInteger(port) || port < 1024 || port > 65535) || new Set(Object.values(selected)).size !== 4) throw Error();
+      ports = selected;
+    } catch { throw Error('MFA HTTP fixture requires four distinct explicit local service ports.'); }
+  }
   let database: URL, base: URL;
   try { database = new URL(env.DATABASE_URL || ''); base = new URL(env.BETTER_AUTH_URL || ''); } catch { throw Error('MFA HTTP fixture configuration is invalid.'); }
   const local = (host: string) => ['127.0.0.1', 'localhost'].includes(host);
-  if (!['postgres:', 'postgresql:'].includes(database.protocol) || !local(database.hostname) || database.port !== '55439' || database.pathname !== '/maxtravel_ci' || database.search || database.hash) throw Error('MFA HTTP fixture requires the dedicated loopback disposable database.');
-  if (base.protocol !== 'http:' || !local(base.hostname) || base.port !== '3000' || base.pathname !== '/' || base.search || base.hash || base.username || base.password) throw Error('MFA HTTP fixture requires the dedicated loopback Next server.');
-  if (!local(env.SMTP_HOST || '') || env.SMTP_PORT !== '11025' || env.SMTP_SECURE !== 'false') throw Error('MFA HTTP fixture requires local Mailpit delivery.');
-  return { databaseURL: database.toString(), base: base.origin, mail: 'http://127.0.0.1:18025' };
+  if (!['postgres:', 'postgresql:'].includes(database.protocol) || !local(database.hostname) || database.port !== String(ports.database) || database.pathname !== '/maxtravel_ci' || database.search || database.hash) throw Error('MFA HTTP fixture requires the dedicated loopback disposable database.');
+  if (base.protocol !== 'http:' || !local(base.hostname) || base.port !== String(ports.app) || base.pathname !== '/' || base.search || base.hash || base.username || base.password) throw Error('MFA HTTP fixture requires the dedicated loopback Next server.');
+  if (!local(env.SMTP_HOST || '') || env.SMTP_PORT !== String(ports.smtp) || env.SMTP_SECURE !== 'false') throw Error('MFA HTTP fixture requires local Mailpit delivery.');
+  return { databaseURL: database.toString(), base: base.origin, mail: `http://127.0.0.1:${ports.mail}` };
 }
 
 /** Root-path cookies from our one allowlisted auth origin, including rotations
