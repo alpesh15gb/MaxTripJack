@@ -19,8 +19,8 @@ import time
 from datetime import datetime, timezone
 from urllib.parse import quote, urlsplit, urlunsplit
 
-BOOKING_REF = "9100acb1add27720ae30e9ffad69edc7202d2632"
-CRM_REF = "5cf9614028e8b49658a3c0478627b75d8213eba2"
+BOOKING_REF = "ae2661754678023929c12bfdc49cd18f83bd1468"
+CRM_REF = "0a072a6ba5bdc73523ae936cc2b1292c9d694cd4"
 ROOT = Path("/opt/maxtravel-deployments")
 
 
@@ -471,7 +471,7 @@ class Update:
         self.once(booking, migration_file, ["-e", "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.MIGRATION_DATABASE_URL});p.query('SELECT 1').then(()=>console.log('Migration connection verified')).catch(()=>{console.error('Migration connection failed');process.exitCode=1}).finally(()=>p.end());"])
         if not self.once(booking, booking["after"], ["-e", "require('fs').accessSync('db/019-cancellation-reconciliation.sql');console.log('Booking migration included');"]).strip():
             raise StopUpdate("Booking candidate lacks the recovery migration.")
-        self.once(crm, crm["after"], ["-e", "require('fs').accessSync('prisma/migrations/20261031100000_case_workflow/migration.sql');console.log('CRM workflow migration included');"])
+        self.once(crm, crm["after"], ["-e", "for(const p of ['prisma/migrations/20261031100000_case_workflow/migration.sql','prisma/migrations/20261102010000_data_imports/migration.sql'])require('fs').accessSync(p);console.log('CRM workflow and import migrations included');"])
         self.once(booking, booking["after"], ["-e", "const fs=require('fs');for(const p of ['server.js','package.json','.next/BUILD_ID','public/brand/maxtravel-logo.jpg'])fs.accessSync(p,fs.constants.R_OK);console.log('Booking non-root runtime files readable');"])
         self.write("release.json", {"bookingCommit": booking["sha"], "crmCommit": crm["sha"], "integration": summary,
                                   "images": {s["project"]: s["image"] for s in self.stacks}})
