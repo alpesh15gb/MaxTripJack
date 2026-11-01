@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { proxy } from "../src/proxy";
 import { businessProfile, businessStructuredData, officeDirectionsHref } from "../src/lib/business-profile";
 import { flightGuides, flightGuideSearchHref, getFlightGuide } from "../src/lib/flight-guides";
+import {legalPolicies} from "../src/lib/legal-policies";
 import { publicPages } from "../src/lib/public-pages";
 import { PUBLIC_SEO_PAGES, isPublicSeoPath } from "../src/lib/seo-registry";
 import {
@@ -62,9 +63,9 @@ test("request indexing requires canonical origin, public path and no query varia
   assert.equal(requestMayBeIndexed(new URL(`${SITE_ORIGIN}/flights`), {}), false);
 });
 
-test("sitemap is exactly 18 substantial reviewed public pages, with no query/private URL", () => {
-  assert.equal(PUBLIC_SEO_PAGES.length, 18);
-  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 18);
+test("sitemap contains 18 editorial pages and four imported policies, with no query/private URL", () => {
+  assert.equal(PUBLIC_SEO_PAGES.length, 22);
+  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 22);
   const sitemap = buildSitemap(approved);
   assert.deepEqual(sitemap.map(entry => entry.url), PUBLIC_SEO_PAGES.map(page => canonicalUrl(page.path)));
   for (const entry of sitemap) {
@@ -73,7 +74,7 @@ test("sitemap is exactly 18 substantial reviewed public pages, with no query/pri
     assert.equal(url.search, "");
     assert.equal(url.hash, "");
     assert.ok(isPublicSeoPath(url.pathname));
-    assert.equal(entry.lastModified, "2026-10-20", "Use reviewed content date, not every request time");
+    assert.equal(entry.lastModified,PUBLIC_SEO_PAGES.find(page=>page.path===url.pathname)?.lastModified, "Use the authored content date, not request time");
   }
   for (const path of privatePaths) assert.equal(isPublicSeoPath(path), false);
 });
@@ -156,7 +157,7 @@ test("owner-confirmed office is Secunderabad, India, 09:00–21:00 all seven day
 });
 
 test("editorial data and sitemap registry cover exactly the same authored routes", () => {
-  const authored = ["/", ...publicPages.map(page => `/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
+  const authored = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
   assert.deepEqual(authored.sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
   assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.title)).size, 17);
   assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.heading)).size, 17);

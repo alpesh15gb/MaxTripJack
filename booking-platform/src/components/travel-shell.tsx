@@ -3,13 +3,20 @@
 import Link from "next/link";
 import "./package-navigation.css";
 import "./workflow-footer.css";
+import {FooterSocialIcon} from "./footer-social-icon";
+import {footerPolicyLinks,footerSocialLinks} from "@/lib/footer-links";
 import { businessProfile } from "@/lib/business-profile";
 
-type IconName = "plane" | "hotel" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
+type IconName = "plane" | "airplane" | "hotel" | "bed" | "bus" | "holiday" | "passport" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
 
 export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, string> = {
+    airplane: "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5Z",
     plane: "m22 2-7 20-4-9-9-4L22 2ZM11 13l6-6",
+    bed: "M3 18v3m18-3v3M3 18h18V9H3v9Zm0-9V5h18v4M7 9V7h3v2m4 0V7h3v2",
+    bus: "M5 17v3m14-3v3M5 3h14l1 3v11H4V6l1-3Zm-1 8h16M8 14h.01M16 14h.01M8 6h8",
+    holiday: "M3 10c2-7 16-7 18 0H3Zm9 0v10m-5 0h10M4 22h16M7 10l-2 4m12-4 2 4",
+    passport: "M5 3h14v18H5V3Zm4 14h6M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-3-3v6M9 10h6",
     hotel: "M3 21V3h12v18M15 9h6v12M7 7h4M7 11h4M7 15h4M7 21v-3h4v3M19 13v2M19 17v2",
     arrow: "M5 12h14m-6-6 6 6-6 6",
     "arrow-up-right": "M7 17 17 7M7 7h10v10",
@@ -50,15 +57,23 @@ export function TravelHeader({ active, onProductChange }: { active?: "flights" |
   </>;
 }
 
+function FooterPolicyLinks(){
+ return <nav className="travel-footer-policies" aria-label="Policies">{footerPolicyLinks.map(link=><Link key={link.href} href={link.href} aria-label={link.label}>{link.label}</Link>)}</nav>;
+}
+
 export function TravelFooter({compact=false}:{compact?:boolean}={}) {
-  if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span></div></footer>;
-  return <footer className="travel-footer">
-    <div className="travel-footer-top">
-      <div><Link href="/" className="travel-brand">max<span>travel</span><i>.</i></Link><p>Competitive travel prices.<br />Real people. A real office.</p><span className="travel-footer-caption">MaxTravel · Secunderabad, India</span><Link href="/about">About MaxTravel</Link><Link href="/services">Our services</Link></div>
-      <div><h2>Plan your next trip</h2><Link href="/packages">Explore travel packages</Link><Link href="/flights">Flight planning & route guides</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/cheap-flight-tickets">Compare affordable flights</Link><Link href="/last-minute-flights">Last-minute planning</Link><Link href="/book?product=HOTEL">Plan a stay</Link></div>
-      <div><h2>Help at every step</h2><Link href="/flight-booking-guide">Flight booking guide</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/customer-support">Customer support</Link><Link href="/my-trips">Manage my trips</Link><Link href="/account">Your account</Link><Link href="/contact">Contact MaxTravel</Link></div>
-      <div className="travel-footer-promise"><TravelIcon name="pin" size={25} /><h2>A real office in Secunderabad.</h2><p>{businessProfile.hours.display}</p><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>{businessProfile.email}</a><Link href="/office">Office address & directions</Link><p>Review the full total and supplier rules. Payment alone does not confirm a trip.</p></div>
-    </div>
-    <div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span><span>Made for the journey.</span></div>
-  </footer>;
+ if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><FooterPolicyLinks/><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span></div></footer>;
+ return <footer className="travel-footer travel-footer--reference">
+  <div className="travel-footer-inner"><div className="travel-footer-grid">
+   <div className="travel-footer-identity"><Link href="/" className="travel-footer-brand" aria-label="MaxTravel home">max travel<TravelIcon name="airplane" size={25}/></Link><nav className="travel-footer-socials" aria-label="Follow MaxTravel">{footerSocialLinks.map(item=><a key={item.name} href={item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}</nav></div>
+   <nav className="travel-footer-group" aria-labelledby="footer-tourism"><h2 id="footer-tourism">Travel & Tourism</h2><ul><li><a href="https://maxtravel.us/#TravelBlog">Travel Blog</a></li><li><a href="https://maxtravel.us/#SubscribeForOffers">Subscribe for Offers</a></li><li><a href="https://maxtravel.us/#Testimonials">Testimonials</a></li></ul></nav>
+   <nav className="travel-footer-group travel-footer-services" aria-labelledby="footer-services"><h2 id="footer-services">Services</h2><ul><li><Link href="/book?product=FLIGHT"><TravelIcon name="airplane"/>Flight</Link></li><li><Link href="/book?product=HOTEL"><TravelIcon name="bed"/>Hotel</Link></li><li><a href="https://maxtravel.us/bus"><TravelIcon name="bus"/>Bus</a></li><li><Link href="/packages"><TravelIcon name="holiday"/>Holiday</Link></li><li><a href="https://maxtravel.us/visa"><TravelIcon name="passport"/>Visa</a></li><li><a href={businessProfile.emailHref+'?subject=Travel%20insurance%20enquiry'}><TravelIcon name="shield"/>Insurance</a></li></ul></nav>
+   <nav className="travel-footer-group" aria-labelledby="footer-support"><h2 id="footer-support">Help & Support</h2><ul><li><a href={businessProfile.emailHref+'?subject=Partnership%20enquiry'}>Become a Partner</a></li><li><a href="https://maxtravel.us/web-check-in">Web Check In</a></li><li><Link href="/contact">Contact Us</Link></li><li><Link href="/about">About Us</Link></li></ul></nav>
+  </div><div className="travel-footer-legal-row"><FooterPolicyLinks/>
+   {/* eslint-disable-next-line @next/next/no-img-element -- Original local SVG brand artwork, served without an image proxy. */}
+   <img className="travel-footer-iata" src="/brand/iata.svg" width="76" height="48" loading="lazy" alt="IATA"/>
+  </div><p className="travel-footer-testing">In Testing · No live bookings or payments</p></div>
+  <div className="travel-footer-copyright">© Copyright {new Date().getFullYear()} MaxTravel</div>
+  <a className="travel-footer-whatsapp" href={businessProfile.whatsappHref} aria-label="Chat with MaxTravel on WhatsApp"><FooterSocialIcon name="whatsapp"/></a>
+ </footer>;
 }

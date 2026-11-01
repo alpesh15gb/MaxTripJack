@@ -4,6 +4,11 @@
  * Search results, user data and supplier quotes must never enter this registry.
  */
 export const PUBLIC_SEO_PAGES = [
+  { path: "/privacy-policy", lastModified: "2026-11-01" },
+  { path: "/terms-and-conditions", lastModified: "2026-11-01" },
+  { path: "/cancellations-payment-policy", lastModified: "2026-11-01" },
+  { path: "/disclaimer", lastModified: "2026-11-01" },
+
   { path: "/", lastModified: "2026-10-20" },
   { path: "/flights", lastModified: "2026-10-20" },
   { path: "/domestic-flights", lastModified: "2026-10-20" },
@@ -16,7 +21,7 @@ export const PUBLIC_SEO_PAGES = [
   { path: "/flights/hyderabad-to-dubai", lastModified: "2026-10-20" },
   { path: "/flights/mumbai-to-goa", lastModified: "2026-10-20" },
   { path: "/flights/delhi-to-bengaluru", lastModified: "2026-10-20" },
-  { path: "/about", lastModified: "2026-10-20" },
+  { path: "/about", lastModified: "2026-11-01" },
   { path: "/contact", lastModified: "2026-10-20" },
   { path: "/office", lastModified: "2026-10-20" },
   { path: "/services", lastModified: "2026-10-20" },

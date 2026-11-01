@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import {legalPolicies} from "../src/lib/legal-policies";
 import { publicPages, getPublicPage } from "../src/lib/public-pages";
 import { flightGuides, getFlightGuide, flightGuideSearchHref } from "../src/lib/flight-guides";
 import { businessProfile, businessStructuredData } from "../src/lib/business-profile";
@@ -8,8 +9,8 @@ import { PUBLIC_SEO_PAGES } from "../src/lib/seo-registry";
 import { canonicalUrl, pageMetadata } from "../src/lib/seo";
 
 test("the content and SEO allowlists contain exactly the same authored paths", () => {
-  const paths = ["/", ...publicPages.map(page => `/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
-  assert.equal(paths.length, 18);
+  const paths = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
+  assert.equal(paths.length, 22);
   assert.equal(new Set(paths).size, paths.length);
   assert.deepEqual([...paths].sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
   assert.equal(getPublicPage("not-authored"), undefined);
@@ -26,8 +27,8 @@ test("every editorial page has distinct useful content and a clean canonical", (
     assert.ok(page.sections.length >= 3, page.slug);
     const headings = page.sections.map(section => section.heading);
     assert.equal(new Set(headings).size, headings.length);
-    assert.equal(page.reviewedAt, "2026-10-20");
     const path = "origin" in page ? `/flights/${page.slug}` : `/${page.slug}`;
+    assert.equal(page.reviewedAt,PUBLIC_SEO_PAGES.find(entry=>entry.path===path)?.lastModified);
     assert.equal(pageMetadata(path, page.title, page.description).alternates?.canonical, canonicalUrl(path));
     assert.equal(new URL(canonicalUrl(path)).search, "");
   }

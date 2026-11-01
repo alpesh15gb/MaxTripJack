@@ -11,12 +11,14 @@ import { once } from "node:events";
 import { createServer } from "node:net";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import {legalPolicies} from "../src/lib/legal-policies.ts";
 import { PUBLIC_SEO_PAGES } from "../src/lib/seo-registry.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const origin = "https://maxtravel.in";
 const privatePaths = ["/book", "/account", "/my-trips", "/travellers", "/operations", "/operations/visibility", "/reset-password?token=synthetic-secret-do-not-index"];
 const publicPaths = PUBLIC_SEO_PAGES.map(page => page.path);
+const policyPaths=new Set(legalPolicies.map(page=>`/${page.slug}`));
 let assertions = 0;
 
 function check(condition, message) { assert.ok(condition, message); assertions += 1; }
@@ -66,7 +68,7 @@ function inspectDiscoveryGraph(schemas, html, path) {
   equal(page?.url, origin + path, `${path}: WebPage identity matches canonical`);
   const descriptions = tags(html, "meta").filter(tag => tag.name === "description");
   equal(page.description, descriptions[0]?.content, `${path}: schema description matches real metadata`);
-  if (path === "/customer-support") check(!page.dateModified, "Task-oriented support page does not invent an editorial review date");
+  if (path === "/customer-support"||policyPaths.has(path)) check(!page.dateModified, "Support and imported policies do not invent an editorial review or legal effective date");
   else check(tags(html, "time").some(tag => tag.datetime === page.dateModified), `${path}: schema review date visible in article`);
   const breadcrumbs = definitions.get(`${origin}${path}#breadcrumb`);
   const visible = cleanText(html);
@@ -235,7 +237,7 @@ await withServer({ SEO_INDEXING_ENABLED: "true", SEO_SITE_ORIGIN: origin }, asyn
     equal(canonicalValues(html)[0], origin + "/flights", "Query token excluded from canonical");
     check(!tags(html, "meta").some(tag => (tag.content ?? "").includes("synthetic-secret-do-not-index")), "No token in actual meta tags");
   }
-  console.log("PASS: approved production gate emits exact 18-URL XML allowlist; actual preview/query responses still deny indexing.");
+  console.log(`PASS: approved production gate emits exact ${publicPaths.length}-URL XML allowlist; actual preview/query responses still deny indexing.`);
 });
 
 await withServer({ SEO_INDEXING_ENABLED: "true", SEO_SITE_ORIGIN: "https://preview.example" }, async request => {
