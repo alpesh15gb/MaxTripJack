@@ -5,7 +5,10 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -15,6 +18,79 @@ spec.loader.exec_module(update)
 
 
 class SafetyTests(unittest.TestCase):
+    def runtime(self, service, values, project="max-travel-booking", oneoff=False):
+        return {"Config": {"Labels": {"com.docker.compose.project": project,
+                    "com.docker.compose.service": service, "com.docker.compose.oneoff": str(oneoff)},
+                    "Env": [key + "=" + value for key, value in values.items()]}}
+
+    def test_compose_resolves_database_password_from_database_not_the_web_app_or_host(self):
+        app = self.runtime("app", {"BETTER_AUTH_SECRET": "synthetic-auth"})
+        db = self.runtime("postgres", {"POSTGRES_PASSWORD": "synthetic-database-password"})
+        supplied = {"PATH": "host-tools", "POSTGRES_PASSWORD": "unrelated-host-value"}
+        result = update.compose_interpolation_environment({"POSTGRES_PASSWORD", "BETTER_AUTH_SECRET"}, [app, db], "max-travel-booking", supplied)
+        self.assertEqual(result["POSTGRES_PASSWORD"], "synthetic-database-password")
+        self.assertEqual(result["BETTER_AUTH_SECRET"], "synthetic-auth")
+        self.assertEqual(supplied["POSTGRES_PASSWORD"], "unrelated-host-value")
+        self.assertNotIn("POSTGRES_PASSWORD", update.environment(app["Config"]["Env"]))
+
+    def test_compose_refuses_conflicting_values_without_exposing_either_secret(self):
+        containers = [self.runtime("app", {"SHARED_SECRET": "first-private-value"}), self.runtime("worker", {"SHARED_SECRET": "second-private-value"})]
+        with self.assertRaises(update.StopUpdate) as caught:
+            update.compose_interpolation_environment({"SHARED_SECRET"}, containers, "max-travel-booking", {})
+        self.assertIn("SHARED_SECRET", str(caught.exception))
+        self.assertNotIn("private-value", str(caught.exception))
+
+    def test_compose_rejects_another_project_and_ignores_oneoff_credentials(self):
+        with self.assertRaises(update.StopUpdate):
+            update.compose_interpolation_environment({"POSTGRES_PASSWORD"}, [self.runtime("postgres", {"POSTGRES_PASSWORD": "other-secret"}, "unrelated-project")], "max-travel-booking", {})
+        containers = [self.runtime("postgres", {"POSTGRES_PASSWORD": "current-private"}), self.runtime("app", {"POSTGRES_PASSWORD": "oneoff-private"}, oneoff=True)]
+        result = update.compose_interpolation_environment({"POSTGRES_PASSWORD"}, containers, "max-travel-booking", {})
+        self.assertEqual(result["POSTGRES_PASSWORD"], "current-private")
+
+    def test_compose_json_stdout_is_not_polluted_by_cli_warnings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = update.Update.__new__(update.Update)
+            state.directory, state.number = Path(directory), 0
+            def command(*args, **kwargs):
+                kwargs["stdout"].write(b'{"services": {}}\n')
+                kwargs["stderr"].write(b'warning: obsolete Compose attribute\n')
+                return SimpleNamespace(returncode=0)
+            with patch.object(update.subprocess, "run", side_effect=command):
+                self.assertEqual(json.loads(state.run(["docker", "compose", "config"])), {"services": {}})
+            self.assertIn("warning", (state.directory / "operation-001.stderr.log").read_text())
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI required for real interpolation regression")
+    def test_real_compose_required_database_variable_and_literal_secret_roundtrip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            file, empty = root / "compose.json", root / "empty.env"
+            empty.write_text("")
+            file.write_text(json.dumps({"services": {
+                "app": {"image": "node:22-alpine", "environment": {"BETTER_AUTH_SECRET": "synthetic-auth"}},
+                "postgres": {"image": "postgres:17-alpine", "environment": {"POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?required database variable}"}}
+            }}))
+            args = ["docker", "compose", "--project-directory", str(root), "--env-file", str(empty), "-p", "maxtravel-updater-regression", "-f", str(file), "config", "--format", "json"]
+            absent = dict(os.environ)
+            absent.pop("POSTGRES_PASSWORD", None)
+            absent.pop("NOT_A_VARIABLE", None)
+            broken = subprocess.run(args, cwd=root, env=absent, capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(broken.returncode, 0)
+            self.assertIn("POSTGRES_PASSWORD", broken.stderr)
+            password = "synthetic$literal-${NOT_A_VARIABLE:?never_resolve}-$$"
+            containers = [self.runtime("app", {"BETTER_AUTH_SECRET": "synthetic-auth"}), self.runtime("postgres", {"POSTGRES_PASSWORD": password})]
+            supplied = update.compose_interpolation_environment({"POSTGRES_PASSWORD"}, containers, "max-travel-booking", absent)
+            resolved = subprocess.run(args, cwd=root, env=supplied, capture_output=True, text=True, timeout=30)
+            self.assertEqual(resolved.returncode, 0, "Compose must resolve the database-only password")
+            config = update.resolved_compose(json.loads(resolved.stdout))
+            self.assertEqual(config["services"]["postgres"]["environment"]["POSTGRES_PASSWORD"], password)
+            self.assertNotIn("POSTGRES_PASSWORD", config["services"]["app"]["environment"])
+            for unused in range(2):
+                file.write_text(json.dumps(update.literal_compose(config)))
+                roundtrip = subprocess.run(args, cwd=root, env=absent, capture_output=True, text=True, timeout=30)
+                self.assertEqual(roundtrip.returncode, 0, "A resolved snapshot must not require its password in the host environment")
+                config = update.resolved_compose(json.loads(roundtrip.stdout))
+                self.assertEqual(config["services"]["postgres"]["environment"]["POSTGRES_PASSWORD"], password)
+
     def fixture(self):
         config = {"name": "max-travel-crm", "services": {"app": {
             "build": {"context": "/old/source"}, "image": "mutable:tag", "env_file": ["/old/.env"],

@@ -32,6 +32,52 @@ def environment(values):
     return dict(item.split("=", 1) for item in values or [] if "=" in item)
 
 
+def compose_interpolation_environment(names, containers, project, host_environment):
+    """Resolve references from this running stack, including its database service.
+
+    Never guess between different service values or borrow another project's secrets.
+    Values exist only in the Compose subprocess environment and private snapshots.
+    """
+    candidates = {name: set() for name in names}
+    for container in containers:
+        labels = container["Config"].get("Labels") or {}
+        if labels.get("com.docker.compose.project") != project:
+            raise StopUpdate("Cannot resolve Compose variables from another project.")
+        if labels.get("com.docker.compose.oneoff", "false").lower() == "true":
+            continue
+        current = environment(container["Config"].get("Env"))
+        for name in names:
+            if name in current:
+                candidates[name].add(current[name])
+    result = dict(host_environment)
+    for name, values in candidates.items():
+        if len(values) > 1:
+            raise StopUpdate("Conflicting running-service values for Compose variable " + name + "; no service changed.")
+        if values:
+            result[name] = next(iter(values))
+    return result
+
+
+def compose_dollars(value, before, after):
+    if isinstance(value, str):
+        return value.replace(before, after)
+    if isinstance(value, list):
+        return [compose_dollars(item, before, after) for item in value]
+    if isinstance(value, dict):
+        return {key: compose_dollars(item, before, after) for key, item in value.items()}
+    return value
+
+
+def literal_compose(value):
+    """Encode raw runtime literals for a subsequent Compose file read."""
+    return compose_dollars(value, "$", "$$")
+
+
+def resolved_compose(value):
+    """Compose config emits escaped literals; decode once before merging runtime env."""
+    return compose_dollars(value, "$$", "$")
+
+
 def same_secret(left, right):
     return bool(left and right) and hmac.compare_digest(left.encode(), right.encode())
 
@@ -181,11 +227,12 @@ class Update:
     def run(self, args, cwd=None, input_file=None, output_file=None, timeout=1800, env=None):
         self.number += 1
         log_path = self.directory / f"operation-{self.number:03d}.log"
-        with log_path.open("wb") as log:
+        error_path = self.directory / f"operation-{self.number:03d}.stderr.log"
+        with log_path.open("wb") as log, error_path.open("wb") as errors:
             result = subprocess.run(args, cwd=cwd, stdin=input_file, stdout=output_file if output_file is not None else log,
-                                    stderr=log, timeout=timeout, check=False, env=env)
+                                    stderr=errors, timeout=timeout, check=False, env=env)
         if result.returncode:
-            raise StopUpdate(f"An operation failed. Private diagnostic log: {log_path}")
+            raise StopUpdate(f"An operation failed. Private diagnostic logs: {log_path} and {error_path}")
         if output_file is not None:
             return None
         return log_path.read_text(errors="replace")
@@ -201,6 +248,9 @@ class Update:
 
     def compose(self, stack, file, *args):
         return ["docker", "compose", "--project-directory", stack["working"], "-p", stack["project"], "-f", str(file), *args]
+
+    def write_compose(self, name, value):
+        return self.write(name, literal_compose(value))
 
     def snapshot(self, app_name, project):
         app = self.inspect("container", app_name)
@@ -231,15 +281,13 @@ class Update:
             command += ["--env-file", file]
         for file in files:
             command += ["-f", file]
-        # Resolve interpolation using current application overrides, never another stack's
-        # similarly named host variable. Secret values stay in subprocess memory/private logs.
+        # Databases have service-specific variables (e.g. POSTGRES_PASSWORD) that
+        # the web app should not receive. Resolve them from this stack's containers.
         interpolation_names = set()
         for file in files:
             interpolation_names.update(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)", Path(file).read_text()))
-        current_env = environment(app["Config"].get("Env"))
-        compose_env = dict(os.environ)
-        compose_env.update({k: current_env[k] for k in interpolation_names if k in current_env})
-        normalized = json.loads(self.run(command + ["config", "--format", "json"], cwd=working, env=compose_env))
+        compose_env = compose_interpolation_environment(interpolation_names, containers, project, os.environ)
+        normalized = resolved_compose(json.loads(self.run(command + ["config", "--format", "json"], cwd=working, env=compose_env)))
         defaults = {c["Image"]: self.inspect("image", c["Image"])["Config"].get("Env", []) for c in containers}
         frozen = freeze_config(normalized, containers, defaults)
         stack = {"project": project, "working": working, "app": app_name,
@@ -249,7 +297,7 @@ class Update:
         # Only update the application and its explicitly identified workers.
         if any(s != "app" and "worker" not in s for s in stack["services"]):
             raise StopUpdate("An unknown application service requires review before cutover.")
-        stack["before"] = self.write(project + "-before.json", frozen)
+        stack["before"] = self.write_compose(project + "-before.json", frozen)
         self.write(project + "-inspect.private.json", containers)
         self.stacks.append(stack)
         return stack
@@ -277,7 +325,7 @@ class Update:
             after["services"]["app"]["environment"].pop("MIGRATION_DATABASE_URL", None)
             after["services"]["app"]["environment"].pop("RUNTIME_DATABASE_PASSWORD", None)
         stack.update(image=image, sha=sha, after_config=after)
-        stack["after"] = self.write(stack["project"] + "-after.json", after)
+        stack["after"] = self.write_compose(stack["project"] + "-after.json", after)
         self.run(self.compose(stack, stack["after"], "config", "--quiet"))
 
     def once(self, stack, file, command, *options):
@@ -321,7 +369,7 @@ class Update:
         self.checkout_build(crm, "https://github.com/alpesh15gb/MaxTravel.git", CRM_REF)
         migration = copy.deepcopy(booking["after_config"])
         migration["services"]["app"]["environment"]["MIGRATION_DATABASE_URL"] = migration_url
-        migration_file = self.write("booking-migration-only.private.json", migration)
+        migration_file = self.write_compose("booking-migration-only.private.json", migration)
         self.once(booking, migration_file, ["-e", "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.MIGRATION_DATABASE_URL});p.query('SELECT 1').then(()=>console.log('Migration connection verified')).catch(()=>{console.error('Migration connection failed');process.exitCode=1}).finally(()=>p.end());"])
         if not self.once(booking, booking["after"], ["-e", "require('fs').accessSync('db/019-cancellation-reconciliation.sql');console.log('Booking migration included');"]).strip():
             raise StopUpdate("Booking candidate lacks the recovery migration.")
