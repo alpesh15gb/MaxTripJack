@@ -18,6 +18,108 @@ spec.loader.exec_module(update)
 
 
 class SafetyTests(unittest.TestCase):
+    def test_security_list_repair_preserves_distinct_policies_and_source(self):
+        source = {"services": {"maintenance-worker": {"security_opt": ["no-new-privileges:true", "apparmor=travel", "no-new-privileges:true"],
+                   "cap_drop": ["ALL", "ALL"], "cap_add": ["NET_BIND_SERVICE", "NET_BIND_SERVICE"], "read_only": True}}}
+        original = copy.deepcopy(source)
+        fixed, changes = update.prepare_security_lists(source)
+        worker = fixed["services"]["maintenance-worker"]
+        self.assertEqual(worker["security_opt"], ["no-new-privileges:true", "apparmor=travel"])
+        self.assertEqual(worker["cap_drop"], ["ALL"])
+        self.assertEqual(worker["cap_add"], ["NET_BIND_SERVICE"])
+        self.assertTrue(worker["read_only"])
+        self.assertEqual(len(changes), 3)
+        self.assertEqual(source, original)
+
+    def test_security_string_repair_is_limited_to_explicit_no_new_privileges(self):
+        for value in ("no-new-privileges:true", "no-new-privileges=true"):
+            fixed, changes = update.prepare_security_lists({"services": {"app": {"security_opt": value}}})
+            self.assertEqual(fixed["services"]["app"]["security_opt"], [value])
+            self.assertEqual(changes, ["services.app.security_opt"])
+        for value in (None, {"unknown": "private-sensitive-value"}, ["no-new-privileges:true", {}], "private-sensitive-value"):
+            with self.assertRaises(update.StopUpdate) as caught:
+                update.prepare_security_lists({"services": {"app": {"security_opt": value}}})
+            self.assertNotIn("private-sensitive", str(caught.exception))
+
+    def test_compose_validation_summary_omits_raw_values_paths_and_credentials(self):
+        raw = "validating /private/config.json: services.maintenance-worker.security_opt items at 0 and 1 are equal\nsecret-value-never-print"
+        self.assertEqual(update.compose_validation_summary(raw), {"fields": ["services.maintenance-worker.security_opt"], "rules": ["duplicate list entries"]})
+        self.assertNotIn("secret-value", json.dumps(update.compose_validation_summary(raw)))
+        self.assertEqual(update.compose_validation_summary("services.app.security_opt must be a array")["rules"], ["must be a array"])
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI required for security-list regression")
+    def test_real_compose_rejects_duplicate_security_entries_and_accepts_repaired_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, repaired = root / "original.json", root / "private-copy.json"
+            config = {"services": {"maintenance-worker": {"image": "node:24-alpine", "security_opt": ["no-new-privileges:true"] * 2,
+                       "cap_drop": ["ALL"] * 2, "read_only": True}}}
+            source.write_text(json.dumps(config))
+            original = source.read_bytes()
+            args = ["docker", "compose", "--project-directory", directory, "-p", "security-repair-regression", "-f"]
+            broken = subprocess.run(args + [str(source), "config", "--format", "json"], capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(broken.returncode, 0)
+            self.assertIn("are equal", broken.stderr)
+            fixed, unused = update.prepare_security_lists(config)
+            repaired.write_text(json.dumps(fixed))
+            valid = subprocess.run(args + [str(repaired), "config", "--format", "json"], capture_output=True, text=True, timeout=30)
+            self.assertEqual(valid.returncode, 0)
+            worker = json.loads(valid.stdout)["services"]["maintenance-worker"]
+            self.assertEqual(worker["security_opt"], ["no-new-privileges:true"])
+            self.assertEqual(worker["cap_drop"], ["ALL"])
+            self.assertTrue(worker["read_only"])
+            self.assertEqual(source.read_bytes(), original)
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI required for full snapshot regression")
+    def test_snapshot_repairs_private_input_before_validation_and_keeps_working_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            working, recovery, inputs = root / "working", root / "recovery", root / "inputs"
+            for path in (working, recovery, inputs):
+                path.mkdir()
+            (working / ".env.production").write_text("SMTP_PASSWORD=synthetic-file-value\n")
+            file = inputs / "frozen.json"
+            file.write_text(json.dumps({"services": {
+                "app": {"image": "node:24-alpine", "env_file": [".env.production"], "security_opt": ["no-new-privileges:true"] * 2},
+                "maintenance-worker": {"image": "node:24-alpine", "security_opt": ["no-new-privileges:true"] * 2},
+                "postgres": {"image": "postgres:17-alpine", "environment": {"POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?required}"}}
+            }}))
+            original = file.read_bytes()
+            labels = {"com.docker.compose.project": "max-travel-booking", "com.docker.compose.service": "app",
+                      "com.docker.compose.project.working_dir": str(working), "com.docker.compose.project.config_files": str(file)}
+            app = {"Name": "/max-travel-booking-app-1", "Image": "sha256:" + "1" * 64,
+                   "State": {"Running": True, "Health": {"Status": "healthy"}}, "Mounts": [],
+                   "Config": {"Labels": labels, "Env": ["SMTP_PASSWORD=synthetic-runtime-value"]}}
+            db = {"Name": "/max-travel-booking-postgres-1", "Image": "sha256:" + "2" * 64, "Mounts": [],
+                  "Config": {"Labels": {"com.docker.compose.project": "max-travel-booking", "com.docker.compose.service": "postgres"},
+                             "Env": ["POSTGRES_PASSWORD=synthetic$database-value"]}}
+            state = update.Update.__new__(update.Update)
+            state.directory, state.number, state.stacks = recovery, 0, []
+            def inspect(kind, identity):
+                if kind == "image":
+                    return {"Config": {"Env": []}}
+                return db if identity == "db-id" else app
+            state.inspect = inspect
+            real_run = state.run
+            calls = []
+            def run(args, **kwargs):
+                calls.append(args)
+                if args[:3] == ["docker", "ps", "-q"]:
+                    return "app-id\ndb-id\n"
+                return real_run(args, **kwargs)
+            state.run = run
+            console = io.StringIO()
+            with contextlib.redirect_stdout(console):
+                stack = state.snapshot("max-travel-booking-app-1", "max-travel-booking")
+            self.assertEqual(stack["config"]["services"]["app"]["environment"]["SMTP_PASSWORD"], "synthetic-runtime-value")
+            self.assertNotIn("POSTGRES_PASSWORD", stack["config"]["services"]["app"]["environment"])
+            self.assertEqual(stack["config"]["services"]["postgres"]["environment"]["POSTGRES_PASSWORD"], "synthetic$database-value")
+            self.assertEqual(stack["config"]["services"]["maintenance-worker"]["security_opt"], ["no-new-privileges:true"])
+            self.assertEqual(stack["services"], ["app"])
+            self.assertEqual(file.read_bytes(), original)
+            self.assertNotIn("synthetic-runtime", console.getvalue())
+            self.assertTrue(all("up" not in c and "stop" not in c for c in calls))
+
     def runtime(self, service, values, project="max-travel-booking", oneoff=False):
         return {"Config": {"Labels": {"com.docker.compose.project": project,
                     "com.docker.compose.service": service, "com.docker.compose.oneoff": str(oneoff)},

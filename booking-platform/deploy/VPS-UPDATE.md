@@ -19,6 +19,11 @@ Run without flags for an inspection; use `--apply` for the update. The updater:
    update before any restart. It does not add the database password to the app.
    Frozen files escape literal dollar signs so subsequent Compose reads preserve
    credential values. CLI stderr is kept separate from machine-readable stdout.
+   Legacy JSON copies with repeated identical `security_opt`, `cap_drop` or
+   `cap_add` entries are repaired in a private copy before validation; every
+   distinct entry remains. A single explicit no-new-privileges string can become
+   a one-item list. Other invalid types stop before any restart. Source files
+   remain unchanged, and validation failures print field/type metadata only.
 2. Prints only boolean integration readiness checks, not signing keys or API
    credentials. It does not rotate secrets or grant users additional access.
 3. Checks out the two pinned commits into fresh private directories and builds

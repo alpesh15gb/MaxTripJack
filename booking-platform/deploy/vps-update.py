@@ -78,6 +78,41 @@ def resolved_compose(value):
     return compose_dollars(value, "$$", "$")
 
 
+def prepare_security_lists(config):
+    """Repair redundant frozen JSON entries without dropping a distinct protection."""
+    result = copy.deepcopy(config)
+    changes = []
+    for service, spec in result.get("services", {}).items():
+        if not isinstance(spec, dict):
+            continue
+        for field in ("security_opt", "cap_drop", "cap_add"):
+            if field not in spec:
+                continue
+            values = spec[field]
+            path = "services." + service + "." + field
+            if field == "security_opt" and isinstance(values, str) and values in ("no-new-privileges:true", "no-new-privileges=true"):
+                spec[field] = [values]
+                changes.append(path)
+                continue
+            if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+                raise StopUpdate("Unsupported Compose field " + path + ": expected a list of strings, received " + type(values).__name__ + ". No service changed.")
+            unique = list(dict.fromkeys(values))
+            if unique != values:
+                spec[field] = unique
+                changes.append(path)
+    return result, changes
+
+
+def compose_validation_summary(text):
+    """Print structural errors only, never offending values or raw CLI text."""
+    fields = sorted(set(re.findall(r"\b(?:services|networks|volumes|configs|secrets)(?:\.[A-Za-z0-9_-]+)+", text)))[:12]
+    lower = text.lower()
+    rules = [rule for rule in ("must be a string", "must be a number", "must be an integer", "must be a boolean", "must be a array", "must be an array", "must be a mapping", "must be a list", "not allowed", "is required") if rule in lower]
+    if re.search(r"items at \d+ and \d+ are equal", lower):
+        rules.append("duplicate list entries")
+    return {"fields": fields, "rules": rules}
+
+
 def same_secret(left, right):
     return bool(left and right) and hmac.compare_digest(left.encode(), right.encode())
 
@@ -232,6 +267,8 @@ class Update:
             result = subprocess.run(args, cwd=cwd, stdin=input_file, stdout=output_file if output_file is not None else log,
                                     stderr=errors, timeout=timeout, check=False, env=env)
         if result.returncode:
+            if args[:2] == ["docker", "compose"] and "config" in args:
+                print("Compose validation summary: " + json.dumps(compose_validation_summary(error_path.read_text(errors="replace"))), flush=True)
             raise StopUpdate(f"An operation failed. Private diagnostic logs: {log_path} and {error_path}")
         if output_file is not None:
             return None
@@ -279,12 +316,30 @@ class Update:
             if not Path(file).is_file():
                 raise StopUpdate("An explicitly configured Compose environment file is unavailable.")
             command += ["--env-file", file]
-        for file in files:
+        input_files = []
+        for index, file in enumerate(files):
+            try:
+                source = json.loads(Path(file).read_text())
+            except ValueError:
+                input_files.append(file)  # Preserve existing YAML and its anchor/merge semantics.
+                continue
+            if not isinstance(source, dict):
+                raise StopUpdate("Compose JSON input must be an object.")
+            prepared, changes = prepare_security_lists(source)
+            if changes:
+                if source.get("include") or any(isinstance(s, dict) and s.get("extends") for s in source.get("services", {}).values()):
+                    raise StopUpdate("A security-list repair with include/extends requires path review; no service changed.")
+                private = self.write(project + "-source-" + str(index) + ".json", prepared)
+                input_files.append(str(private))
+                print("Prepared private Compose security-list repair: " + json.dumps(changes), flush=True)
+            else:
+                input_files.append(file)
+        for file in input_files:
             command += ["-f", file]
         # Databases have service-specific variables (e.g. POSTGRES_PASSWORD) that
         # the web app should not receive. Resolve them from this stack's containers.
         interpolation_names = set()
-        for file in files:
+        for file in input_files:
             interpolation_names.update(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)", Path(file).read_text()))
         compose_env = compose_interpolation_environment(interpolation_names, containers, project, os.environ)
         normalized = resolved_compose(json.loads(self.run(command + ["config", "--format", "json"], cwd=working, env=compose_env)))
