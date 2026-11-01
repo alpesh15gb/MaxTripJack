@@ -9,7 +9,7 @@ Policy content was captured from the rendered pages and imported as plain struct
 - Cancellations & Payment Policy: https://maxtravel.us/cancellations-payment-policy → /cancellations-payment-policy
 - Disclaimer: https://maxtravel.us/disclaimer → /disclaimer
 
-The owner explicitly approved replacing “Bonton Holidays” with “MaxTravel” in the existing Terms liability clause. Other policy wording is preserved; formatting, headings and list presentation are improved. No new effective date or legal approval is claimed. The agency introduction on /about uses the existing site's About Us paragraph; existing contact details match the owner's confirmed profile. Promotional counters and customer reviews were not imported as new claims.
+The owner explicitly approved replacing “Bonton Holidays” with “MaxTravel” in the existing Terms liability clause (with the matching possessive, “MaxTravel’s”). Other policy wording is preserved; formatting, headings and list presentation are improved. No new effective date or legal approval is claimed. The agency introduction on /about uses the existing site's About Us paragraph; existing contact details match the owner's confirmed profile. Promotional counters and customer reviews were not imported as new claims.
 
 Blog, offers and testimonials link to observed #TravelBlog, #SubscribeForOffers and #Testimonials sections on maxtravel.us. Bus, visa and web check-in use its observed routes. Flight/hotel/package links remain within this booking app. Partnership and insurance links open real email enquiries with the appropriate subject. The Google icon opens the verified Maps listing. No fake subscription success, partner signup or insurance purchase flow was added.
 

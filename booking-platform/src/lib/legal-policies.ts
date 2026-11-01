@@ -117,7 +117,7 @@ export const legalPolicies = [
         "paragraphs": [],
         "bullets": [
           "We shall not be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in any way connected with the use of our website or services, including but not limited to loss of profits, data, or goodwill.",
-          "In no event shall MaxTravel' total liability to you exceed the amount paid by you for the services rendered."
+          "In no event shall MaxTravel's total liability to you exceed the amount paid by you for the services rendered."
         ]
       },
       {
