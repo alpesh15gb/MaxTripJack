@@ -19,8 +19,8 @@ import time
 from datetime import datetime, timezone
 from urllib.parse import quote, urlsplit, urlunsplit
 
-BOOKING_REF = "e793cb26de9aa7108cb056f54d8eb7a2d44c82f6"
-CRM_REF = "679c3257c504b7f46596156605ee7a493728795f"
+BOOKING_REF = "9100acb1add27720ae30e9ffad69edc7202d2632"
+CRM_REF = "5cf9614028e8b49658a3c0478627b75d8213eba2"
 ROOT = Path("/opt/maxtravel-deployments")
 
 

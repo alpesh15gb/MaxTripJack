@@ -4,8 +4,9 @@
 and `crm.maxtravel.in`. It is not a generic installer. Python 3.8+, Git, Docker
 and Docker Compose v2 are required; run as root on that VPS.
 
-The source pins are booking `e793cb26de9aa7108cb056f54d8eb7a2d44c82f6` and CRM
-`679c3257c504b7f46596156605ee7a493728795f`. Later app releases require updating
+The source pins are booking `9100acb1add27720ae30e9ffad69edc7202d2632` and CRM
+`5cf9614028e8b49658a3c0478627b75d8213eba2`. This release contains the verified
+hotel destination recovery fix and the two-app acceptance reports. Later app releases require updating
 and reviewing those pins. Build logs do not imply that a VPS rollout has run.
 
 Run without flags for an inspection; use `--apply` for the update. The updater:
