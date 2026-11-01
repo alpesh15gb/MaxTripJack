@@ -187,7 +187,40 @@ def integration_summary(booking, crm):
     }
 
 
-def freeze_config(config, containers, image_defaults):
+def retain_live_mount(result, spec, service, mount):
+    """Pin an undeclared runtime mount to the SAME source, never a new volume/path."""
+    destination = mount.get("Destination", "")
+    if not destination or not PurePosixPath(destination).is_absolute() or ".." in PurePosixPath(destination).parts:
+        raise StopUpdate("A live mount has an invalid container target.")
+    retained = {"type": mount["Type"], "target": destination, "read_only": not mount.get("RW", True)}
+    if mount["Type"] == "volume":
+        name = mount.get("Name")
+        if not isinstance(name, str) or not name:
+            raise StopUpdate("Cannot preserve a live volume without its existing Docker volume name.")
+        key = "retained-" + hashlib.sha256((service + "\0" + destination + "\0" + name).encode()).hexdigest()[:20]
+        definition = {"external": True, "name": name}
+        volumes = result.setdefault("volumes", {})
+        if key in volumes and volumes[key] != definition:
+            raise StopUpdate("Conflicting retained Docker volume identity.")
+        volumes[key] = definition
+        retained["source"] = key
+    elif mount["Type"] == "bind":
+        source = mount.get("Source", "")
+        if not os.path.isabs(source) or not Path(source).exists():
+            raise StopUpdate("Cannot preserve a live bind mount whose source is unavailable.")
+        retained["source"] = source
+        retained["bind"] = {"create_host_path": False}
+        if mount.get("Propagation"):
+            retained["bind"]["propagation"] = mount["Propagation"]
+    else:
+        raise StopUpdate("Unsupported live mount type.")
+    if spec.get("volumes") is None:
+        spec["volumes"] = []
+    spec["volumes"].append(retained)
+    return retained
+
+
+def freeze_config(config, containers, image_defaults, on_retained=None):
     """Use current container overrides as truth, pin old images, retain mounts/networks."""
     result = copy.deepcopy(config)
     services = result.get("services", {})
@@ -223,13 +256,18 @@ def freeze_config(config, containers, image_defaults):
                 continue
             match = next((v for v in volumes if isinstance(v, dict) and v.get("target") == mount["Destination"]), None)
             if not match:
-                raise StopUpdate("A running container mount is missing from the Compose configuration.")
+                match = retain_live_mount(result, spec, service, mount)
+                if on_retained:
+                    on_retained({"service": service, "type": mount["Type"], "target": mount["Destination"]})
+                volumes = spec["volumes"]
+            if match.get("type") != mount["Type"] or bool(match.get("read_only", False)) != (not mount.get("RW", True)):
+                raise StopUpdate("Compose mount type/access differs from the running container for service " + service + ".")
             if mount["Type"] == "volume":
                 definition = (result.get("volumes") or {}).get(match.get("source"), {})
                 if definition.get("name") != mount.get("Name"):
-                    raise StopUpdate("Compose volume identity differs from the mounted database/storage volume.")
+                    raise StopUpdate("Compose volume identity differs from the live mount for service " + service + " at " + mount["Destination"] + ".")
             elif os.path.realpath(str(match.get("source", ""))) != os.path.realpath(mount["Source"]):
-                raise StopUpdate("Compose bind mount differs from the running container.")
+                raise StopUpdate("Compose bind source differs from the live mount for service " + service + " at " + mount["Destination"] + ".")
     return result
 
 
@@ -348,7 +386,8 @@ class Update:
         compose_env = compose_interpolation_environment(interpolation_names, containers, project, os.environ)
         normalized = resolved_compose(json.loads(self.run(command + ["config", "--format", "json"], cwd=working, env=compose_env)))
         defaults = {c["Image"]: self.inspect("image", c["Image"])["Config"].get("Env", []) for c in containers}
-        frozen = freeze_config(normalized, containers, defaults)
+        frozen = freeze_config(normalized, containers, defaults,
+            lambda mount: print("Preserved live mount in private configuration: " + json.dumps(mount), flush=True))
         stack = {"project": project, "working": working, "app": app_name,
                  "env": environment(app["Config"].get("Env")), "config": frozen, "containers": containers}
         stack["services"] = [(c["Config"].get("Labels") or {})["com.docker.compose.service"] for c in containers

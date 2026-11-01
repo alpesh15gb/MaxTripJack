@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
+import uuid
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("vps_update", Path(__file__).parents[1] / "vps-update.py")
@@ -18,6 +19,76 @@ spec.loader.exec_module(update)
 
 
 class SafetyTests(unittest.TestCase):
+    def test_missing_live_named_volume_is_pinned_external_without_changing_source_model(self):
+        config, app, defaults = self.fixture()
+        del config["services"]["app"]["volumes"]
+        original = copy.deepcopy(config)
+        notes = []
+        frozen = update.freeze_config(config, [app], defaults, notes.append)
+        mount = frozen["services"]["app"]["volumes"][0]
+        self.assertEqual(mount["target"], "/data")
+        self.assertFalse(mount["read_only"])
+        self.assertEqual(frozen["volumes"][mount["source"]], {"external": True, "name": "max-travel-crm_agency-data"})
+        self.assertEqual(notes, [{"service": "app", "type": "volume", "target": "/data"}])
+        self.assertEqual(config, original)
+
+    def test_missing_live_bind_mount_keeps_existing_source_and_disallows_empty_directory_creation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "certificate.pem"
+            source.write_text("synthetic-public-certificate")
+            config, app, defaults = self.fixture()
+            app["Mounts"].append({"Type": "bind", "Source": str(source), "Destination": "/run/certificate.pem", "RW": False, "Propagation": "rprivate"})
+            frozen = update.freeze_config(config, [app], defaults)
+            retained = next(v for v in frozen["services"]["app"]["volumes"] if v["target"] == "/run/certificate.pem")
+            self.assertEqual(retained["source"], str(source))
+            self.assertTrue(retained["read_only"])
+            self.assertEqual(retained["bind"], {"create_host_path": False, "propagation": "rprivate"})
+            self.assertEqual(source.read_text(), "synthetic-public-certificate")
+
+    def test_retained_volume_requires_an_existing_identity_and_explicit_access_mismatches_fail(self):
+        config, app, defaults = self.fixture()
+        config["services"]["app"]["volumes"] = None
+        app["Mounts"][0]["Name"] = ""
+        with self.assertRaises(update.StopUpdate):
+            update.freeze_config(config, [app], defaults)
+        config, app, defaults = self.fixture()
+        app["Mounts"][0]["RW"] = False
+        with self.assertRaises(update.StopUpdate):
+            update.freeze_config(config, [app], defaults)
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker engine and Compose CLI required for retained-data proof")
+    def test_recreated_container_uses_the_same_retained_volume_and_keeps_its_data(self):
+        identity = "maxtravelmountproof" + uuid.uuid4().hex[:16]
+        volume, image = identity + "-data", "python:3.10-alpine"
+        def call(args):
+            return subprocess.run(args, check=True, capture_output=True, text=True, timeout=120)
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / "retained.json"
+            compose = ["docker", "compose", "-p", identity, "-f", str(file)]
+            created = False
+            try:
+                call(["docker", "volume", "create", volume])
+                created = True
+                call(["docker", "run", "--rm", "--network", "none", "--mount", "type=volume,source=" + volume + ",target=/data", image,
+                      "python", "-c", "from pathlib import Path; Path('/data/proof').write_text('retained-original')"])
+                image_id = call(["docker", "image", "inspect", image, "--format", "{{.Id}}"]).stdout.strip()
+                model = {"services": {"app": {"image": image, "network_mode": "none", "read_only": True}}}
+                live = {"Image": image_id, "Config": {"Labels": {"com.docker.compose.service": "app"}, "Env": []},
+                        "Mounts": [{"Type": "volume", "Name": volume, "Destination": "/data", "RW": True}]}
+                frozen = update.freeze_config(model, [live], {image_id: []})
+                file.write_text(json.dumps(update.literal_compose(frozen)))
+                proof = call(compose + ["run", "--rm", "--no-deps", "-T", "--pull", "never", "--entrypoint", "python", "app", "-c",
+                         "from pathlib import Path; p=Path('/data/proof'); assert p.read_text()=='retained-original'; p.write_text('retained-verified'); print('retained-data-ok')"])
+                self.assertIn("retained-data-ok", proof.stdout)
+                call(["docker", "run", "--rm", "--network", "none", "--mount", "type=volume,source=" + volume + ",target=/data", image,
+                      "python", "-c", "from pathlib import Path; assert Path('/data/proof').read_text()=='retained-verified'"])
+            finally:
+                if file.exists():
+                    subprocess.run(compose + ["down", "--remove-orphans"], capture_output=True, timeout=60)
+                if created:
+                    removed = subprocess.run(["docker", "volume", "rm", volume], capture_output=True, timeout=60)
+                    self.assertEqual(removed.returncode, 0, "Owned retained-data test volume must be removed")
+
     def test_security_list_repair_preserves_distinct_policies_and_source(self):
         source = {"services": {"maintenance-worker": {"security_opt": ["no-new-privileges:true", "apparmor=travel", "no-new-privileges:true"],
                    "cap_drop": ["ALL", "ALL"], "cap_add": ["NET_BIND_SERVICE", "NET_BIND_SERVICE"], "read_only": True}}}

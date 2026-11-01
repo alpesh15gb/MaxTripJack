@@ -12,8 +12,11 @@ Run without flags for an inspection; use `--apply` for the update. The updater:
 
 1. Captures the active Compose chains and current container environment
    overrides into root-private recovery files. It pins original image IDs,
-   preserves networking/ports/mounts, checks existing storage identities and
-   refuses missing or different database/upload volumes. Compose interpolation
+   preserves networking/ports/mounts and checks existing storage identities.
+   A runtime mount absent from the saved model is retained using its exact live
+   source: volumes use their existing Docker name with `external: true`; bind
+   sources must exist and use `create_host_path: false`. Declared source/type/
+   access mismatches still stop the update. Compose interpolation
    uses the running services in the same project, including database-only
    variables such as `POSTGRES_PASSWORD`; conflicting service values stop the
    update before any restart. It does not add the database password to the app.
@@ -84,3 +87,7 @@ rollout orchestration checks build/backup/migration ordering and confirms that
 previously inactive workers never start. The generated configuration shape was
 also checked with Docker Compose. These are local checks, not evidence of a
 successful VPS deployment. The safety tests run in GitHub Actions.
+
+The retained-volume regression creates its own temporary Docker volume, writes a
+marker, runs a new container from the frozen configuration, and verifies that it
+reads/updates the original volume's data. Only that test's resources are removed.
