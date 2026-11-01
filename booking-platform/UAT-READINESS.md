@@ -2,7 +2,7 @@
 
 ## Update — 1 November 2026
 
-User-supplied diagnostics from the running VPS booking container confirm TripJack flight and hotel keys are configured. A direct UAT DEL–BOM search returned HTTP 200, success and 250 results; the hotel nationality lookup returned HTTP 200, success and 207 entries. These checks establish supplier connectivity for those calls, not hotel availability, booking, payment or after-sales acceptance. Razorpay key ID, secret and webhook secret were absent from that container at the time of the check.
+User-supplied diagnostics from the running VPS booking container confirm TripJack flight and hotel keys are configured. A direct UAT DEL–BOM search returned HTTP 200, success and 250 results; the hotel nationality lookup returned HTTP 200, success and 207 entries. Application-layer flight search then returned a search reference and 243 results. The app found India in its nationality list, mapped 100 Goa hotel IDs, and returned a hotel search reference with 31 available properties. These checks establish those search/catalogue paths, not fare review, booking, payment or after-sales acceptance. Razorpay key ID, secret and webhook secret were absent from that container at the time of the check.
 
 Protected Vercel previews use isolated synthetic databases. Cross-app verification remains in local loopback fixtures, as requested. The current unit suite has 435 checks; full provider acceptance below remains separate. Preview origin checks now share the same configured/deployment URL resolution for authentication, writes, guest shopping and internal CRM commands.
 

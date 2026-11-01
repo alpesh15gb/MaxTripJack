@@ -775,5 +775,5 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       <ul className="booking-trust-note"><li>Full total before payment</li><li>Fare rules at review</li><li>Verified updates in My trips</li></ul><p className="booking-environment-note">In Testing · No live bookings or payments</p><Link className="inline-link" href="/my-trips">Already paid? Check My trips →</Link>
     </aside>}</div>
   {quote&&checkoutStep==='payment'&&<div className="mobile-booking-action" aria-label="Quick booking summary"><div><small>{party.length} travellers · reviewed total</small><strong>{money(quote.totalMinor)}</strong></div><button className="secondary" type="button" onClick={()=>scrollToSection('booking-review')}>Review trip ↑</button></div>}
-  </main><TravelFooter/></>;
+  </main><TravelFooter compact/></>;
 }
