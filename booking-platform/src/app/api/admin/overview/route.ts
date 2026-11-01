@@ -4,7 +4,7 @@ import { json, failure } from "@/lib/http";
 export async function GET(request: Request) {
   try {
     await administrator(request, "bookings:read");
-    const result = await database().query("SELECT (SELECT count(*)::int FROM orders) AS bookings, (SELECT count(*)::int FROM orders WHERE status='MANUAL_REVIEW') AS exceptions, (SELECT count(*)::int FROM cancellation_requests WHERE status='REQUESTED') AS cancellations, (SELECT count(*)::int FROM outbox_events WHERE attempts>0 AND delivered_at IS NULL) AS sync_retries");
+    const result = await database().query("SELECT (SELECT count(*)::int FROM orders) AS bookings, (SELECT count(*)::int FROM orders WHERE status='MANUAL_REVIEW') AS exceptions, (SELECT count(*)::int FROM cancellation_requests WHERE status='REQUESTED' OR (status='SUPPLIER_PENDING' AND follow_up_required_at IS NOT NULL)) AS cancellations, (SELECT count(*)::int FROM outbox_events WHERE attempts>0 AND delivered_at IS NULL) AS sync_retries");
     return json(result.rows[0]);
   } catch (e) { return failure(e); }
 }

@@ -6,7 +6,7 @@ if(provider==="RAZORPAY")required.push("RAZORPAY_KEY_ID","RAZORPAY_KEY_SECRET","
 const failures=[];for(const key of required)if(!process.env[key])failures.push(`${key}: missing`);
 // Configuration only: merchant UAT interoperability remains a separate gate.
 if(provider==="PAYGLOCAL"){
- failures.push("PAYGLOCAL_TRAVEL_CONTRACT: merchant-specific travel payload attachment was not supplied; new checkout remains blocked");
+ failures.push("PAYGLOCAL_TRAVEL_CONTRACT: travel mapping is implemented; merchant field, transport and webhook confirmations are pending; new checkout remains blocked");
  if(process.env.PAYGLOCAL_ENV!=='UAT')failures.push('PAYGLOCAL_ENV: only UAT is enabled until merchant approval');
  for(const name of ['PAYGLOCAL_MERCHANT_ID','PAYGLOCAL_PRIVATE_KEY_ID','PAYGLOCAL_PUBLIC_KEY_ID'])if(!/^[A-Za-z0-9_-]{1,200}$/.test(process.env[name]??''))failures.push(`${name}: missing or invalid`);
  try{const pem=name=>{const text=process.env[name]||(process.env[name+'_PATH']?readFileSync(process.env[name+'_PATH'],'utf8'):'');if(!text||text.length>32768)throw Error();return text.replaceAll('\\n','\n');};for(const key of [createPrivateKey(pem('PAYGLOCAL_PRIVATE_KEY')),createPublicKey(pem('PAYGLOCAL_PUBLIC_KEY'))])if(key.asymmetricKeyType!=='rsa'||(key.asymmetricKeyDetails?.modulusLength??0)<2048)throw Error();}catch{failures.push('PAYGLOCAL_KEYS: valid RSA private key and gateway public key/certificate are required (minimum 2048 bits)');}

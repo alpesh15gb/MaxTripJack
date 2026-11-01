@@ -41,8 +41,8 @@ export function adminRegisterQuery(
     status &&
     (resources[name].columns as readonly string[]).includes("status")
   ) {
-    values.push(status);
-    clauses.push("r.status=$" + values.length);
+    if(name === "cancellations" && status === "FOLLOW_UP_REQUIRED") clauses.push("r.status='SUPPLIER_PENDING' AND r.follow_up_required_at IS NOT NULL");
+    else { values.push(status); clauses.push("r.status=$" + values.length); }
   }
   const base = resources[name].sql.replace(/ ORDER BY [^]*$/i, "");
   return {

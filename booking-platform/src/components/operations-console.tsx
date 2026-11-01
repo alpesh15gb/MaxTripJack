@@ -56,6 +56,7 @@ const statuses: Partial<Record<Resource, string[]>> = {
   companies: ["APPROVED", "SUSPENDED"],
   payments: ["CREATED", "CAPTURED", "FAILED", "ORDER_UNKNOWN"],
   cancellations: [
+    "FOLLOW_UP_REQUIRED",
     "REQUESTED",
     "UNDER_REVIEW",
     "AWAITING_ACCEPTANCE",
@@ -151,6 +152,10 @@ function columns(tab: Resource): [string, string][] {
       return [
         ["reference", "Booking reference"],
         ["status", "Progress"],
+        ["supplier_status", "Supplier progress"],
+        ["last_checked_at", "Last checked (IST)"],
+        ["next_check", "Next check (IST)"],
+        ["follow_up_required_at", "Follow-up required since (IST)"],
         ["is_partial", "Scope"],
         ["reason", "Customer reason"],
         ["created_at", "Requested (IST)"],
@@ -189,8 +194,10 @@ function columns(tab: Resource): [string, string][] {
   }
 }
 function display(key: string, row: OpsRow) {
+  if (key === "follow_up_required_at") return row.status === "SUPPLIER_PENDING" && row[key] ? "Staff follow-up required" : "—";
+  if (key === "check_error") return row[key] === "SUPPLIER_UNAVAILABLE" ? "Supplier unavailable; automatic checks continue" : row[key] === "AMENDMENT_REFERENCE_UNAVAILABLE" ? "Supplier reference needs staff reconciliation" : row[key] === "UNKNOWN_STATUS" ? "Supplier status needs review" : "—";
   if (key.endsWith("_minor")) return money(row[key]);
-  if (key.endsWith("_at") || ["next_attempt"].includes(key))
+  if (key.endsWith("_at") || ["next_attempt", "next_check"].includes(key))
     return date(row[key]);
   if (key === "status")
     return (

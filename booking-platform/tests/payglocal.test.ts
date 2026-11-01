@@ -1,3 +1,5 @@
+import {buildPayGlocalTravelData} from "../src/lib/providers/payglocal-travel";
+import {flightTravelSource} from "./fixtures/payglocal-travel";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { assertPayGlocalStatusBinding, assertPayGlocalCheckoutReady, formatPayGlocalAmount, payGlocalPaymentState, payGlocalRefundState, validatePayGlocalUrl, type PayGlocalAttempt, type PayGlocalVerifiedStatus } from "../src/lib/providers/payglocal";
@@ -89,6 +91,7 @@ test("hosted flight payload requires real payer billing and stable IDs without c
   const input = {
     attempt: { ...attempt, merchantTxnId: "0123456789abcdef0123456789abcdef" }, product: "FLIGHT" as const,
     billingData: { firstName: "Test", lastName: "Payer", emailId: "payer@example.test", addressCountry: "IN", addressStreet1: "1 Example Street", addressCity: "Mumbai", addressState: "Maharashtra" },
+    travelData: buildPayGlocalTravelData(flightTravelSource()),
     merchantCallbackURL: "https://merchant.example.test/api/payments/payglocal/callback", applicationOrigin: "https://merchant.example.test",
   };
   const payload = buildPayGlocalCheckoutPayload(input);

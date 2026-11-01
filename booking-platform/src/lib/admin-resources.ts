@@ -53,6 +53,11 @@ export const resources = {
       "product",
       "status",
       "poll_attempts",
+      "supplier_status",
+      "last_checked_at",
+      "next_check",
+      "check_error",
+      "follow_up_required_at",
       "is_partial",
       "scope",
       "reason",
@@ -61,7 +66,7 @@ export const resources = {
       "created_at",
     ],
     permission: "cancellations:manage",
-    sql: "SELECT c.id,o.reference,o.product,c.status,c.poll_attempts,c.is_partial,c.scope,c.reason,c.review_note,c.reviewed_by,c.created_at FROM cancellation_requests c JOIN orders o ON o.id=c.order_id ORDER BY c.created_at DESC",
+    sql: "SELECT c.id,o.reference,o.product,c.status,c.poll_attempts,c.supplier_status,c.last_checked_at,c.next_check,c.check_error,c.follow_up_required_at,c.is_partial,c.scope,c.reason,c.review_note,c.reviewed_by,c.created_at FROM cancellation_requests c JOIN orders o ON o.id=c.order_id ORDER BY c.created_at DESC",
   },
   payments: {
     columns: [

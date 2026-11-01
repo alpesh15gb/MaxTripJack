@@ -1,0 +1,9 @@
+{
+  "source": "https://raw.githubusercontent.com/jpatokal/openflights/e3bc6dedbcceb8b7b74248a00dcd6207254da6bd/data/airports.dat",
+  "provider": "OpenFlights",
+  "license": "ODbL 1.0",
+  "licenseUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "sourceSha256": "9387cdb38df5bd664da823f8ccb69fdd9b33a1888f5b7cca09c34a3cd9ff59f9",
+  "retrievedAt": "2026-11-01",
+  "note": "IATA to IANA zone only; duplicate codes with conflicting zones excluded. Runtime ICU supplies date-specific offsets; legacy numeric DST/offset columns are not used."
+}

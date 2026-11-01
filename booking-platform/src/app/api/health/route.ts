@@ -1,2 +1,2 @@
 import { database } from "@/lib/db";
-export async function GET(){try{await database().query("SELECT 1");return Response.json({status:"ready"},{headers:{"Cache-Control":"no-store"}});}catch{return Response.json({status:"unavailable"},{status:503,headers:{"Cache-Control":"no-store"}});}}
+export async function GET(){try{await database().query("SELECT lease_token,lease_until,last_checked_at,next_check,supplier_status,check_error,follow_up_required_at FROM cancellation_requests LIMIT 0");return Response.json({status:"ready"},{headers:{"Cache-Control":"no-store"}});}catch{return Response.json({status:"unavailable"},{status:503,headers:{"Cache-Control":"no-store"}});}}

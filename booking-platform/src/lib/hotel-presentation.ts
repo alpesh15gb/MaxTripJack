@@ -19,6 +19,8 @@ export type HotelRoomOption = {
   pricing: { totalPrice: number; currency: string; mf?: number; mft?: number };
 };
 export type HotelPropertyDetails = {
+  city?: string;
+  countryCode?: string;
   starRating?: number;
   propertyType?: string;
   address?: string;
@@ -120,6 +122,8 @@ export function hotelPropertyDetails(source: unknown): HotelPropertyDetails {
     ...(photos.length ? {photos} : {}),
     ...(Number.isInteger(rating) && rating >= 1 && rating <= 5 ? {starRating: rating} : {}),
     ...(hotelText(hotelObject(data.property_type).name) ? {propertyType: hotelText(hotelObject(data.property_type).name)} : {}),
+    ...(hotelText(address.city, 200) ? {city: hotelText(address.city, 200)} : {}),
+    ...(typeof address.countrycode === "string" && /^[A-Z]{2}$/.test(address.countrycode) ? {countryCode: address.countrycode} : {}),
     ...(hotelText(address.fulladdr, 1000) ? {address: hotelText(address.fulladdr, 1000)} : {}),
     amenities: hotelStringList(Object.values(hotelObject(data.amenities)).map(item => hotelObject(item).name)),
   };

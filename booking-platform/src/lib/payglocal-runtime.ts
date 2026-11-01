@@ -1,4 +1,10 @@
 import 'server-only';
+import {isDeepStrictEqual} from 'node:util';
+import {payGlocalTravelForQuote} from './payglocal-travel-runtime';
+import {guestSchema} from './providers/contracts';
+import {billingForProduct} from './billing';
+import {unseal} from './vault';
+import type {PayGlocalTravelData} from './providers/payglocal-travel';
 import {randomUUID} from 'node:crypto';
 import {database,transaction} from './db';
 import {HttpError} from './http';
@@ -7,14 +13,24 @@ import {payGlocalConfig} from './providers/payglocal-config';
 import {assertPayGlocalTravelContract} from './providers/payglocal-travel-contract';
 import {initiatePayGlocal,readPayGlocalStatus} from './providers/payglocal-wire';
 import {reservePayGlocalAttempt,persistPayGlocalInitiation,markPayGlocalUnknown,linkPayGlocalRecoveredStatus,recordPayGlocalVerifiedStatus} from './payglocal-payment';
-export function payGlocalPayload(attempt:PayGlocalAttempt,product:'FLIGHT'|'HOTEL',billingData:PayGlocalBillingData,returnChannel:'WEB'|'APP'='WEB'){
- const config=payGlocalConfig(),callback=new URL('/api/payments/payglocal/return',config.origin);if(returnChannel==='APP')callback.searchParams.set('app','1');return buildPayGlocalCheckoutPayload({attempt,product,billingData,applicationOrigin:config.origin,merchantCallbackURL:callback.href});
+export function payGlocalPayload(attempt:PayGlocalAttempt,product:'FLIGHT'|'HOTEL',billingData:PayGlocalBillingData,travelData:PayGlocalTravelData,returnChannel:'WEB'|'APP'='WEB'){
+ const config=payGlocalConfig(),callback=new URL('/api/payments/payglocal/return',config.origin);if(returnChannel==='APP')callback.searchParams.set('app','1');return buildPayGlocalCheckoutPayload({attempt,product,billingData,travelData,applicationOrigin:config.origin,merchantCallbackURL:callback.href});
 }
 export async function createPayGlocalCheckout(bookingId:string,product:'FLIGHT'|'HOTEL',billingData:PayGlocalBillingData,returnChannel:'WEB'|'APP'='WEB'){
  assertPayGlocalTravelContract();
- const config=payGlocalConfig();const reserved=await transaction(tx=>reservePayGlocalAttempt(tx,bookingId,config.merchantId));
+ const config=payGlocalConfig();
+ const source=(await database().query("SELECT o.product,o.guests_encrypted,o.created_at,o.total_minor,o.supplier_minor,q.total_minor AS quote_total_minor,q.supplier_minor AS quote_supplier_minor,q.product AS quote_product,q.review,q.selection,q.service_kind,s.criteria,s.results FROM orders o JOIN supplier_quotes q ON q.id=o.quote_id JOIN supplier_searches s ON s.id=q.search_id WHERE o.id=$1",[bookingId])).rows[0];
+ if(!source||source.product!==product||source.quote_product!==product||source.total_minor!==source.quote_total_minor||source.supplier_minor!==source.quote_supplier_minor)throw new HttpError(409,'Stored travel details do not match this payment.');
+ const guests=guestSchema.parse(unseal(source.guests_encrypted,bookingId));
+ const storedBilling=billingForProduct(product).parse(guests.billingData);
+ if(!isDeepStrictEqual(storedBilling,billingData))throw new HttpError(409,'Payer details differ from the original order.');
+ const travelData=await payGlocalTravelForQuote(source,source,guests,new Date(source.created_at));
+ // Validate before persisting an initiation reservation: data errors are not
+ // uncertain gateway outcomes and must not strand a payment attempt.
+ payGlocalPayload({merchantTxnId:'00000000000000000000000000000000',merchantId:config.merchantId,gid:null,amountMinor:Number(source.total_minor),currency:'INR'},product,storedBilling,travelData,returnChannel);
+ const reserved=await transaction(tx=>reservePayGlocalAttempt(tx,bookingId,config.merchantId));
  if(reserved.created){
-  try{const result=await initiatePayGlocal(payGlocalPayload(reserved.attempt,product,billingData,returnChannel),reserved.attempt,config);await transaction(tx=>persistPayGlocalInitiation(tx,bookingId,result));}
+  try{const result=await initiatePayGlocal(payGlocalPayload(reserved.attempt,product,storedBilling,travelData,returnChannel),reserved.attempt,config);await transaction(tx=>persistPayGlocalInitiation(tx,bookingId,result));}
   catch(error){await transaction(tx=>markPayGlocalUnknown(tx,bookingId));throw error;}
  }
  const row=(await database().query("SELECT a.redirect_url,a.gid,a.state,o.status,o.total_minor,q.expires_at FROM payglocal_attempts a JOIN orders o ON o.id=a.order_id JOIN supplier_quotes q ON q.id=o.quote_id WHERE a.order_id=$1",[bookingId])).rows[0];

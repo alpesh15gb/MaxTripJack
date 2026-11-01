@@ -1,6 +1,7 @@
 import { serviceDisclosure } from "@/lib/service-conditions";
 import { checkoutPaymentProvider, assertNewPaymentProviderReady } from "@/lib/payment-provider";
 import {billingSchema,billingForProduct} from '@/lib/billing';
+import {payGlocalTravelForQuote} from "@/lib/payglocal-travel-runtime";
 import {createPayGlocalCheckout,payGlocalPayload} from '@/lib/payglocal-runtime';
 import {payGlocalConfig} from '@/lib/providers/payglocal-config';
 import { isDeepStrictEqual } from "node:util";
@@ -47,7 +48,7 @@ export async function POST(request:Request){try{
  const key=Number(quote.total_minor)>0&&provider==='RAZORPAY'?razorpayKey():null;
  if(Number(quote.total_minor)>0&&provider==='PAYGLOCAL'){
   const config=payGlocalConfig();
-  payGlocalPayload({merchantTxnId:'00000000000000000000000000000000',merchantId:config.merchantId,gid:null,amountMinor:Number(quote.total_minor),currency:'INR'},quote.product, billingForProduct(quote.product).parse(guests.billingData));
+  payGlocalPayload({merchantTxnId:'00000000000000000000000000000000',merchantId:config.merchantId,gid:null,amountMinor:Number(quote.total_minor),currency:'INR'},quote.product, billingForProduct(quote.product).parse(guests.billingData),await payGlocalTravelForQuote(quote,search,guests,new Date()),input.returnChannel);
  }
  if(quote.product==="FLIGHT"&&!quote.service_kind&&((quote.fare_validation_state&&quote.fare_validation_state!=="SUCCEEDED")||quote.booking_validation_state)){if(existingIntent.rowCount)throw new HttpError(409,"Existing checkout requires reconciliation. Check My trips and do not pay again.");throw new FareValidationBlockedError();}
  if(existingIntent.rowCount&&!isDeepStrictEqual(unseal(existingIntent.rows[0].guests_encrypted,existingIntent.rows[0].id),guests))throw new HttpError(409,"Checkout already contains different traveller or contact details. Review the original order in My trips before paying.");

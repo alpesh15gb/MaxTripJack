@@ -62,8 +62,9 @@ function FooterPolicyLinks(){
  return <nav className="travel-footer-policies" aria-label="Policies">{footerPolicyLinks.map(link=><Link key={link.href} href={link.href} aria-label={link.label}>{link.label}</Link>)}</nav>;
 }
 
+function AirportDataCredit(){return <p className="travel-footer-data-credit">Airport timezone data © <a href="https://openflights.org/data.php">OpenFlights contributors</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL 1.0</a></p>;}
 export function TravelFooter({compact=false}:{compact?:boolean}={}) {
- if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><FooterPolicyLinks/><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span></div></footer>;
+ if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><FooterPolicyLinks/><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span></div><AirportDataCredit/></footer>;
  return <footer className="travel-footer travel-footer--reference">
   <div className="travel-footer-inner"><div className="travel-footer-grid">
    <div className="travel-footer-identity"><Link href="/" className="travel-footer-brand" aria-label="MaxTravel home"><BrandLogo variant="footer"/></Link><nav className="travel-footer-socials" aria-label="Follow MaxTravel">{footerSocialLinks.map(item=><a key={item.name} href={item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}</nav></div>
@@ -74,7 +75,7 @@ export function TravelFooter({compact=false}:{compact?:boolean}={}) {
    {/* eslint-disable-next-line @next/next/no-img-element -- Original local SVG brand artwork, served without an image proxy. */}
    <img className="travel-footer-iata" src="/brand/iata.svg" width="76" height="48" loading="lazy" alt="IATA"/>
   </div><p className="travel-footer-testing">In Testing · No live bookings or payments</p></div>
-  <div className="travel-footer-copyright">© Copyright {new Date().getFullYear()} MaxTravel</div>
+  <div className="travel-footer-copyright">© Copyright {new Date().getFullYear()} MaxTravel</div><AirportDataCredit/>
   <a className="travel-footer-whatsapp" href={businessProfile.whatsappHref} aria-label="Chat with MaxTravel on WhatsApp"><FooterSocialIcon name="whatsapp"/></a>
  </footer>;
 }

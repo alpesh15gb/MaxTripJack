@@ -1,5 +1,7 @@
 # PayGlocal hosted checkout — gated implementation
 
+> Historical implementation snapshot from 2026-10-21. For current status, use [PayGlocal implementation](PAYGLOCAL-INTEGRATION.md) and the [2026-11-01 provider research](PROVIDER-RESEARCH-2026-11-01.md).
+
 Base: `453578df4bfd2b8c259a899426ed04738e470a04` (GitHub main and fresh clone verified 2026-10-21). Local branch: `feat/payglocal-hosted-checkout`. No push, migration, deployment, real payment, booking or provider-account changes were performed.
 
 ## What is implemented

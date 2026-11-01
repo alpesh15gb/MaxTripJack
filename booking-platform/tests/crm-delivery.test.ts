@@ -66,3 +66,10 @@ test("pending, cancelled and replaced bookings never attempt a confirmation PDF"
     assert.equal(result.payload.document, undefined); assert.deepEqual(f.omissions, []);
   }
 });
+
+
+test("cancellation status updates freeze the snapshot without resending a booking PDF",async()=>{
+  const f=fixture();let documents=0;f.dependencies.document=async()=>{documents++;throw Error("Cancellation update must not generate a confirmation PDF");};
+  const body=JSON.parse(await crmDeliveryPayload({...event,event_type:"cancellation.follow_up_required"},f.dependencies));
+  assert.equal(documents,0);assert.equal(body.payload.document,undefined);assert.deepEqual(body.payload.payments,snapshot.payments);assert.equal(f.writes.length,1);
+});

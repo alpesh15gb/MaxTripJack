@@ -1,5 +1,6 @@
 import { HttpError } from "../http";
 import { payGlocalConfig } from "./payglocal-config";
+import {payGlocalTravelSchema, type PayGlocalTravelData} from "./payglocal-travel";
 import {assertPayGlocalTravelContract} from './payglocal-travel-contract';
 
 // Pure payment contracts. RSA transport is isolated in payglocal-wire.ts.
@@ -32,19 +33,19 @@ export type PayGlocalBillingData = {
   addressStreet1?: string; addressCity?: string; addressState?: string;
 };
 
-/** PROVISIONAL generic envelope, NOT the missing merchant travel contract.
- * New checkout is held in payglocal-travel-contract.ts until it is implemented.
+/** Published travel-template mapping; merchant-specific omissions remain gated.
+ * New checkout is held in payglocal-travel-contract.ts until merchant confirmations are resolved.
  * Unsigned payload preparation is not a sendable request or UAT approval.
  * Field names: /docs/api-reference/payments-v2/paycollect/gpi and
  * https://payglocal.in/docs/api-reference/payload-templates (Flight templates).
  * Documentation disagrees about alpha-2/alpha-3 country and whether unique ID
  * is mandatory. Preserve the explicitly supplied country, include both stable
  * IDs, and resolve with the merchant before enabling the transport. Do not
- * invent a ticket number or flight risk data before supplier confirmation.
+ * invent a ticket number or undocumented gateway policy codes.
  */
 export function buildPayGlocalCheckoutPayload(input: {
   attempt: PayGlocalAttempt; product: "FLIGHT" | "HOTEL";
-  billingData: PayGlocalBillingData; merchantCallbackURL: string; applicationOrigin: string;
+  billingData: PayGlocalBillingData; travelData: PayGlocalTravelData; merchantCallbackURL: string; applicationOrigin: string;
 }) {
   const { attempt, billingData: billing } = input;
   if (!["FLIGHT", "HOTEL"].includes(input.product) || attempt.currency !== "INR" || !/^[A-Za-z0-9]{15,40}$/.test(attempt.merchantTxnId)) {
@@ -72,6 +73,8 @@ export function buildPayGlocalCheckoutPayload(input: {
     || /[\s\\]/.test(input.merchantCallbackURL)) {
     throw new HttpError(400, "Merchant callback must belong to the configured HTTPS application origin.");
   }
+  const travel = payGlocalTravelSchema.parse(input.travelData);
+  if (travel.product !== input.product) throw new HttpError(400, "Travel data does not match the booking product.");
   // Explicit selection avoids forwarding injected card/credential/extra fields.
   return {
     merchantTxnId: attempt.merchantTxnId,
@@ -85,6 +88,7 @@ export function buildPayGlocalCheckoutPayload(input: {
         ...(billing.addressState ? { addressState: billing.addressState } : {}),
       },
     },
+    riskData: travel.riskData,
     merchantCallbackURL: callback.href,
   };
 }
