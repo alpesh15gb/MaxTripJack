@@ -77,6 +77,19 @@ jobs:
           cache: npm
           cache-dependency-path: booking-platform/package-lock.json
       - run: npm ci
+      - name: Verify all seven idle workers on an empty disposable database
+        env:
+          TEST_WORKER_DATABASE_URL: postgresql://maxtravel:ephemeral-ci-database-only@127.0.0.1:55439/workers_disposable
+          TEST_SMTP_PORT: '11025'
+        run: |
+          npm run build:workers
+          node --input-type=module <<'JS'
+          import pg from 'pg';
+          const client = new pg.Client({connectionString:'postgresql://maxtravel:ephemeral-ci-database-only@127.0.0.1:55439/postgres'});
+          try { await client.connect(); await client.query('CREATE DATABASE workers_disposable'); }
+          finally { await client.end(); }
+          JS
+          node tests/idle-workers.mjs
       - name: Generate isolated fixture configuration
         run: |
           node --input-type=module <<'JS'
