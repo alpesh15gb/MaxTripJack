@@ -7,7 +7,7 @@ import { createElement, type ComponentType } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { publicPages } from "../src/lib/public-pages";
 import { flightGuides } from "../src/lib/flight-guides";
-import { assertPayGlocalTransportReady } from "../src/lib/providers/payglocal";
+import { assertPayGlocalCheckoutReady } from "../src/lib/providers/payglocal";
 
 const require = createRequire(import.meta.url);
 const internalWording = /TripJack|\bUAT\b|staging|sandbox|test environment/i;
@@ -64,7 +64,7 @@ test("search and account notes retain truthful testing warnings", () => {
 });
 
 test("payment stays disabled and reports that no payment was initiated", () => {
-  assert.throws(assertPayGlocalTransportReady, {status:503,message:"Online payment is not available yet. No payment was initiated."});
+  assert.throws(assertPayGlocalCheckoutReady, {status:503,message:"Online payment is not available yet. No payment was initiated."});
 });
 
 test("supplier failures keep HTTP status and safe recovery instructions", async () => {

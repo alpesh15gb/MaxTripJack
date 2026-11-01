@@ -10,7 +10,7 @@ The public/corporate flight and hotel application is implemented locally across 
 
 - Domestic/international one-way, return and multi-city flights (2–6 legs), cabin classes, adults/children/infants, group-aware fare selection, fare rules, expiring server quotes and document requirements.
 - Airport/destination/nationality directories, Hotel v3 availability, room review and up to four rooms with separate adults, child ages and guest assignments. Checkout validates child dates of birth against each room’s searched ages.
-- PayGlocal UAT hosted checkout, RSA JWS/JWE transport, explicit payer billing, authenticated capture/status recovery, durable payment/refund polling, checked finance settlement evidence and CRM updates. Historical Razorpay records retain their original provider. Server pricing, wallet preflight and supplier workers remain in place. See [PayGlocal setup](docs/PAYGLOCAL-INTEGRATION.md).
+- PayGlocal official Node.js SDK and required text/plain transport, authenticated capture/status recovery, independent durable webhook hints, payment/refund polling, checked finance settlement evidence and CRM updates. New checkout is explicitly blocked pending the missing merchant-specific travel payload attachment, even with valid UAT keys. Provisional payer/hosted checkout screens remain behind that hold. Historical Razorpay records retain their original provider. Server pricing, wallet preflight and supplier workers remain in place. See [PayGlocal setup](docs/PAYGLOCAL-INTEGRATION.md).
 - Confirmation details/PDFs, booking history, saved travellers, account verification, corporate/admin MFA and permission controls.
 - Full or selected-flight/passenger cancellation requests, operations charges/offers, customer acceptance, one-time supplier submission and amendment polling. A partial cancellation leaves remaining travel active. Confirmed refund offers accumulate; refunds cannot exceed accepted terms or the original captured balance.
 - Initial flight checkout supports reviewed meals/baggage and eligible non-exit-row seats through the website and mobile app. Server pricing, atomic quote locking, pre-payment fare validation, one-time supplier submission and SSR fulfilment checks apply. Unverified extras leave successful supplier bookings in manual review.
@@ -31,7 +31,7 @@ No actual supplier reservations, Razorpay charges/refunds, external customer mes
 
 ## Acceptance and release work deferred
 
-- Complete PayGlocal onboarding, configure its UAT merchant keys privately, and validate actual checkout/status/refund contracts. Continue TripJack fare review, booking, wallet, amendments, reissues and timeout acceptance using the VPS credentials already confirmed.
+- Obtain and implement PayGlocal’s missing flight/hotel travel payload attachment, including confirmed billing/country/risk fields; complete PayGlocal onboarding, configure its UAT merchant keys privately, and validate actual checkout/status/refund contracts. Continue TripJack fare review, booking, wallet, amendments, reissues and timeout acceptance using the VPS credentials already confirmed.
 - Physical-device, independent security/load and backup/restore acceptance.
 - After acceptance: production service/domain/VPS/SMTP/CRM configuration, signing, deployment and store submission.
 

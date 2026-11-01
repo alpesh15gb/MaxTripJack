@@ -1,26 +1,26 @@
 import 'server-only';
-import {createHash,createPrivateKey,createPublicKey} from 'node:crypto';
-import {CompactSign,CompactEncrypt} from 'jose';
+import {generateJWEAndJWS,generateJWE} from 'payglocal-js-client';
+import sdkGenerateJWS from 'payglocal-js-client/src/generateJWS.js';
 import {HttpError} from '../http';
 import {payGlocalConfig,type PayGlocalConfig} from './payglocal-config';
 import {PAYGLOCAL_UAT_ORIGIN,formatPayGlocalAmount,type PayGlocalAttempt,type PayGlocalVerifiedStatus,validatePayGlocalUrl} from './payglocal';
 
-// Protocol: PayGlocal's official JS client at 5f6a93d, plus the current
-// credential-management and payment/status API references. exp is the vendor's
-// millisecond duration, not a standard JWT NumericDate. Never trust callback JWTs.
-export async function payGlocalJws(body:string,config:PayGlocalConfig,now=Date.now()){
- const digest={digest:createHash('sha256').update(body).digest('base64'),digestAlgorithm:'SHA-256',exp:300000,iat:String(now)};
- return new CompactSign(new TextEncoder().encode(JSON.stringify(digest))).setProtectedHeader({alg:'RS256',kid:config.privateKid,'x-gl-merchantId':config.merchantId,'issued-by':config.merchantId,'is-digested':'true','x-gl-enc':'true'}).sign(createPrivateKey(config.privateKey));
+// Official SDK, pinned to 5f6a93d. Token construction belongs to the SDK.
+// Its public standalone JWS validator rejects the empty GET body; use its
+// unchanged lower-level signing function for status reads (no independent JWT).
+export async function payGlocalJws(body:string,config:PayGlocalConfig){
+ return sdkGenerateJWS({payload:body,privateKey:config.privateKey,merchantId:config.merchantId,privateKeyId:config.privateKid});
 }
-export async function payGlocalJwe(payload:unknown,config:PayGlocalConfig,now=Date.now()){
- return new CompactEncrypt(new TextEncoder().encode(JSON.stringify(payload))).setProtectedHeader({alg:'RSA-OAEP-256',enc:'A128CBC-HS256',kid:config.publicKid,'issued-by':config.merchantId,exp:300000,iat:String(now)}).encrypt(createPublicKey(config.publicKey));
+export async function payGlocalJwe(payload:unknown,config:PayGlocalConfig){
+ return generateJWE({payload,publicKey:config.publicKey,publicKeyId:config.publicKid,merchantId:config.merchantId});
 }
 export type PayGlocalFetch=typeof fetch;
 export async function payGlocalRequest(path:string,payload?:unknown,config=payGlocalConfig(),fetcher:PayGlocalFetch=fetch):Promise<Record<string,unknown>>{
  if(!/^\/gl\/v1\/payments\/(?:initiate\/paycollect|[A-Za-z0-9_-]{1,128}\/(?:status|refund))$/.test(path))throw new HttpError(400,'Unsupported payment operation.');
- const body=payload===undefined?'':await payGlocalJwe(payload,config),token=await payGlocalJws(body,config);
  try{
-  const response=await fetcher(PAYGLOCAL_UAT_ORIGIN+path,{method:payload===undefined?'GET':'POST',headers:{'Content-Type':'application/json','x-gl-token-external':token,'x-gl-merchantid':config.merchantId,'x-gl-kid':config.privateKid},...(payload===undefined?{}:{body}),redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000)});
+  const tokens=payload===undefined?{jweToken:'',jwsToken:await payGlocalJws('',config)}:await generateJWEAndJWS({payload,publicKey:config.publicKey,privateKey:config.privateKey,merchantId:config.merchantId,publicKeyId:config.publicKid,privateKeyId:config.privateKid});
+  const headers:Record<string,string>=payload===undefined?{'Accept':'application/json','X-GL-TOKEN-EXTERNAL':tokens.jwsToken,'x-gl-merchantid':config.merchantId,'x-gl-kid':config.privateKid}:{'Content-Type':'text/plain','X-GL-TOKEN-EXTERNAL':tokens.jwsToken};
+  const response=await fetcher(PAYGLOCAL_UAT_ORIGIN+path,{method:payload===undefined?'GET':'POST',headers,...(payload===undefined?{}:{body:tokens.jweToken}),redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000)});
   // Bound bytes before parsing; responses/tokens/payment data are never logged.
   const reader=response.body?.getReader();if(!reader)throw Error();const chunks:Uint8Array[]=[];let size=0;
   try{while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>1048576){await reader.cancel();throw Error();}chunks.push(part.value);}}finally{reader.releaseLock();}

@@ -30,7 +30,7 @@ jobs:
           for (const path of ['.next/static', 'public', 'db', 'dist']) readableTree(path);
           for (const name of ['payment-worker', 'booking-worker', 'crm-worker', 'notification-worker', 'migrate-auth', 'sync-catalogue', 'refund-worker', 'maintenance-worker', 'cancellation-worker']) accessSync(`dist/${name}.mjs`, constants.R_OK);
           // Import only libraries; never execute server.js, workers or migrations.
-          for (const name of ['next', 'next/navigation', 'pg', 'nodemailer', 'pdfkit', 'jose', 'better-auth', 'zod', 'server-only']) await import(name);
+          for (const name of ['next', 'next/navigation', 'pg', 'nodemailer', 'pdfkit', 'jose', 'payglocal-js-client', 'payglocal-js-client/src/generateJWS.js', 'better-auth', 'zod', 'server-only']) await import(name);
           console.log('Non-root runtime artifacts and library imports verified offline.');
           JS
   cross-app-contracts:
@@ -146,7 +146,7 @@ jobs:
         run: npm run test:browser
       - name: Verify PayGlocal unavailable checkout on desktop and mobile
         run: npx playwright test -c playwright.payglocal.config.ts
-      - name: Verify PayGlocal payer billing and hosted handoff with intercepted gateway
+      - name: Verify PayGlocal stays unavailable with valid SDK keys until travel contract is supplied
         run: npx playwright test -c playwright.payglocal-hosted.config.ts
       - name: Preserve UI screenshots, failure traces and browser report
         if: always()

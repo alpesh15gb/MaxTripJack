@@ -1,5 +1,6 @@
 import { HttpError } from "../http";
 import { payGlocalConfig } from "./payglocal-config";
+import {assertPayGlocalTravelContract} from './payglocal-travel-contract';
 
 // Pure payment contracts. RSA transport is isolated in payglocal-wire.ts.
 // Sources verified 2026-10-21:
@@ -15,7 +16,7 @@ export type PayGlocalAttempt = {
 };
 
 /** Internal normalized result, NOT the public API response or callback shape.
- * The future authenticated adapter must establish MID and resolve method-specific
+ * The authenticated adapter must establish MID and resolve method-specific
  * amount/currency fields using the merchant's verified contract. A source label
  * alone is NOT authentication; never construct this from browser/webhook input.
  */
@@ -31,7 +32,9 @@ export type PayGlocalBillingData = {
   addressStreet1?: string; addressCity?: string; addressState?: string;
 };
 
-/** Unsigned payload preparation, not a sendable request or UAT approval.
+/** PROVISIONAL generic envelope, NOT the missing merchant travel contract.
+ * New checkout is held in payglocal-travel-contract.ts until it is implemented.
+ * Unsigned payload preparation is not a sendable request or UAT approval.
  * Field names: /docs/api-reference/payments-v2/paycollect/gpi and
  * https://payglocal.in/docs/api-reference/payload-templates (Flight templates).
  * Documentation disagrees about alpha-2/alpha-3 country and whether unique ID
@@ -150,6 +153,7 @@ export function validatePayGlocalUrl(value: unknown, kind: "redirect" | "status"
  * idempotency and refund completion semantics need merchant UAT confirmation.
  * Only valid UAT merchant configuration enables the adapter; production stays disabled.
  */
-export function assertPayGlocalTransportReady(): void {
+export function assertPayGlocalCheckoutReady(): void {
   payGlocalConfig();
+  assertPayGlocalTravelContract();
 }

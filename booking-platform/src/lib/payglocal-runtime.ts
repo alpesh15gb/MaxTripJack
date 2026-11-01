@@ -4,12 +4,14 @@ import {database,transaction} from './db';
 import {HttpError} from './http';
 import {buildPayGlocalCheckoutPayload,validatePayGlocalUrl,type PayGlocalAttempt,type PayGlocalBillingData} from './providers/payglocal';
 import {payGlocalConfig} from './providers/payglocal-config';
+import {assertPayGlocalTravelContract} from './providers/payglocal-travel-contract';
 import {initiatePayGlocal,readPayGlocalStatus} from './providers/payglocal-wire';
 import {reservePayGlocalAttempt,persistPayGlocalInitiation,markPayGlocalUnknown,linkPayGlocalRecoveredStatus,recordPayGlocalVerifiedStatus} from './payglocal-payment';
 export function payGlocalPayload(attempt:PayGlocalAttempt,product:'FLIGHT'|'HOTEL',billingData:PayGlocalBillingData,returnChannel:'WEB'|'APP'='WEB'){
  const config=payGlocalConfig(),callback=new URL('/api/payments/payglocal/return',config.origin);if(returnChannel==='APP')callback.searchParams.set('app','1');return buildPayGlocalCheckoutPayload({attempt,product,billingData,applicationOrigin:config.origin,merchantCallbackURL:callback.href});
 }
 export async function createPayGlocalCheckout(bookingId:string,product:'FLIGHT'|'HOTEL',billingData:PayGlocalBillingData,returnChannel:'WEB'|'APP'='WEB'){
+ assertPayGlocalTravelContract();
  const config=payGlocalConfig();const reserved=await transaction(tx=>reservePayGlocalAttempt(tx,bookingId,config.merchantId));
  if(reserved.created){
   try{const result=await initiatePayGlocal(payGlocalPayload(reserved.attempt,product,billingData,returnChannel),reserved.attempt,config);await transaction(tx=>persistPayGlocalInitiation(tx,bookingId,result));}

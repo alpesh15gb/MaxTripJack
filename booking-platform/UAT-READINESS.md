@@ -20,7 +20,7 @@ This is a source review and simulated verification record. It is not TripJack ac
 ## Monday configuration — private environment only
 
 - TripJack flight and Hotel v3 UAT keys, plus confirmation of the correct UAT account, wallet balance and any provider account requirements.
-- PayGlocal onboarding, UAT MID, signing/encryption KIDs, merchant RSA private key and PayGlocal public certificate. Configure the HTTPS return at `/api/payments/payglocal/return`; independent authenticated polling supplies payment proof. Start the reviewed payment/booking/refund workers before purchases. See [PayGlocal integration](docs/PAYGLOCAL-INTEGRATION.md).
+- PayGlocal’s missing merchant-specific travel payload attachment must be supplied and implemented before the new-checkout code hold can be removed. Valid SDK credentials alone cannot enable payments. Then complete PayGlocal onboarding, UAT MID, signing/encryption KIDs, merchant RSA private key and PayGlocal public certificate. Configure the HTTPS return at `/api/payments/payglocal/return`; independent webhook hints wake authenticated polling, which supplies payment proof. Start the reviewed payment/booking/refund workers before purchases. See [PayGlocal integration](docs/PAYGLOCAL-INTEGRATION.md).
 - A working test email service for verification, password reset and booking notices.
 - CRM event URL and matching signing key/key ID on both sides. Keep existing encryption, authentication and integration secrets secure; do not rotate them merely to test the app.
 - Meta configuration and approved utility templates are required only for the separate CRM WhatsApp tests.

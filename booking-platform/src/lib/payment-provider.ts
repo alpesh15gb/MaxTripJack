@@ -1,5 +1,5 @@
 import { HttpError } from "./http";
-import { assertPayGlocalTransportReady } from "./providers/payglocal";
+import { assertPayGlocalCheckoutReady } from "./providers/payglocal";
 
 export type PaymentProvider = "RAZORPAY" | "PAYGLOCAL";
 
@@ -12,7 +12,7 @@ export function selectedPaymentProvider(value = process.env.PAYMENT_PROVIDER): P
 
 /** Gate before order creation or any supplier/payment side effect. */
 export function assertNewPaymentProviderReady(provider: PaymentProvider) {
-  if (provider === "PAYGLOCAL") assertPayGlocalTransportReady();
+  if (provider === "PAYGLOCAL") assertPayGlocalCheckoutReady();
 }
 
 export function assertRazorpayRecord(provider: string) {

@@ -62,9 +62,9 @@ test("unknown payment provider fails closed without reflecting configuration val
   }
 });
 
-test('configured RSA PayGlocal UAT passes configuration only; live mode remains blocked',()=>{
+test('valid RSA credentials do not bypass the missing merchant travel payload',()=>{
  const pair=generateKeyPairSync('rsa',{modulusLength:2048}),config={PAYMENT_PROVIDER:'PAYGLOCAL',PAYGLOCAL_ENV:'UAT',PAYGLOCAL_MERCHANT_ID:'synthetic',PAYGLOCAL_PRIVATE_KEY_ID:'signing',PAYGLOCAL_PUBLIC_KEY_ID:'encryption',PAYGLOCAL_PRIVATE_KEY:pair.privateKey.export({type:'pkcs8',format:'pem'}).toString(),PAYGLOCAL_PUBLIC_KEY:pair.publicKey.export({type:'spki',format:'pem'}).toString(),RAZORPAY_KEY_ID:undefined,RAZORPAY_KEY_SECRET:undefined,RAZORPAY_WEBHOOK_SECRET:undefined};
- const result=check(config);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/PayGlocal test mode/);assert.match(result.stdout,/does not.*establish end-to-end payment readiness/);assert.equal(check({...config,PAYGLOCAL_ENV:'PRODUCTION'}).status,1);assert.equal(check({...config,PAYGLOCAL_PRIVATE_KEY:'invalid-key-marker'}).status,1);assert(!check({...config,PAYGLOCAL_PRIVATE_KEY:'invalid-key-marker'}).stderr.includes('invalid-key-marker'));
+ const result=check(config);assert.equal(result.status,1);assert.match(result.stderr,/PAYGLOCAL_TRAVEL_CONTRACT/);assert.equal(result.stdout,'');assert.equal(check({...config,PAYGLOCAL_ENV:'PRODUCTION'}).status,1);assert.equal(check({...config,PAYGLOCAL_PRIVATE_KEY:'invalid-key-marker'}).status,1);assert(!check({...config,PAYGLOCAL_PRIVATE_KEY:'invalid-key-marker'}).stderr.includes('invalid-key-marker'));
 });
 
 test("existing configuration safeguards remain enforced and secrets stay unprinted", () => {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertPayGlocalStatusBinding, assertPayGlocalTransportReady, formatPayGlocalAmount, payGlocalPaymentState, payGlocalRefundState, validatePayGlocalUrl, type PayGlocalAttempt, type PayGlocalVerifiedStatus } from "../src/lib/providers/payglocal";
+import { assertPayGlocalStatusBinding, assertPayGlocalCheckoutReady, formatPayGlocalAmount, payGlocalPaymentState, payGlocalRefundState, validatePayGlocalUrl, type PayGlocalAttempt, type PayGlocalVerifiedStatus } from "../src/lib/providers/payglocal";
 
 const attempt: PayGlocalAttempt = { merchantTxnId: "MT1234", merchantId: "uatmerchant", gid: "gl_1234", amountMinor: 10001, currency: "INR" };
 const status: PayGlocalVerifiedStatus = { source: "SERVER_STATUS", merchantTxnId: "MT1234", merchantId: "uatmerchant", gid: "gl_1234", totalAmount: "100.01", txnCurrency: "INR", status: "SENT_FOR_CAPTURE" };
@@ -37,7 +37,7 @@ test("callback/browser payload cannot be used as normalized verified server stat
   }
   // The source marker is not a signature. Production's transport remains closed,
   // preventing callers from upgrading an arbitrary shaped object into proof.
-  assert.throws(assertPayGlocalTransportReady, { status: 503 });
+  assert.throws(assertPayGlocalCheckoutReady, { status: 503 });
 });
 
 test("only successful sale state maps to capture; authorization/unknown/timeout never does", () => {
@@ -79,7 +79,7 @@ test("transport fail-closed guard performs zero network requests", () => {
   const original = globalThis.fetch;
   let calls = 0;
   globalThis.fetch = async () => { calls++; throw Error("Network forbidden in this test"); };
-  try { for (let i = 0; i < 3; i++) assert.throws(assertPayGlocalTransportReady, { status: 503 }); }
+  try { for (let i = 0; i < 3; i++) assert.throws(assertPayGlocalCheckoutReady, { status: 503 }); }
   finally { globalThis.fetch = original; }
   assert.equal(calls, 0);
 });

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["payglocal-js-client"],
   distDir:process.env.NEXT_DIST_DIR||".next",
   poweredByHeader: false,
   async headers() {
