@@ -73,3 +73,6 @@ test("cancellation status updates freeze the snapshot without resending a bookin
   const body=JSON.parse(await crmDeliveryPayload({...event,event_type:"cancellation.follow_up_required"},f.dependencies));
   assert.equal(documents,0);assert.equal(body.payload.document,undefined);assert.deepEqual(body.payload.payments,snapshot.payments);assert.equal(f.writes.length,1);
 });
+
+
+test("a zero-refund partial cancellation event cannot send a fresh booking confirmation PDF",async()=>{const f=fixture();let documents=0;f.dependencies.document=async()=>{documents++;return new Response("%PDF-test");};const body=JSON.parse(await crmDeliveryPayload({...event,event_type:"booking.cancelled"},f.dependencies));assert.equal(documents,0);assert.equal(body.payload.document,undefined);});

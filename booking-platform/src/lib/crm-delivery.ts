@@ -30,7 +30,7 @@ export async function crmDeliveryPayload<S extends Snapshot>(event: Event, depen
   if (event.delivery_payload) return event.delivery_payload;
   let snapshot = await dependencies.snapshot(event.aggregate_id);
   let document: { filename: string; sha256: string; base64: string } | undefined;
-  if (!event.event_type.startsWith("cancellation.") && ["TICKETED", "CONFIRMED"].includes(snapshot.status) && !snapshot.cancellations.length && !snapshot.replacementBookings.length) {
+  if (event.event_type !== "booking.cancelled" && !event.event_type.startsWith("cancellation.") && ["TICKETED", "CONFIRMED"].includes(snapshot.status) && !snapshot.cancellations.length && !snapshot.replacementBookings.length) {
     let bytes: Buffer | undefined;
     try {
       const response = await dependencies.document(event.aggregate_id);

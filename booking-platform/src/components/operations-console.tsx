@@ -617,8 +617,8 @@ export default function OperationsConsole() {
                 </label>
                 {statuses[tab] && (
                   <label>
-                    <span>Progress</span>
-                    <select name="status" defaultValue={status}>
+                    <span id="operations-progress-label">Progress</span>
+                    <select aria-labelledby="operations-progress-label" name="status" defaultValue={status}>
                       <option value="">All states</option>
                       {statuses[tab]!.map((s) => (
                         <option key={s} value={s}>
