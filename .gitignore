@@ -47,3 +47,6 @@ lint-report.json
 .codex/
 .claude/
 __pycache__/
+
+# Private payment-provider keys, certificates and onboarding files.
+/Payglocal/
