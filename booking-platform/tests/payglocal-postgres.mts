@@ -132,6 +132,11 @@ try{
   await assert.rejects(()=>blockedModule.exports.createPayGlocalCheckout(blockedOrder,'FLIGHT',{firstName:'Payer',lastName:'Example',emailId:'payer@example.test',addressCountry:'IND'}),{status:503});
   assert.equal((await rows('SELECT count(*)::int AS n FROM payglocal_attempts WHERE order_id=$1',[blockedOrder]))[0].n,0);
   console.log('PASS complete synthetic UAT keys cannot bypass merchant confirmation gates: no attempt or provider call');
+  const dueTimes=await rows('SELECT order_id,next_check FROM payglocal_attempts');
+  await rows("UPDATE payglocal_attempts SET next_check=now()+interval '1 day'");
+  const savedMerchant=process.env.PAYGLOCAL_MERCHANT_ID;delete process.env.PAYGLOCAL_MERCHANT_ID;
+  try{await blockedModule.exports.runPayGlocalPaymentJob();}finally{process.env.PAYGLOCAL_MERCHANT_ID=savedMerchant;for(const item of dueTimes)await rows('UPDATE payglocal_attempts SET next_check=$2 WHERE order_id=$1',[item.order_id,item.next_check]);}
+  console.log('PASS idle payment worker requires no merchant credentials and makes no provider call');
   const compiled=await compile(true);
   const compiledModule={exports:{} as typeof Runtime&typeof RefundRuntime};new Function('module','exports','require',compiled.outputFiles[0].text)(compiledModule,compiledModule.exports,createRequire(path.resolve('package.json')));const runtime=compiledModule.exports;
   const remote=new Map<string,{gid:string;status:string}>(),remoteRefunds=new Map<string,{gid:string;originalGid:string;amount:string}>();let initiations=0,statusChecks=0,loseResponse=false,refundPosts=0,loseRefundResponse=false;

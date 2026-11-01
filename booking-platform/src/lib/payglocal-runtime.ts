@@ -47,6 +47,9 @@ export async function synchronizePayGlocalPayment(bookingId:string){
  }finally{await database().query("UPDATE payglocal_attempts SET lease_until=NULL,lease_token=NULL,next_check=now()+CASE WHEN checks<60 THEN interval '60 seconds' ELSE interval '1 hour' END WHERE order_id=$1 AND lease_token=$2",[bookingId,lease]);}
 }
 export async function runPayGlocalPaymentJob(){
+ // Idle workers remain healthy while merchant onboarding is incomplete. Resolve
+ // provider credentials only when there is an actual persisted payment to check.
+ if(!(await database().query("SELECT 1 FROM payglocal_attempts WHERE state<>'CAPTURED' AND next_check<=now() AND (state<>'STARTED' OR created_at<now()-interval '30 seconds') AND (lease_until IS NULL OR lease_until<now()) LIMIT 1")).rowCount)return;
  const config=payGlocalConfig();const due=await database().query("SELECT order_id FROM payglocal_attempts WHERE merchant_id=$1 AND state<>'CAPTURED' AND next_check<=now() AND (state<>'STARTED' OR created_at<now()-interval '30 seconds') AND (lease_until IS NULL OR lease_until<now()) ORDER BY next_check LIMIT 10",[config.merchantId]);
  for(const row of due.rows){try{await synchronizePayGlocalPayment(row.order_id);}catch{/* Persisted delay; never repeat initiation on a lost response. */}}
 }
