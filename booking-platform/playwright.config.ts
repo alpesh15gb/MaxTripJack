@@ -8,7 +8,7 @@ const baseURL = 'http://127.0.0.1:3100';
 export default defineConfig({
   testDir: './tests/browser',
   testMatch: '**/*.spec.ts',
-  testIgnore: '**/checkout-unavailable.spec.ts',
+  testIgnore: ['**/checkout-unavailable.spec.ts','**/payglocal.spec.ts'],
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

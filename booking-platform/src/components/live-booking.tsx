@@ -1,4 +1,6 @@
-'use client';
+"use client";
+import BillingFields from './billing-fields';
+import {billingFromForm,billingForProduct} from '@/lib/billing';
 import FlightSelectionSummary from './flight-selection-summary';
 import '@/app/booking-experience.css';
 import { useCallback,useEffect,useRef,useState } from 'react';
@@ -57,7 +59,7 @@ async function api<T>(path:string,data:unknown,signal?:AbortSignal):Promise<T>{
 function openGuestDetails(field:HTMLElement,form:HTMLFormElement|null){let parent=field.parentElement;while(parent&&parent!==form){if(parent instanceof HTMLDetailsElement)parent.open=true;parent=parent.parentElement;}}
 function scrollToSection(id:string){requestAnimationFrame(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}));}
 
-export default function LiveBooking({prefill={},checkoutConfigured=false}:{prefill?:Record<string,string>;checkoutConfigured?:boolean}){
+export default function LiveBooking({prefill={},checkoutConfigured=false,billingRequired=false}:{prefill?:Record<string,string>;checkoutConfigured?:boolean;billingRequired?:boolean}){
   const {data:session,isPending,error,refetch}=authClient.useSession();
   const resolvedIdentity=session?.user.id??'signed-out';
   const [stableIdentity,setStableIdentity]=useState<string|null>(null);
@@ -70,16 +72,16 @@ export default function LiveBooking({prefill={},checkoutConfigured=false}:{prefi
   },[isPending,error,resolvedIdentity]);
   const changingIdentity=!isPending&&!error&&stableIdentity!==resolvedIdentity;
   if(stableIdentity===null||changingIdentity)return <><TravelHeader/><main id="main-content" className="page-shell live-booking"><div className="white-card" role="status"><h1>{error?'Let’s reconnect your account.':'Getting your journey ready…'}</h1><p>{error?'We could not verify your session. Try again before continuing.':'Checking secure access to your booking workspace.'}</p>{error&&<button className="primary" type="button" onClick={()=>void refetch()}>Check secure session again</button>}</div></main></>;
-  return <BookingRouteWorkspace key={stableIdentity} prefill={prefill} checkoutConfigured={checkoutConfigured}/>;
+  return <BookingRouteWorkspace key={stableIdentity} prefill={prefill} checkoutConfigured={checkoutConfigured} billingRequired={billingRequired}/>;
 }
 
 // Server route trees may be restored after our native history handler has run.
 // Keep the account boundary stable; only the mounted workspace may accept a new
 // route, after checking its current URL, search ownership and checkout locks.
-function BookingRouteWorkspace({prefill,checkoutConfigured}:{prefill:Record<string,string>;checkoutConfigured:boolean}){
+function BookingRouteWorkspace({prefill,checkoutConfigured,billingRequired}:{prefill:Record<string,string>;checkoutConfigured:boolean;billingRequired:boolean}){
   const [entry,setEntry]=useState(()=>({prefill:typeof window==='undefined'?prefill:currentRoutePrefill(),revision:0}));
   const adoptRoute=useCallback((next:Record<string,string>)=>setEntry(current=>({prefill:next,revision:current.revision+1})),[]);
-  return <LiveBookingWorkspace key={entry.revision} prefill={entry.prefill} routePrefill={prefill} adoptRoute={adoptRoute} checkoutConfigured={checkoutConfigured}/>;
+  return <LiveBookingWorkspace key={entry.revision} prefill={entry.prefill} routePrefill={prefill} adoptRoute={adoptRoute} checkoutConfigured={checkoutConfigured} billingRequired={billingRequired}/>;
 }
 function currentRoutePrefill(){
   const params=new URLSearchParams(window.location.search),query:Record<string,string|string[]>={};
@@ -87,7 +89,7 @@ function currentRoutePrefill(){
   return bookingSearchPrefill(query);
 }
 function routeFingerprint(value:Record<string,string>){return JSON.stringify(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)));}
-function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfigured}:{prefill?:Record<string,string>;routePrefill:Record<string,string>;adoptRoute:(next:Record<string,string>)=>void;checkoutConfigured:boolean}){
+function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfigured,billingRequired}:{prefill?:Record<string,string>;routePrefill:Record<string,string>;adoptRoute:(next:Record<string,string>)=>void;checkoutConfigured:boolean;billingRequired:boolean}){
   const router=useRouter();
   const routeSearch=useSearchParams().toString();
   const {data:checkoutSession}=authClient.useSession();
@@ -644,6 +646,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     // noValidate enables the full traveller summary; consent remains mandatory.
     const consent=form.elements.namedItem('consent');
     if(!payment&&(!(consent instanceof HTMLInputElement)||!consent.reportValidity()||!consent.checked))return;
+    if(billingRequired&&!payment){const billing=billingForProduct(quote.product).safeParse(billingFromForm(values));if(!billing.success){setMessage("Complete the payer billing details before opening checkout.");form.querySelector<HTMLInputElement>(".payer-billing input:invalid, .payer-billing select:invalid")?.reportValidity();return;}}
     if(extrasPending){setMessage('Apply your flight extras before continuing.');return;}
     if(expired||needsReview){setMessage(payment?'Your reviewed price has expired. Your original order is preserved; check My trips before making another payment.':'Your reviewed price has expired. Refresh the price and accept the latest terms.');return;}
     busyRef.current=true;setBusy(true);setActivity('Opening secure payment');setMessage('');
@@ -658,7 +661,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         setPayment(verifiedOrder);openCheckout(verifiedOrder);return;
       }
       if(!saveCheckoutMarker({quoteId:quote.quoteId}))throw new BookingApiError('Your browser could not preserve checkout recovery. Enable session storage before starting payment.',400);
-      const order=await api<Payment>('/api/payments/create',{quoteId:quote.quoteId,acceptedTotalMinor:quote.totalMinor,guests});
+      const order=await api<Payment>('/api/payments/create',{quoteId:quote.quoteId,acceptedTotalMinor:quote.totalMinor,guests,...(billingRequired?{billingData:billingFromForm(values)}:{})});
       if(!isResumableCheckout({...order,canResume:true})&&!isResumableHostedCheckout({...order,canResume:true}))throw Error('Payment order details could not be verified. The original attempt is preserved.');
       saveCheckoutMarker({quoteId:quote.quoteId,bookingId:order.bookingId});
       if(!mounted.current)return;
@@ -695,7 +698,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   // Deriving from matching results also handles content arriving before room detail.
   const roomListing=rooms?.searchId===results?.searchId?results?.results.hotels?.find(hotel=>hotel.tjHotelId===rooms?.hid):undefined;
   const roomProperty=roomListing?.propertyContentStatus==='resolved'?roomListing.property??rooms?.property:rooms?.property??roomListing?.property;
-  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} onProductChange={switchProduct}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow${results||quote?' has-journey':''}${!quote?' booking-shopping':''}${busy&&activity==='Finding available journeys'?' is-searching':''}${product==='HOTEL'&&results&&!quote?' hotel-results-page':''}${results&&!quote&&!pairedFares?' results-only':''}`}>
+  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow${results||quote?' has-journey':''}${!quote?' booking-shopping':''}${busy&&activity==='Finding available journeys'?' is-searching':''}${product==='HOTEL'&&results&&!quote?' hotel-results-page':''}${results&&!quote&&!pairedFares?' results-only':''}`}>
     {loadRazorpay&&<Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onReady={()=>{const order=queuedCheckout.current;queuedCheckout.current=null;if(order&&mounted.current)openCheckout(order);}} onError={()=>{queuedCheckout.current=null;busyRef.current=false;setBusy(false);setActivity('');setMessage('Checkout could not load. Your existing order is preserved. Check My trips before trying again.');}}/>}
     <Link href="/" className="back">← Back to explore</Link>
     {busy&&activity==='Finding available journeys'&&<SearchJourneyPending product={product} context={pendingSearchContext} onStop={stopAvailabilitySearch}/>}
@@ -766,7 +769,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           <details open={emergencyRequired}><summary>Emergency contact{emergencyRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>Contact name<input {...fieldProps('emergencyName')} name="emergencyName" onChange={event=>setEmergencyEntered(Boolean(event.target.value.trim()))} required={emergencyRequired} maxLength={100}/>{fieldError('emergencyName')}</label><label>Contact email<input {...fieldProps('emergencyEmail')} name="emergencyEmail" required={emergencyRequired||emergencyEntered} type="email"/>{fieldError('emergencyEmail')}</label><label>Contact phone with country code<input {...fieldProps('emergencyPhone')} name="emergencyPhone" required={emergencyRequired||emergencyEntered} type="tel" minLength={10} maxLength={20}/>{fieldError('emergencyPhone')}</label></div></details>
           {quote.product==='FLIGHT'&&<CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={total=>setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total}:current)}/>}
         </fieldset>
-        {checkoutStep==='payment'&&<div className="booking-payment-review"><h3>Check your travellers and contact details</h3>{travellerSummary&&<div className="final-traveller-summary"><ul>{travellerSummary.names.map((name,index)=><li key={index}><strong>{name}</strong> · {party[index]?.toLowerCase()}</li>)}</ul><p>Email: <strong>{travellerSummary.email}</strong></p><p>Mobile: <strong>{travellerSummary.phone}</strong></p><p className="muted">Names must match travel documents. Use Back to travellers to correct a detail.</p></div>}<h3>Your total, before you pay.</h3><p>{party.length} traveller{party.length===1?'':'s'} · {quote.product==='HOTEL'?'Full stay total':'Complete selected itinerary'}</p><strong className="booking-payment-total">{money(quote.totalMinor)}</strong><p className="muted">Payment opens with the configured secure payment provider. A successful payment is not a confirmed ticket or room: supplier confirmation follows in My trips.</p><label className="checkbox consent"><input key={`${quote.quoteId}:${quote.totalMinor}`} name="consent" type="checkbox" required disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked}/>I accept the reviewed total and supplier rules. Payment availability and booking confirmation are verified separately.</label><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>setCheckoutStep('travellers')}>Back to travellers</button></div>}
+        {checkoutStep==='payment'&&<div className="booking-payment-review"><h3>Check your travellers and contact details</h3>{travellerSummary&&<div className="final-traveller-summary"><ul>{travellerSummary.names.map((name,index)=><li key={index}><strong>{name}</strong> · {party[index]?.toLowerCase()}</li>)}</ul><p>Email: <strong>{travellerSummary.email}</strong></p><p>Mobile: <strong>{travellerSummary.phone}</strong></p><p className="muted">Names must match travel documents. Use Back to travellers to correct a detail.</p></div>}{billingRequired&&<BillingFields addressRequired={quote.product==="FLIGHT"} disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked}/>}<h3>Your total, before you pay.</h3><p>{party.length} traveller{party.length===1?'':'s'} · {quote.product==='HOTEL'?'Full stay total':'Complete selected itinerary'}</p><strong className="booking-payment-total">{money(quote.totalMinor)}</strong><p className="muted">Payment opens with the configured secure payment provider. A successful payment is not a confirmed ticket or room: supplier confirmation follows in My trips.</p><label className="checkbox consent"><input key={`${quote.quoteId}:${quote.totalMinor}`} name="consent" type="checkbox" required disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked}/>I accept the reviewed total and supplier rules. Payment availability and booking confirmation are verified separately.</label><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>setCheckoutStep('travellers')}>Back to travellers</button></div>}
         {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button className="primary booking-continue" disabled={busy||extrasPending||expired||needsReview||providerUnavailable}>{providerUnavailable?'Online payment unavailable':busy?'Processing…':checkoutStep==='travellers'?'Review booking':payment?'Resume secure checkout':`Pay ${money(quote.totalMinor)} securely`}</button>}
         {extrasPending&&<p className="muted" role="status">Apply your optional extras before continuing.</p>}
       </form>}

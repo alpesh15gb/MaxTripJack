@@ -220,7 +220,7 @@ test.afterEach(async({page},testInfo)=>{
 test('real same-book Next Link applies new public criteria without a document reload or stale hotel state',async({page,provider})=>{
  await page.goto(searchUrl());await title(page).click();await expect(page.locator('.room-option-card')).toHaveCount(2);
  await page.evaluate(()=>Object.assign(window,{__sameBookNavigationProof:'document-retained'}));
- const link=page.getByRole('contentinfo').getByRole('link',{name:'Plan a stay',exact:true});await expect(link).toHaveAttribute('href','/book?product=HOTEL');await link.click();
+ const link=page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Hotels',exact:true});await expect(link).toHaveAttribute('href','/book?product=HOTEL');await link.click();
  await expect(page).toHaveURL(/\/book\?product=HOTEL$/);
  const form=page.getByRole('form',{name:'Search availability',exact:true});await expect(form).toBeVisible();
  await expect(form.getByLabel('Destination',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue('');await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('1');

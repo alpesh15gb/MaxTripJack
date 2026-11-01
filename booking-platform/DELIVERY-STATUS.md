@@ -1,16 +1,16 @@
 ## Experience review — 1 November 2026
 
-Staff operations revamped with role-aware registers, selected-record actions, durable filters and matching CSV exports. 430 unit tests and 606 desktop/phone browser checks passed. See [operations experience](docs/OPERATIONS-EXPERIENCE.md). Real-provider acceptance is separate from these isolated runs.
+Staff operations revamped with role-aware registers, selected-record actions, durable filters and matching CSV exports. 446 unit tests and the desktop/phone browser regression checks cover the operational registers and payment recovery. See [operations experience](docs/OPERATIONS-EXPERIENCE.md). Real-provider acceptance is separate from these isolated runs.
 
 # Coding delivery status — 18 October 2026
 
-The public/corporate flight and hotel application is implemented locally across the website/backend, Android/iOS source, admin operations and custom CRM integration. Actual provider acceptance remains unverified without TripJack and Razorpay test credentials. This is not provider certification or security certification.
+The public/corporate flight and hotel application is implemented locally across the website/backend, Android/iOS source, admin operations and custom CRM integration. TripJack search/catalogue UAT has been demonstrated on the VPS; booking, payment and after-sales acceptance remain pending. PayGlocal is selected for new payments and merchant onboarding is pending. This is not provider certification or security certification.
 
 ## Implemented
 
 - Domestic/international one-way, return and multi-city flights (2–6 legs), cabin classes, adults/children/infants, group-aware fare selection, fare rules, expiring server quotes and document requirements.
 - Airport/destination/nationality directories, Hotel v3 availability, room review and up to four rooms with separate adults, child ages and guest assignments. Checkout validates child dates of birth against each room’s searched ages.
-- Razorpay test checkout, server pricing, captured-payment verification, signed/deduplicated webhooks, wallet preflight and supplier workers.
+- PayGlocal UAT hosted checkout, RSA JWS/JWE transport, explicit payer billing, authenticated capture/status recovery, durable payment/refund polling, checked finance settlement evidence and CRM updates. Historical Razorpay records retain their original provider. Server pricing, wallet preflight and supplier workers remain in place. See [PayGlocal setup](docs/PAYGLOCAL-INTEGRATION.md).
 - Confirmation details/PDFs, booking history, saved travellers, account verification, corporate/admin MFA and permission controls.
 - Full or selected-flight/passenger cancellation requests, operations charges/offers, customer acceptance, one-time supplier submission and amendment polling. A partial cancellation leaves remaining travel active. Confirmed refund offers accumulate; refunds cannot exceed accepted terms or the original captured balance.
 - Initial flight checkout supports reviewed meals/baggage and eligible non-exit-row seats through the website and mobile app. Server pricing, atomic quote locking, pre-payment fare validation, one-time supplier submission and SSR fulfilment checks apply. Unverified extras leave successful supplier bookings in manual review.
@@ -23,7 +23,7 @@ The public/corporate flight and hotel application is implemented locally across 
 
 ## Verification
 
-435 unit/contract checks pass. Simulated flight/hotel booking, extras/reissue, partial cancellation, refund, authentication/ownership and CRM receiver flows pass. Web/mobile/CRM TypeScript, web lint/build, worker bundles and Android/iOS JavaScript exports pass. Production HTTP nonce/security checks pass; the production browser form supports selecting multi-city mode and adding flights.
+446 unit/contract checks pass. Simulated flight/hotel booking, extras/reissue, partial cancellation, refund, authentication/ownership and CRM receiver flows pass. Web/mobile/CRM TypeScript, web lint/build, worker bundles and Android/iOS JavaScript exports pass. Production HTTP nonce/security checks pass; the production browser form supports selecting multi-city mode and adding flights.
 
 The 1 November VPS diagnostics supplied by the user show successful direct TripJack UAT flight search (250 results) and hotel nationality lookup (207 entries), followed by successful app flight search (243 results), Goa hotel mapping (100 IDs) and app hotel availability (31 properties). Razorpay configuration was missing in the running booking container. See UAT-READINESS.md for the remaining provider acceptance scenarios; these search calls do not establish booking or payment acceptance.
 
@@ -31,7 +31,7 @@ No actual supplier reservations, Razorpay charges/refunds, external customer mes
 
 ## Acceptance and release work deferred
 
-- Supply real TripJack UAT and Razorpay test configuration; validate actual payload variants, availability, wallet behaviour, prices, amendments, reissues, webhooks and timeout cases.
+- Complete PayGlocal onboarding, configure its UAT merchant keys privately, and validate actual checkout/status/refund contracts. Continue TripJack fare review, booking, wallet, amendments, reissues and timeout acceptance using the VPS credentials already confirmed.
 - Physical-device, independent security/load and backup/restore acceptance.
 - After acceptance: production service/domain/VPS/SMTP/CRM configuration, signing, deployment and store submission.
 

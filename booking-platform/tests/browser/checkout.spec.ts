@@ -635,7 +635,7 @@ test('flight sign-in gate dismisses on Back to fares and only the new fare reach
 test('same-book Next Link cannot reset a created payment or start another search',async({page,provider})=>{
  await openReviewedFlight(page);await showPaymentReview(page);await openSyntheticPayment(page);await page.evaluate('window.__syntheticGateway.dismiss()');
  const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
- await page.getByRole('contentinfo').getByRole('link',{name:'Plan a stay',exact:true}).click();
+ await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Hotels',exact:true}).click();
  await expect(page.getByRole('alert').filter({hasText:'Finish checking your current payment before starting a different search.'})).toBeVisible();
  await expect(page.getByRole('form',{name:'Review and travellers',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Resume secure checkout',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);
@@ -648,7 +648,7 @@ test('same-book Next Link cannot reset unresolved checkout recovery or enable a 
  provider.overrides['GET /api/payments/status']={body:{found:false,quoteId,canResume:false,checkoutResolved:false,status:'OUTCOME_UNCONFIRMED',message:'An interrupted payment is unresolved. Do not create another payment.'}};
  await openFlightSearch(page,{auto:false});const recovery=page.getByRole('region',{name:'Interrupted checkout',exact:true});await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');
  const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
- await page.getByRole('contentinfo').getByRole('link',{name:'Plan a stay',exact:true}).click();
+ await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Hotels',exact:true}).click();
  await expect(page.getByRole('alert').filter({hasText:'Finish checking your current payment before starting a different search.'})).toBeVisible();
  await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Search stays',exact:true})).toHaveCount(0);
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);expect(provider.requests('/api/payments/status')).toHaveLength(1);

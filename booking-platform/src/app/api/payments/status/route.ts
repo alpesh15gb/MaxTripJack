@@ -5,6 +5,8 @@ import { failure, HttpError, json } from "@/lib/http";
 import { razorpayKey } from "@/lib/providers/razorpay";
 import { paymentResumeStatus, type PaymentResumeRecord } from "@/lib/payment-resume";
 import { owned } from "@/lib/supplier-flow";
+import {synchronizePayGlocalPayment} from '@/lib/payglocal-runtime';
+import {validatePayGlocalUrl} from '@/lib/providers/payglocal';
 
 export async function GET(request: Request) {
   try {
@@ -28,12 +30,15 @@ export async function GET(request: Request) {
       message: "No payment order is visible yet. An interrupted request may still be running. Recheck this status or contact MaxTravel; do not start another payment for the same trip.",
     });
     if (!found.rows[0]) throw new HttpError(404, "Booking not found.");
-    if (found.rows[0].provider === "PAYGLOCAL") return json({
-      found: true, provider: "PAYGLOCAL", bookingId: found.rows[0].id,
-      status: found.rows[0].status, paymentStatus: found.rows[0].payment_status,
-      canResume: false, checkoutResolved: found.rows[0].payment_status === "CAPTURED",
-      message: "Payment confirmation is currently unavailable. Check My trips or contact MaxTravel; do not pay again. Returning from checkout does not confirm payment.",
-    });
+    if (found.rows[0].provider === "PAYGLOCAL") {
+      const id=found.rows[0].id;
+      if(found.rows[0].payment_status!=='CAPTURED'){try{await synchronizePayGlocalPayment(id);}catch{/* Uncertain outcomes preserve the original order. */}}
+      const current=(await database().query("SELECT a.state,a.redirect_url,o.status,p.status AS payment_status FROM payglocal_attempts a JOIN orders o ON o.id=a.order_id LEFT JOIN payments p ON p.order_id=o.id AND p.provider='PAYGLOCAL' WHERE a.order_id=$1",[id])).rows[0];
+      const base=paymentResumeStatus({...found.rows[0],status:current?.status??found.rows[0].status,payment_status:current?.payment_status??found.rows[0].payment_status},Date.now(),"PAYGLOCAL");
+      let checkoutUrl:string|undefined;
+      if(base.canResume&&current?.state==='PENDING'&&current.redirect_url){try{checkoutUrl=validatePayGlocalUrl(current.redirect_url,'redirect');}catch{}}
+      return json({found:true,provider:'PAYGLOCAL',bookingId:id,status:current?.status??found.rows[0].status,paymentStatus:current?.payment_status??found.rows[0].payment_status,canResume:Boolean(checkoutUrl),checkoutResolved:base.checkoutResolved,amount:Number(found.rows[0].total_minor),currency:'INR',...(checkoutUrl?{checkoutUrl}:{}),message:base.checkoutResolved?'Payment has been verified. Check My trips for supplier confirmation.':checkoutUrl?'Resume the same secure checkout. Returning from checkout does not confirm payment.':'Payment is awaiting verification. Check My trips or contact MaxTravel; do not pay again.'});
+    }
     const result = paymentResumeStatus(found.rows[0]);
     return json({ found: true, ...result, ...(result.canResume ? { keyId: razorpayKey().id } : {}) });
   } catch (error) { return failure(error); }

@@ -41,6 +41,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  payment-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/payment-worker.mjs]
+    depends_on:
+      postgres:
+        condition: service_healthy
   refund-worker:
     <<: *runtime-security
     image: max-travel-booking:local

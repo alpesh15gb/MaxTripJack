@@ -1,6 +1,7 @@
 import { HttpError } from "../http";
+import { payGlocalConfig } from "./payglocal-config";
 
-// Contract preparation only. No network or cryptography is implemented here.
+// Pure payment contracts. RSA transport is isolated in payglocal-wire.ts.
 // Sources verified 2026-10-21:
 // https://payglocal.in/docs/api-reference/payments-v2/paycollect/gpi
 // https://payglocal.in/docs/api-reference/payments-v2/common/get-transaction-status
@@ -22,6 +23,7 @@ export type PayGlocalVerifiedStatus = {
   source: "SERVER_STATUS";
   merchantTxnId: string; gid: string; merchantId: string;
   totalAmount: string; txnCurrency: string; status: string;
+  method?:string;
 };
 
 export type PayGlocalBillingData = {
@@ -146,8 +148,8 @@ export function validatePayGlocalUrl(value: unknown, kind: "redirect" | "status"
 /** Fail before reserving an attempt or making any provider-side request.
  * JWS/JWE transport, status authentication/MID binding, callback verification,
  * idempotency and refund completion semantics need merchant UAT confirmation.
- * No environment variable or browser request can bypass this guard.
+ * Only valid UAT merchant configuration enables the adapter; production stays disabled.
  */
-export function assertPayGlocalTransportReady(): never {
-  throw new HttpError(503, "In Testing · Online payment is not available. No payment was initiated.");
+export function assertPayGlocalTransportReady(): void {
+  payGlocalConfig();
 }

@@ -38,6 +38,7 @@ export async function persistPayGlocalInitiation(tx:Tx,bookingId:string,result:I
   const redirectUrl=validatePayGlocalUrl(result.redirectUrl,"redirect");
   const statusUrl=validatePayGlocalUrl(result.statusUrl,"status",result.gid);
   if(row.gid) {
+    if(row.gid===result.gid&&!row.redirect_url&&!row.status_url){await tx.query('UPDATE payglocal_attempts SET redirect_url=$2,status_url=$3,updated_at=now() WHERE order_id=$1',[bookingId,redirectUrl,statusUrl]);return {linked:false};}
     if(row.gid!==result.gid || row.redirect_url!==redirectUrl || row.status_url!==statusUrl) throw new HttpError(409,"Conflicting PayGlocal initiation requires reconciliation.");
     return {linked:false};
   }
@@ -56,6 +57,17 @@ export async function markPayGlocalUnknown(tx:Tx,bookingId:string) {
   if(!row.gid) await tx.query("UPDATE gateway_intents SET state='UNKNOWN' WHERE order_id=$1",[bookingId]);
 }
 
+/** Recover a lost initiate response using the authenticated status endpoint's
+ * merchantTxnId lookup. No new initiate request, redirect or callback is trusted. */
+export async function linkPayGlocalRecoveredStatus(tx:Tx,bookingId:string,result:PayGlocalVerifiedStatus){
+ const row=await load(tx,bookingId);
+ assertPayGlocalStatusBinding({...asAttempt(row),gid:row.gid??result.gid},result);
+ if(row.gid)return;
+ await tx.query("UPDATE payglocal_attempts SET gid=$2,state='PENDING',updated_at=now() WHERE order_id=$1",[bookingId,result.gid]);
+ await tx.query("UPDATE gateway_intents SET state='CREATED',gateway_order_id=$2 WHERE order_id=$1",[bookingId,result.gid]);
+ await tx.query("INSERT INTO payments(id,order_id,gateway_order_id,amount_minor,currency,provider) VALUES($1,$2,$3,$4,$5,'PAYGLOCAL')",[randomUUID(),bookingId,result.gid,row.amount_minor,row.currency]);
+}
+
 /** Only an authenticated server status adapter may supply this normalized result.
  * The source marker is NOT signature verification. No HTTP callback calls this.
  * Transaction rollback is required on any error, including outbox insert failure.
@@ -72,7 +84,7 @@ export async function recordPayGlocalVerifiedStatus(tx:Tx,bookingId:string,resul
   const payment=(await tx.query<{id:string;status:string;amount_minor:string;currency:string;gateway_payment_id:string|null}>("SELECT id,status,amount_minor,currency,gateway_payment_id FROM payments WHERE order_id=$1 AND gateway_order_id=$2 AND provider='PAYGLOCAL' FOR UPDATE",[bookingId,row.gid])).rows[0];
   if(!payment || payment.amount_minor!==row.amount_minor || payment.currency!==row.currency || (payment.gateway_payment_id && payment.gateway_payment_id!==row.gid)) throw new HttpError(409,"PayGlocal payment link requires reconciliation.");
   if(payment.status==="CAPTURED") throw new HttpError(409,"PayGlocal capture state requires reconciliation.");
-  await tx.query("UPDATE payments SET status='CAPTURED',gateway_payment_id=$2 WHERE id=$1",[payment.id,row.gid]);
+  await tx.query("UPDATE payments SET status='CAPTURED',gateway_payment_id=$2,method=COALESCE($3,method) WHERE id=$1",[payment.id,row.gid,result.method??null]);
   await tx.query("UPDATE payglocal_attempts SET state='CAPTURED',last_provider_status=$2,updated_at=now() WHERE order_id=$1",[bookingId,result.status]);
   // Late success is recorded financially, but never blindly retries supplier work.
   await tx.query("UPDATE orders SET status=CASE WHEN status='PAYMENT_PENDING' THEN 'PAID' ELSE 'MANUAL_REVIEW' END,revision=revision+1,updated_at=now() WHERE id=$1",[bookingId]);

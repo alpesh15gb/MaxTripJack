@@ -4,7 +4,7 @@
 
 User-supplied diagnostics from the running VPS booking container confirm TripJack flight and hotel keys are configured. A direct UAT DEL–BOM search returned HTTP 200, success and 250 results; the hotel nationality lookup returned HTTP 200, success and 207 entries. Application-layer flight search then returned a search reference and 243 results. The app found India in its nationality list, mapped 100 Goa hotel IDs, and returned a hotel search reference with 31 available properties. These checks establish those search/catalogue paths, not fare review, booking, payment or after-sales acceptance. Razorpay key ID, secret and webhook secret were absent from that container at the time of the check.
 
-Protected Vercel previews use isolated synthetic databases. Cross-app verification remains in local loopback fixtures, as requested. The current unit suite has 435 checks; full provider acceptance below remains separate. Preview origin checks now share the same configured/deployment URL resolution for authentication, writes, guest shopping and internal CRM commands.
+Protected Vercel previews use isolated synthetic databases. Cross-app verification remains in local loopback fixtures, as requested. The current unit suite has 446 checks; full provider acceptance below remains separate. Preview origin checks now share the same configured/deployment URL resolution for authentication, writes, guest shopping and internal CRM commands.
 
 ## Earlier coding audit — 18 October 2026
 
@@ -20,7 +20,7 @@ This is a source review and simulated verification record. It is not TripJack ac
 ## Monday configuration — private environment only
 
 - TripJack flight and Hotel v3 UAT keys, plus confirmation of the correct UAT account, wallet balance and any provider account requirements.
-- Razorpay test key ID/secret and a separate webhook signing secret. Configure the reachable test callback at `/api/webhooks/razorpay`.
+- PayGlocal onboarding, UAT MID, signing/encryption KIDs, merchant RSA private key and PayGlocal public certificate. Configure the HTTPS return at `/api/payments/payglocal/return`; independent authenticated polling supplies payment proof. Start the reviewed payment/booking/refund workers before purchases. See [PayGlocal integration](docs/PAYGLOCAL-INTEGRATION.md).
 - A working test email service for verification, password reset and booking notices.
 - CRM event URL and matching signing key/key ID on both sides. Keep existing encryption, authentication and integration secrets secure; do not rotate them merely to test the app.
 - Meta configuration and approved utility templates are required only for the separate CRM WhatsApp tests.
@@ -33,7 +33,7 @@ See INTEGRATION-GUIDE.md for exact variables, migrations, catalogue sync and wor
 | --- | --- |
 | Flight search/review | Domestic, international, return, multi-city and connecting journeys; price changes and session expiry |
 | Initial extras | Correct passenger/segment codes, connecting baggage charged once, seat unavailable after selection, free/paid meal, fare-validation totals and fulfilment fields |
-| Payment | Successful capture, failed/dismissed checkout, duplicate webhook, modified signature, amount mismatch and delayed capture |
+| Payment | Hosted UAT capture, declined/closed checkout, valid encrypted/signed requests, forged callbacks, amount/currency/reference mismatch, lost initiation response and delayed capture |
 | Supplier booking | Wallet preflight, successful ticket/voucher, connection loss after Book, polling recovery and no duplicate submission |
 | Hotels | Different guests/child ages in each room, exact DOB matching, nationality, room availability, cancellation policy changes and supplier re-review |
 | After sales | Full/partial cancellation, accepted terms, confirmed refund, partial refund balance, post-ticket extras and one-time reissue |

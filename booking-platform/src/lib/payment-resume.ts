@@ -8,13 +8,13 @@ export type PaymentResumeRecord = {
   payment_status: string | null; amount_minor: number | string | null; currency: string | null;
 };
 
-export function paymentResumeStatus(record: PaymentResumeRecord, now = Date.now()) {
+export function paymentResumeStatus(record: PaymentResumeRecord, now = Date.now(),provider:'RAZORPAY'|'PAYGLOCAL'='RAZORPAY') {
   const fresh = record.quote_expires_at !== null && new Date(record.quote_expires_at).getTime() > now;
   const amount = Number(record.total_minor);
   const safeService = !record.service_kind || !serviceDisclosure(record.review).blocked;
   const canResume = safeService && record.status === "PAYMENT_PENDING" && record.intent_state === "CREATED"
     && (record.fare_validation_state === null || record.fare_validation_state === "SUCCEEDED") && record.booking_validation_state === null
-    && record.payment_status === "CREATED" && fresh && /^order_[A-Za-z0-9]+$/.test(record.gateway_order_id ?? "")
+    && record.payment_status === "CREATED" && fresh && (provider==='PAYGLOCAL'?/^[A-Za-z0-9_-]{1,128}$/:/^order_[A-Za-z0-9]+$/).test(record.gateway_order_id ?? "")
     && Number.isSafeInteger(amount) && amount > 0 && Number(record.amount_minor) === amount && record.currency === "INR";
   const checkoutResolved = record.payment_status === "CAPTURED"
     || ["PAID", "BOOKING_PENDING", "TICKETED", "CONFIRMED", "BOOKING_FAILED", "CANCELLED", "CLOSED"].includes(record.status);

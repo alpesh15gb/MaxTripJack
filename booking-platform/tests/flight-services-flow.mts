@@ -9,7 +9,7 @@ import { POST as verifyPayment } from "../src/app/api/payments/verify/route";
 import { runBookingJob } from "../src/lib/booking-runner";
 import { signature } from "../src/lib/signatures";
 const base=process.env.BETTER_AUTH_URL!;if(new URL(base).hostname!=="127.0.0.1")throw Error("Local fixtures only");
-const originalFetch=globalThis.fetch,before={TRIPJACK_FLIGHT_API_KEY:process.env.TRIPJACK_FLIGHT_API_KEY,RAZORPAY_KEY_ID:process.env.RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET:process.env.RAZORPAY_KEY_SECRET};
+const originalFetch=globalThis.fetch,before={PAYMENT_PROVIDER:process.env.PAYMENT_PROVIDER,TRIPJACK_FLIGHT_API_KEY:process.env.TRIPJACK_FLIGHT_API_KEY,RAZORPAY_KEY_ID:process.env.RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET:process.env.RAZORPAY_KEY_SECRET};
 const parent=randomUUID(),email=`services-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",gatewayOrder="",gatewayPayment="",expectedAmount=0,addCalls=0,reissueCalls=0,lost=false,providerCalls=0,reissueTerms:Record<string,unknown>={conditions:{st:180,restriction:"Changes remain subject to supplier confirmation"},alerts:["Seat eligibility still applies"]},appliedSegments:Record<string,unknown>[]=[];const searches:string[]=[],quotes:string[]=[],children:string[]=[];
 const person={ti:"Mr",pt:"ADULT",fN:"Test",lN:"Guest"},guests={travellers:[person],email,phone:"9000000000"};
 const segment=(id:string,paxId:string,from:string,to:string,first:boolean)=>({id,da:{code:from},aa:{code:to},dt:"2027-01-01T10:00",bI:{tI:[{...person,id:paxId}],ssrInfo:{BAGGAGE:[{code:"BAG",desc:"Extra baggage",...(first?{amount:1000}:{})}],MEAL:[{code:"MEAL",desc:"Meal",amount:500},{code:"FREE",desc:"Included meal",amount:0}]}}});
@@ -18,7 +18,7 @@ try{
  const signup=await originalFetch(base+"/api/auth/sign-up/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password,name:"Service Test"})});assert.equal(signup.status,200);userId=(await signup.json()).user.id;await database().query('UPDATE "user" SET "emailVerified"=true WHERE id=$1',[userId]);
  const login=await originalFetch(base+"/api/auth/sign-in/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password})});assert.equal(login.status,200);cookie=login.headers.getSetCookie().map(v=>v.split(";")[0]).join("; ");
  const actor={userId,companyId:null};await database().query("INSERT INTO orders(id,reference,user_id,product,status,total_minor,supplier_minor,supplier_booking_id,guests_encrypted,itinerary_summary) VALUES($1,$2,$3,'FLIGHT','TICKETED',1000000,900000,$4,$5,$6)",[parent,`TEST-${parent}`,userId,`ORIGINAL-${parent}`,seal(guests,parent),{product:"FLIGHT",from:"BOM",to:"DEL",date:"2027-01-01",adults:1,children:0,infants:0,cabin:"ECONOMY"}]);
- process.env.TRIPJACK_FLIGHT_API_KEY="service-contract";process.env.RAZORPAY_KEY_ID="rzp_test_services";process.env.RAZORPAY_KEY_SECRET="service-secret";
+ process.env.PAYMENT_PROVIDER="RAZORPAY";process.env.TRIPJACK_FLIGHT_API_KEY="service-contract";process.env.RAZORPAY_KEY_ID="rzp_test_services";process.env.RAZORPAY_KEY_SECRET="service-secret";
  globalThis.fetch=async(input,init)=>{providerCalls++;const url=String(input),body=init?.body?JSON.parse(String(init.body)):{};const ok=(data:unknown)=>Response.json(data);
  if(url.endsWith("/ums/v1/user-detail"))return ok({status:{success:true},walletBalance:100000});
  if(url.endsWith("/ancillaries/fetch/ssr"))return ok(ssr);

@@ -1,6 +1,6 @@
 # Max Travel Booking
 
-Flight/hotel booking website, admin operations and Android/iOS source with TripJack, Razorpay and signed CRM integration.
+Flight/hotel booking website, admin operations and Android/iOS source with TripJack, PayGlocal hosted payments and signed CRM integration. Historical Razorpay payment records remain supported.
 
 - `booking-platform`: Next.js website/API, PostgreSQL and durable workers.
 - `mobile-app`: Expo Android/iOS source using the authenticated backend.
@@ -31,7 +31,7 @@ Signed booking snapshots, confirmation PDF import and controlled CRM operations 
 
 ## Release status
 
-See [delivery status](booking-platform/DELIVERY-STATUS.md), [UAT readiness](booking-platform/UAT-READINESS.md) and [security controls](booking-platform/SECURITY.md). Real TripJack/Razorpay UAT, deployed CRM acceptance, physical-device validation, production configuration and signing remain pending.
+See [delivery status](booking-platform/DELIVERY-STATUS.md), [UAT readiness](booking-platform/UAT-READINESS.md) and [security controls](booking-platform/SECURITY.md). Remaining TripJack booking/after-sales and PayGlocal merchant UAT, deployed CRM acceptance, physical-device validation, production configuration and signing remain pending.
 
 Root GitHub Actions workflows validate both projects separately using their individual dependency lockfiles. Credentials, databases, dependencies and generated builds are excluded from Git.
 

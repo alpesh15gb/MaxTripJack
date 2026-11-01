@@ -16,6 +16,7 @@ export type OpsAction =
   | "refund-request"
   | "refund-approve"
   | "refund-execute"
+  | "refund-settle"
   | "sync-retry";
 type Field = {
   name: string;
@@ -27,6 +28,7 @@ type Field = {
   min?: number;
   max?: number;
   minLength?: number;
+  maxLength?:number;
 };
 const spec: Record<OpsAction, { title: string; help: string; button: string }> =
   {
@@ -52,12 +54,12 @@ const spec: Record<OpsAction, { title: string; help: string; button: string }> =
     },
     "payment-recover": {
       title: "Recover an uncertain gateway order",
-      help: "Use the existing Razorpay order. Its receipt, currency and amount are verified before linking.",
+      help: "Check the original payment reference with its recorded provider. Never create a second payment to resolve an uncertain outcome.",
       button: "Verify and link order",
     },
     "payment-check": {
       title: "Check captured payment",
-      help: "Compare this payment with Razorpay before taking further action.",
+      help: "Compare this payment with its recorded provider before taking further action.",
       button: "Reconcile payment",
     },
     "cancellation-review": {
@@ -94,6 +96,11 @@ const spec: Record<OpsAction, { title: string; help: string; button: string }> =
       title: "Execute or reconcile gateway refund",
       help: "Use the approved refund request. Reconciliation keeps an uncertain gateway outcome attached to the same request.",
       button: "Execute / reconcile refund",
+    },
+    "refund-settle": {
+      title: "Record verified refund settlement",
+      help: "Check bank or provider settlement evidence first. SENT_FOR_REFUND only acknowledges a request. This action records checked evidence; it does not send another refund.",
+      button: "Record verified settlement",
     },
     "sync-retry": {
       title: "Retry CRM delivery",
@@ -177,6 +184,7 @@ function fields(action: OpsAction, row?: OpsRow): Field[] {
         },
       ];
     case "payment-recover":
+      if(row?.provider==='PAYGLOCAL')return [];
       return [
         {
           name: "gateway",
@@ -224,6 +232,8 @@ function fields(action: OpsAction, row?: OpsRow): Field[] {
         { name: "amount", label: "Refund amount (₹)", type: "number", min: 1 },
         { name: "reason", label: "Reason for refund", minLength: 3 },
       ];
+    case 'refund-settle':
+      return [{name:'bankReference',label:'Bank / provider settlement reference',minLength:5,maxLength:128},{name:'settledOn',label:'Settlement date',type:'date'},{name:'note',label:'Evidence checked and settlement notes',minLength:10},{name:'attested',label:'I verified this refund is settled using bank or provider evidence.',type:'checkbox'}];
     default:
       return [];
   }
@@ -282,7 +292,7 @@ function command(
         path: "/api/admin/payments/recover",
         body: {
           bookingId: String(row?.order_id ?? record),
-          gatewayOrderId: value("gateway"),
+          ...(row?.provider==="PAYGLOCAL"?{}:{gatewayOrderId:value("gateway")}),
         },
       };
     case "payment-check":
@@ -325,6 +335,8 @@ function command(
       };
     case "refund-execute":
       return { path: `/api/admin/refunds/${record}/execute` };
+    case 'refund-settle':
+      return {path:`/api/admin/refunds/${record}/settlement`,body:{requestId:id,acceptedAmountMinor:Number(row?.amount_minor),gatewayRefundId:String(row?.gateway_refund_id??''),bankReference:value('bankReference'),settledOn:value('settledOn'),note:value('note'),attested:f.has('attested')}};
     case "sync-retry":
       return { path: "/api/admin/sync", body: { id: record } };
   }
@@ -490,7 +502,7 @@ export default function OperationsAction({
                     max={field.max}
                     step={field.type === "number" ? "0.01" : undefined}
                     minLength={field.minLength}
-                    maxLength={field.name === "gst" ? 15 : 1000}
+                    maxLength={field.maxLength??(field.name === "gst" ? 15 : 1000)}
                     defaultValue={field.value}
                     readOnly={
                       action === "refund-request" &&

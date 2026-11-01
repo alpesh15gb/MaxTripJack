@@ -6,7 +6,7 @@ Read DELIVERY-STATUS.md for implemented scope and release checks. Real provider 
 
 
 
-Official contracts: https://tripjack.com/page/api-doc (flights FMS/OMS v1, fare rules v2, hotels v3); https://razorpay.com/docs/api/refunds/normal-refunds-idempotent ; https://github.com/razorpay/razorpay-node/blob/master/documents/order.md . Fixed UAT hosts and test Razorpay keys are enforced.
+Official contracts: https://tripjack.com/page/api-doc (flights FMS/OMS v1, fare rules v2, hotels v3); https://razorpay.com/docs/api/refunds/normal-refunds-idempotent ; https://github.com/razorpay/razorpay-node/blob/master/documents/order.md . Fixed UAT hosts are enforced. PayGlocal is selected for new checkout; see [encrypted hosted checkout and UAT setup](docs/PAYGLOCAL-INTEGRATION.md). Historical Razorpay records retain test-only reconciliation.
 
 
 
@@ -74,11 +74,11 @@ Grants replace previous roles. viewer is read-only. Refunds above REFUND_SECOND_
 
 
 
-Search → select → review price/rules → guests → accept server total → Razorpay → verified capture → supplier job → supplier confirmation. Payment success alone does not confirm travel.
+Search → select → review price/rules → guests → accept server total → configured hosted payment → verified capture → supplier job → supplier confirmation. Payment success alone does not confirm travel.
 
 
 
-A quote reuses its gateway order. Uncertain creation is recovered using the existing Razorpay ID; receipt/amount/currency must match. Finance can reconcile captures for a saved order. Supplier attempts are committed before Book; unknown outcomes only query details. Operations can resume those checks.
+A quote reuses its recorded payment provider. PayGlocal stores the merchant reference before initiation and recovers unknown outcomes through authenticated status without re-initiating. Historical Razorpay creation is recovered using its existing order ID; receipt/amount/currency must match. Finance can reconcile captures for a saved order. Supplier attempts are committed before Book; unknown outcomes only query details. Operations can resume those checks.
 
 
 

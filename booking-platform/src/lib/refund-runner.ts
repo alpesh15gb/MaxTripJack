@@ -5,20 +5,23 @@ import { z } from "zod";
 import { transaction } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import { razorpay,razorpayKey } from "@/lib/providers/razorpay";
+import {reservePayGlocalRefund,executePayGlocalRefund} from './payglocal-refund';
 export async function executeRefund(refundId:string,actorId:string|null=null){
  const id=z.string().uuid().parse(refundId);
  const refund=await transaction(async tx=>{
   const found=await tx.query("SELECT r.*,p.provider,p.gateway_payment_id,p.order_id,o.status AS booking_status FROM refunds r JOIN payments p ON p.id=r.payment_id JOIN orders o ON o.id=p.order_id WHERE r.id=$1 FOR UPDATE OF r,p,o",[id]);const row=found.rows[0];
   if(!row||!["APPROVED","PROCESSING"].includes(row.status))throw new HttpError(409,"Refund must be approved before execution.");
-  assertRazorpayRecord(row.provider);razorpayKey();
+  if(row.provider!=='PAYGLOCAL'){assertRazorpayRecord(row.provider);razorpayKey();}
   if(row.booking_status!=="BOOKING_FAILED"){
    const consent=await tx.query("SELECT COALESCE(sum(refund_offer_minor),0)::text AS amount FROM cancellation_requests WHERE order_id=$1 AND status='CONFIRMED' AND accepted_at IS NOT NULL",[row.order_id]);
    const reserved=await tx.query("SELECT COALESCE(sum(r.amount_minor),0)::text AS amount FROM refunds r JOIN payments p ON p.id=r.payment_id WHERE p.order_id=$1 AND r.status IN ('REQUESTED','APPROVED','PROCESSING','COMPLETED')",[row.order_id]);
    if(!["CANCELLED","TICKETED","CONFIRMED"].includes(row.booking_status)||Number(reserved.rows[0].amount)>Number(consent.rows[0].amount))throw new HttpError(409,"Refund exceeds supplier-confirmed, customer-accepted cancellation terms.");
   }
   if(row.next_check&&new Date(row.next_check).getTime()>Date.now())throw new HttpError(409,"Refund operation is already in progress. Wait before reconciliation.");
-  await tx.query("UPDATE refunds SET status='PROCESSING',operation_started_at=COALESCE(operation_started_at,now()),next_check=now()+interval '60 seconds' WHERE id=$1",[id]);return row;
+  const payglocal=row.provider==='PAYGLOCAL'?await reservePayGlocalRefund(tx,row):undefined;
+  await tx.query("UPDATE refunds SET status='PROCESSING',operation_started_at=COALESCE(operation_started_at,now()),next_check=now()+interval '60 seconds' WHERE id=$1",[id]);return {...row,payglocal};
  });
+ if(refund.provider==='PAYGLOCAL')return executePayGlocalRefund(refund,actorId);
  // Same persisted id and identical payload on every retry; Razorpay guarantees
  // idempotency for this header. Unknown outcomes remain PROCESSING, not FAILED.
  const result=refund.gateway_refund_id?await razorpay(`/refunds/${encodeURIComponent(refund.gateway_refund_id)}`):await razorpay(`/payments/${encodeURIComponent(refund.gateway_payment_id)}/refund`,{amount:Number(refund.amount_minor),speed:"normal",receipt:id,notes:{refundId:id}},{"X-Refund-Idempotency":id});

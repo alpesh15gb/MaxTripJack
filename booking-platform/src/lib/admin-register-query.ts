@@ -6,7 +6,7 @@ const searchColumns: Record<Resource, readonly string[]> = {
   pricing: ["id", "product", "company_name", "company_id"],
   cancellations: ["id", "reference", "reason"],
   payments: ["id", "reference", "gateway_order_id", "gateway_payment_id"],
-  refunds: ["id", "reference", "payment_id", "reason"],
+  refunds: ["id", "reference", "payment_id", "reason", "gateway_refund_id", "settlement_reference"],
   sync: ["id", "aggregate_id", "event_type"],
   audit: ["id", "actor_id", "action", "entity_id"],
 };

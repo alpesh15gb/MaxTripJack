@@ -1,4 +1,4 @@
-export function configuredAuthBaseURL(){return process.env.BETTER_AUTH_URL||(process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:undefined);}
+export function configuredAuthBaseURL(env:Record<string,string|undefined>=process.env){return env.BETTER_AUTH_URL||(env.VERCEL_URL?"https://"+env.VERCEL_URL:undefined);}
 /** Keep the account-mail boundary and BetterAuth's origin policy aligned. */
 export function authTrustedOrigins(baseURL: string): string[] {
   return [new URL(baseURL).origin, "maxtravel://"];

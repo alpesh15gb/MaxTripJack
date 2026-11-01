@@ -23,7 +23,7 @@ test('native confirmation guard precedes recovery persistence and every payment 
  assert.match(service,/const conditions=serviceConditions\(quote\?\.review\)/);
  assert.doesNotMatch(service,/JSON\.stringify\(quote.review/);
  assert.match(service,/conditions\.lines\.map/);
- assert.match(service,/disabled=\{busy\|\|!consent\|\|paymentSafety.blocked\|\|conditions.blocked\}/);
+ assert.match(service,/disabled=\{busy\|\|!consent\|\|paymentSafety.blocked\|\|conditions.blocked\|\|\(quote.totalMinor>0&&!paymentSafety.gateway\?\.configured\)\}/);
  const guard=service.indexOf('if(conditions.blocked)throw Error(');
  assert.ok(guard>0);
  assert.ok(guard<service.indexOf('await paymentSafety.start('));

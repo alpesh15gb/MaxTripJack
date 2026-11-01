@@ -5,6 +5,7 @@ import { transaction, database } from "@/lib/db";
 import { razorpay } from "@/lib/providers/razorpay";
 import { body, sameOrigin, json, failure, HttpError } from "@/lib/http";
 import { assertRecoverablePaymentIntent, persistGatewayOrder, type PaymentIntent } from "@/lib/payment-intent";
+import {reconcilePayGlocalForAdmin} from '@/lib/payglocal-admin';
 
 export async function POST(request: Request) {
   try {
@@ -12,11 +13,13 @@ export async function POST(request: Request) {
     const actor = await administrator(request, "payments:manage");
     const input = await body(request, z.object({
       bookingId: z.string().uuid(),
-      gatewayOrderId: z.string().regex(/^order_[A-Za-z0-9]+$/),
+      gatewayOrderId: z.string().regex(/^order_[A-Za-z0-9]+$/).optional(),
     }).strict());
     const found = await database().query<PaymentIntent>(
       "SELECT g.provider,o.total_minor,o.status,g.state,g.gateway_order_id,g.created_at FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.id=$1", [input.bookingId],
     );
+    if(found.rows[0]?.provider==='PAYGLOCAL')return json(await reconcilePayGlocalForAdmin(input.bookingId,actor.userId));
+    if(!input.gatewayOrderId)throw new HttpError(400,'The original gateway order reference is required.');
     assertRecoverablePaymentIntent(found.rows[0], input.gatewayOrderId);
     // Read the supplied existing order; never create/re-submit an uncertain one.
     const gateway = await razorpay(`/orders/${encodeURIComponent(input.gatewayOrderId)}`);

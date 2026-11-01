@@ -5,8 +5,8 @@ export type PaymentProvider = "RAZORPAY" | "PAYGLOCAL";
 
 /** New orders only. Persisted provider always wins for historic operations. */
 export function selectedPaymentProvider(value = process.env.PAYMENT_PROVIDER): PaymentProvider {
-  if (!value || value === "RAZORPAY") return "RAZORPAY";
-  if (value === "PAYGLOCAL") return "PAYGLOCAL";
+  if (!value || value === "PAYGLOCAL") return "PAYGLOCAL";
+  if (value === "RAZORPAY") return "RAZORPAY";
   throw new HttpError(503, "Online payment is temporarily unavailable. Please contact MaxTravel.");
 }
 

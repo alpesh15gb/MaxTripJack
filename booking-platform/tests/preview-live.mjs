@@ -32,7 +32,7 @@ try{
  const base=access.cloudBase??local;
  for(const role of Object.keys(permissions)){
   const c=await browser.newContext({viewport:{width:1440,height:1000},timezoneId:'UTC'}),p=await c.newPage();if(access.shareableUrl)await p.goto(access.shareableUrl);await signedIn(c,base,access.users[role]);const context=await api(c,base,'/api/admin/context');assert.deepEqual([...context.permissions].sort(),[...permissions[role]].sort());
-  if(role!=='admin'){const denied=await c.request.get(base+'/api/admin/payments',{headers:{origin:base}});assert.equal(denied.status(),403);}
+  if(role!=='admin'){const denied=await c.request.get(base+'/api/admin/payments',{headers:{origin:base}});assert.equal(denied.status(),403);const settlement=await c.request.post(base+'/api/admin/refunds/00000000-0000-4000-8000-000000000001/settlement',{headers:{origin:base},data:{}});assert.equal(settlement.status(),403);}
   const pricing={id:'00000000-0000-4000-8000-00000000c0de',companyId:null,product:'FLIGHT',markupMinor:0,basisPoints:0,serviceFeeMinor:0};
   if(role==='admin'){
    const saved=await api(c,base,'/api/admin/pricing',pricing),replayed=await api(c,base,'/api/admin/pricing',pricing);assert.equal(saved.id,pricing.id);assert.equal(replayed.id,saved.id);assert.equal((await pool.query('SELECT count(*)::int AS count FROM pricing_rules WHERE id=$1',[saved.id])).rows[0].count,1);

@@ -257,6 +257,7 @@ function actionsFor(
       ];
     case "refunds":
       return [
+        ...(can('refunds:execute')&&row.provider==='PAYGLOCAL'&&row.status==='PROCESSING'&&Boolean(row.gateway_refund_id)?['refund-settle' as const]:[]),
         ...(row.status === "REQUESTED" ? ["refund-approve" as const] : []),
         ...(can("refunds:execute") &&
         ["APPROVED", "PROCESSING", "MANUAL_REVIEW"].includes(String(row.status))

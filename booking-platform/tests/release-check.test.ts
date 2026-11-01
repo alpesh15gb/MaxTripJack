@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import {generateKeyPairSync} from 'node:crypto';
 import { fileURLToPath } from "node:url";
 
 // No inherited environment, .env files, real credentials, database or network.
 const fixture: NodeJS.ProcessEnv = {
   NODE_ENV: "test",
+  PAYMENT_PROVIDER: "RAZORPAY",
   DATABASE_URL: "postgresql://maxtravel_app:fixture@127.0.0.1/disposable",
   BETTER_AUTH_URL: "https://merchant.example.test",
   BETTER_AUTH_SECRET: "a".repeat(32),
@@ -30,8 +32,8 @@ function check(patch: Partial<NodeJS.ProcessEnv> = {}) {
   return result;
 }
 
-test("default and explicit Razorpay preserve UAT-only configuration readiness", () => {
-  for (const PAYMENT_PROVIDER of [undefined, "", "RAZORPAY"]) {
+test("explicit historical Razorpay preserves UAT-only configuration readiness", () => {
+  for (const PAYMENT_PROVIDER of ["RAZORPAY"]) {
     const result = check({ PAYMENT_PROVIDER });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /UAT configuration checks passed for Razorpay test mode/);
@@ -40,13 +42,13 @@ test("default and explicit Razorpay preserve UAT-only configuration readiness", 
   }
 });
 
-test("PayGlocal cannot pass checkout readiness but gated UAT deployment remains possible", () => {
+test("PayGlocal onboarding must provide UAT merchant identities and actual RSA files", () => {
   const result = check({ PAYMENT_PROVIDER: "PAYGLOCAL", RAZORPAY_KEY_ID: undefined, RAZORPAY_KEY_SECRET: undefined, RAZORPAY_WEBHOOK_SECRET: undefined });
   assert.equal(result.status, 1);
   assert.equal(result.stdout, "");
-  assert.match(result.stderr, /PayGlocal paid checkout is deliberately unavailable/);
-  assert.match(result.stderr, /gated UAT deployment is possible/);
-  assert.match(result.stderr, /keep the runtime gate intact/);
+  assert.match(result.stderr, /PAYGLOCAL_ENV/);
+  assert.match(result.stderr, /PAYGLOCAL_MERCHANT_ID/);
+  assert.match(result.stderr, /PAYGLOCAL_KEYS/);
   assert.doesNotMatch(result.stderr, /RAZORPAY_|rzp_test/);
 });
 
@@ -58,6 +60,11 @@ test("unknown payment provider fails closed without reflecting configuration val
     assert.ok(!result.stderr.includes(PAYMENT_PROVIDER));
     assert.equal(result.stdout, "");
   }
+});
+
+test('configured RSA PayGlocal UAT passes configuration only; live mode remains blocked',()=>{
+ const pair=generateKeyPairSync('rsa',{modulusLength:2048}),config={PAYMENT_PROVIDER:'PAYGLOCAL',PAYGLOCAL_ENV:'UAT',PAYGLOCAL_MERCHANT_ID:'synthetic',PAYGLOCAL_PRIVATE_KEY_ID:'signing',PAYGLOCAL_PUBLIC_KEY_ID:'encryption',PAYGLOCAL_PRIVATE_KEY:pair.privateKey.export({type:'pkcs8',format:'pem'}).toString(),PAYGLOCAL_PUBLIC_KEY:pair.publicKey.export({type:'spki',format:'pem'}).toString(),RAZORPAY_KEY_ID:undefined,RAZORPAY_KEY_SECRET:undefined,RAZORPAY_WEBHOOK_SECRET:undefined};
+ const result=check(config);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/PayGlocal test mode/);assert.match(result.stdout,/does not.*establish end-to-end payment readiness/);assert.equal(check({...config,PAYGLOCAL_ENV:'PRODUCTION'}).status,1);assert.equal(check({...config,PAYGLOCAL_PRIVATE_KEY:'invalid-key-marker'}).status,1);assert(!check({...config,PAYGLOCAL_PRIVATE_KEY:'invalid-key-marker'}).stderr.includes('invalid-key-marker'));
 });
 
 test("existing configuration safeguards remain enforced and secrets stay unprinted", () => {

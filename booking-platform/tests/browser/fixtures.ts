@@ -110,7 +110,7 @@ export const test = base.extend<{ provider: ProviderFixture }>({
         await route.fulfill({ contentType: 'application/javascript', body: syntheticGateway });
         return;
       }
-      if (url.origin !== 'http://127.0.0.1:3100') {
+      if (url.origin !== new URL(testInfo.project.use.baseURL??'http://127.0.0.1:3100').origin) {
         // Photos and fonts are local. Any external provider/auth request,
         // image, future SDK dependency or iframe fails closed.
         provider.unexpected.push(`External ${request.method()} ${url.origin}${url.pathname}`);
@@ -141,6 +141,7 @@ export const test = base.extend<{ provider: ProviderFixture }>({
         case 'POST /api/travel/hotel-detail': reply = { body: { options: [hotelOption] } }; break;
         case 'GET /api/travel/checkout-extras': reply = { body: { segments: [], travellerTypes: ['ADULT'], choices: [] } }; break;
         case 'GET /api/travellers': reply = { body: { travellers: [] } }; break;
+        case 'GET /api/payments/config': reply={body:{provider:'RAZORPAY',configured:true}};break;
         case 'POST /api/payments/create': reply = { body: {
           bookingId, orderId: 'order_SYNTHETICONLY', amount: 654000, currency: 'INR', keyId: 'rzp_test_SYNTHETICONLY',
         } }; break;

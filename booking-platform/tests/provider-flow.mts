@@ -21,13 +21,13 @@ const fixtureBookings:string[]=[],fixtureQuotes:string[]=[],fixtureSearches:stri
 const privateReviewMarker="SYNTHETIC_REVIEW_PRIVATE";
 const flightConditions={st:300,isa:false,pcs:{pm:false,pped:false,privateReviewMarker},dob:{adobr:false,cdobr:false,idobr:false,privateReviewMarker},gst:{igm:false,privateReviewMarker},iecr:false,ipa:false,privateReviewMarker};
 const hotelOption={optionId:"hotel-option",pricing:{totalPrice:5000 as unknown,currency:"INR",mf:0,mft:0,privateReviewMarker},cancellation:{isRefundable:true,penalties:[]},compliance:{panRequired:false,passportRequired:false,gstType:"NA",privateReviewMarker},bookingNotes:{privateReviewMarker}};
-const before={TRIPJACK_FLIGHT_API_KEY:process.env.TRIPJACK_FLIGHT_API_KEY,TRIPJACK_HOTEL_API_KEY:process.env.TRIPJACK_HOTEL_API_KEY,RAZORPAY_KEY_ID:process.env.RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET:process.env.RAZORPAY_KEY_SECRET};
+const before={PAYMENT_PROVIDER:process.env.PAYMENT_PROVIDER,TRIPJACK_FLIGHT_API_KEY:process.env.TRIPJACK_FLIGHT_API_KEY,TRIPJACK_HOTEL_API_KEY:process.env.TRIPJACK_HOTEL_API_KEY,RAZORPAY_KEY_ID:process.env.RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET:process.env.RAZORPAY_KEY_SECRET};
 try{
  const signup=await originalFetch(base+"/api/auth/sign-up/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password,name:"Provider Contract Test"})});assert.equal(signup.status,200);userId=(await signup.json()).user.id;
  // Test-only identity setup; email delivery/verification is covered by test:integration.
  await pool.query('UPDATE "user" SET "emailVerified"=true WHERE id=$1',[userId]);
  const login=await originalFetch(base+"/api/auth/sign-in/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password})});assert.equal(login.status,200);cookie=login.headers.getSetCookie().map(v=>v.split(";")[0]).join("; ");
- process.env.TRIPJACK_FLIGHT_API_KEY="contract-test-key";process.env.TRIPJACK_HOTEL_API_KEY="contract-test-hotel-key";process.env.RAZORPAY_KEY_ID="rzp_test_contract";process.env.RAZORPAY_KEY_SECRET="contract-test-secret";
+ process.env.PAYMENT_PROVIDER="RAZORPAY";process.env.TRIPJACK_FLIGHT_API_KEY="contract-test-key";process.env.TRIPJACK_HOTEL_API_KEY="contract-test-hotel-key";process.env.RAZORPAY_KEY_ID="rzp_test_contract";process.env.RAZORPAY_KEY_SECRET="contract-test-secret";
  globalThis.fetch=async(input,init)=>{const url=String(input);const payload=init?.body?JSON.parse(String(init.body)):{};const ok=(data:unknown)=>Promise.resolve(Response.json(data));
   if(url==="https://apitest.tripjack.com/ums/v1/user-detail")return ok({status:{success:true},walletBalance});
   if(url.startsWith("https://apitest.tripjack.com")){

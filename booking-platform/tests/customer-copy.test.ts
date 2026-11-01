@@ -64,7 +64,7 @@ test("search and account notes retain truthful testing warnings", () => {
 });
 
 test("payment stays disabled and reports that no payment was initiated", () => {
-  assert.throws(assertPayGlocalTransportReady, {status:503,message:"In Testing · Online payment is not available. No payment was initiated."});
+  assert.throws(assertPayGlocalTransportReady, {status:503,message:"Online payment is not available yet. No payment was initiated."});
 });
 
 test("supplier failures keep HTTP status and safe recovery instructions", async () => {

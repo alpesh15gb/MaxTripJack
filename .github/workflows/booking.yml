@@ -28,9 +28,9 @@ jobs:
             }
           }
           for (const path of ['.next/static', 'public', 'db', 'dist']) readableTree(path);
-          for (const name of ['booking-worker', 'crm-worker', 'notification-worker', 'migrate-auth', 'sync-catalogue', 'refund-worker', 'maintenance-worker', 'cancellation-worker']) accessSync(`dist/${name}.mjs`, constants.R_OK);
+          for (const name of ['payment-worker', 'booking-worker', 'crm-worker', 'notification-worker', 'migrate-auth', 'sync-catalogue', 'refund-worker', 'maintenance-worker', 'cancellation-worker']) accessSync(`dist/${name}.mjs`, constants.R_OK);
           // Import only libraries; never execute server.js, workers or migrations.
-          for (const name of ['next', 'next/navigation', 'pg', 'nodemailer', 'pdfkit', 'better-auth', 'zod', 'server-only']) await import(name);
+          for (const name of ['next', 'next/navigation', 'pg', 'nodemailer', 'pdfkit', 'jose', 'better-auth', 'zod', 'server-only']) await import(name);
           console.log('Non-root runtime artifacts and library imports verified offline.');
           JS
   cross-app-contracts:
@@ -93,6 +93,7 @@ jobs:
           node --import tsx tests/guest-shopping-postgres.mts
           node --conditions=react-server --import ./scripts/standalone-server.mjs --import tsx tests/guest-shopping-routes.mts
           node --import tsx tests/booking-report-postgres.mts
+          node --import tsx tests/payglocal-postgres.mts
       - run: npm run lint && npm test && npm run test:refunds && npm run test:cancellations && npm run build && npm run build:workers
       - name: Start fixture server and check flows
         run: |
@@ -145,6 +146,8 @@ jobs:
         run: npm run test:browser
       - name: Verify PayGlocal unavailable checkout on desktop and mobile
         run: npx playwright test -c playwright.payglocal.config.ts
+      - name: Verify PayGlocal payer billing and hosted handoff with intercepted gateway
+        run: npx playwright test -c playwright.payglocal-hosted.config.ts
       - name: Preserve UI screenshots, failure traces and browser report
         if: always()
         uses: actions/upload-artifact@v4
