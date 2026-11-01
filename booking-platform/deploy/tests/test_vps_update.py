@@ -120,6 +120,67 @@ class SafetyTests(unittest.TestCase):
             self.assertNotIn("synthetic-runtime", console.getvalue())
             self.assertTrue(all("up" not in c and "stop" not in c for c in calls))
 
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI required for deployment-provenance regression")
+    def test_snapshot_does_not_merge_older_database_deployment_files_into_current_app(self):
+        for include_postgres in (True, False):
+            with self.subTest(postgres_managed_by_app_model=include_postgres):
+                self.check_older_database_files(include_postgres)
+
+    def check_older_database_files(self, include_postgres):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            current, legacy, recovery = root / "current.json", root / "old-database.yaml", root / "recovery"
+            recovery.mkdir()
+            current.write_text(json.dumps({"services": {
+                "app": {"image": "node:24-alpine", "security_opt": ["no-new-privileges:true"]},
+                "refund-worker": {"image": "node:24-alpine", "security_opt": ["no-new-privileges:true"]},
+                "postgres": {"image": "postgres:17-alpine", "environment": {"POSTGRES_PASSWORD": "synthetic-current-db"}}
+            }}))
+            if not include_postgres:
+                app_only = json.loads(current.read_text())
+                del app_only["services"]["postgres"]
+                current.write_text(json.dumps(app_only))
+            legacy.write_text('services:\n  refund-worker:\n    image: node:24-alpine\n    security_opt: [no-new-privileges:true, no-new-privileges:true]\n')
+            original_current, original_legacy = current.read_bytes(), legacy.read_bytes()
+            labels = {"com.docker.compose.project": "max-travel-booking", "com.docker.compose.service": "app",
+                      "com.docker.compose.project.working_dir": str(root), "com.docker.compose.project.config_files": str(current)}
+            app = {"Name": "/max-travel-booking-app-1", "Image": "sha256:" + "1" * 64, "Mounts": [],
+                   "State": {"Running": True, "Health": {"Status": "healthy"}}, "Config": {"Labels": labels, "Env": []}}
+            db = {"Name": "/max-travel-booking-postgres-1", "Image": "sha256:" + "2" * 64, "Mounts": [],
+                  "Config": {"Env": ["POSTGRES_PASSWORD=synthetic-runtime-db"], "Labels": {
+                      "com.docker.compose.project": "max-travel-booking", "com.docker.compose.service": "postgres",
+                      "com.docker.compose.project.config_files": str(legacy)}}}
+            state = update.Update.__new__(update.Update)
+            state.directory, state.number, state.stacks = recovery, 0, []
+            state.inspect = lambda kind, identity: {"Config": {"Env": []}} if kind == "image" else db if identity == "db-id" else app
+            real_run, calls = state.run, []
+            def run(args, **kwargs):
+                calls.append(args)
+                if args[:3] == ["docker", "ps", "-q"]:
+                    return "app-id\ndb-id\n"
+                return real_run(args, **kwargs)
+            state.run = run
+            with contextlib.redirect_stdout(io.StringIO()):
+                stack = state.snapshot("max-travel-booking-app-1", "max-travel-booking")
+            self.assertEqual(stack["config"]["services"]["refund-worker"]["security_opt"], ["no-new-privileges:true"])
+            if include_postgres:
+                self.assertEqual(stack["config"]["services"]["postgres"]["environment"]["POSTGRES_PASSWORD"], "synthetic-runtime-db")
+            else:
+                self.assertNotIn("postgres", stack["config"]["services"])
+            self.assertTrue(all(str(legacy) not in call for call in calls))
+            self.assertEqual(current.read_bytes(), original_current)
+            self.assertEqual(legacy.read_bytes(), original_legacy)
+
+    def test_app_only_model_may_leave_infrastructure_unmanaged_but_never_ignores_a_missing_worker(self):
+        config, app, defaults = self.fixture()
+        db = {"Image": "sha256:database", "Config": {"Labels": {"com.docker.compose.service": "postgres"}, "Env": ["POSTGRES_PASSWORD=private-db"]}, "Mounts": []}
+        frozen = update.freeze_config(config, [app, db], defaults)
+        self.assertNotIn("postgres", frozen["services"])
+        self.assertNotIn("POSTGRES_PASSWORD", frozen["services"]["app"]["environment"])
+        db["Config"]["Labels"]["com.docker.compose.service"] = "booking-worker"
+        with self.assertRaises(update.StopUpdate):
+            update.freeze_config(config, [app, db], defaults)
+
     def runtime(self, service, values, project="max-travel-booking", oneoff=False):
         return {"Config": {"Labels": {"com.docker.compose.project": project,
                     "com.docker.compose.service": service, "com.docker.compose.oneoff": str(oneoff)},

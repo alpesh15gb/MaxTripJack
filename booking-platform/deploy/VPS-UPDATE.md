@@ -24,6 +24,12 @@ Run without flags for an inspection; use `--apply` for the update. The updater:
    distinct entry remains. A single explicit no-new-privileges string can become
    a one-item list. Other invalid types stop before any restart. Source files
    remain unchanged, and validation failures print field/type metadata only.
+   The app container's Compose chain is authoritative. Older configuration-file
+   labels on PostgreSQL or other long-lived containers are not appended to that
+   chain. Their live credentials, image IDs and storage identities are inspected
+   separately. Existing infrastructure can remain unmanaged by an app-only
+   frozen model. An active application/worker absent from the authoritative
+   model stops the update instead of importing another release's files.
 2. Prints only boolean integration readiness checks, not signing keys or API
    credentials. It does not rotate secrets or grant users additional access.
 3. Checks out the two pinned commits into fresh private directories and builds

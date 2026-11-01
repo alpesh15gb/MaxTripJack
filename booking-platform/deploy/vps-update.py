@@ -198,9 +198,15 @@ def freeze_config(config, containers, image_defaults):
     for container in containers:
         labels = container["Config"].get("Labels") or {}
         service = labels.get("com.docker.compose.service")
-        if not service or service not in services or service in seen:
+        if not service or service in seen:
             raise StopUpdate("Cannot identify exactly one configured container per active service.")
         seen.add(service)
+        if service not in services:
+            if service in ("postgres", "redis", "evolution"):
+                # App-only frozen deployments can reference existing infrastructure
+                # through their network without managing its Compose service.
+                continue
+            raise StopUpdate("An active application/worker service is absent from the app deployment model.")
         spec = services[service]
         declared = spec.get("environment") or {}
         if not isinstance(declared, dict):
@@ -303,13 +309,11 @@ class Update:
         ids = self.run(["docker", "ps", "-q", "--filter", f"label=com.docker.compose.project={project}"]).split()
         containers = [self.inspect("container", identity) for identity in ids]
         containers = [c for c in containers if (c["Config"].get("Labels") or {}).get("com.docker.compose.oneoff", "false").lower() != "true"]
-        for c in containers:
-            extra = (c["Config"].get("Labels") or {}).get("com.docker.compose.project.config_files", "").split(",")
-            for path in extra:
-                if path and path not in files:
-                    if not Path(path).is_file():
-                        raise StopUpdate("An active worker Compose file is unavailable.")
-                    files.append(path)
+        # The application's deployment chain is authoritative. PostgreSQL (and
+        # other long-lived services) can retain labels from an older release;
+        # merging those files over the current frozen model reintroduces stale
+        # settings. Read their runtime env/mounts separately below. If an active
+        # service is absent from this model, freeze_config refuses the update.
         command = ["docker", "compose", "--project-directory", working, "-p", project]
         env_files = labels.get("com.docker.compose.project.environment_file", "")
         for file in filter(None, env_files.split(",")):
