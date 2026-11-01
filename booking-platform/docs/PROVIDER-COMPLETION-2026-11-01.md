@@ -18,7 +18,15 @@ New PayGlocal checkout stays blocked in code before order/payment side effects, 
 
 The accompanying regression suite covers travel mapping, timezone/DST boundaries, malformed data, sensitive-field exclusion, RSA signature tampering/expiry, immutable holds, daily cancellation scheduling, expired-lease recovery, concurrent checks, SQL rollback and exactly-once CRM completion. Disposable PostgreSQL fixtures exercise the actual SDK encrypted payload and payment/refund recovery. Signed CRM receiver fixtures verify case-history updates, forged-event denial, replay/stale revisions and unchanged receipt/notification counts.
 
-Final build, browser and cross-app evidence is recorded with the release verification results after the complete check run. All upstream payment/supplier responses in local checks are synthetic; actual TripJack/PayGlocal UAT acceptance remains separate.
+Final verification passed on clean source clones: lint, TypeScript, production builds and worker compilation; 483 booking unit checks; 610 main desktop/mobile browser checks; six payment-disabled browser checks; 12 final operations UI checks after visual review; 50 native unit checks and native type checking; two web/native contract checks; SEO and production CSP/nonce checks. Six hosted merchant-acceptance cases remain explicitly deferred while payment activation is blocked.
+
+The real PostgreSQL suites passed payment/refund concurrency, encrypted mapped payload roundtrips, loss recovery, cancellation leasing/daily scheduling, migration readiness and rollback. Real local HTTP checks passed authentication/ownership, flight/hotel checkout fixtures, CRM commands, flight services, SMTP accept/reject/held responses and genuine MFA enrollment/recovery.
+
+CRM's full main suite and isolated agency journeys passed, including ticketing, visa, cancellation accounting, idempotent finance, audit and reporting. The current signed receiver passed pending-cancellation history, event replay/stale revisions, forged-event denial and unchanged receipt/notification counts.
+
+The real two-app proof passed flight and hotel HTTP checkout → simulated capture → booking worker → signed CRM delivery, with permanent case IDs and one receipt/invoice per booking. It also verified desktop/mobile My Trips and CRM views, administrator assignment, delegated staff start/submission, separate administrator approval, worker replay protection and staff finance denial.
+
+All upstream payment/supplier responses in these checks are synthetic. Actual TripJack/PayGlocal UAT acceptance remains separate. Local evidence is retained privately under `.artifacts/provider-completion-20261101`; no credentials are part of the evidence committed to Git.
 
 ## Deployment
 
