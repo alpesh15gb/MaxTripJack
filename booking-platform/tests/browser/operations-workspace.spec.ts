@@ -164,7 +164,7 @@ test("failed access checks never show an empty register or privileged navigation
 test("hotel cancellation follow-up stays visible with supplier and next-check progress",async({page,provider},info)=>{
   provider.overrides["GET /api/admin/cancellations"]={body:{rows:[{id:"22222222-2222-4222-8222-222222222222",reference:"MX-HOTEL-PENDING",product:"HOTEL",status:"SUPPLIER_PENDING",supplier_status:"CANCELLATION_PENDING",last_checked_at:"2026-11-01T10:00:00Z",next_check:"2026-11-02T10:00:00Z",follow_up_required_at:"2026-11-01T10:00:00Z",poll_attempts:9,is_partial:false,reason:"Fixture change of plans",created_at:"2026-10-30T10:00:00Z"}],total:1,page:1,hasMore:false}};
   await page.goto("/operations?desk=cancellations");const records=page.getByRole("region",{name:"cancellations records",exact:true});
-  await expect(records).toContainText("MX-HOTEL-PENDING");await expect(records).toContainText("Staff follow-up required");await expect(records).toContainText("CANCELLATION_PENDING");
+  await expect(records).toContainText("MX-HOTEL-PENDING");await expect(records).toContainText("Staff follow-up required");await expect(records).toContainText("Cancellation pending");
   await page.getByLabel("Progress",{exact:true}).selectOption("FOLLOW_UP_REQUIRED");await page.getByRole("button",{name:"Apply filters",exact:true}).click();await expect.poll(()=>provider.requests("/api/admin/cancellations").at(-1)?.query.status).toBe("FOLLOW_UP_REQUIRED");
   await expectNoHorizontalOverflow(page);await capture(page,info,"hotel-cancellation-daily-follow-up");
 });

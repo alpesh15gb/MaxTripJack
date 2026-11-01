@@ -155,7 +155,7 @@ export function validatePayGlocalUrl(value: unknown, kind: "redirect" | "status"
 /** Fail before reserving an attempt or making any provider-side request.
  * JWS/JWE transport, status authentication/MID binding, callback verification,
  * idempotency and refund completion semantics need merchant UAT confirmation.
- * Only valid UAT merchant configuration enables the adapter; production stays disabled.
+ * Valid UAT keys alone do not enable checkout; merchant confirmation gates remain mandatory.
  */
 export function assertPayGlocalCheckoutReady(): void {
   payGlocalConfig();

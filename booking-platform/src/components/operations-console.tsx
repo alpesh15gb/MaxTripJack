@@ -155,10 +155,7 @@ function columns(tab: Resource): [string, string][] {
         ["supplier_status", "Supplier progress"],
         ["last_checked_at", "Last checked (IST)"],
         ["next_check", "Next check (IST)"],
-        ["follow_up_required_at", "Follow-up required since (IST)"],
-        ["is_partial", "Scope"],
-        ["reason", "Customer reason"],
-        ["created_at", "Requested (IST)"],
+        ["follow_up_required_at", "Follow-up"],
       ];
     case "payments":
       return [
@@ -194,6 +191,7 @@ function columns(tab: Resource): [string, string][] {
   }
 }
 function display(key: string, row: OpsRow) {
+  if (key === "supplier_status") return row[key] ? human(row[key]) : "—";
   if (key === "follow_up_required_at") return row.status === "SUPPLIER_PENDING" && row[key] ? "Staff follow-up required" : "—";
   if (key === "check_error") return row[key] === "SUPPLIER_UNAVAILABLE" ? "Supplier unavailable; automatic checks continue" : row[key] === "AMENDMENT_REFERENCE_UNAVAILABLE" ? "Supplier reference needs staff reconciliation" : row[key] === "UNKNOWN_STATUS" ? "Supplier status needs review" : "—";
   if (key.endsWith("_minor")) return money(row[key]);
