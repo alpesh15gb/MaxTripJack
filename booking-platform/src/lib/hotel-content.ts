@@ -1,10 +1,11 @@
 import 'server-only';
 import { createHotelContentCache } from './hotel-content-cache';
+import { tripjackApiKey } from './providers/tripjack-key';
 
 // Fixed supplier host/path; no external image fetching, URL proxy or client-controlled endpoint.
 // Optional property content has a short deadline independent of dynamic rate lookup.
 export const hotelContentForSearch = createHotelContentCache(async hotelIds => {
-  const key = process.env.TRIPJACK_HOTEL_API_KEY;
+  const key = tripjackApiKey('HOTEL');
   if (!key) throw new Error('Hotel content unavailable.');
   const response = await fetch('https://apitest-hms.tripjack.com/hms/v3/content/fetch-hotel-content', {
     method: 'POST', headers: {apikey: key, 'Content-Type': 'application/json', Accept: 'application/json'},

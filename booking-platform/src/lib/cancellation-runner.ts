@@ -6,6 +6,7 @@ import { HttpError } from "./http";
 import { tripjack, paths, type Product } from "./providers/tripjack";
 import { cancellationBody } from "./cancellation-scope";
 import { cancellationReconciliation } from "./cancellation-reconciliation";
+import { tripjackApiKey } from "./providers/tripjack-key";
 
 const message = (status: string) => status === "CONFIRMED"
   ? "Supplier cancellation confirmed. Customer refund is a separate workflow."
@@ -20,7 +21,7 @@ export async function executeCancellation(cancellationId: string, actorId: strin
     if (!row || !row.supplier_booking_id) throw new HttpError(404, "Supplier booking not found.");
     if (["CONFIRMED", "REJECTED"].includes(row.status)) return row;
     if (!["AWAITING_ACCEPTANCE", "SUPPLIER_PENDING"].includes(row.status)) throw new HttpError(409, "Cancellation is not ready for submission.");
-    if (!process.env[row.product === "FLIGHT" ? "TRIPJACK_FLIGHT_API_KEY" : "TRIPJACK_HOTEL_API_KEY"]) throw new HttpError(503, "Cancellation is temporarily unavailable. Please contact MaxTravel.");
+    if (!tripjackApiKey(row.product)) throw new HttpError(503, "Cancellation is temporarily unavailable. Please contact MaxTravel.");
     if (!allowSubmission && !row.supplier_attempted_at) throw new HttpError(409, "Cancellation has not been submitted by staff.");
     const now = new Date(row.checked_now).getTime();
     if ((row.lease_until && new Date(row.lease_until).getTime() > now) || (row.next_check && new Date(row.next_check).getTime() > now)) {
