@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {BrandLogo} from "./brand-logo";
 import "./package-navigation.css";
 import "./workflow-footer.css";
 import {FooterSocialIcon} from "./footer-social-icon";
@@ -41,7 +42,7 @@ export function TravelHeader({ active, onProductChange }: { active?: "flights" |
     <a className="travel-skip" href="#main-content">Skip to main content</a>
     <div className="travel-environment"><span />In Testing <span className="travel-environment-detail">No live bookings or payments</span></div>
     <header className="travel-header">
-      <Link href="/" className="travel-brand" aria-label="Max Travel home"><span className="travel-brand-symbol"><TravelIcon name="plane" size={22} /></span>max<span>travel</span><i>.</i></Link>
+      <Link href="/" className="travel-brand travel-brand--official" aria-label="Max Travel home"><BrandLogo/></Link>
       <nav aria-label="Main navigation">
         {(["FLIGHT", "HOTEL"] as const).map(product => {
           const label = product === "FLIGHT" ? "Flights" : "Hotels";
@@ -65,7 +66,7 @@ export function TravelFooter({compact=false}:{compact?:boolean}={}) {
  if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><FooterPolicyLinks/><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span></div></footer>;
  return <footer className="travel-footer travel-footer--reference">
   <div className="travel-footer-inner"><div className="travel-footer-grid">
-   <div className="travel-footer-identity"><Link href="/" className="travel-footer-brand" aria-label="MaxTravel home">max travel<TravelIcon name="airplane" size={25}/></Link><nav className="travel-footer-socials" aria-label="Follow MaxTravel">{footerSocialLinks.map(item=><a key={item.name} href={item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}</nav></div>
+   <div className="travel-footer-identity"><Link href="/" className="travel-footer-brand" aria-label="MaxTravel home"><BrandLogo variant="footer"/></Link><nav className="travel-footer-socials" aria-label="Follow MaxTravel">{footerSocialLinks.map(item=><a key={item.name} href={item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}</nav></div>
    <nav className="travel-footer-group" aria-labelledby="footer-tourism"><h2 id="footer-tourism">Travel & Tourism</h2><ul><li><a href="https://maxtravel.us/#TravelBlog">Travel Blog</a></li><li><a href="https://maxtravel.us/#SubscribeForOffers">Subscribe for Offers</a></li><li><a href="https://maxtravel.us/#Testimonials">Testimonials</a></li></ul></nav>
    <nav className="travel-footer-group travel-footer-services" aria-labelledby="footer-services"><h2 id="footer-services">Services</h2><ul><li><Link href="/book?product=FLIGHT"><TravelIcon name="airplane"/>Flight</Link></li><li><Link href="/book?product=HOTEL"><TravelIcon name="bed"/>Hotel</Link></li><li><a href="https://maxtravel.us/bus"><TravelIcon name="bus"/>Bus</a></li><li><Link href="/packages"><TravelIcon name="holiday"/>Holiday</Link></li><li><a href="https://maxtravel.us/visa"><TravelIcon name="passport"/>Visa</a></li><li><a href={businessProfile.emailHref+'?subject=Travel%20insurance%20enquiry'}><TravelIcon name="shield"/>Insurance</a></li></ul></nav>
    <nav className="travel-footer-group" aria-labelledby="footer-support"><h2 id="footer-support">Help & Support</h2><ul><li><a href={businessProfile.emailHref+'?subject=Partnership%20enquiry'}>Become a Partner</a></li><li><a href="https://maxtravel.us/web-check-in">Web Check In</a></li><li><Link href="/contact">Contact Us</Link></li><li><Link href="/about">About Us</Link></li></ul></nav>

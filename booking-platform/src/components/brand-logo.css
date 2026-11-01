@@ -1,0 +1,8 @@
+.maxtravel-logo{display:block;max-width:100%;height:auto;object-fit:contain}
+body .travel-header .travel-brand--official{flex-shrink:0;min-height:44px;line-height:1;letter-spacing:0}
+.travel-brand--official .maxtravel-logo--header{width:242px;mix-blend-mode:multiply}
+.travel-footer--reference .travel-footer-brand .maxtravel-logo--footer{width:270px;filter:invert(1);mix-blend-mode:screen}
+.travel-footer--reference .travel-footer-brand{max-width:100%}
+@media(max-width:1100px){.travel-brand--official .maxtravel-logo--header{width:184px}}
+@media(max-width:700px){.travel-brand--official .maxtravel-logo--header{width:190px}}
+@media(max-width:360px){.travel-brand--official .maxtravel-logo--header{width:156px}}
