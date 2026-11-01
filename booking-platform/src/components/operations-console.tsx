@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { BrandLogo } from "./brand-logo";
 import type { Resource } from "@/lib/admin-resources";
 import { adminDesks, adminDeskPermissions } from "@/lib/admin-navigation";
 import OperationsAction, {
@@ -480,7 +481,7 @@ export default function OperationsConsole() {
       <aside className="operations-sidebar">
         <div className="ops-brand-row">
           <Link className="operations-brand" href="/">
-            maxtravel<span>.</span>
+            <BrandLogo variant="operations"/>
           </Link>
           <button
             className="ops-menu-toggle"

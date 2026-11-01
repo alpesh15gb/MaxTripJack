@@ -6,3 +6,5 @@ body .travel-header .travel-brand--official{flex-shrink:0;min-height:44px;line-h
 @media(max-width:1100px){.travel-brand--official .maxtravel-logo--header{width:184px}}
 @media(max-width:700px){.travel-brand--official .maxtravel-logo--header{width:190px}}
 @media(max-width:360px){.travel-brand--official .maxtravel-logo--header{width:156px}}
+
+.operations-brand .maxtravel-logo--operations{width:175px;filter:invert(1);mix-blend-mode:screen}
