@@ -3,6 +3,12 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  vps-update-safety:
+    name: VPS rollout preservation and recovery guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -B -m unittest discover -s booking-platform/deploy/tests -v
   isolated-production-image:
     name: Booking production Docker image · isolated context
     runs-on: ubuntu-latest

@@ -1,0 +1,436 @@
+#!/usr/bin/env python3
+"""Pinned two-app VPS update. Default: inspect only. --apply: build, back up, migrate, cut over.
+
+Existing Compose configuration, database volumes and runtime secrets are retained.
+Never prints environment values. Never enables a previously stopped worker.
+"""
+import argparse
+import copy
+import hashlib
+import hmac
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import shutil
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from urllib.parse import quote, urlsplit, urlunsplit
+
+BOOKING_REF = "e793cb26de9aa7108cb056f54d8eb7a2d44c82f6"
+CRM_REF = "679c3257c504b7f46596156605ee7a493728795f"
+ROOT = Path("/opt/maxtravel-deployments")
+
+
+class StopUpdate(Exception):
+    pass
+
+
+def environment(values):
+    return dict(item.split("=", 1) for item in values or [] if "=" in item)
+
+
+def same_secret(left, right):
+    return bool(left and right) and hmac.compare_digest(left.encode(), right.encode())
+
+
+def json_map(value):
+    try:
+        result = json.loads(value or "{}")
+        return result if isinstance(result, dict) else {}
+    except (ValueError, TypeError):
+        return {}
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def persistent_path(path, mounts):
+    if not path or not PurePosixPath(path).is_absolute() or ".." in PurePosixPath(path).parts or "\\" in path:
+        return False
+    for mount in mounts:
+        if mount.get("Type") in ("bind", "volume") and mount.get("RW"):
+            destination = mount["Destination"].rstrip("/")
+            if path == destination or path.startswith(destination + "/"):
+                return True
+    return False
+
+
+def readable_build_source(source, index):
+    # Root-private checkout parents stay private, while COPY must produce source/
+    # public files readable by the non-root application image, even with umask 077.
+    source = source.resolve()
+    for record in filter(None, index.split("\0")):
+        metadata, filename = record.split("\t", 1)
+        mode = metadata.split()[0]
+        relative = PurePosixPath(filename)
+        if mode not in ("100644", "100755") or relative.is_absolute() or ".." in relative.parts:
+            raise StopUpdate("Unsupported source file mode/path in build checkout.")
+        target = source.joinpath(*relative.parts)
+        if target.is_symlink() or os.path.commonpath([str(source), str(target.resolve())]) != str(source):
+            raise StopUpdate("Build source escaped its private checkout.")
+        os.chmod(target, 0o755 if mode == "100755" else 0o644)
+        parent = target.parent
+        while parent != source.parent:
+            os.chmod(parent, 0o755)
+            parent = parent.parent
+
+
+def expected_url(value, host, path):
+    try:
+        u = urlsplit(value or "")
+        return (u.scheme == "https" and u.netloc == host and u.path.rstrip("/") == path.rstrip("/")
+                and not u.query and not u.fragment)
+    except ValueError:
+        return False
+
+
+def integration_summary(booking, crm):
+    event_key = json_map(crm.get("BOOKING_PLATFORM_SIGNING_KEYS")).get(booking.get("CRM_KEY_ID"))
+    command_key = json_map(booking.get("CRM_COMMAND_KEYS")).get(crm.get("BOOKING_PLATFORM_COMMAND_KEY_ID"))
+    return {
+        "eventsUrlCorrect": expected_url(booking.get("CRM_EVENTS_URL"), "crm.maxtravel.in", "/api/integrations/booking-platform/events"),
+        "eventSigningKeyMatches": same_secret(booking.get("CRM_SIGNING_KEY"), event_key if isinstance(event_key, str) else None),
+        "commandsUrlCorrect": expected_url(crm.get("BOOKING_PLATFORM_API_URL"), "maxtravel.in", "/api/integrations/crm/commands"),
+        "commandSigningKeyMatches": same_secret(crm.get("BOOKING_PLATFORM_COMMAND_KEY"), command_key if isinstance(command_key, str) else None),
+        "crmOwnerConfigured": bool(crm.get("BOOKING_PLATFORM_OWNER_ID")),
+        "crmBranchConfigured": bool(crm.get("BOOKING_PLATFORM_BRANCH_ID")),
+        "staffCommandMappingConfigured": bool(json_map(booking.get("CRM_STAFF_ACTORS"))),
+    }
+
+
+def freeze_config(config, containers, image_defaults):
+    """Use current container overrides as truth, pin old images, retain mounts/networks."""
+    result = copy.deepcopy(config)
+    services = result.get("services", {})
+    for spec in services.values():
+        spec.pop("build", None)
+        spec.pop("pull_policy", None)
+    seen = set()
+    for container in containers:
+        labels = container["Config"].get("Labels") or {}
+        service = labels.get("com.docker.compose.service")
+        if not service or service not in services or service in seen:
+            raise StopUpdate("Cannot identify exactly one configured container per active service.")
+        seen.add(service)
+        spec = services[service]
+        declared = spec.get("environment") or {}
+        if not isinstance(declared, dict):
+            raise StopUpdate("Compose environment was not normalized.")
+        current = environment(container["Config"].get("Env"))
+        defaults = environment(image_defaults[container["Image"]])
+        spec["environment"] = {k: v for k, v in current.items() if k in declared or defaults.get(k) != v}
+        spec.pop("env_file", None)
+        spec["image"] = container["Image"]
+        # A config with a moved/missing data mount must never allocate a new empty volume.
+        volumes = spec.get("volumes") or []
+        for mount in container.get("Mounts", []):
+            if mount["Type"] not in ("bind", "volume"):
+                continue
+            match = next((v for v in volumes if isinstance(v, dict) and v.get("target") == mount["Destination"]), None)
+            if not match:
+                raise StopUpdate("A running container mount is missing from the Compose configuration.")
+            if mount["Type"] == "volume":
+                definition = (result.get("volumes") or {}).get(match.get("source"), {})
+                if definition.get("name") != mount.get("Name"):
+                    raise StopUpdate("Compose volume identity differs from the mounted database/storage volume.")
+            elif os.path.realpath(str(match.get("source", ""))) != os.path.realpath(mount["Source"]):
+                raise StopUpdate("Compose bind mount differs from the running container.")
+    return result
+
+
+def owner_migration_url(app_env, postgres):
+    current = urlsplit(app_env.get("DATABASE_URL", ""))
+    pg_env = environment(postgres["Config"].get("Env"))
+    db_name = pg_env.get("POSTGRES_DB") or pg_env.get("POSTGRES_USER", "postgres")
+    aliases = {postgres["Name"].lstrip("/")}
+    for network in postgres["NetworkSettings"]["Networks"].values():
+        aliases.update(network.get("Aliases") or [])
+        if network.get("IPAddress"):
+            aliases.add(network["IPAddress"])
+    if (current.scheme not in ("postgres", "postgresql") or current.hostname not in aliases
+            or current.path != "/" + db_name or not pg_env.get("POSTGRES_PASSWORD")):
+        raise StopUpdate("Cannot safely derive a migration-owner connection for the existing booking database.")
+    user = quote(pg_env.get("POSTGRES_USER", "postgres"), safe="")
+    password = quote(pg_env["POSTGRES_PASSWORD"], safe="")
+    host = current.hostname
+    if ":" in host:
+        host = "[" + host + "]"
+    return urlunsplit((current.scheme, f"{user}:{password}@{host}:{current.port or 5432}", current.path, current.query, ""))
+
+
+class Update:
+    def __init__(self):
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        self.directory = ROOT / (stamp + "-" + os.urandom(4).hex())
+        self.directory.mkdir(parents=True, mode=0o700)
+        os.chmod(self.directory, 0o700)
+        self.number = 0
+        self.stacks = []
+        self.quiesced = False
+        self.migration_attempted = False
+        self.completed = False
+
+    def run(self, args, cwd=None, input_file=None, output_file=None, timeout=1800, env=None):
+        self.number += 1
+        log_path = self.directory / f"operation-{self.number:03d}.log"
+        with log_path.open("wb") as log:
+            result = subprocess.run(args, cwd=cwd, stdin=input_file, stdout=output_file if output_file is not None else log,
+                                    stderr=log, timeout=timeout, check=False, env=env)
+        if result.returncode:
+            raise StopUpdate(f"An operation failed. Private diagnostic log: {log_path}")
+        if output_file is not None:
+            return None
+        return log_path.read_text(errors="replace")
+
+    def inspect(self, kind, name):
+        return json.loads(self.run(["docker", kind, "inspect", name]))[0]
+
+    def write(self, name, value):
+        target = self.directory / name
+        target.write_text(json.dumps(value, indent=2) + "\n")
+        os.chmod(target, 0o600)
+        return target
+
+    def compose(self, stack, file, *args):
+        return ["docker", "compose", "--project-directory", stack["working"], "-p", stack["project"], "-f", str(file), *args]
+
+    def snapshot(self, app_name, project):
+        app = self.inspect("container", app_name)
+        labels = app["Config"].get("Labels") or {}
+        if labels.get("com.docker.compose.project") != project or labels.get("com.docker.compose.service") != "app":
+            raise StopUpdate("Unexpected Compose project or app service.")
+        if not app["State"].get("Running") or app["State"].get("Health", {}).get("Status") != "healthy":
+            raise StopUpdate("An existing application is not healthy; refusing an automatic cutover.")
+        working = labels.get("com.docker.compose.project.working_dir", "")
+        files = labels.get("com.docker.compose.project.config_files", "").split(",")
+        if not os.path.isabs(working) or not Path(working).is_dir() or not all(os.path.isabs(f) and Path(f).is_file() for f in files):
+            raise StopUpdate("An active Compose file or working directory is unavailable; no service changed.")
+        ids = self.run(["docker", "ps", "-q", "--filter", f"label=com.docker.compose.project={project}"]).split()
+        containers = [self.inspect("container", identity) for identity in ids]
+        containers = [c for c in containers if (c["Config"].get("Labels") or {}).get("com.docker.compose.oneoff", "false").lower() != "true"]
+        for c in containers:
+            extra = (c["Config"].get("Labels") or {}).get("com.docker.compose.project.config_files", "").split(",")
+            for path in extra:
+                if path and path not in files:
+                    if not Path(path).is_file():
+                        raise StopUpdate("An active worker Compose file is unavailable.")
+                    files.append(path)
+        command = ["docker", "compose", "--project-directory", working, "-p", project]
+        env_files = labels.get("com.docker.compose.project.environment_file", "")
+        for file in filter(None, env_files.split(",")):
+            if not Path(file).is_file():
+                raise StopUpdate("An explicitly configured Compose environment file is unavailable.")
+            command += ["--env-file", file]
+        for file in files:
+            command += ["-f", file]
+        # Resolve interpolation using current application overrides, never another stack's
+        # similarly named host variable. Secret values stay in subprocess memory/private logs.
+        interpolation_names = set()
+        for file in files:
+            interpolation_names.update(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)", Path(file).read_text()))
+        current_env = environment(app["Config"].get("Env"))
+        compose_env = dict(os.environ)
+        compose_env.update({k: current_env[k] for k in interpolation_names if k in current_env})
+        normalized = json.loads(self.run(command + ["config", "--format", "json"], cwd=working, env=compose_env))
+        defaults = {c["Image"]: self.inspect("image", c["Image"])["Config"].get("Env", []) for c in containers}
+        frozen = freeze_config(normalized, containers, defaults)
+        stack = {"project": project, "working": working, "app": app_name,
+                 "env": environment(app["Config"].get("Env")), "config": frozen, "containers": containers}
+        stack["services"] = [(c["Config"].get("Labels") or {})["com.docker.compose.service"] for c in containers
+                             if not re.search(r"postgres|redis|evolution", (c["Config"].get("Labels") or {}).get("com.docker.compose.service", ""), re.I)]
+        # Only update the application and its explicitly identified workers.
+        if any(s != "app" and "worker" not in s for s in stack["services"]):
+            raise StopUpdate("An unknown application service requires review before cutover.")
+        stack["before"] = self.write(project + "-before.json", frozen)
+        self.write(project + "-inspect.private.json", containers)
+        self.stacks.append(stack)
+        return stack
+
+    def checkout_build(self, stack, repository, ref, subdirectory=""):
+        source = self.directory / (stack["project"] + "-source")
+        self.run(["git", "init", "-q", str(source)])
+        self.run(["git", "-C", str(source), "remote", "add", "origin", repository])
+        self.run(["git", "-C", str(source), "fetch", "--depth=1", "origin", ref])
+        self.run(["git", "-C", str(source), "checkout", "-q", "--detach", "FETCH_HEAD"])
+        sha = self.run(["git", "-C", str(source), "rev-parse", "HEAD"]).strip()
+        if (repository.endswith("MaxTripJack.git") and sha != BOOKING_REF) or (repository.endswith("MaxTravel.git") and sha != CRM_REF):
+            raise StopUpdate("Fetched source is not the pinned reviewed commit.")
+        readable_build_source(source, self.run(["git", "-C", str(source), "ls-files", "--stage", "-z"]))
+        image = stack["project"] + ":verified-" + sha[:12] + "-" + self.directory.name[-8:]
+        print(f"Building {stack['project']} {sha[:12]}; logs are private under {self.directory}", flush=True)
+        self.run(["docker", "build", "--label", "org.opencontainers.image.revision=" + sha,
+                  "-t", image, str(source / subdirectory)], timeout=3600)
+        after = copy.deepcopy(stack["config"])
+        for service in stack["services"]:
+            after["services"][service]["image"] = image
+            after["services"][service].pop("pull_policy", None)
+        if stack["project"] == "max-travel-booking":
+            after["services"]["app"]["environment"].update(PAYMENT_PROVIDER="PAYGLOCAL", PAYGLOCAL_ENV="UAT")
+            after["services"]["app"]["environment"].pop("MIGRATION_DATABASE_URL", None)
+            after["services"]["app"]["environment"].pop("RUNTIME_DATABASE_PASSWORD", None)
+        stack.update(image=image, sha=sha, after_config=after)
+        stack["after"] = self.write(stack["project"] + "-after.json", after)
+        self.run(self.compose(stack, stack["after"], "config", "--quiet"))
+
+    def once(self, stack, file, command, *options):
+        return self.run(self.compose(stack, file, "run", "--rm", "--no-deps", "-T", "--entrypoint", "node", *options, "app", *command))
+
+    def health(self, stack):
+        end = time.monotonic() + 180
+        while time.monotonic() < end:
+            container = self.inspect("container", stack["app"])
+            if container["State"].get("Health", {}).get("Status") == "healthy":
+                return
+            if not container["State"].get("Running"):
+                break
+            time.sleep(3)
+        raise StopUpdate(f"{stack['project']} did not become healthy. Workers remain stopped.")
+
+    def execute(self, apply):
+        booking = self.snapshot("max-travel-booking-app-1", "max-travel-booking")
+        crm = self.snapshot("max-travel-crm-app-1", "max-travel-crm")
+        if not expected_url(booking["env"].get("BETTER_AUTH_URL"), "maxtravel.in", "") or not expected_url(crm["env"].get("APP_ORIGIN"), "crm.maxtravel.in", ""):
+            raise StopUpdate("Application origins do not match the requested VPS domains.")
+        if not crm["env"].get("DATABASE_URL", "").startswith("file:"):
+            raise StopUpdate("This rollout expects the existing SQLite CRM.")
+        crm_database = crm["env"]["DATABASE_URL"][5:].split("?", 1)[0]
+        crm_mounts = next(c for c in crm["containers"] if c["Name"].lstrip("/") == crm["app"])["Mounts"]
+        media = crm["env"].get("PACKAGE_MEDIA_ROOT") or str(PurePosixPath(crm_database).parent / "package-media")
+        if not all(persistent_path(p, crm_mounts) for p in (crm_database, crm["env"].get("UPLOAD_ROOT") or "/data/uploads", media)):
+            raise StopUpdate("CRM database/uploads/package media must reside on existing writable persistent mounts.")
+        summary = integration_summary(booking["env"], crm["env"])
+        print("Existing integration configuration (booleans only): " + json.dumps(summary), flush=True)
+        print("Previously running application services: " + json.dumps({s["project"]: s["services"] for s in self.stacks}), flush=True)
+        if not apply:
+            print("Inspection complete. No build, migration, stop or restart was performed.")
+            return
+        postgres = self.inspect("container", "max-travel-booking-postgres-1")
+        pg_labels = postgres["Config"].get("Labels") or {}
+        if pg_labels.get("com.docker.compose.project") != "max-travel-booking" or pg_labels.get("com.docker.compose.service") != "postgres":
+            raise StopUpdate("Unexpected booking PostgreSQL container.")
+        migration_url = owner_migration_url(booking["env"], postgres)
+        self.checkout_build(booking, "https://github.com/alpesh15gb/MaxTripJack.git", BOOKING_REF, "booking-platform")
+        self.checkout_build(crm, "https://github.com/alpesh15gb/MaxTravel.git", CRM_REF)
+        migration = copy.deepcopy(booking["after_config"])
+        migration["services"]["app"]["environment"]["MIGRATION_DATABASE_URL"] = migration_url
+        migration_file = self.write("booking-migration-only.private.json", migration)
+        self.once(booking, migration_file, ["-e", "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.MIGRATION_DATABASE_URL});p.query('SELECT 1').then(()=>console.log('Migration connection verified')).catch(()=>{console.error('Migration connection failed');process.exitCode=1}).finally(()=>p.end());"])
+        if not self.once(booking, booking["after"], ["-e", "require('fs').accessSync('db/019-cancellation-reconciliation.sql');console.log('Booking migration included');"]).strip():
+            raise StopUpdate("Booking candidate lacks the recovery migration.")
+        self.once(crm, crm["after"], ["-e", "require('fs').accessSync('prisma/migrations/20261031100000_case_workflow/migration.sql');console.log('CRM workflow migration included');"])
+        self.once(booking, booking["after"], ["-e", "const fs=require('fs');for(const p of ['server.js','package.json','.next/BUILD_ID','public/brand/maxtravel-logo.jpg'])fs.accessSync(p,fs.constants.R_OK);console.log('Booking non-root runtime files readable');"])
+        self.write("release.json", {"bookingCommit": booking["sha"], "crmCommit": crm["sha"], "integration": summary,
+                                  "images": {s["project"]: s["image"] for s in self.stacks}})
+        print("Candidates built and verified. Pausing only the two travel applications and their active workers.", flush=True)
+        self.quiesced = True
+        for stack in self.stacks:
+            self.run(self.compose(stack, stack["before"], "stop", "-t", "270", *stack["services"]))
+        pg_env = environment(postgres["Config"].get("Env"))
+        pg_user, pg_db = pg_env.get("POSTGRES_USER", "postgres"), pg_env.get("POSTGRES_DB") or pg_env.get("POSTGRES_USER", "postgres")
+        dump = self.directory / "booking-before.dump"
+        with dump.open("wb") as target:
+            self.run(["docker", "exec", "max-travel-booking-postgres-1", "pg_dump", "-U", pg_user, "-d", pg_db, "-Fc"], output_file=target)
+        with dump.open("rb") as source:
+            self.run(["docker", "exec", "-i", "max-travel-booking-postgres-1", "pg_restore", "--list"], input_file=source)
+        if dump.stat().st_size == 0:
+            raise StopUpdate("Empty booking database backup.")
+        crm_backups = self.directory / "crm-backups"
+        crm_backups.mkdir(mode=0o700)
+        bind = str(crm_backups) + ":/maxtravel-recovery"
+        self.once(crm, crm["before"], ["scripts/backup.mjs", "--out", "/maxtravel-recovery"], "--user", "0", "--volume", bind)
+        manifests = list(crm_backups.glob("backup-*/manifest.json"))
+        if len(manifests) != 1:
+            raise StopUpdate("CRM backup manifest is missing or ambiguous.")
+        self.once(crm, crm["before"], ["scripts/restore.mjs", "--in", "/maxtravel-recovery/" + manifests[0].parent.name,
+                  "--out", "/maxtravel-recovery/restore-check"], "--user", "0", "--volume", bind)
+        self.write("backup-verification.json", {"bookingDumpBytes": dump.stat().st_size,
+                   "bookingDumpSha256": file_sha256(dump),
+                   "crmBackupVerifiedByRestore": True})
+        print("Both backups verified. Applying committed migrations; no database reset is used.", flush=True)
+        # From this point, never automatically run an old application against a changed schema.
+        self.migration_attempted = True
+        self.write("migration-started.json", {"started": True})
+        self.once(booking, migration_file, ["scripts/migrate.mjs"])
+        self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "deploy"])
+        self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "status"])
+        for stack in (crm, booking):
+            self.run(self.compose(stack, stack["after"], "up", "-d", "--no-deps", "--no-build", "--pull", "never", "app"))
+            self.health(stack)
+        payment = self.run(["docker", "exec", booking["app"], "node", "-e",
+            "fetch('http://127.0.0.1:3000/api/payments/config').then(async r=>{const b=await r.json();if(!r.ok||b.provider!=='PAYGLOCAL'||b.configured!==false)throw Error();console.log('PayGlocal checkout is held');}).catch(()=>{console.error('Payment hold check failed');process.exitCode=1});"])
+        print(payment.strip(), flush=True)
+        # Existing workers resume only after BOTH applications and the payment hold pass.
+        for stack in self.stacks:
+            workers = [s for s in stack["services"] if s != "app"]
+            if workers:
+                self.run(self.compose(stack, stack["after"], "up", "-d", "--no-deps", "--no-build", "--pull", "never", *workers))
+        time.sleep(3)
+        for stack in self.stacks:
+            image_id = self.inspect("image", stack["image"])["Id"]
+            for prior in stack["containers"]:
+                service = (prior["Config"].get("Labels") or {}).get("com.docker.compose.service")
+                if service in stack["services"]:
+                    current = self.inspect("container", prior["Name"].lstrip("/"))
+                    if not current["State"].get("Running") or current["Image"] != image_id:
+                        raise StopUpdate("An application/worker is not running the verified candidate image.")
+        queues = self.run(["docker", "exec", booking["app"], "node", "-e", "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});(async()=>{try{const jobs=(await p.query('SELECT state,count(*)::int AS count FROM booking_jobs GROUP BY state')).rows;const queues=(await p.query('SELECT (SELECT count(*) FROM outbox_events WHERE delivered_at IS NULL)::int AS crm_pending,(SELECT count(*) FROM customer_notifications WHERE delivered_at IS NULL)::int AS notification_pending')).rows[0];console.log(JSON.stringify({jobs,queues}));}catch{console.error('Queue inspection failed');process.exitCode=1}finally{await p.end()}})();"])
+        print("Booking queue inspection: " + queues.strip(), flush=True)
+        self.completed = True
+        self.write("completed.json", {"healthyApplications": True, "paymentHoldVerified": True,
+                    "newWorkersActivated": False, "integration": summary})
+        print("Both applications updated and healthy. Existing worker services resumed.", flush=True)
+        print("Previously inactive booking workers remain stopped pending queue/integration review.", flush=True)
+        print("Nginx maintenance settings and unrelated containers were left unchanged.", flush=True)
+
+    def recover(self):
+        if not self.quiesced or self.completed:
+            return
+        if self.migration_attempted:
+            print("A migration was attempted. No automatic database restore or old-image rollback was performed.", file=sys.stderr)
+            print("Keep application/worker state under review; use the private backups and logs for recovery.", file=sys.stderr)
+            return
+        print("Migration has not started. Restoring only previously running services with their pinned original images.", file=sys.stderr)
+        for stack in self.stacks:
+            try:
+                self.run(self.compose(stack, stack["before"], "up", "-d", "--no-deps", "--no-build", "--pull", "never", *stack["services"]))
+            except Exception:
+                print("An original service needs manual restart; see its private before.json configuration.", file=sys.stderr)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--apply", action="store_true", help="Build, back up, migrate and update the two existing travel stacks")
+    args = parser.parse_args()
+    if sys.platform != "linux" or os.geteuid() != 0:
+        raise StopUpdate("Run this script as root on the Ubuntu VPS.")
+    for command in ("docker", "git"):
+        if not shutil.which(command):
+            raise StopUpdate("Required command missing: " + command)
+    os.umask(0o077)
+    update = Update()
+    print("Private recovery directory: " + str(update.directory), flush=True)
+    try:
+        update.execute(args.apply)
+    except (Exception, KeyboardInterrupt) as error:
+        if isinstance(error, StopUpdate):
+            print(str(error), file=sys.stderr)
+        else:
+            print("Stopped at exception type: " + type(error).__name__, file=sys.stderr)
+        update.recover()
+        raise StopUpdate("Update stopped. Keep the recovery directory and share the console status, not private log/config contents: " + str(update.directory))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except StopUpdate as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(1)
