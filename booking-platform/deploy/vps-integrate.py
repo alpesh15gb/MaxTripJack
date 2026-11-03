@@ -114,7 +114,7 @@ class Integration(update.Update):
         cenv.update(BOOKING_PLATFORM_API_URL="https://maxtravel.in/api/integrations/crm/commands", BOOKING_PLATFORM_COMMAND_KEY=key, BOOKING_PLATFORM_COMMAND_KEY_ID=kid)
         for name, beat in WORKERS.items():
             book_config["services"][name] = worker_spec(book_config["services"]["app"], name, beat)
-        # Preserve the CRM WhatsApp worker's own environment, mounts and command.
+        # Preserve the CRM maintenance worker's own environment, mounts and command.
         for name in crm["services"]:
             if name != "app":
                 crm_config["services"][name].setdefault("environment", {}).update({k: cenv[k] for k in ("BOOKING_PLATFORM_API_URL", "BOOKING_PLATFORM_COMMAND_KEY", "BOOKING_PLATFORM_COMMAND_KEY_ID")})

@@ -27,7 +27,7 @@ test('office details are consistent and contact actions are explicit', async ({ 
   await expect(card).toContainText('Every day, 9:00 am–9:00 pm (India time)');
   await expect(card.locator('a[href="tel:+917095018018"]')).toBeVisible();
   await expect(card.locator('a[href="mailto:max@maxtravel.us"]')).toBeVisible();
-  await expect(card.locator('a[href="https://wa.me/917095018018"]')).toBeVisible();
+  await expect(page.locator('a[href*="wa.me"],a[href*="whatsapp.com"]')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'public-office');
 });

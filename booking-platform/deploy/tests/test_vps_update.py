@@ -19,6 +19,35 @@ spec.loader.exec_module(update)
 
 
 class SafetyTests(unittest.TestCase):
+    def test_crm_messaging_retirement_preserves_storage_auth_and_other_jobs(self):
+        secret = "synthetic-worker-" + "a" * 40
+        before = {"services": {"app": {"environment": {"WA_WORKER_SECRET": secret, "WA_CLOUD_ACCESS_TOKEN": "retired", "CRM_DATA_ENCRYPTION_KEY": "stable", "SMTP_HOST": "retained"}, "networks": {"default": {}, "messaging": {}}}, "worker": {"entrypoint": ["node", "scripts/whatsapp-worker.mjs"], "environment": {"WA_WORKER_SECRET": secret, "WA_WORKER_URL": "old"}, "volumes": [{"source": "original", "target": "/data"}], "read_only": True}}, "networks": {"messaging": {"name": "max-travel-messaging", "external": True}}}
+        result = update.retire_crm_messaging(before, ["app", "worker"])
+        self.assertIn("WA_CLOUD_ACCESS_TOKEN", before["services"]["app"]["environment"])
+        app, worker = result["services"]["app"], result["services"]["worker"]
+        self.assertEqual(app["environment"]["CRM_WORKER_SECRET"], secret)
+        self.assertEqual(worker["environment"], {"CRM_WORKER_SECRET": secret, "CRM_WORKER_URL": "http://app:3000/api/jobs/maintenance"})
+        self.assertEqual(worker["entrypoint"], ["node", "scripts/maintenance-worker.mjs"])
+        self.assertEqual(worker["volumes"], before["services"]["worker"]["volumes"])
+        self.assertTrue(worker["read_only"])
+        self.assertEqual(app["networks"], {"default": {}})
+        self.assertNotIn("messaging", result["networks"])
+        self.assertEqual(worker["healthcheck"], {"disable": True})
+        self.assertEqual(app["environment"]["CRM_DATA_ENCRYPTION_KEY"], "stable")
+        self.assertEqual(app["environment"]["SMTP_HOST"], "retained")
+        self.assertFalse(any(key.startswith(("WA_", "EVOLUTION_")) for service in result["services"].values() for key in service["environment"]))
+        self.assertEqual(update.retire_crm_messaging(result,["app","worker"]),result)
+        unknown = copy.deepcopy(before)
+        unknown["services"]["worker"]["entrypoint"] = ["node", "scripts/maintenance-worker.mjs.backup"]
+        with self.assertRaises(update.StopUpdate): update.retire_crm_messaging(unknown,["app","worker"])
+        shared = copy.deepcopy(before)
+        shared["services"]["backup"] = {"networks": ["messaging"], "environment": {}}
+        self.assertIn("messaging", update.retire_crm_messaging(shared,["app","worker"])["networks"])
+        before["services"]["worker"]["environment"]["WA_WORKER_SECRET"] = "different" * 8
+        with self.assertRaises(update.StopUpdate): update.retire_crm_messaging(before,["app","worker"])
+        self.assertEqual(update.retire_crm_messaging({"services":{"app":{"environment":{}}}},["app"]),{"services":{"app":{"environment":{}}}})
+
+
     def test_missing_live_named_volume_is_pinned_external_without_changing_source_model(self):
         config, app, defaults = self.fixture()
         del config["services"]["app"]["volumes"]

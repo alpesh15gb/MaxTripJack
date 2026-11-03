@@ -71,7 +71,7 @@ class IntegrationSafety(unittest.TestCase):
             stack = {"project": project, "working": "/synthetic", "app": name, "env": env, "config": {"services": {"app": {"image": image, "read_only": True, "environment": copy.deepcopy(env), "cap_drop": ["ALL"]}}}, "services": ["app"], "containers": [{"Name": "/" + name, "Image": image}], "before": Path("/private/" + project + "-before")}
             if project == "max-travel-crm":
                 stack["services"].append("worker")
-                stack["config"]["services"]["worker"] = {"image": image, "command": ["node", "whatsapp-worker"], "volumes": [{"source": "original", "target": "/data"}], "environment": {}}
+                stack["config"]["services"]["worker"] = {"image": image, "command": ["node", "scripts/maintenance-worker.mjs"], "volumes": [{"source": "original", "target": "/data"}], "environment": {}}
             job.stacks.append(stack)
             return stack
         job.snapshot = snapshot

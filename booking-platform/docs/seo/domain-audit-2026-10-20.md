@@ -103,6 +103,6 @@ Local OS DNS resolution failed in this environment (`Temporary failure in name r
 
 ## Business verification and release status
 
-The owner confirmed MaxTravel Secunderabad, the address G-10, Golden Hawk, Beside SBI, 1-8-208, Jogani, Ramgopalpet, Secunderabad 500003, India, phone/WhatsApp +91 7095-018-018, email max@maxtravel.us, and opening hours 09:00–21:00 every day (Asia/Kolkata). These are owner-confirmed details, not Google Business Profile verification. No coordinates, accreditation, ratings or office photos have been verified.
+The owner confirmed MaxTravel Secunderabad, the address G-10, Golden Hawk, Beside SBI, 1-8-208, Jogani, Ramgopalpet, Secunderabad 500003, India, phone/email +91 7095-018-018, email max@maxtravel.us, and opening hours 09:00–21:00 every day (Asia/Kolkata). These are owner-confirmed details, not Google Business Profile verification. No coordinates, accreditation, ratings or office photos have been verified.
 
 Public audit is complete. Production cutover is deferred. The intended app hosting target and authorized DNS configuration must be established before deployment. Origin TLS, Googlebot/Search Console indexing and live provider acceptance remain release checks. No customer data or production configuration was changed.

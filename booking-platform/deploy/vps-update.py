@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,69 @@ ROOT = Path("/opt/maxtravel-deployments")
 
 class StopUpdate(Exception):
     pass
+
+def retire_crm_messaging(config, active_services):
+    """Prepare the CRM-only worker/config transition; leave rollback and other stacks intact."""
+    result = copy.deepcopy(config)
+    services = result["services"]
+    services["app"].setdefault("environment", {})
+    workers = []
+    credentials = set()
+    for name, spec in services.items():
+        argv = []
+        for part in (spec.get("entrypoint"), spec.get("command")):
+            if isinstance(part, list):
+                argv.extend(part)
+            elif isinstance(part, str):
+                try:
+                    argv.extend(shlex.split(part))
+                except ValueError:
+                    raise StopUpdate("A CRM service has an invalid command; review it before this release.")
+        basenames = {str(word).rsplit("/", 1)[-1] for word in argv}
+        known = bool(basenames & {"node", "nodejs"}) and bool(basenames & {
+            "whatsapp-worker.mjs", "maintenance-worker.mjs"})
+        if name != "app" and "worker" in name and name in active_services and not known:
+            raise StopUpdate("An active CRM worker has an unknown command; review it before this release.")
+        if known:
+            workers.append(name)
+        if name == "app" or known:
+            env = spec.setdefault("environment", {})
+            for key in ("CRM_WORKER_SECRET", "WA_WORKER_SECRET"):
+                if env.get(key):
+                    credentials.add(env[key])
+    if len(credentials) > 1:
+        raise StopUpdate("CRM worker authentication differs between existing services; no service changed.")
+    secret = next(iter(credentials), "")
+    if workers and len(secret) < 32:
+        raise StopUpdate("Configure a shared CRM_WORKER_SECRET of at least 32 characters before migrating the worker.")
+    provider_networks = {key for key, value in result.get("networks", {}).items()
+                         if isinstance(value, dict) and value.get("name") == "max-travel-messaging"}
+    for name, spec in services.items():
+        env = spec.setdefault("environment", {})
+        for key in list(env):
+            if key.startswith(("WA_", "EVOLUTION_")):
+                del env[key]
+        if name == "app" or name in workers:
+            if secret:
+                env["CRM_WORKER_SECRET"] = secret
+            networks = spec.get("networks")
+            if isinstance(networks, dict):
+                for key in provider_networks:
+                    networks.pop(key, None)
+                if not networks:
+                    spec.pop("networks", None)
+            elif isinstance(networks, list):
+                spec["networks"] = [key for key in networks if key not in provider_networks] or ["default"]
+        if name in workers:
+            spec["entrypoint"] = ["node", "scripts/maintenance-worker.mjs"]
+            spec["command"] = []
+            spec["healthcheck"] = {"disable": True}
+            env["CRM_WORKER_URL"] = "http://app:3000/api/jobs/maintenance"
+    used_networks = {key for spec in services.values() for key in (spec.get("networks") or [])}
+    for key in provider_networks - used_networks:
+        result["networks"].pop(key, None)
+    return result
+
 
 
 def environment(values):
@@ -422,6 +486,8 @@ class Update:
             after["services"]["app"]["environment"].update(PAYMENT_PROVIDER="PAYGLOCAL", PAYGLOCAL_ENV="UAT")
             after["services"]["app"]["environment"].pop("MIGRATION_DATABASE_URL", None)
             after["services"]["app"]["environment"].pop("RUNTIME_DATABASE_PASSWORD", None)
+        if stack["project"] == "max-travel-crm":
+            after = retire_crm_messaging(after, stack["services"])
         stack.update(image=image, sha=sha, after_config=after)
         stack["after"] = self.write_compose(stack["project"] + "-after.json", after)
         self.run(self.compose(stack, stack["after"], "config", "--quiet"))

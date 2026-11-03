@@ -57,7 +57,7 @@ export const legalPolicies = [
       {
         "heading": "How We Use Your Personal Information",
         "paragraphs": [
-          "We may use your personal information to facilitate bookings, confirm reservations, and send updates via email or WhatsApp. Your information may also be used for customer support and to improve our services."
+          "We may use your personal information to facilitate bookings, confirm reservations, and send updates via email. Your information may also be used for customer support and to improve our services."
         ],
         "bullets": []
       },

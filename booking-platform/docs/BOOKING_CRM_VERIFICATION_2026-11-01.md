@@ -6,7 +6,7 @@ The owner-supplied logo is shared by the booking website, booking staff workspac
 
 Both protected PRO Vercel previews were deployed and checked with synthetic accounts and isolated preview databases. Cross-app transaction checks remain local, as requested. No production customer records, real charges, supplier reservations or outgoing customer messages were used.
 
-This is evidence for the flows below, not certification of every possible production scenario. Live TripJack issuance/cancellation/refunds, PayGlocal UAT and real email/WhatsApp delivery remain provider acceptance work. PayGlocal's merchant travel-payload approval hold remains enabled; six hosted-checkout cases are intentionally skipped behind that hold.
+This is evidence for the flows below, not certification of every possible production scenario. Live TripJack issuance/cancellation/refunds, PayGlocal UAT and real email delivery remain provider acceptance work. PayGlocal's merchant travel-payload approval hold remains enabled; six hosted-checkout cases are intentionally skipped behind that hold.
 
 ## Changes found through verification
 

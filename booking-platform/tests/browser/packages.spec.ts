@@ -11,7 +11,7 @@ test('published packages support discovery, honest prices and contact-only itine
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'packages-discovery');
  await testInfo.attach('packages viewport',{body:await page.screenshot({fullPage:false,animations:'disabled'}),contentType:'image/png'});
  await page.getByRole('link',{name:/View itinerary & details/}).click();await expect(page.getByRole('heading',{name:'Your itinerary'})).toBeVisible();
- await expect(page.locator('.package-itinerary li').first()).toContainText('Day 1');await expect(page.getByRole('link',{name:'Enquire on WhatsApp'})).toHaveAttribute('href',/^https:\/\/wa.me\/917095018018\?text=/);
+ await expect(page.locator('.package-itinerary li').first()).toContainText('Day 1');await expect(page.locator('a[href*="wa.me"],a[href*="whatsapp.com"]')).toHaveCount(0);
  await expect(page.getByRole('link',{name:'Draft an email enquiry'})).toHaveAttribute('href',/^mailto:packages%40example.test\?subject=/);
  await page.getByRole('link',{name:'Price & enquiry'}).click();await expect(page.locator('#package-enquiry')).toBeFocused();
  await expect(page.locator('.package-quote')).toContainText('Nothing is submitted here');await expectNoHorizontalOverflow(page);await capture(page,testInfo,'package-detail');
@@ -21,10 +21,10 @@ test('package errors, empty lists, partial content and withdrawn details remain 
  provider.overrides['GET /api/packages']={status:503,body:{error:'unavailable'}};await page.goto('/packages');await expect(page.getByRole('heading',{name:'We couldn’t load packages'})).toBeVisible();
  provider.overrides['GET /api/packages']={body:{packages:[],truncated:false,unavailableCount:0}};await page.getByRole('button',{name:'Try again'}).click();await expect(page.getByRole('heading',{name:'New journeys are on the way'})).toBeVisible();
  provider.overrides['GET /api/packages']={body:{packages:[],truncated:false,unavailableCount:2}};await page.reload();await expect(page.getByRole('heading',{name:'Plans are temporarily unavailable'})).toBeVisible();
- await page.goto('/packages/not-published-layout-sample');await expect(page.getByRole('heading',{name:'Package unavailable'})).toBeVisible();await expect(page.getByRole('link',{name:'Enquire on WhatsApp'})).toHaveCount(0);
+ await page.goto('/packages/not-published-layout-sample');await expect(page.getByRole('heading',{name:'Package unavailable'})).toBeVisible();await expect(page.locator('.package-contact-actions a')).toHaveCount(0);
 });
 test('expired package estimates and unavailable travel cannot suggest a booking',async({page})=>{
- await page.goto('/packages/expired-layout-sample');await expect(page.locator('.package-price')).toContainText('Price on request');await expect(page.locator('.package-quote')).toContainText('Currently unavailable');await expect(page.getByRole('link',{name:'Enquire on WhatsApp'})).toHaveCount(0);await expect(page.locator('.package-price')).not.toContainText('15,000');
+ await page.goto('/packages/expired-layout-sample');await expect(page.locator('.package-price')).toContainText('Price on request');await expect(page.locator('.package-quote')).toContainText('Currently unavailable');await expect(page.locator('.package-contact-actions a')).toHaveCount(0);await expect(page.locator('.package-price')).not.toContainText('15,000');
 });
 
 test('home discovery uses published summaries and navigation fits narrow viewports',async({page,provider},testInfo)=>{

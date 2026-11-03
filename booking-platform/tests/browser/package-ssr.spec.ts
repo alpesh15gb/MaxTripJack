@@ -23,6 +23,6 @@ test('temporary package retry recovers current publication or a real withdrawn s
   const slug=`retry-${outcome}-${randomBytes(8).toString('hex')}`;
   await page.goto(`/packages/${slug}`);await expect(page.getByRole('heading',{name:'Package information is temporarily unavailable'})).toBeVisible();await page.getByRole('button',{name:'Try again',exact:true}).click();
   await expect(page.getByRole('heading',{level:1})).toHaveText(outcome==='success'?'Kerala at your pace':'Package unavailable');await expect(page.getByRole('button',{name:'Try again',exact:true})).toHaveCount(0);
-  if(outcome==='success')await expect(page.getByRole('heading',{name:'Your itinerary'})).toBeVisible();else await expect(page.getByRole('link',{name:'Enquire on WhatsApp'})).toHaveCount(0);
+  if(outcome==='success')await expect(page.getByRole('heading',{name:'Your itinerary'})).toBeVisible();else await expect(page.locator('.package-contact-actions a')).toHaveCount(0);
  }
 });

@@ -10,5 +10,4 @@ export const footerSocialLinks=[
  {name:'facebook',label:'MaxTravel on Facebook',href:businessProfile.socialProfiles[0].href},
  {name:'instagram',label:'MaxTravel on Instagram',href:businessProfile.socialProfiles[1].href},
  {name:'google',label:'Find MaxTravel on Google Maps',href:businessProfile.mapsHref},
- {name:'whatsapp',label:'Message MaxTravel on WhatsApp',href:businessProfile.whatsappHref},
 ] as const;

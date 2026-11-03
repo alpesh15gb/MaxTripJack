@@ -122,7 +122,7 @@ export const publicPages: readonly PublicPage[] = [
   },
   {
     slug: "contact", title: "Contact Our Secunderabad Office", eyebrow: "LET'S MAKE THE DETAILS CLEAR",
-    description: "Contact MaxTravel on +91 7095-018-018, WhatsApp or max@maxtravel.us. Secunderabad office open every day, 9 am–9 pm India time.",
+    description: "Contact MaxTravel on +91 7095-018-018 or max@maxtravel.us. Secunderabad office open every day, 9 am–9 pm India time.",
     heading: "Talk to MaxTravel.",
     intro: "For a new travel enquiry or a question about an existing booking, use the contact details below. Our team is available during the published office hours; we do not promise an immediate response or 24-hour support.",
     sections: [
@@ -135,7 +135,7 @@ export const publicPages: readonly PublicPage[] = [
     slug: "office", title: "Secunderabad Office: Address & Opening Hours", eyebrow: "A PLACE YOU CAN FIND US",
     description: "Visit MaxTravel at G-10, Golden Hawk, Ramgopalpet, Secunderabad 500003. Open every day, 9 am–9 pm India time. Contact us for visit assistance.",
     heading: "Our Secunderabad office.",
-    intro: "Speak with a real travel agency, not only a search screen. MaxTravel's office is in Ramgopalpet, Secunderabad, with daily opening hours and direct phone, WhatsApp and email contact.",
+    intro: "Speak with a real travel agency, not only a search screen. MaxTravel's office is in Ramgopalpet, Secunderabad, with daily opening hours and direct phone and email contact.",
     sections: [
       { heading: "Finding the office", paragraphs: [businessProfile.address.display, "Look for G-10 in Golden Hawk, beside SBI. The map link below opens the matching public Max Travel listing. If you need help locating the entrance, call before travelling to the office."] },
       { heading: "Opening hours and your visit", paragraphs: ["Our office hours are every day, 9:00 am–9:00 pm India time. Call before your visit if you need specific assistance or want to confirm what information to bring."] },
@@ -159,7 +159,7 @@ export const publicPages: readonly PublicPage[] = [
     slug: "customer-support", title: "Booking, Changes & Refund Support", eyebrow: "WHEN YOU NEED A HUMAN CHECKPOINT",
     description: "Find MaxTravel support contacts and practical steps for unclear booking status, change requests, cancellations and refund enquiries.",
     heading: "Get help with the next step—not another guess.",
-    intro: "Start with the current booking state, then explain the outcome you need. MaxTravel can be contacted by phone, WhatsApp or email during daily office hours, 9:00 am–9:00 pm India time.",
+    intro: "Start with the current booking state, then explain the outcome you need. MaxTravel can be contacted by phone or email during daily office hours, 9:00 am–9:00 pm India time.",
     sections: [
       { heading: "Payment made, confirmation unclear", paragraphs: ["Check My trips for the existing booking and inspect the available status and documents. A payment notification alone does not mean the supplier has confirmed the trip.", "Contact us privately if the result is pending, failed or unclear. Keep the payment receipt for the support conversation and avoid paying again until the earlier attempt has been investigated."], links: [{ label: "Open My trips", href: "/my-trips" }] },
       { heading: "Changing or cancelling a trip", paragraphs: ["Tell us which booking and what you would like changed. Ask for the applicable supplier conditions, availability and total charges before authorising the request. An enquiry does not itself change or cancel the ticket.", "The initial fare and any selected extras can have different conditions. A request, a quoted change and a completed change are distinct stages; keep the final confirmation of what was processed."] },

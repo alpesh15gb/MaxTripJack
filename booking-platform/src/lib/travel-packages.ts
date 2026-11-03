@@ -15,9 +15,9 @@ export const travelPackageSchema = z.object({
   itinerary: z.array(z.object({ day: z.number().int().min(1).max(60), title: text(160), description: text(2000) })).max(60),
   inclusions: z.array(text(500)).max(50), exclusions: z.array(text(500)).max(50), terms: text(6000), cancellationPolicy: text(4000),
   coverImageUrl: text(1500), coverImageAlt: text(180), gallery: z.array(z.object({url: text(1500), alt: text(180)})).max(12),
-  contactEmail: z.union([z.email().max(160), z.literal('')]), contactPhone: phone, contactWhatsapp: phone, publishedAt: z.iso.datetime(),
+  contactEmail: z.union([z.email().max(160), z.literal('')]), contactPhone: phone, publishedAt: z.iso.datetime(),
 });
-export const travelPackageSummarySchema = travelPackageSchema.omit({description:true,itinerary:true,gallery:true,inclusions:true,exclusions:true,terms:true,cancellationPolicy:true,contactEmail:true,contactPhone:true,contactWhatsapp:true});
+export const travelPackageSummarySchema = travelPackageSchema.omit({description:true,itinerary:true,gallery:true,inclusions:true,exclusions:true,terms:true,cancellationPolicy:true,contactEmail:true,contactPhone:true});
 export type TravelPackageSummary = z.infer<typeof travelPackageSummarySchema>;
 export type TravelPackage = z.infer<typeof travelPackageSchema>;
 export function safePackagePhoto(value: string): boolean {

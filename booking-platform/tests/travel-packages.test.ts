@@ -6,8 +6,8 @@ import {samplePackage} from './package-fixture';
 const reply = (value:unknown,status=200) => (async () => Response.json(value,{status})) as typeof fetch;
 const list = (packages:unknown[]) => ({packages,truncated:false,unavailableCount:0});
 test('published contract strips private fields and keeps major-unit prices',()=>{
- const item=currentPackage({...samplePackage,internalNotes:'private'},new Date('2026-10-21T23:00:00Z'));
- assert.equal(packagePrice(item),'₹15,000');assert.equal('internalNotes' in item,false);
+ const item=currentPackage({...samplePackage,internalNotes:'private',contactWhatsapp:'+919000000001'},new Date('2026-10-21T23:00:00Z'));
+ assert.equal(packagePrice(item),'₹15,000');assert.equal('internalNotes' in item,false);assert.equal('contactWhatsapp' in item,false);
 });
 test('price and travel expire consistently at UTC midnight, not India midnight',()=>{
  const item={...samplePackage,priceValidUntil:'2026-10-21',travelEnd:'2026-10-21'};

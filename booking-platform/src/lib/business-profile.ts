@@ -13,7 +13,6 @@ export const businessProfile = {
   phone: "+91 7095-018-018",
   phoneE164: "+917095018018",
   phoneHref: "tel:+917095018018",
-  whatsappHref: "https://wa.me/917095018018",
   email: "max@maxtravel.us",
   emailHref: "mailto:max@maxtravel.us",
   address: {

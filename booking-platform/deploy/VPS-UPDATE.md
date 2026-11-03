@@ -74,7 +74,7 @@ If a migration or health check fails, the update is incomplete; do not enable
 additional workers or lift maintenance mode.
 
 The updater does not change Nginx maintenance rules, external domains, Vercel
-trust, WhatsApp provider selection or unrelated containers. After the rollout,
+trust or unrelated containers. After the rollout,
 verify public routing and actual TripJack UAT access, review integration booleans
 and queued work, and then activate the required booking workers. Test transactions
 must use designated test accounts/recipients. PayGlocal merchant confirmation and

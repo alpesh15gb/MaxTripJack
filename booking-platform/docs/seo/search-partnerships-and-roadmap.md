@@ -84,8 +84,8 @@ Sources: [Google AI guidance](https://developers.google.com/search/docs/fundamen
 2. Allowlist event fields. Never transmit traveler name, email, telephone, DOB, passport, PNR, ticket number, payment identifier/token, free-text search/support text or raw provider responses to analytics. Sanitize path, query, fragment, title and referrer before events; map private dynamic URLs to route templates. GA4 redaction is defense-in-depth, not a substitute for preventing sensitive data entering the data layer. [Google Analytics PII guidance](https://support.google.com/analytics/answer/6366371?hl=en), [GA4 data redaction](https://support.google.com/analytics/answer/13544947?hl=en).
 3. Use a separate random analytics transaction identifier, with any mapping retained only in the secured booking system. Do not reuse PNRs. Define `value` consistently: gross booking value is not the agency's net revenue; store and label net commission/margin separately in controlled business reporting. GA4 supports purchase/refund events and transaction IDs. [GA4 ecommerce](https://developers.google.com/analytics/devguides/collection/ga4/ecommerce).
 4. Emit `purchase` once only after server-verified successful payment **and confirmed ticket issuance**, from an idempotent state transition. A payment callback, thank-you URL or client event alone is insufficient. Repeated callbacks, reloads and replayed webhooks must not create duplicate purchases. Refunded/cancelled bookings need explicit adjustment and reconciliation, not deletion of history. Test locally with synthetic states first.
-5. Keep UAT/test/internal traffic outside the production business dashboard; include `environment` in controlled test instrumentation. Do not count test payment success as real revenue or mark `search`/WhatsApp clicks as confirmed bookings.
-6. Disable unnecessary automatic form/outbound-click capture until audited: WhatsApp links, tel links, private query strings and support form destinations can leak data. Track explicit generic actions such as `contact_click` with `channel=phone|whatsapp`, without recipient numbers/message text.
+5. Keep UAT/test/internal traffic outside the production business dashboard; include `environment` in controlled test instrumentation. Do not count test payment success as real revenue or mark `search`/contact clicks as confirmed bookings.
+6. Disable unnecessary automatic form/outbound-click capture until audited: Email links, tel links, private query strings and support form destinations can leak data. Track explicit generic actions such as `contact_click` with `channel=phone|email`, without recipient numbers/message text.
 
 ### Funnel contract
 
@@ -100,7 +100,7 @@ Sources: [Google AI guidance](https://developers.google.com/search/docs/fundamen
 | `purchase` | Paid + issued, exactly once | Random analytics transaction ID, consistent value/tax/currency/items | Confirmed booking key event |
 | `booking_failed` | Terminal failure | Allowlisted error category/stage only | Never a positive conversion |
 | `refund` | Verified refund transition | Analytics transaction ID, currency/value/items | Revenue adjustment |
-| `contact_click` | Phone/WhatsApp action | Channel, public content group | Lead interaction, not sale |
+| `contact_click` | Phone/email action | Channel, public content group | Lead interaction, not sale |
 
 QA acceptance: denied-consent browser session sends zero optional analytics requests; no sensitive fields in any test payload; synthetic duplicate callbacks yield one purchase; payment-only/pending-ticket/refused-payment states yield zero purchases; refund totals reconcile; analytics never blocks checkout. Mark the purchase event as a key event only after QA. Verify using permitted test tools before activation, then reconcile a consent-eligible sample against the booking ledger.
 
@@ -167,7 +167,7 @@ Set growth targets after the first complete baseline: choose realistic increment
 | Input/action | Why needed | Status |
 |---|---|---|
 | Verified legal name/registration, trading history and authorized signatory | Accurate trust content and applications | Requires business verification |
-| Office address, hours, phone/WhatsApp; map identity; signage/photos | Honest local presence | Address/contact and daily 09:00–21:00 owner-confirmed; Maps identity matched; office photos/signage proof still required |
+| Office address, hours, phone/email; map identity; signage/photos | Honest local presence | Address/contact and daily 09:00–21:00 owner-confirmed; Maps identity matched; office photos/signage proof still required |
 | Genuine review/profile URLs and use rights | Testimonials and `sameAs` without fabrication | Requires verification |
 | Supplier production credentials through secure secret management, agreement and public/metasearch display rights | Real inventory and legal redistribution | Requires supplier approval; never place secrets in report/code/client |
 | Payment live onboarding, refund and reconciliation ownership | Real commercial operation | Requires payment provider/owner approval |

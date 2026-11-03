@@ -76,6 +76,5 @@ export function TravelFooter({compact=false}:{compact?:boolean}={}) {
    <img className="travel-footer-iata" src="/brand/iata.svg" width="76" height="48" loading="lazy" alt="IATA"/>
   </div><p className="travel-footer-testing">In Testing · No live bookings or payments</p></div>
   <div className="travel-footer-copyright">© Copyright {new Date().getFullYear()} MaxTravel</div><AirportDataCredit/>
-  <a className="travel-footer-whatsapp" href={businessProfile.whatsappHref} aria-label="Chat with MaxTravel on WhatsApp"><FooterSocialIcon name="whatsapp"/></a>
  </footer>;
 }

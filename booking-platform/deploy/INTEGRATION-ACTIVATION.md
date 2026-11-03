@@ -16,7 +16,7 @@ Keep the reviewed `vps-integrate.py` and its matching `vps-update.py` in the sam
 
 The tool preserves runtime storage, networks, permissions, environment and application images. It configures the CRM command endpoint and a direction-specific private HMAC key, separate from the booking event key. It maps only eligible existing identities. Staff permissions, record scope, current MFA state and booking grants remain enforced for every command.
 
-Only the two travel apps and their already active workers are paused. After both apps become healthy, a signed STATUS probe for a nonexistent booking must pass authentication and return the expected harmless 404. Checkout must still report PayGlocal held. The existing CRM WhatsApp worker is resumed with its own storage and command intact.
+Only the two travel apps and their already active workers are paused. After both apps become healthy, a signed STATUS probe for a nonexistent booking must pass authentication and return the expected harmless 404. Checkout must still report PayGlocal held. The existing CRM maintenance worker is resumed with its own storage and command intact.
 
 The seven booking services are `booking-worker`, `crm-worker`, `maintenance-worker`, `cancellation-worker`, `refund-worker`, `payment-worker` and `notification-worker`. Each uses the exact running booking app image, retains its security/storage settings, and has an SQL heartbeat health check. Workers do not inherit the web app's HTTP ports, routing labels, DNS aliases or static network identity. Idle payment polling does not require unfinished merchant configuration.
 

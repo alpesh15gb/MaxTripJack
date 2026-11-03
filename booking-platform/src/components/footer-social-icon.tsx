@@ -1,6 +1,6 @@
-export function FooterSocialIcon({name}:{name:'facebook'|'instagram'|'google'|'whatsapp'}){
+export function FooterSocialIcon({name}:{name:'facebook'|'instagram'|'google'}){
  if(name==='facebook')return <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M14 22v-9h3l.5-4H14V7c0-1.2.3-2 2-2h2V1.5C17 1.2 16 1 15 1c-3 0-5 1.8-5 5v3H7v4h3v9h4Z"/></svg>;
  if(name==='google')return <svg viewBox="0 0 24 24" width="23" height="23" fill="currentColor" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2.1H12v4h5.4a4.6 4.6 0 0 1-2 3c-.9.6-2 .9-3.4.9a6 6 0 1 1 4.2-10.3L19 4.9A10 10 0 1 0 22 12c0 .1-.4.2-.4.2Z"/></svg>;
  if(name==='instagram')return <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor" stroke="none"/></svg>;
- return <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 11.5a9 9 0 0 1-13.3 8L3 21l1.5-4.7A9 9 0 1 1 21 11.5Z"/><path d="m8 7-1 2c.7 3 3 5.4 6 6l2-1-.4-1.5-2-1-1 1c-1.2-.5-2-1.4-2.5-2.5l1-1L9 7.4 8 7Z"/></svg>;
+ return null;
 }

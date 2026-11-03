@@ -23,7 +23,6 @@ This is a source review and simulated verification record. It is not TripJack ac
 - PayGlocal’s missing merchant-specific travel payload attachment must be supplied and implemented before the new-checkout code hold can be removed. Valid SDK credentials alone cannot enable payments. Then complete PayGlocal onboarding, UAT MID, signing/encryption KIDs, merchant RSA private key and PayGlocal public certificate. Configure the HTTPS return at `/api/payments/payglocal/return`; independent webhook hints wake authenticated polling, which supplies payment proof. Start the reviewed payment/booking/refund workers before purchases. See [PayGlocal integration](docs/PAYGLOCAL-INTEGRATION.md).
 - A working test email service for verification, password reset and booking notices.
 - CRM event URL and matching signing key/key ID on both sides. Keep existing encryption, authentication and integration secrets secure; do not rotate them merely to test the app.
-- Meta configuration and approved utility templates are required only for the separate CRM WhatsApp tests.
 
 See INTEGRATION-GUIDE.md for exact variables, migrations, catalogue sync and worker startup. Do not use production payment keys or production reservations for this acceptance run.
 
@@ -39,14 +38,14 @@ See INTEGRATION-GUIDE.md for exact variables, migrations, catalogue sync and wor
 | After sales | Full/partial cancellation, accepted terms, confirmed refund, partial refund balance, post-ticket extras and one-time reissue |
 | CRM | One booking/payment per event, retries, stale events, cancelled/refunded balances, service invoices and mixed-room itinerary retention |
 | Accounts | Public ownership isolation, corporate approval/MFA, admin permissions and suspended-account denial |
-| Notifications | Customer email, ticket/voucher PDF, and separately configured WhatsApp templates/PDF delivery/STOP |
+| Notifications | Customer email, ticket/voucher PDF, and permission-scoped private CRM attachment access |
 
 Record booking/order references and sanitized results. Never attach API keys, cookies, passwords, passport/PAN details or full provider payloads to a public issue.
 
 ## Known boundaries and remaining release work
 
 - Ambiguous supplier identifiers, exit-row eligibility and complex combinations of partial reissue/cancellation/extras require staff assistance.
-- CRM incoming WhatsApp media download remains separate. Automatic signed confirmation-PDF import and optional consent-controlled BOOKING_DOCUMENT delivery are now implemented; configure and test both directions using crm-review/TWO-WAY-BOOKING-INTEGRATION.md.
+- Signed confirmation PDFs can be imported as private CRM attachments. Verify document permissions and current booking revision before staff download. The event receiver does not automatically send PDFs or attach them to customer email; customer delivery remains an explicit action subject to payment and audited-exception rules. See [CRM confirmation delivery](docs/crm-confirmation-delivery.md).
 - Physical-device validation, independent security/load checks, backup restoration, production configuration and signed APK/IPA releases remain pending.
 - The local preview still runs the preceding version. Its replacement was blocked by automatic approval review; browser verification was blocked by browser access policy. Source builds and simulated API checks do not establish visual acceptance.
 

@@ -37,7 +37,6 @@ export function OfficeContactCard({ compact = false, id }: { compact?: boolean; 
     <p className="public-hours"><strong>{businessProfile.hours.display}</strong></p>
     <div className="public-contact-links">
       <a href={businessProfile.phoneHref}><TravelIcon name="user" size={16} />Call {businessProfile.phone}</a>
-      <a href={businessProfile.whatsappHref}>Message on WhatsApp <span aria-hidden="true">↗</span></a>
       <a href={businessProfile.emailHref}>{businessProfile.email}</a>
     </div>
     {!compact && <><a className="public-directions" href={officeDirectionsHref}>View our office on Google Maps <span aria-hidden="true">↗</span></a><p className="public-fineprint">Call before your visit if you need specific assistance.</p></>}

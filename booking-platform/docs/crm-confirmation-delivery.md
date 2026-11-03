@@ -24,23 +24,23 @@ status-only snapshot.
   pair is unchanged; the receiver deduplicates exact repeats and rejects ID
   collisions. Receiver monotonic revisions prevent older snapshots overwriting
   newer state. Network failures and receiver financial rejections still retry.
-- CRM stores status, finance, document availability, revision, event ID and queued
-  older-document cancellation in one transaction. `documentsCurrent` is false
-  unless this revision actually supplies an eligible document. Automation checks
-  exact attachment identity against the current revision before queueing/sending
-  and rechecks after asynchronous upload immediately before submission.
+- CRM stores status, finance, document availability, revision and event ID in one
+  transaction. `documentsCurrent` is false unless this revision actually supplies
+  an eligible document. Signed PDFs are stored as private attachments; staff
+  downloads require document access and current source/customer scope. No PDF
+  is automatically sent or attached to customer email by this event receiver.
 
 ## Operational limits
 
 PDF delivery is best effort, not guaranteed eventual document delivery. An event
 frozen without a PDF will never regenerate it during retry. The receiver ignores
 same-revision later events, so there is **no same-revision document backfill**.
-A future legitimate revision can provide a new staff-download attachment; existing
-per-booking automation deduplication is preserved and does not promise another
-WhatsApp document notification. A missing PDF is unavailable, not a current PDF.
+A future legitimate revision can provide a new staff-download attachment. A
+missing PDF is unavailable, not a current PDF. Customer delivery remains an
+explicit action governed by payment and audited-exception checks.
 
 The existing distributed boundary remains: booking changes not yet received by
-CRM cannot invalidate a PDF there, and a change after the final current-revision
-check cannot retract an external submission already in flight. These checks do
-not claim atomicity across the booking database, CRM database and provider.
-There are no new schemas/event types, credentials, access rules or provider calls.
+CRM cannot invalidate a PDF there, and a change after a staff download cannot
+retract a copy already downloaded. These checks do not claim atomicity across
+the booking database and CRM database.
+The signed booking-event format is unchanged; this path introduces no provider credentials or delivery calls.
