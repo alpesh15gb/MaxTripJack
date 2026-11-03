@@ -4,10 +4,17 @@
 and `crm.maxtravel.in`. It is not a generic installer. Python 3.8+, Git, Docker
 and Docker Compose v2 are required; run as root on that VPS.
 
-The source pins are booking `9100acb1add27720ae30e9ffad69edc7202d2632` and CRM
-`5cf9614028e8b49658a3c0478627b75d8213eba2`. This release contains the verified
-hotel destination recovery fix and the two-app acceptance reports. Later app releases require updating
-and reviewing those pins. Build logs do not imply that a VPS rollout has run.
+The source pins are booking `355b5d35ab7330a6c93359e4423b4f794119d16d` and CRM
+`8c8c32d3c297864bbd6a77a633c3b9659cc00896`. This release removes WhatsApp from both
+applications. The CRM migration removes retired conversations, queues and configuration
+while preserving customer documents, imported PDFs, audit history, internal chat and email.
+The existing CRM worker is converted to authenticated general maintenance; its shared key,
+SMTP configuration, encryption key and original storage mounts are retained. The candidate
+CRM containers lose provider credentials and unused provider network attachments. Recovery
+snapshots and unrelated VPS services remain available. No stopped booking worker is activated.
+
+Later app releases require reviewing and updating these pins. Local build/test results do
+not imply that a VPS rollout has run.
 
 Run without flags for an inspection; use `--apply` for the update. The updater:
 
