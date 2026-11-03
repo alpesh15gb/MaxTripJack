@@ -51,6 +51,14 @@ export function requestMayBeIndexed(url: URL, environment: SeoEnvironment = proc
   return indexingEnabled(environment) && url.origin === SITE_ORIGIN && !url.search && isPublicSeoPath(url.pathname);
 }
 
+/** Behind the trusted reverse proxy the app sees an internal origin; use the forwarded public host and scheme. */
+export function publicRequestUrl(url: URL, headers: { get(name: string): string | null }) {
+  const host = headers.get("host");
+  const proto = headers.get("x-forwarded-proto")?.split(",")[0].trim();
+  if (!host || (proto !== "https" && proto !== "http")) return url;
+  try { return new URL(`${url.pathname}${url.search}`, `${proto}://${host}`); } catch { return url; }
+}
+
 export function buildRobots(environment: SeoEnvironment = process.env): MetadataRoute.Robots {
   if (!indexingEnabled(environment)) return { rules: { userAgent: "*", disallow: "/" } };
   const rules: MetadataRoute.Robots["rules"] = [

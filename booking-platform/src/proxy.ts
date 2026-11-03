@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { NextRequest,NextResponse } from "next/server";
 import { contentSecurityPolicy } from "./lib/content-security";
-import { requestMayBeIndexed } from "./lib/seo";
+import { publicRequestUrl,requestMayBeIndexed } from "./lib/seo";
 export function proxy(request:NextRequest){
- const noindex=!requestMayBeIndexed(request.nextUrl);
+ const noindex=!requestMayBeIndexed(publicRequestUrl(request.nextUrl,request.headers));
  // Operational endpoints and metadata text/XML do not render framework scripts.
  // Preserve their own caching and authorization behavior; only add crawl hygiene.
  if(request.nextUrl.pathname.startsWith("/api/")||["/robots.txt","/sitemap.xml"].includes(request.nextUrl.pathname)){

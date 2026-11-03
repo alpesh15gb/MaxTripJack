@@ -197,3 +197,15 @@ test("airport alternatives remain explicitly different, never silent city-code s
   const dubai = JSON.stringify(getFlightGuide("hyderabad-to-dubai"));
   assert.ok(dubai.includes("DXB") && dubai.includes("DWC"));
 });
+
+test("indexing decision uses the forwarded public origin behind the reverse proxy", async () => {
+  const { publicRequestUrl, requestMayBeIndexed } = await import("../src/lib/seo");
+  const env = { NODE_ENV: "production", SEO_INDEXING_ENABLED: "true", SEO_SITE_ORIGIN: "https://maxtravel.in" };
+  const headers = (host: string, proto: string) => new Headers({ host, "x-forwarded-proto": proto });
+  const internal = new URL("http://0.0.0.0:3000/flights");
+  assert.equal(requestMayBeIndexed(publicRequestUrl(internal, headers("maxtravel.in", "https")), env), true);
+  assert.equal(requestMayBeIndexed(publicRequestUrl(internal, headers("preview.example.com", "https")), env), false);
+  assert.equal(requestMayBeIndexed(publicRequestUrl(internal, headers("maxtravel.in", "http")), env), false);
+  assert.equal(requestMayBeIndexed(publicRequestUrl(new URL("http://0.0.0.0:3000/flights?x=1"), headers("maxtravel.in", "https")), env), false);
+  assert.equal(requestMayBeIndexed(internal, env), false);
+});
