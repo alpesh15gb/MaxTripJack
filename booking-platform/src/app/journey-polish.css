@@ -138,3 +138,26 @@
  .journey-flow .room-option-card:not(:has(>.room-option-details[open]))>.room-option-details{grid-column:1;grid-row:2;padding-top:4px}
  .journey-flow .room-option-card:not(:has(>.room-option-details[open]))>.room-option-action{grid-column:2;grid-row:1 / span 2}
 }
+
+/* Engaging, honest waiting scene: motion is decorative and never implies supplier progress. */
+.journey-flow .booking-pending.journey-search-scene{grid-template-areas:"art copy" "skel skel";position:relative;overflow:hidden}
+.journey-search-art{grid-area:art}.journey-search-copy{grid-area:copy}.journey-search-skeletons{grid-area:skel}
+.journey-search-trail{stroke:#2455e7;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:14 86;animation:journey-trail 4s ease-in-out infinite}
+.journey-search-code{font:700 11px/1 var(--font-geist-sans),sans-serif;fill:#52616a;letter-spacing:.08em}
+.journey-cloud{fill:#dbe7f8;animation:journey-cloud-drift 9s ease-in-out infinite alternate}.journey-cloud-b{animation-duration:12s;animation-direction:alternate-reverse}
+.journey-search-stay .journey-stay-glow{fill:none;stroke:#2455e7;stroke-width:2;transform-origin:180px 52px;animation:journey-stay-ripple 3s ease-out infinite}
+.journey-search-tip{margin:0 0 16px;padding:12px 14px;background:#ffffffb8;border:1px solid #d6e2f2;border-radius:12px;max-width:54ch}
+.journey-search-tip>span{display:block;font:700 11px/1 var(--font-geist-sans),sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#087580;margin-bottom:6px}
+.journey-search-tip p{margin:0;font-size:15px;line-height:1.5;color:#27414f;min-height:45px;animation:journey-tip-in .5s ease both}
+.journey-search-skeletons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:8px}
+.journey-skeleton-card{display:grid;gap:10px;padding:16px;background:#ffffffcc;border:1px solid #dbe5f2;border-radius:14px}
+.sk{display:block;border-radius:8px;background:linear-gradient(90deg,#e6edf6 25%,#f4f8fd 50%,#e6edf6 75%);background-size:200% 100%;animation:journey-shimmer 1.6s linear infinite}
+.sk-badge{width:34%;height:14px}.sk-line{height:12px;width:62%}.sk-wide{width:90%;height:18px}.sk-price{width:40%;height:22px;margin-top:6px}
+.journey-skeleton-card:nth-child(2) .sk{animation-delay:.2s}.journey-skeleton-card:nth-child(3) .sk{animation-delay:.4s}
+@keyframes journey-trail{0%{stroke-dashoffset:14;opacity:0}15%{opacity:.9}85%{opacity:.9}100%{stroke-dashoffset:-86;opacity:0}}
+@keyframes journey-cloud-drift{to{transform:translateX(26px)}}
+@keyframes journey-stay-ripple{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.5);opacity:0}}
+@keyframes journey-tip-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes journey-shimmer{to{background-position:-200% 0}}
+@media(max-width:700px){.journey-flow .booking-pending.journey-search-scene{grid-template-areas:"art" "copy" "skel"}.journey-search-skeletons{grid-template-columns:minmax(0,1fr)}.journey-skeleton-card:nth-child(n+2){display:none}}
+@media(prefers-reduced-motion:reduce){.journey-search-trail,.journey-cloud,.journey-stay-glow,.sk,.journey-search-tip p{animation:none}.journey-search-trail{opacity:0}}

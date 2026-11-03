@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["payglocal-js-client"],
   distDir:process.env.NEXT_DIST_DIR||".next",
   poweredByHeader: false,
+  images: { formats: ["image/avif", "image/webp"], minimumCacheTTL: 2592000 },
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },

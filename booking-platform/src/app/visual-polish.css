@@ -1,0 +1,50 @@
+/* Final visual polish layer: loaded last so it refines the earlier layers without rewriting them. */
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+::selection{background:#cfe0f7;color:#142d40}
+img{max-width:100%}
+
+/* One consistent, clearly visible keyboard focus treatment. */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,textarea:focus-visible{outline:3px solid #2f6fd8;outline-offset:3px;border-radius:8px}
+
+/* Buttons feel responsive: gentle lift on hover, press on click. */
+.home-search-submit,.package-button,.package-state a:first-of-type{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+.home-search-submit:hover{transform:translateY(-1px);box-shadow:0 10px 22px #2458a638;filter:none}
+.home-search-submit:active{transform:translateY(0);box-shadow:none}
+
+/* Search card and hero photo get softer depth. */
+.trip-home .home-search-card{box-shadow:0 18px 48px #142d4014,0 2px 6px #142d4008}
+.studio-hero-photo>img{transition:transform .8s ease}
+.studio-hero-photo:hover>img{transform:scale(1.03)}
+
+/* Package-plans placeholder: warmer, with an accent edge instead of flat grey. */
+.trip-home .home-package-empty{background:linear-gradient(100deg,#eef4f1,#f6f3ea);border:1px solid #dde7e0;border-left:4px solid #3d7f6e;border-radius:14px}
+
+/* Branded not-found and error pages. */
+.state-page{max-width:760px;margin:0 auto;padding:64px 24px 96px;text-align:center}
+.state-page .state-code{display:block;font-size:clamp(72px,16vw,128px);line-height:1;font-weight:700;letter-spacing:-.06em;color:#d9e4df;margin-bottom:8px}
+.state-page h1{font-size:clamp(28px,5vw,42px);line-height:1.15;letter-spacing:-.03em;color:#142d40;margin:8px 0 14px}
+.state-page p{font-size:17px;line-height:1.65;color:#536860;max-width:520px;margin:0 auto 28px}
+.state-page .state-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.state-page .state-actions a,.state-page .state-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;border:1px solid #2458a6;color:#2458a6;background:white;cursor:pointer}
+.state-page .state-actions .state-primary{background:#2458a6;color:white}
+.state-page .state-actions a:hover,.state-page .state-actions button:hover{filter:brightness(.95)}
+
+@media(max-width:700px){
+  /* Hero: stack a wide photo under the copy rather than squeezing a sliver beside it. */
+  .trip-home .home-intro{grid-template-columns:minmax(0,1fr)}
+  .studio-hero-photo{min-height:170px;aspect-ratio:16/9;border-radius:4px 48px 4px 4px;box-shadow:6px 6px 0 #e8e9dc}
+  .studio-hero-photo>span,.studio-hero-photo .studio-photo-note{font-size:12px;left:10px;bottom:10px;right:auto;max-width:calc(100% - 20px)}
+  /* Keep the airport hint on one tidy line. */
+  .trip-home .home-search-input .airport-hint{white-space:normal}
+  .state-page{padding:40px 20px 72px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.studio-hero-photo>img,.home-search-submit{transition:none}.studio-hero-photo:hover>img{transform:none}}
+
+/* Destination cards use optimised, lazy-loaded images instead of eager CSS backgrounds. */
+.trip-home .home-destination{position:relative;isolation:isolate;overflow:hidden;background-color:#78a8b1}
+.trip-home .home-destination-photo{object-fit:cover;z-index:-2}
+.trip-home .home-destination-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(8,26,37,.88),transparent 75%)}
+
+.flight-load-more{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0 8px}
+.flight-load-more p{margin:0}
+.flight-load-more button{min-height:48px;padding:12px 28px}

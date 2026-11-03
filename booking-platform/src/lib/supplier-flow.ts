@@ -10,6 +10,7 @@ import { customerTotal,customerFlightResults,customerHotelOptions,customerHotelR
 import { hotelListingId } from "./hotel-listing-id";
 import { hotelContentForSearch } from "./hotel-content";
 import { SearchTiming } from "./search-timing";
+import { cachedFlightSearch } from "./flight-search-cache";
 import { exactAirportGroups } from "./flight-airport-scope";
 import { orderedFlightSelection } from "./flight-selection";
 export type Actor={userId:string;companyId:string|null};
@@ -25,7 +26,8 @@ export async function searchSupplier(criteria:Search,actor:Actor,timing=new Sear
  if(criteria.product==="FLIGHT"&&criteria.returnDate&&criteria.returnDate<criteria.date)throw new HttpError(400,"Return date must not precede departure.");
  if(criteria.product==="HOTEL"&&criteria.checkOut<=criteria.checkIn)throw new HttpError(400,"Check-out must follow check-in.");
  const id=randomUUID(),correlationId=randomUUID();
- const [data,rule]=await Promise.all([timing.measure("supplier",()=>tripjack(criteria.product,paths[criteria.product].search,criteria.product==="FLIGHT"?flightSearch(criteria):hotelSearch(criteria,correlationId))),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
+ const supplierRequest=criteria.product==="FLIGHT"?flightSearch(criteria):hotelSearch(criteria,correlationId);
+ const [data,rule]=await Promise.all([timing.measure("supplier",()=>criteria.product==="FLIGHT"?cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest)):tripjack(criteria.product,paths[criteria.product].search,supplierRequest)),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
  await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes')",[id,actor.userId,actor.companyId,criteria.product,criteria,data,correlationId]));
  return timing.sync("projection",()=>{
  if(criteria.product==="FLIGHT")return {searchId:id,product:criteria.product,results:customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule)};
