@@ -9,7 +9,7 @@ export const PUBLIC_SEO_PAGES = [
   { path: "/cancellations-payment-policy", lastModified: "2026-11-01" },
   { path: "/disclaimer", lastModified: "2026-11-01" },
 
-  { path: "/", lastModified: "2026-10-20" },
+  { path: "/", lastModified: "2026-11-04" },
   { path: "/flights", lastModified: "2026-10-20" },
   { path: "/domestic-flights", lastModified: "2026-10-20" },
   { path: "/international-flights", lastModified: "2026-10-20" },
@@ -27,7 +27,7 @@ export const PUBLIC_SEO_PAGES = [
   { path: "/flights/mumbai-to-hyderabad", lastModified: "2026-10-20" },
   { path: "/flights/hyderabad-to-goa", lastModified: "2026-10-20" },
   { path: "/flights/delhi-to-hyderabad", lastModified: "2026-10-20" },
-  { path: "/about", lastModified: "2026-11-01" },
+  { path: "/about", lastModified: "2026-11-04" },
   { path: "/contact", lastModified: "2026-10-20" },
   { path: "/office", lastModified: "2026-11-04" },
   { path: "/services", lastModified: "2026-11-04" },

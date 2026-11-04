@@ -4,8 +4,8 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata(
   "/",
-  "Flight & Hotel Planning with Secunderabad Office Support",
-  "Plan flights and hotels with MaxTravel: competitive travel pricing, clear booking guidance and a real Secunderabad office open every day, 9 am–9 pm India time.",
+  "Travel Agent in Secunderabad: Flights, Hotels, Visas",
+  "MaxTravel is a Secunderabad travel agent for flights, hotels, visas, cruises, luxury tour packages, forex and insurance. Office open every day, 9 am–9 pm.",
 );
 
 export default function Home() {

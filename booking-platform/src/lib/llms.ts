@@ -1,4 +1,4 @@
-import { businessProfile } from "./business-profile";
+import { businessProfile, officeServices } from "./business-profile";
 import { flightGuides } from "./flight-guides";
 import { publicPages } from "./public-pages";
 import { indexingEnabled, SITE_ORIGIN, type SeoEnvironment } from "./seo";
@@ -10,7 +10,7 @@ export function buildLlmsTxt(environment: SeoEnvironment = process.env): string 
   const lines = [
     `# ${b.name}`,
     "",
-    `> ${b.name} is a travel agency with a physical office in ${b.address.addressLocality}, ${b.address.addressRegion}, India. ${b.positioning} The site is for planning flights and hotels; it publishes guidance, not guaranteed fares or availability.`,
+    `> ${b.name} is a travel agency with a physical office in ${b.address.addressLocality}, ${b.address.addressRegion}, India. ${b.positioning} The office handles ${officeServices.join(", ").toLowerCase()}. The website is for planning flights and hotels; it publishes guidance, not guaranteed fares or availability.`,
     "",
     "## Contact",
     `- Office: ${b.address.display}`,
