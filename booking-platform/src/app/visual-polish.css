@@ -48,3 +48,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 .flight-load-more{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0 8px}
 .flight-load-more p{margin:0}
 .flight-load-more button{min-height:48px;padding:12px 28px}
+
+/* Stray overflow never produces a sideways page scroll; clip keeps sticky headers working. */
+html,body{overflow-x:clip}
