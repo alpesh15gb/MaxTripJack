@@ -33,6 +33,11 @@ export const PUBLIC_SEO_PAGES = [
   { path: "/services", lastModified: "2026-10-20" },
   { path: "/customer-support", lastModified: "2026-10-20" },
   { path: "/pricing-transparency", lastModified: "2026-10-20" },
+  { path: "/passport-renewal-guide", lastModified: "2026-11-04" },
+  { path: "/visa-guide", lastModified: "2026-11-04" },
+  { path: "/travel-insurance-guide", lastModified: "2026-11-04" },
+  { path: "/cruise-holidays-guide", lastModified: "2026-11-04" },
+  { path: "/holiday-packages-guide", lastModified: "2026-11-04" },
 ] as const;
 
 const publicPaths = new Set<string>(PUBLIC_SEO_PAGES.map(page => page.path));

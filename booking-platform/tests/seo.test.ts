@@ -64,8 +64,8 @@ test("request indexing requires canonical origin, public path and no query varia
 });
 
 test("sitemap contains 24 editorial pages and four imported policies, with no query/private URL", () => {
-  assert.equal(PUBLIC_SEO_PAGES.length, 28);
-  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 28);
+  assert.equal(PUBLIC_SEO_PAGES.length, 33);
+  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 33);
   const sitemap = buildSitemap(approved);
   assert.deepEqual(sitemap.map(entry => entry.url), PUBLIC_SEO_PAGES.map(page => canonicalUrl(page.path)));
   for (const entry of sitemap) {
@@ -159,9 +159,9 @@ test("owner-confirmed office is Secunderabad, India, 09:00–21:00 all seven day
 test("editorial data and sitemap registry cover exactly the same authored routes", () => {
   const authored = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
   assert.deepEqual(authored.sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.title)).size, 23);
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.heading)).size, 23);
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.description)).size, 23);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.title)).size, 28);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.heading)).size, 28);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.description)).size, 28);
   assert.equal(getFlightGuide("this-route-is-not-authored"), undefined);
   assert.equal(getFlightGuide("Hyderabad-to-Delhi"), undefined);
 });

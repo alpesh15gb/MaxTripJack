@@ -1,4 +1,5 @@
 import { businessProfile } from "@/lib/business-profile";
+import { travelHelpPages } from "@/lib/travel-help-pages";
 
 export type PublicLink = { label: string; href: string };
 export type ContentSection = {
@@ -152,7 +153,7 @@ export const publicPages: readonly PublicPage[] = [
       { heading: "Flight planning", paragraphs: ["Begin with exact airports, dates, cabin and traveller details. The flight flow supports the journey options shown in the form. Our public guides help you identify important airport, transfer and fare-rule questions before choosing an itinerary.", "The guide pages do not supply live inventory, guarantee availability or imply an airline partnership. Actual services and prices require an authorised, current itinerary review."], links: [{ label: "Browse flight planning guides", href: "/flights" }, guide] },
       { heading: "Hotel planning", paragraphs: ["The hotel flow uses a selected destination, stay dates, room occupancy and traveller nationality. Check the actual property's room, meal, cancellation and payment conditions when reviewing an option; a destination photo does not represent a specific room or hotel.", "The present hotel search and checkout are also test workflows. Contact MaxTravel for assistance rather than relying on a test result as a confirmed stay."], links: [{ label: "Open the hotel test planning form", href: "/book?product=HOTEL" }] },
       { heading: "Questions after a booking", paragraphs: ["For confirmation, change, cancellation or refund questions, begin with the booking status and then contact us privately. The outcome depends on the actual booking, supplier rules and the request—not on a general promise of free changes or automatic refunds.", "Ask for the relevant terms and any quoted charges before authorising a modification. Keep the confirmation of a completed action separate from the initial request."], links: [support] },
-      { heading: "Other travel needs", paragraphs: ["For a trip involving requirements not shown in the online flow, ask the team what assistance may be available. This page does not advertise immediately bookable cruises, tours, visas or other services that have not been confirmed."] },
+      { heading: "Other travel needs", paragraphs: ["For a trip involving requirements not shown in the online flow, ask the team what assistance may be available. This page does not advertise immediately bookable cruises, tours, visas or other services that have not been confirmed."], links: [{ label: "Passport renewal and new passport steps", href: "/passport-renewal-guide" }, { label: "Visa planning", href: "/visa-guide" }, { label: "Travel insurance checklist", href: "/travel-insurance-guide" }, { label: "Cruise holiday checklist", href: "/cruise-holidays-guide" }, { label: "Holiday package comparison", href: "/holiday-packages-guide" }] },
     ], cta: { label: "Discuss your travel needs", href: "/contact" }, related: [pricing, { label: "Visit the Secunderabad office", href: "/office" }], reviewedAt,
   },
   {
@@ -180,6 +181,7 @@ export const publicPages: readonly PublicPage[] = [
       { heading: "No fabricated fares", paragraphs: ["The platform is currently In Testing. Public pages do not advertise test prices, invented starting fares, guaranteed savings or a promise to be cheapest.", "Live fares will be available only when online booking is enabled. A planning guide does not reserve a seat or confirm a price."] },
     ], cta: { label: "Ask a pricing question", href: "/contact" }, related: [{ label: "Compare affordable flight options", href: "/cheap-flight-tickets" }, guide, support], reviewedAt,
   },
+  ...travelHelpPages,
 ];
 
 export function getPublicPage(slug: string): PublicPage | undefined {

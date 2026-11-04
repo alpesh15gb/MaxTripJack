@@ -10,7 +10,7 @@ import { canonicalUrl, pageMetadata } from "../src/lib/seo";
 
 test("the content and SEO allowlists contain exactly the same authored paths", () => {
   const paths = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
-  assert.equal(paths.length, 28);
+  assert.equal(paths.length, 33);
   assert.equal(new Set(paths).size, paths.length);
   assert.deepEqual([...paths].sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
   assert.equal(getPublicPage("not-authored"), undefined);
