@@ -59,6 +59,95 @@ const sources = {
   bengaluruTransport: { label: 'Air India: Bengaluru airport and city transport guide', href: 'https://www.airindia.com/content/air-india/in/en/travel-information/airport-information/bengaluru.html' },
 } as const;
 
+type Airport = (typeof airports)[keyof typeof airports];
+type Profile = {
+  arrive: readonly string[];
+  depart: readonly string[];
+  links: readonly { label: string; href: string }[];
+  question: { question: string; answer: string };
+};
+/** Ground-transport facts reused from the dated, source-linked guides above; no new claims are introduced. */
+const profiles: Record<string, Profile> = {
+  HYD: {
+    arrive: ['Hyderabad Airport lists Pushpak airport buses, prepaid taxis, app-based cabs and car rentals. Choose an option from your real destination address, then check the current timetable and pickup instructions after landing.'],
+    depart: ['Hyderabad Airport lists Pushpak airport buses, prepaid taxis, app-based cabs and car rentals. Choose an option from your real starting address and check the current timetable before leaving. Build in the airline’s reporting and bag-drop requirements separately from the road journey.'],
+    links: [sources.hyderabadTransport],
+    question: { question: 'How do I get to Hyderabad Airport?', answer: 'The airport lists Pushpak buses, prepaid taxis, app-based cabs and car rentals. Check the current timetable and pickup instructions for your starting point and date.' },
+  },
+  BLR: {
+    arrive: ['Bengaluru Airport distinguishes Terminal 1 and Terminal 2, and the airline’s airport guide lists Vayu Vajra airport buses, intercity buses, airport taxis, app-based cabs and car rentals. Confirm your flight’s terminal and its current pickup arrangements, then save the exact destination address rather than only “Bengaluru”.'],
+    depart: ['Confirm your Bengaluru departure terminal (Terminal 1 or Terminal 2) from your flight details. Check a current ground route from your exact address and allow separately for the airline’s reporting and bag-drop requirements.'],
+    links: [sources.bengaluru, sources.bengaluruTransport],
+    question: { question: 'Is Bangalore airport different from Bengaluru airport?', answer: 'Both names refer to Kempegowda International Airport Bengaluru, code BLR. Use the airport code to confirm your itinerary.' },
+  },
+  BOM: {
+    arrive: ['Work backwards from your Mumbai address. CSMIA lists taxis, app-based cabs, buses, suburban rail connections and Metro options, and identifies Vile Parle and Andheri as nearby suburban railway stations. A nearby station does not guarantee a direct journey, so check terminal access, changes and the final leg.'],
+    depart: ['Check your Mumbai departure terminal and the current transport options from your address. CSMIA lists taxis, app-based cabs, buses, suburban rail connections and Metro options; check each against your own start point and the airline’s reporting requirements.'],
+    links: [sources.mumbaiTransport, sources.naviMumbai],
+    question: { question: 'Is BOM the same as Navi Mumbai Airport?', answer: 'No. This guide uses Chhatrapati Shivaji Maharaj International Airport (BOM). Navi Mumbai International Airport uses the separate code NMI, so confirm the code when arranging a pickup or comparing itineraries.' },
+  },
+  DEL: {
+    arrive: ['Delhi Airport identifies the Airport Express/Orange Line for Terminal 3 and the Magenta Line for Terminal 1, with Terminal 2 access via Terminal 3. Check the arrival terminal on your flight details before choosing a Metro station, and check current service hours for your arrival date.'],
+    depart: ['Confirm the Delhi departure terminal before selecting ground transport: Airport Express serves T3 and the Magenta Line serves T1. Check the Metro timetable separately from the airline’s reporting and bag-drop requirements.'],
+    links: [sources.delhiMetro, sources.delhiTransfers],
+    question: { question: 'Which Metro line should I use at Delhi Airport?', answer: 'Check your terminal first. Delhi Airport identifies Airport Express for T3 and the Magenta Line for T1, with T2 access via T3. Check the operator’s current hours for your travel time.' },
+  },
+  GOI: {
+    arrive: ['Goa has two airports. This guide uses Dabolim (GOI); Manohar International Airport at Mopa uses GOX and is not an alternative name for the same airport. Compare the ground route from each airport to your accommodation’s full address, and send the airport code to your driver or hotel before agreeing a transfer.'],
+    depart: ['Confirm whether your return leaves from Dabolim (GOI) or Manohar (GOX); the return itinerary may use a different airport from the outbound one. Check that airport’s current transport information for your pickup address.'],
+    links: [sources.dabolim, sources.manohar, sources.goaBuses, sources.goaTaxis],
+    question: { question: 'Is Goa airport GOI or GOX?', answer: 'Both exist. Dabolim Airport uses GOI and Manohar International Airport at Mopa uses GOX. Choose the airport using your accommodation address and transfer plan, and confirm the code on every flight.' },
+  },
+};
+const domesticRoutes = [
+  ['hyderabad-to-bengaluru', 'HYD', 'BLR'],
+  ['bengaluru-to-hyderabad', 'BLR', 'HYD'],
+  ['hyderabad-to-mumbai', 'HYD', 'BOM'],
+  ['mumbai-to-hyderabad', 'BOM', 'HYD'],
+  ['hyderabad-to-goa', 'HYD', 'GOI'],
+  ['delhi-to-hyderabad', 'DEL', 'HYD'],
+] as const;
+function domesticGuide(slug: string, from: keyof typeof airports, to: keyof typeof airports): FlightGuide {
+  const o: Airport = airports[from], d: Airport = airports[to], po = profiles[from], pd = profiles[to];
+  const plain = (city: string) => city.replace(/ \(.*\)$/, '');
+  const pair = `${plain(o.city)} to ${plain(d.city)}`;
+  return {
+    slug,
+    title: `${pair} Flights: ${o.code}–${d.code} Airport & Travel Guide`,
+    description: `Plan ${pair} travel with ${o.code} and ${d.code} airport details, ground-transfer checks and a practical fare-comparison checklist from MaxTravel in Secunderabad.`,
+    heading: `${pair} flights: airports, transfers and what to compare`,
+    intro: `Plan ${pair} around the exact airports and your final address, not just a departure time. This guide helps you check airport access, connections and the fare details that matter before you choose an itinerary.`,
+    origin: o,
+    destination: d,
+    sections: [
+      {
+        heading: `${o.code} to ${d.code}: airport and time-zone essentials`,
+        paragraphs: [
+          `This route is ${o.name} in ${o.city} (${o.code}) to ${d.name} in ${d.city} (${d.code}). Both cities use Indian Standard Time, UTC+05:30, so there is no time-zone change, although an overnight itinerary can still arrive on the next calendar day.`,
+          'Use your selected dates to establish available airlines, stops, scheduled journey time and terminals. A route guide is not a live flight listing and does not guarantee a seat on the date you need.',
+        ],
+        links: [sources.indiaTime],
+      },
+      { heading: `Arriving in ${d.city}`, paragraphs: pd.arrive, links: pd.links },
+      { heading: `Leaving ${o.city}`, paragraphs: po.depart, links: po.links },
+      {
+        heading: 'Compare the ticket you will actually use',
+        paragraphs: [
+          'Compare totals for the same passengers and dates, including taxes, compulsory service charges and any bags or seats you need. Baggage and flexibility vary by airline and fare; the issued ticket and its fare rules determine what is included.',
+          'If your plans may change, compare change fees, any fare difference and cancellation conditions alongside the initial price. Do not assume a higher-priced fare is refundable.',
+        ],
+        bullets: [`Confirm ${o.code} → ${d.code} and both travel dates.`, 'Review stops, total journey time and the arrival terminal.', 'Check baggage, fare rules and your onward travel plan before payment.'],
+        links: [sources.fareRules, sources.refunds],
+      },
+    ],
+    questions: [pd.question, po.question].filter((q, i, all) => all.findIndex(x => x.question === q.question) === i),
+    sources: [sources.indiaTime, ...po.links, ...pd.links, sources.fareRules, sources.refunds].filter((v, i, all) => all.findIndex(x => x.href === v.href) === i),
+    reviewedAt,
+    relatedSlugs: domesticRoutes.filter(([other, f, t]) => other !== slug && (f === from || t === to || f === to || t === from)).map(([other]) => other).slice(0, 4),
+  };
+}
+const domesticGuides = domesticRoutes.map(([slug, from, to]) => domesticGuide(slug, from, to));
+
 export const flightGuides: readonly FlightGuide[] = [
   {
     slug: 'hyderabad-to-delhi',
@@ -111,7 +200,7 @@ export const flightGuides: readonly FlightGuide[] = [
       sources.indiaTime, sources.delhiMetro, sources.delhiTransfers, sources.hyderabadTransport, sources.fareRules,
     ],
     reviewedAt,
-    relatedSlugs: ['delhi-to-mumbai', 'delhi-to-bengaluru'],
+    relatedSlugs: ['delhi-to-mumbai', 'delhi-to-bengaluru', 'delhi-to-hyderabad', 'hyderabad-to-bengaluru'],
   },
   {
     slug: 'delhi-to-mumbai',
@@ -328,6 +417,7 @@ export const flightGuides: readonly FlightGuide[] = [
     reviewedAt,
     relatedSlugs: ['delhi-to-mumbai', 'hyderabad-to-delhi'],
   },
+  ...domesticGuides,
 ];
 
 export function getFlightGuide(slug: string): FlightGuide | undefined {

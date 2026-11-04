@@ -10,7 +10,7 @@ import { canonicalUrl, pageMetadata } from "../src/lib/seo";
 
 test("the content and SEO allowlists contain exactly the same authored paths", () => {
   const paths = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
-  assert.equal(paths.length, 22);
+  assert.equal(paths.length, 28);
   assert.equal(new Set(paths).size, paths.length);
   assert.deepEqual([...paths].sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
   assert.equal(getPublicPage("not-authored"), undefined);
@@ -35,8 +35,8 @@ test("every editorial page has distinct useful content and a clean canonical", (
 });
 
 test("route planning CTAs fill only explicit airports, never an itinerary or automatic search", () => {
-  assert.equal(flightGuides.length, 5);
-  const expected = { "hyderabad-to-delhi": ["HYD", "DEL"], "delhi-to-mumbai": ["DEL", "BOM"], "hyderabad-to-dubai": ["HYD", "DXB"], "mumbai-to-goa": ["BOM", "GOI"], "delhi-to-bengaluru": ["DEL", "BLR"] };
+  assert.equal(flightGuides.length, 11);
+  const expected = { "hyderabad-to-delhi": ["HYD", "DEL"], "delhi-to-mumbai": ["DEL", "BOM"], "hyderabad-to-dubai": ["HYD", "DXB"], "mumbai-to-goa": ["BOM", "GOI"], "delhi-to-bengaluru": ["DEL", "BLR"], "hyderabad-to-bengaluru": ["HYD", "BLR"], "bengaluru-to-hyderabad": ["BLR", "HYD"], "hyderabad-to-mumbai": ["HYD", "BOM"], "mumbai-to-hyderabad": ["BOM", "HYD"], "hyderabad-to-goa": ["HYD", "GOI"], "delhi-to-hyderabad": ["DEL", "HYD"] };
   for (const guide of flightGuides) {
     assert.deepEqual([guide.origin.code, guide.destination.code], expected[guide.slug as keyof typeof expected]);
     const url = new URL(flightGuideSearchHref(guide), businessProfile.website);

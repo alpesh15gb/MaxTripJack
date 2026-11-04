@@ -63,9 +63,9 @@ test("request indexing requires canonical origin, public path and no query varia
   assert.equal(requestMayBeIndexed(new URL(`${SITE_ORIGIN}/flights`), {}), false);
 });
 
-test("sitemap contains 18 editorial pages and four imported policies, with no query/private URL", () => {
-  assert.equal(PUBLIC_SEO_PAGES.length, 22);
-  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 22);
+test("sitemap contains 24 editorial pages and four imported policies, with no query/private URL", () => {
+  assert.equal(PUBLIC_SEO_PAGES.length, 28);
+  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 28);
   const sitemap = buildSitemap(approved);
   assert.deepEqual(sitemap.map(entry => entry.url), PUBLIC_SEO_PAGES.map(page => canonicalUrl(page.path)));
   for (const entry of sitemap) {
@@ -159,9 +159,9 @@ test("owner-confirmed office is Secunderabad, India, 09:00–21:00 all seven day
 test("editorial data and sitemap registry cover exactly the same authored routes", () => {
   const authored = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
   assert.deepEqual(authored.sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.title)).size, 17);
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.heading)).size, 17);
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.description)).size, 17);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.title)).size, 23);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.heading)).size, 23);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.description)).size, 23);
   assert.equal(getFlightGuide("this-route-is-not-authored"), undefined);
   assert.equal(getFlightGuide("Hyderabad-to-Delhi"), undefined);
 });
@@ -171,8 +171,11 @@ test("five guide CTAs prefill the exact verified airport pair without inventory,
     "hyderabad-to-delhi": ["HYD", "DEL"], "delhi-to-mumbai": ["DEL", "BOM"],
     "hyderabad-to-dubai": ["HYD", "DXB"], "mumbai-to-goa": ["BOM", "GOI"],
     "delhi-to-bengaluru": ["DEL", "BLR"],
+    "hyderabad-to-bengaluru": ["HYD", "BLR"], "bengaluru-to-hyderabad": ["BLR", "HYD"],
+    "hyderabad-to-mumbai": ["HYD", "BOM"], "mumbai-to-hyderabad": ["BOM", "HYD"],
+    "hyderabad-to-goa": ["HYD", "GOI"], "delhi-to-hyderabad": ["DEL", "HYD"],
   };
-  assert.equal(flightGuides.length, 5);
+  assert.equal(flightGuides.length, 11);
   for (const guide of flightGuides) {
     assert.deepEqual([guide.origin.code, guide.destination.code], pairs[guide.slug as keyof typeof pairs]);
     const url = new URL(flightGuideSearchHref(guide), SITE_ORIGIN);
