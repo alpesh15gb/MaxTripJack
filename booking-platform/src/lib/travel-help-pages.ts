@@ -3,7 +3,7 @@ import type { PublicPage, PublicLink } from "@/lib/public-pages";
 /**
  * Planning guides for the travel questions people search alongside flights. They explain how an official process
  * works and link to the authority that decides it. They state no fees, timelines or eligibility outcomes, and they
- * do not claim MaxTravel offers, files or guarantees any of these services; scope is confirmed with the office.
+ * do not guarantee any outcome. The office signboard lists visas, cruises, tour packages, forex and insurance (see officeServices).
  */
 const reviewedAt = "2026-11-04";
 const contact: PublicLink = { label: "Ask the MaxTravel office", href: "/contact" };
@@ -13,7 +13,7 @@ const passport: PublicLink = { label: "Passport renewal and new passport steps",
 const visa: PublicLink = { label: "Visa planning for Indian travellers", href: "/visa-guide" };
 const mea: PublicLink = { label: "India Ministry of External Affairs: travel advisories", href: "https://www.mea.gov.in/travel-advisory.htm" };
 const vfs: PublicLink = { label: "VFS Global: visa application centres", href: "https://www.vfsglobal.com/" };
-const scope = "MaxTravel's office can tell you what help it can offer for this; this page does not promise the service, a fee or an outcome.";
+const scope = "MaxTravel's Secunderabad office can discuss this with you. Fees and outcomes depend on the authority, insurer or supplier, so ask for the full terms before you pay.";
 
 export const travelHelpPages: readonly PublicPage[] = [
   {
@@ -27,7 +27,7 @@ export const travelHelpPages: readonly PublicPage[] = [
       { heading: "Plan flights around it", paragraphs: ["Do not buy a non-refundable international ticket on the assumption that a passport will arrive in time. Passport timing is set by the authority, and neither an appointment nor an application is a travel document.", "Check the validity your destination requires, and the number of blank pages, before you choose dates. Entry rules differ by country and are set by each government."], links: [mea, international] },
       { heading: "Keep your documents safe", paragraphs: ["Use only the official portal and its listed payment options. Do not share passwords, one-time codes or card details with anyone who offers to speed up an application. If you want help from an agent, ask what exactly they will do and which fees go to the government.", scope] },
     ],
-    questions: [{ question: "Where do I apply for a passport in Hyderabad or Secunderabad?", answer: "Apply through the Passport Seva portal and select the Regional Passport Office for your current residence. The portal then shows the Passport Seva Kendra for your appointment." }, { question: "Does MaxTravel issue passports?", answer: "No. Passports are issued by the Government of India through Passport Seva. This page is a planning guide, and the office can tell you what assistance it offers." }],
+    questions: [{ question: "Where do I apply for a passport in Hyderabad or Secunderabad?", answer: "Apply through the Passport Seva portal and select the Regional Passport Office for your current residence. The portal then shows the Passport Seva Kendra for your appointment." }, { question: "Does MaxTravel issue passports?", answer: "No. Passports are issued by the Government of India through Passport Seva. This page is a planning guide, and the office can discuss what help is possible for your case." }],
     cta: contact, related: [visa, insurance, international], reviewedAt,
   },
   {
@@ -41,7 +41,7 @@ export const travelHelpPages: readonly PublicPage[] = [
       { heading: "How flights fit in", bullets: ["Check whether the visa authority wants a flight reservation or a ticket, and do not assume either. A booking is not a visa.", "Prefer refundable or changeable fares until the visa decision, and read the conditions before you pay.", "Check transit countries separately. A connection can need its own visa or transit permission.", "Ask the airline what documents it checks at the airport; it can refuse boarding without valid entry documents."], links: [international, { label: "Understand the full price", href: "/pricing-transparency" }] },
       { heading: "Be careful with promises", paragraphs: ["No agent can guarantee a visa. Approval, timing and fees are decided by the authority, and a refusal can affect later applications. Be wary of anyone who guarantees approval or asks for payment to a personal account.", scope] },
     ],
-    questions: [{ question: "Can MaxTravel guarantee my visa?", answer: "No one can. Visa decisions belong to the destination government. Ask the office what assistance it can offer; it cannot promise approval." }, { question: "Do I need a visa for a connecting flight?", answer: "It depends on the transit country, your passport and whether you leave the transit area or change airport. Check the transit country's official guidance." }],
+    questions: [{ question: "Can MaxTravel guarantee my visa?", answer: "No one can. Visa decisions belong to the destination government. The office can assist with visa enquiries, but it cannot promise approval or a timeline." }, { question: "Do I need a visa for a connecting flight?", answer: "It depends on the transit country, your passport and whether you leave the transit area or change airport. Check the transit country's official guidance." }],
     cta: contact, related: [passport, insurance, international], reviewedAt,
   },
   {
@@ -55,7 +55,7 @@ export const travelHelpPages: readonly PublicPage[] = [
       { heading: "If a claim goes wrong", paragraphs: ["Take it first to the insurer's grievance process. If the answer is unsatisfactory or late, the insurance regulator's Bima Bharosa system lets the policyholder register and track a complaint, and the Insurance Ombudsman is a further option. Only the insured or claimant can file.", "Bima Bharosa does not ask complainants for payment."], links: [{ label: "Bima Bharosa: complaints help", href: "https://bimabharosa.irdai.gov.in/Home/FAQ" }, { label: "IRDAI policyholder site: how to make a complaint", href: "https://policyholder.gov.in/how-to-make-a-complaint" }] },
       { heading: "Buy at the right time", paragraphs: ["Read the policy wording before payment, and check the cooling-off or free-look terms for the policy you pick. Insurance products are sold by licensed insurers and their authorised distributors.", scope] },
     ],
-    questions: [{ question: "Is travel insurance mandatory for every foreign trip?", answer: "Not everywhere. Some visas require it, and many travellers choose it anyway. Check your destination's official requirements." }, { question: "Does MaxTravel sell travel insurance?", answer: "This page does not say it does. Ask the office whether it can help you with a policy, and read any policy wording before paying." }],
+    questions: [{ question: "Is travel insurance mandatory for every foreign trip?", answer: "Not everywhere. Some visas require it, and many travellers choose it anyway. Check your destination's official requirements." }, { question: "Does MaxTravel help with travel insurance?", answer: "Yes, insurance enquiries are handled at the Secunderabad office. Read the policy wording and its exclusions before paying." }],
     cta: contact, related: [visa, passport, international], reviewedAt,
   },
   {
@@ -70,7 +70,7 @@ export const travelHelpPages: readonly PublicPage[] = [
       { heading: "Flights and insurance", paragraphs: ["Do not book non-flexible flights until the cruise is confirmed, and leave enough time before embarkation. Ships leave on schedule, and a late flight can mean missing the departure.", "Check that your travel insurance covers cruises and the countries you will visit, as some policies treat sea travel differently."], links: [insurance, international] },
       { heading: "Ask before you rely on it", paragraphs: [scope] },
     ],
-    questions: [{ question: "Can I book a cruise on MaxTravel's website?", answer: "No. The online booking platform covers flights and hotels and is in testing. Ask the office whether it can assist with a cruise." }, { question: "Do I need a visa for a cruise?", answer: "It depends on the ports, your passport and each country's rules. Check the official guidance for every country on the itinerary." }],
+    questions: [{ question: "Can I book a cruise on MaxTravel's website?", answer: "Not online. The website covers flights and hotels, and it is in testing. Cruise enquiries are handled at the Secunderabad office." }, { question: "Do I need a visa for a cruise?", answer: "It depends on the ports, your passport and each country's rules. Check the official guidance for every country on the itinerary." }],
     cta: contact, related: [visa, insurance, passport], reviewedAt,
   },
   {
@@ -84,7 +84,7 @@ export const travelHelpPages: readonly PublicPage[] = [
       { heading: "Do the paperwork early", paragraphs: ["International packages need valid passports and often visas, which the traveller usually has to arrange within the authority's own timelines. Do not treat a package booking as a visa or as proof of entry permission.", "For Indian destinations, the Ministry of Tourism publishes official destination information."], links: [passport, visa, insurance, { label: "Incredible India: official destination information", href: "https://www.incredibleindia.gov.in/" }] },
       { heading: "If something goes wrong", paragraphs: ["Keep every receipt and message. If you cannot settle a dispute with the seller, India's National Consumer Helpline accepts consumer grievances and can guide you to the right forum.", scope], links: [{ label: "National Consumer Helpline", href: "https://consumerhelpline.gov.in/" }] },
     ],
-    questions: [{ question: "Does MaxTravel publish holiday package prices?", answer: "No. This site does not publish package prices or availability. Contact the office to discuss your trip." }, { question: "What should a package quote always show?", answer: "The full inclusions, the total price with taxes and charges, the payment schedule and the cancellation and change terms." }],
+    questions: [{ question: "Does MaxTravel publish holiday package prices?", answer: "No. This site does not publish package prices or availability. Contact the office about luxury tour packages and your trip." }, { question: "What should a package quote always show?", answer: "The full inclusions, the total price with taxes and charges, the payment schedule and the cancellation and change terms." }],
     cta: contact, related: [international, passport, visa], reviewedAt,
   },
 ];

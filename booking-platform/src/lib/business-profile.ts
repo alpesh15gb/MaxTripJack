@@ -5,6 +5,9 @@
  * photo until the owner supplies evidence. The public Maps listing was matched
  * to the confirmed address and phone; its Sunday hours conflict with owner hours.
  */
+/** Services listed on the office signboard (owner-supplied photo, 2026-11-04). The IATA logo and GSTIN on it are not published: no accreditation or registration evidence has been supplied. */
+export const officeServices = ["Flights", "Hotels", "Visas", "Cruises", "Luxury tour packages", "Forex assistance", "Insurance"] as const;
+
 export const businessProfile = {
   name: "MaxTravel",
   locationName: "MaxTravel Secunderabad",
@@ -66,6 +69,7 @@ export function businessStructuredData(): Record<string, unknown> {
       closes: businessProfile.hours.closes,
     },
     hasMap: businessProfile.mapsHref,
+    makesOffer: officeServices.map(name => ({ "@type": "Offer", itemOffered: { "@type": "Service", name } })),
     sameAs: [...businessProfile.socialProfiles.map(profile => profile.href), businessProfile.mapsHref],
   };
 }
