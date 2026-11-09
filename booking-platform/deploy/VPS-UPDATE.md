@@ -16,6 +16,12 @@ snapshots and unrelated VPS services remain available. No stopped booking worker
 Later app releases require reviewing and updating these pins. Local build/test results do
 not imply that a VPS rollout has run.
 
+Add `--booking-only` to either command to update only the booking stack. In that
+mode the CRM stack is never read, built, stopped, backed up, migrated or restarted,
+and the booking/CRM integration booleans are not printed. Use it when the CRM is
+deployed by its own repository's script (its Compose file then needs `CRM_IMAGE` and
+`CRM_ENV_FILE`, which this updater does not supply) or is ahead of the CRM pin above.
+
 Run without flags for an inspection; use `--apply` for the update. The updater:
 
 1. Captures the active Compose chains and current container environment

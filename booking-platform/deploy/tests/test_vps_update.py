@@ -485,7 +485,7 @@ class SafetyTests(unittest.TestCase):
             self.assertFalse(update.persistent_path(path, mounts))
         self.assertFalse(update.persistent_path("/data/app.db", [{"Type": "volume", "Destination": "/data", "RW": False}]))
 
-    def exercise_rollout(self, directory, fail_migration=False):
+    def exercise_rollout(self, directory, fail_migration=False, booking_only=False):
         state = update.Update.__new__(update.Update)
         state.directory = Path(directory)
         state.stacks, state.quiesced, state.migration_attempted, state.completed = [], False, False, False
@@ -550,12 +550,23 @@ class SafetyTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()), patch.object(update.time, "sleep"):
             if fail_migration:
                 with self.assertRaises(update.StopUpdate):
-                    state.execute(True)
+                    state.execute(True, booking_only)
                 with contextlib.redirect_stderr(io.StringIO()):
                     state.recover()
             else:
-                state.execute(True)
+                state.execute(True, booking_only)
         return state, events, commands
+
+    def test_booking_only_orchestration_never_reads_builds_stops_backs_up_or_migrates_the_crm(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state, events, commands = self.exercise_rollout(directory, booking_only=True)
+            self.assertTrue(state.completed)
+            self.assertEqual([s["project"] for s in state.stacks], ["max-travel-booking"])
+            self.assertFalse(any("crm" in event for event in events))
+            self.assertFalse(any("max-travel-crm" in str(part) or "prisma" in str(part) for c in commands for part in c))
+            self.assertLess(events.index("build:max-travel-booking"), events.index("stop"))
+            self.assertLess(events.index("postgres-backup-verified"), events.index("migration"))
+            self.assertEqual(len([c for c in commands if "up" in c]), 1)  # Only the booking app.
 
     def test_full_orchestration_builds_before_stop_verifies_backups_before_migration_and_preserves_inactive_workers(self):
         with tempfile.TemporaryDirectory() as directory:

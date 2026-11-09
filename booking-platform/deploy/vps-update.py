@@ -506,8 +506,19 @@ class Update:
             time.sleep(3)
         raise StopUpdate(f"{stack['project']} did not become healthy. Workers remain stopped.")
 
-    def execute(self, apply):
+    def execute(self, apply, booking_only=False):
         booking = self.snapshot("max-travel-booking-app-1", "max-travel-booking")
+        if booking_only:
+            # The CRM stack is never read, built, stopped, backed up, migrated or restarted.
+            if not expected_url(booking["env"].get("BETTER_AUTH_URL"), "maxtravel.in", ""):
+                raise StopUpdate("Application origin does not match the requested VPS domain.")
+            print("Booking-only update: the CRM stack is not inspected or changed.", flush=True)
+            print("Previously running application services: " + json.dumps({s["project"]: s["services"] for s in self.stacks}), flush=True)
+            if not apply:
+                print("Inspection complete. No build, migration, stop or restart was performed.")
+                return
+            self.cutover(booking, None, None)
+            return
         crm = self.snapshot("max-travel-crm-app-1", "max-travel-crm")
         if not expected_url(booking["env"].get("BETTER_AUTH_URL"), "maxtravel.in", "") or not expected_url(crm["env"].get("APP_ORIGIN"), "crm.maxtravel.in", ""):
             raise StopUpdate("Application origins do not match the requested VPS domains.")
@@ -524,24 +535,30 @@ class Update:
         if not apply:
             print("Inspection complete. No build, migration, stop or restart was performed.")
             return
+        self.cutover(booking, crm, summary)
+
+    def cutover(self, booking, crm, summary):
+        """Build, back up, migrate and restart. crm=None leaves the CRM stack untouched."""
         postgres = self.inspect("container", "max-travel-booking-postgres-1")
         pg_labels = postgres["Config"].get("Labels") or {}
         if pg_labels.get("com.docker.compose.project") != "max-travel-booking" or pg_labels.get("com.docker.compose.service") != "postgres":
             raise StopUpdate("Unexpected booking PostgreSQL container.")
         migration_url = owner_migration_url(booking["env"], postgres)
         self.checkout_build(booking, "https://github.com/alpesh15gb/MaxTripJack.git", BOOKING_REF, "booking-platform")
-        self.checkout_build(crm, "https://github.com/alpesh15gb/MaxTravel.git", CRM_REF)
+        if crm:
+            self.checkout_build(crm, "https://github.com/alpesh15gb/MaxTravel.git", CRM_REF)
         migration = copy.deepcopy(booking["after_config"])
         migration["services"]["app"]["environment"]["MIGRATION_DATABASE_URL"] = migration_url
         migration_file = self.write_compose("booking-migration-only.private.json", migration)
         self.once(booking, migration_file, ["-e", "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.MIGRATION_DATABASE_URL});p.query('SELECT 1').then(()=>console.log('Migration connection verified')).catch(()=>{console.error('Migration connection failed');process.exitCode=1}).finally(()=>p.end());"])
         if not self.once(booking, booking["after"], ["-e", "require('fs').accessSync('db/019-cancellation-reconciliation.sql');console.log('Booking migration included');"]).strip():
             raise StopUpdate("Booking candidate lacks the recovery migration.")
-        self.once(crm, crm["after"], ["-e", "for(const p of ['prisma/migrations/20261031100000_case_workflow/migration.sql','prisma/migrations/20261102010000_data_imports/migration.sql'])require('fs').accessSync(p);console.log('CRM workflow and import migrations included');"])
+        if crm:
+            self.once(crm, crm["after"], ["-e", "for(const p of ['prisma/migrations/20261031100000_case_workflow/migration.sql','prisma/migrations/20261102010000_data_imports/migration.sql'])require('fs').accessSync(p);console.log('CRM workflow and import migrations included');"])
         self.once(booking, booking["after"], ["-e", "const fs=require('fs');for(const p of ['server.js','package.json','.next/BUILD_ID','public/brand/maxtravel-logo.jpg'])fs.accessSync(p,fs.constants.R_OK);console.log('Booking non-root runtime files readable');"])
-        self.write("release.json", {"bookingCommit": booking["sha"], "crmCommit": crm["sha"], "integration": summary,
+        self.write("release.json", {"bookingCommit": booking["sha"], "crmCommit": crm["sha"] if crm else None, "integration": summary,
                                   "images": {s["project"]: s["image"] for s in self.stacks}})
-        print("Candidates built and verified. Pausing only the two travel applications and their active workers.", flush=True)
+        print("Candidates built and verified. Pausing only " + ("the two travel applications and their" if crm else "the booking application and its") + " active workers.", flush=True)
         self.quiesced = True
         for stack in self.stacks:
             self.run(self.compose(stack, stack["before"], "stop", "-t", "270", *stack["services"]))
@@ -554,26 +571,28 @@ class Update:
             self.run(["docker", "exec", "-i", "max-travel-booking-postgres-1", "pg_restore", "--list"], input_file=source)
         if dump.stat().st_size == 0:
             raise StopUpdate("Empty booking database backup.")
-        crm_backups = self.directory / "crm-backups"
-        crm_backups.mkdir(mode=0o700)
-        bind = str(crm_backups) + ":/maxtravel-recovery"
-        self.once(crm, crm["before"], ["scripts/backup.mjs", "--out", "/maxtravel-recovery"], "--user", "0", "--volume", bind)
-        manifests = list(crm_backups.glob("backup-*/manifest.json"))
-        if len(manifests) != 1:
-            raise StopUpdate("CRM backup manifest is missing or ambiguous.")
-        self.once(crm, crm["before"], ["scripts/restore.mjs", "--in", "/maxtravel-recovery/" + manifests[0].parent.name,
-                  "--out", "/maxtravel-recovery/restore-check"], "--user", "0", "--volume", bind)
+        if crm:
+            crm_backups = self.directory / "crm-backups"
+            crm_backups.mkdir(mode=0o700)
+            bind = str(crm_backups) + ":/maxtravel-recovery"
+            self.once(crm, crm["before"], ["scripts/backup.mjs", "--out", "/maxtravel-recovery"], "--user", "0", "--volume", bind)
+            manifests = list(crm_backups.glob("backup-*/manifest.json"))
+            if len(manifests) != 1:
+                raise StopUpdate("CRM backup manifest is missing or ambiguous.")
+            self.once(crm, crm["before"], ["scripts/restore.mjs", "--in", "/maxtravel-recovery/" + manifests[0].parent.name,
+                      "--out", "/maxtravel-recovery/restore-check"], "--user", "0", "--volume", bind)
         self.write("backup-verification.json", {"bookingDumpBytes": dump.stat().st_size,
                    "bookingDumpSha256": file_sha256(dump),
-                   "crmBackupVerifiedByRestore": True})
-        print("Both backups verified. Applying committed migrations; no database reset is used.", flush=True)
+                   "crmBackupVerifiedByRestore": bool(crm)})
+        print(("Both backups verified." if crm else "Booking backup verified.") + " Applying committed migrations; no database reset is used.", flush=True)
         # From this point, never automatically run an old application against a changed schema.
         self.migration_attempted = True
         self.write("migration-started.json", {"started": True})
         self.once(booking, migration_file, ["scripts/migrate.mjs"])
-        self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "deploy"])
-        self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "status"])
-        for stack in (crm, booking):
+        if crm:
+            self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "deploy"])
+            self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "status"])
+        for stack in ((crm, booking) if crm else (booking,)):
             self.run(self.compose(stack, stack["after"], "up", "-d", "--no-deps", "--no-build", "--pull", "never", "app"))
             self.health(stack)
         payment = self.run(["docker", "exec", booking["app"], "node", "-e",
@@ -598,7 +617,7 @@ class Update:
         self.completed = True
         self.write("completed.json", {"healthyApplications": True, "paymentHoldVerified": True,
                     "newWorkersActivated": False, "integration": summary})
-        print("Both applications updated and healthy. Existing worker services resumed.", flush=True)
+        print(("Both applications" if crm else "Booking application") + " updated and healthy. Existing worker services resumed.", flush=True)
         print("Previously inactive booking workers remain stopped pending queue/integration review.", flush=True)
         print("Nginx maintenance settings and unrelated containers were left unchanged.", flush=True)
 
@@ -620,6 +639,7 @@ class Update:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Build, back up, migrate and update the two existing travel stacks")
+    parser.add_argument("--booking-only", action="store_true", help="Update only the booking stack; never read or change the CRM stack")
     args = parser.parse_args()
     if sys.platform != "linux" or os.geteuid() != 0:
         raise StopUpdate("Run this script as root on the Ubuntu VPS.")
@@ -630,7 +650,7 @@ def main():
     update = Update()
     print("Private recovery directory: " + str(update.directory), flush=True)
     try:
-        update.execute(args.apply)
+        update.execute(args.apply, args.booking_only)
     except (Exception, KeyboardInterrupt) as error:
         if isinstance(error, StopUpdate):
             print(str(error), file=sys.stderr)
