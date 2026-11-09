@@ -8,7 +8,7 @@ import {FooterSocialIcon} from "./footer-social-icon";
 import {footerPolicyLinks,footerSocialLinks} from "@/lib/footer-links";
 import { businessProfile } from "@/lib/business-profile";
 
-type IconName = "plane" | "airplane" | "hotel" | "bed" | "bus" | "holiday" | "passport" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
+type IconName = "plane" | "airplane" | "hotel" | "bed" | "bus" | "holiday" | "passport" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe" | "phone" | "lock" | "calendar" | "card" | "users" | "mail";
 
 export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, string> = {
@@ -32,6 +32,12 @@ export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number 
     receipt: "M5 3h14v18l-3-2-4 2-4-2-3 2V3Zm4 4h6M9 11h6M9 15h3",
     chevron: "m9 5 7 7-7 7",
     refresh: "M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 13 2M18 18A8 8 0 0 1 5 16",
+    phone: "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z",
+    lock: "M6 11V7a6 6 0 0 1 12 0v4M5 11h14v10H5V11Zm7 4v2",
+    calendar: "M4 6h16v15H4V6Zm0 5h16M8 3v5m8-5v5",
+    card: "M3 6h18v12H3V6Zm0 4h18M7 15h3",
+    users: "M16 11a3 3 0 1 0 0-6M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM2 21v-2a6 6 0 0 1 12 0v2m3-7a5 5 0 0 1 5 5v2",
+    mail: "M3 6h18v12H3V6Zm0 1 9 6 9-6",
     globe: "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM2 12h20M12 2c5 6 5 14 0 20-5-6-5-14 0-20Z",
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
@@ -53,7 +59,7 @@ export function TravelHeader({ active, onProductChange }: { active?: "flights" |
         <Link href="/my-trips" aria-current={active === "trips" ? "page" : undefined}>My trips</Link>
         <Link className="travel-business-nav" href="/office">Our office <span aria-hidden="true"><TravelIcon name="arrow-up-right" size={14} /></span></Link>
       </nav>
-      <div className="travel-header-actions"><span className="travel-currency">INR <span>₹</span></span><Link className="travel-account" href="/account" aria-current={active === "account" ? "page" : undefined}><TravelIcon name="user" size={17} /><span>My account</span></Link></div>
+      <div className="travel-header-actions"><a className="travel-header-call" href={businessProfile.phoneHref} aria-label={`Call Max Travel on ${businessProfile.phone}`}><TravelIcon name="phone" size={17} /><span><small>Call us · 9 am–9 pm</small><strong>{businessProfile.phone}</strong></span></a><span className="travel-currency">INR <span>₹</span></span><Link className="travel-account" href="/account" aria-current={active === "account" ? "page" : undefined}><TravelIcon name="user" size={17} /><span>My account</span></Link></div>
     </header>
   </>;
 }
@@ -71,6 +77,7 @@ export function TravelFooter({compact=false}:{compact?:boolean}={}) {
    <nav className="travel-footer-group" aria-labelledby="footer-tourism"><h2 id="footer-tourism">Travel & Tourism</h2><ul><li><a href="https://maxtravel.us/#TravelBlog">Travel Blog</a></li><li><a href="https://maxtravel.us/#SubscribeForOffers">Subscribe for Offers</a></li><li><a href="https://maxtravel.us/#Testimonials">Testimonials</a></li></ul></nav>
    <nav className="travel-footer-group travel-footer-services" aria-labelledby="footer-services"><h2 id="footer-services">Services</h2><ul><li><Link href="/book?product=FLIGHT"><TravelIcon name="airplane"/>Flight</Link></li><li><Link href="/book?product=HOTEL"><TravelIcon name="bed"/>Hotel</Link></li><li><a href="https://maxtravel.us/bus"><TravelIcon name="bus"/>Bus</a></li><li><Link href="/packages"><TravelIcon name="holiday"/>Holiday</Link></li><li><a href="https://maxtravel.us/visa"><TravelIcon name="passport"/>Visa</a></li><li><a href={businessProfile.emailHref+'?subject=Travel%20insurance%20enquiry'}><TravelIcon name="shield"/>Insurance</a></li></ul></nav>
    <nav className="travel-footer-group" aria-labelledby="footer-support"><h2 id="footer-support">Help & Support</h2><ul><li><a href={businessProfile.emailHref+'?subject=Partnership%20enquiry'}>Become a Partner</a></li><li><a href="https://maxtravel.us/web-check-in">Web Check In</a></li><li><Link href="/contact">Contact Us</Link></li><li><Link href="/about">About Us</Link></li></ul></nav>
+   <div className="travel-footer-group travel-footer-contact"><h2 id="footer-contact">Visit or call us</h2><address>{businessProfile.address.display}</address><p>{businessProfile.hours.display}</p><a href={businessProfile.phoneHref}><TravelIcon name="phone" size={16}/>{businessProfile.phone}</a><a href={businessProfile.emailHref}><TravelIcon name="mail" size={16}/>{businessProfile.email}</a></div>
   </div><div className="travel-footer-legal-row"><FooterPolicyLinks/>
    {/* eslint-disable-next-line @next/next/no-img-element -- Original local SVG brand artwork, served without an image proxy. */}
    <img className="travel-footer-iata" src="/brand/iata.svg" width="76" height="48" loading="lazy" alt="IATA"/>

@@ -1,7 +1,7 @@
 import {test,expect,capture,expectNoHorizontalOverflow,openFlightSearch} from './fixtures';
 
 test('journey studio home keeps a usable search dock beside editorial inspiration',async({page,provider},testInfo)=>{
- await page.goto('/');await expect(page.getByRole('heading',{level:1})).toHaveText('A great trip starts with a clear plan.');
+ await page.goto('/');await expect(page.getByRole('heading',{level:1})).toHaveText('Your next trip, booked with confidence.');
  await expect(page.locator('.studio-hero-photo img')).toBeVisible();await expect(page.getByRole('region',{name:'Plan your trip'})).toBeVisible();
  await page.evaluate(()=>document.fonts.ready);
  const geometry=await page.locator('#trip-search').evaluate(node=>{const box=node.getBoundingClientRect();return {top:box.top,bottom:box.bottom,viewport:innerHeight,width:innerWidth};});
@@ -44,7 +44,7 @@ test('hero captions retain contrast over bright imagery at every supported width
     return {text:item.textContent,foreground,background,opacity:style.opacity,fontSize:parseFloat(style.fontSize),contrast:(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05),inside:r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom};
    });
   });
-  expect(measurements.length).toBe(width<700?1:2);
+  expect(measurements.length).toBe(1);
   for(const item of measurements){expect(item.foreground).toEqual([255,255,255]);expect(item.opacity).toBe('1');expect(item.contrast).toBeGreaterThanOrEqual(4.5);expect(item.fontSize).toBeGreaterThanOrEqual(12);expect(item.inside).toBe(true);}
   await testInfo.attach(`hero contrast measurements ${width}`,{body:JSON.stringify(measurements,null,2),contentType:'application/json'});
   await testInfo.attach(`hero local caption contrast ${width}`,{body:await photo.screenshot({animations:'disabled'}),contentType:'image/png'});
