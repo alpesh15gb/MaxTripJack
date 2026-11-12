@@ -96,3 +96,79 @@
 @media(max-width:520px){
  .journey-flow .stay-detail .room-option-card.stay-room-rate[data-room-option-id] { grid-template-areas:"facts" "price" "conditions"; grid-template-rows:auto auto auto; }
 }
+
+/* Property pages pair an editorial gallery with a persistent rate summary. */
+body .booking-workflow.journey-flow .stay-detail { --stay-ink: #102b31; --stay-teal: #006756; --stay-line: #dce7e1; }
+body .booking-workflow.journey-flow .stay-detail-heading { padding: 28px 0 24px; margin: 0; }
+body .booking-workflow.journey-flow .stay-detail-heading h2 { font-size: clamp(30px, 4vw, 48px); letter-spacing: -.045em; }
+body .booking-workflow.journey-flow .stay-date-strip { background: #e8f2eb; border: 0; border-radius: 16px; padding-block: 22px; }
+body .booking-workflow.journey-flow .stay-date-strip small { font-size: 11px; letter-spacing: .08em; }
+body .booking-workflow.journey-flow .stay-date-strip strong { font-size: 16px; }
+.stay-section-nav { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 1px solid #dce7e1; }
+.stay-section-nav a { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; color: #006756; font-weight: 650; font-size: 14px; }
+.stay-section-nav a:hover { text-decoration: underline; text-underline-offset: 6px; }
+#stay-overview, #stay-about-title, #hotel-room-options { scroll-margin-top: 24px; }
+body .booking-workflow.journey-flow .stay-photo-mosaic { height: 420px; border-radius: 22px; }
+body .booking-workflow.journey-flow .stay-about { margin-top: 28px; padding: 30px; border-radius: 20px; }
+body .booking-workflow.journey-flow .stay-about h3 { font-size: 28px; letter-spacing: -.035em; }
+body .booking-workflow.journey-flow .stay-about p { font-size: 15px; line-height: 1.8; }
+body .booking-workflow.journey-flow .stay-rate-preview { border-radius: 20px; border-top: 5px solid #006756; background: white; box-shadow: 0 16px 36px #102b310a; }
+body .booking-workflow.journey-flow .stay-preview-price { padding-block: 20px; }
+body .booking-workflow.journey-flow .stay-preview-price strong { color: #006756; font-size: 33px; }
+body .booking-workflow.journey-flow .stay-rooms-section > header { margin-top: 38px; padding-bottom: 24px; border-bottom: 1px solid #dce7e1; }
+body .booking-workflow.journey-flow .stay-rooms-section > header h2 { font-size: 32px; letter-spacing: -.04em; }
+body .booking-workflow.journey-flow .stay-room-group { background: #edf4ee; border-radius: 20px; padding: 10px; border-color: #dce7e1; }
+body .booking-workflow.journey-flow .stay-room-rate-action { background: #f5f9f5; }
+body .booking-workflow.journey-flow .stay-room-rate-action > strong { color: #006756; font-size: 29px; }
+body .booking-workflow.journey-flow .stay-room-rate-action > small { font-size: 12px; }
+body .booking-workflow.journey-flow .stay-room-rate-action > p { font-size: 13px; }
+@media (max-width: 760px) {
+  body .booking-workflow.journey-flow .stay-photo-mosaic { height: 280px; }
+  body .booking-workflow.journey-flow .stay-detail-heading { padding-top: 16px; }
+  body .booking-workflow.journey-flow .stay-about { padding: 22px; }
+  body .booking-workflow.journey-flow .stay-date-strip { padding-block: 16px; }
+  body .booking-workflow.journey-flow .stay-date-strip strong { font-size: 14px; }
+  body .booking-workflow.journey-flow .stay-section-nav { gap: 6px 18px; }
+}
+
+/* Compare room-rate terms at the same visual level as the full-stay estimate. */
+body .booking-workflow.journey-flow .stay-detail .stay-detail-heading { padding: 12px 0 20px; }
+body .booking-workflow.journey-flow .stay-detail .stay-detail-heading h2 { font-size: clamp(28px, 3.5vw, 40px); }
+body .booking-workflow.journey-flow .stay-detail .stay-date-strip { padding-block: 16px; margin-bottom: 16px; border-radius: 12px; }
+body .booking-workflow.journey-flow .stay-detail .stay-date-strip strong { font-size: 14px; }
+body .booking-workflow.journey-flow .stay-detail .stay-section-nav { margin-bottom: 18px; gap: 8px 24px; }
+body .booking-workflow.journey-flow .stay-detail .stay-photo-mosaic { height: 360px; border-radius: 16px; }
+body .booking-workflow.journey-flow .stay-detail .stay-rate-preview { border-top-width: 3px; border-radius: 16px; box-shadow: 0 6px 22px #102b3108; }
+body .booking-workflow.journey-flow .stay-detail .stay-preview-price { padding-block: 16px; }
+body .booking-workflow.journey-flow .stay-detail .stay-preview-price strong { color: #102b31; font-size: 32px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-group { background: #edf4ef; padding: 8px; border-radius: 16px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-group-heading { padding: 16px 18px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-group-heading h3 { font-size: 23px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-rate-main { padding: 24px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-facts { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 1.5fr); gap: 20px; padding: 18px 0; margin: 16px 0 0; border-top: 1px solid #e2eae5; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-facts dt { font-size: 12px; color: #63766b; margin-bottom: 7px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-facts dd { font-size: 14px; line-height: 1.6; color: #173d30; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action { background: #fbfcfa; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > strong { color: #102b31; font-size: 30px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > p { font-size: 12px; line-height: 1.6; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > small { color: #63766b; font-size: 12px; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-conditions > summary { min-height: 48px; padding: 14px 24px; font-size: 13px; color: #006756; background: #fff; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-conditions[open] { background: #fff; }
+body .booking-workflow.journey-flow .stay-detail .stay-room-rate .primary { background: #006756; color: #fff; min-height: 46px; border-radius: 10px; }
+@media (max-width: 760px) {
+  body .booking-workflow.journey-flow .stay-detail .stay-photo-mosaic { height: 260px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-facts { grid-template-columns: 1fr; gap: 14px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-rate-main { padding: 20px; }
+}
+@media (max-width: 520px) {
+  body .booking-workflow.journey-flow .stay-detail .stay-date-strip { padding-bottom: 0; }
+  body .booking-workflow.journey-flow .stay-detail .stay-section-nav { gap: 8px 16px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-section-nav a { font-size: 13px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-photo-mosaic { height: 240px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-group-heading { padding: 14px 12px; align-items: flex-start; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-group-heading h3 { font-size: 20px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > strong { font-size: 26px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > p { font-size: 11px; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > small { font-size: 11px; line-height: 1.5; }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-conditions > summary { padding-inline: 20px; }
+}

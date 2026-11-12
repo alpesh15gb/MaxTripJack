@@ -3,3 +3,74 @@
 @media(max-width:650px){.package-main{padding:20px 16px 48px}.package-breadcrumb{margin-bottom:24px}.package-heading p{font-size:16px}.package-disclosure{padding:14px;gap:10px}.package-grid,.package-detail,.package-inclusions{grid-template-columns:1fr}.package-discovery{grid-template-columns:1fr}.package-discovery p{margin:0}.package-card-photo{height:220px}.package-card-body{padding:20px}.package-cover{height:260px}.package-quote{position:static}.package-detail{gap:24px}.package-gallery>img{height:150px}.package-itinerary li{grid-template-columns:52px 1fr;gap:12px}.package-state{padding:24px 16px}.package-heading h1{font-size:36px}}
 
 .package-facts>a{display:inline-flex;align-items:center;min-height:44px;font-size:15px;font-weight:700;color:#2458a6}.package-quote:focus{outline:3px solid #cc8b22;outline-offset:4px;scroll-margin-top:20px}
+
+/* A directory of travel plans and a navigable itinerary workspace. */
+body .package-main.package-main--catalogue .package-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: center;
+  gap: 48px;
+  background: #102b31;
+  color: #fff;
+}
+.package-main--catalogue .package-heading-copy h1 { font-size: clamp(40px, 5vw, 64px); }
+.package-main--catalogue .package-heading-copy :is(p, .package-eyebrow) { color: #e0ece7; }
+.package-planning-note { border-left: 1px solid #ffffff40; padding-left: 32px; }
+.package-planning-note > svg { color: #e2f6c7; margin-bottom: 20px; }
+.package-planning-note h2 { font-size: 23px; letter-spacing: -.03em; margin-bottom: 12px; }
+.package-heading .package-planning-note p { color: #e0ece7; font-size: 14px; line-height: 1.75; }
+.package-planning-note a { display: inline-flex; min-height: 44px; align-items: center; gap: 10px; color: #e2f6c7; font-weight: 650; text-underline-offset: 4px; }
+.package-main--catalogue .package-discovery { padding: 26px; background: #fff; border: 1px solid #dce7e1; border-radius: 18px; box-shadow: 0 8px 24px #102b3108; }
+.package-main--catalogue .package-discovery input { background: #f5f7f3; min-height: 54px; }
+.package-main--catalogue .package-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.package-main--catalogue .package-card-photo { height: clamp(220px, 25vw, 330px); }
+.package-main--catalogue .package-card-body { padding: 28px; }
+.package-main--catalogue .package-card h2 { font-size: 28px; letter-spacing: -.035em; }
+.package-main--catalogue .package-card .package-price { border-top: 1px solid #dce7e1; padding-top: 20px; }
+.package-main--catalogue .package-state { padding: 56px 24px; }
+body .package-main--detail .package-heading { background: transparent; padding: 8px 0 16px; border-bottom: 1px solid #dce7e1; border-radius: 0; }
+.package-main--detail .package-heading h1 { max-width: 22ch; }
+.package-main--detail .package-detail { grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; }
+.package-section-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; margin-bottom: 18px; border-radius: 14px; background: #e8f4ee; }
+.package-section-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px; color: #006756; text-decoration: none; font-weight: 650; font-size: 14px; border-radius: 8px; }
+.package-section-nav a:hover { background: #fff; }
+.package-main--detail :is(#package-overview, #package-itinerary, #package-inclusions, #package-terms) { scroll-margin-top: 24px; }
+.package-main--detail .package-itinerary { border-left: 2px solid #dce7e1; margin-left: 10px; padding-left: 24px; }
+.package-main--detail .package-itinerary li { position: relative; grid-template-columns: 64px minmax(0, 1fr); }
+.package-main--detail .package-itinerary li::before { content: ""; position: absolute; top: 28px; left: -31px; width: 12px; height: 12px; border-radius: 50%; background: #006756; border: 3px solid #f5f7f3; }
+.package-main--detail .package-inclusions { padding: 0 24px; background: #e8f4ee; border-radius: 18px; }
+.package-main--detail .package-quote { background: #fff; border-top: 4px solid #006756; }
+@media (max-width: 950px) {
+  body .package-main.package-main--catalogue .package-heading { gap: 28px; grid-template-columns: minmax(0, 1fr) 240px; }
+  .package-planning-note { padding-left: 24px; }
+  .package-main--detail .package-detail { grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; }
+}
+@media (max-width: 700px) {
+  body .package-main.package-main--catalogue .package-heading { grid-template-columns: 1fr; gap: 24px; }
+  .package-planning-note { border-left: 0; border-top: 1px solid #ffffff40; padding: 22px 0 0; }
+  .package-planning-note > svg { display: none; }
+  .package-main--catalogue .package-grid, .package-main--detail .package-detail { grid-template-columns: minmax(0, 1fr); }
+  .package-main--catalogue .package-card-body { padding: 22px; }
+  .package-main--detail .package-quote { position: static; }
+  .package-section-nav a { padding: 8px 12px; }
+}
+
+/* A single published plan fills the catalogue without leaving an empty column. */
+@media (min-width: 701px) {
+  .package-main--catalogue .package-grid > .package-card:only-child {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .package-main--catalogue .package-grid > .package-card:only-child .package-card-photo { height: 100%; min-height: 320px; }
+}
+body .package-main .package-card { border-radius: 20px; }
+body .package-main .package-button:not(.secondary) { background: #006756; border-color: #006756; }
+body .package-main .package-button.secondary { color: #006756; border-color: #9cbfb1; }
+body .package-main .package-price > strong > small {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}

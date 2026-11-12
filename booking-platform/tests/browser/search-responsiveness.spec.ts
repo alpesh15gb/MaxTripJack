@@ -28,7 +28,15 @@ test('large flight response mounts fare details only when opened and retains all
  const flights=Array.from({length:145},(_,i)=>{const row=flight('ONWARD',`fare-${i}`);row.totalPriceList=Array.from({length:8},(_,j)=>({...row.totalPriceList[0],id:`fare-${i}-${j}`,customerEstimateMinor:654000+i*100+j}));return row;});
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:flights}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
- const cards=page.locator('.flight-shopping-list .live-flight-card');await expect(cards).toHaveCount(145);
+ const cards=page.locator('.flight-shopping-list .live-flight-card');
+ await expect(cards).toHaveCount(25);
+ await expect(page.locator('.flight-load-more')).toContainText('Showing 25 of 145 flights');
+ for (let visible = 25; visible < flights.length; visible += 25) {
+  const additional = Math.min(25, flights.length - visible);
+  await page.getByRole('button', { name: `Show ${additional} more flights` }).click();
+  await expect(cards).toHaveCount(visible + additional);
+ }
+ await expect(page.locator('.flight-load-more')).toHaveCount(0);
  await expect(page.locator('.fare-comparison-options')).toHaveCount(0);
  await expect(page.locator('.flight-results-count,.results-count').filter({hasText:'145 of 145'})).toBeVisible();
  const first=cards.first();const disclosure=first.locator('.fare-comparison>summary');

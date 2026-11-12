@@ -168,3 +168,154 @@
 .account-booking-return>.booking-account-next h2 { font-family: inherit; font-size: 20px; line-height: 1.3; margin-bottom: 12px; }
 .account-booking-return>.booking-account-next p { font-size: 14px; line-height: 1.6; max-width: 70ch; }
 .account-booking-return>.booking-account-next :is(.primary,.secondary) { min-height: 44px; }
+
+/* Shared account navigation, with dedicated form and profile workspaces. */
+.account-workspace-layout {
+  display: grid;
+  grid-template-columns: 205px minmax(0, 1fr);
+  align-items: start;
+  gap: 40px;
+  width: min(1320px, calc(100% - 64px));
+  max-width: 1320px;
+  margin: 32px auto 0;
+  padding: 0 0 56px;
+}
+.account-workspace-sidebar { position: sticky; top: 24px; min-width: 0; }
+.account-workspace-label { font-size: 12px; color: #526b64; font-weight: 650; margin: 8px 14px 18px; }
+.account-workspace-sidebar .account-experience-nav {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+.account-workspace-sidebar .account-experience-nav a {
+  justify-content: flex-start;
+  min-height: 50px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  gap: 11px;
+  color: #526b64;
+  font-size: 13px;
+  text-decoration: none;
+}
+.account-workspace-sidebar .account-experience-nav a[aria-current="page"] {
+  color: #006756;
+  background: #e3f0e8;
+}
+.account-workspace-sidebar .account-experience-nav a::after { content: none; }
+.account-workspace-sidebar .account-experience-nav a:hover { background: #ebf0eb; }
+.account-workspace-help {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 26px 0 0;
+  border-top: 1px solid #dce7e1;
+  padding: 20px 12px;
+  color: #526b64;
+  font-size: 12px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+.account-workspace-help svg:last-child { margin-left: auto; }
+.account-workspace-content { min-width: 0; }
+.account-experience .account-shell > .back,
+.account-experience .traveller-experience > .back { display: none; }
+.account-experience .account-workspace-content h1 {
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: clamp(30px, 3.5vw, 44px);
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -.045em;
+}
+.account-experience .account-workspace-content .page-heading { margin: 0 0 30px; }
+.account-experience .account-workspace-content .eyebrow { letter-spacing: .08em; color: #536f64; }
+.account-experience .account-experience-grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 24px; }
+.account-experience .account-experience-grid.is-signed-in { grid-template-columns: minmax(0, 1fr); }
+.account-experience .is-signed-in .account-benefits { display: none; }
+.account-experience .account-benefits {
+  isolation: isolate;
+  padding: 32px;
+  background: #102b31;
+  min-height: 100%;
+  border-radius: 20px;
+}
+.account-benefits-photo { object-fit: cover; z-index: -2; }
+.account-experience .account-benefits::before {
+  inset: 0;
+  height: auto;
+  width: auto;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, #102b31e8 20%, #102b31b8);
+  z-index: -1;
+}
+.account-experience .account-benefits::after { content: none; }
+.account-experience .account-benefits-icon { color: #d5edbe; margin-bottom: 36px; }
+.account-experience .account-benefits h2 { font-size: 36px; max-width: 270px; }
+.account-experience .account-benefits li span,
+.account-experience .account-benefits > p:not(.eyebrow) { color: #edf5ef; }
+.account-experience .account-benefits li > svg,
+.account-experience .account-benefits > a { color: #d5edbe; }
+.account-experience .account-benefits ul { gap: 25px; margin-bottom: 20px; }
+.account-experience .account-card { padding: 32px; }
+.account-form-heading { margin-bottom: 26px; }
+.account-form-heading h2 { font-size: 27px; margin-bottom: 9px; letter-spacing: -.04em; }
+.account-form-heading p { color: #526b64; font-size: 14px; line-height: 1.65; margin: 0; }
+.account-experience .account-card .account-tabs { background: #f1f5f0; margin-bottom: 28px; }
+.account-experience .account-card .account-tabs button { font-size: 12px; }
+.account-experience .account-tabs button[aria-pressed="true"] { color: #006756; }
+.account-experience .account-card input { min-height: 52px; }
+.account-experience .account-card > form > .primary { min-height: 50px; }
+.account-experience .account-identity { padding: 8px 0 28px; }
+.account-experience .account-avatar { background: #e3f0e8; color: #006756; }
+.account-experience .account-card .account-links { display: flex; flex-wrap: wrap; }
+.account-experience .account-card .account-links > a { flex: 1; min-width: 150px; }
+.account-experience .account-card .account-links > a:last-child { flex: 0 1 auto; border: 1px solid #dce7e1; font-size: 13px; padding: 11px 18px; }
+.account-experience .account-session-security form { padding: 24px; }
+.account-experience .device-session { border-radius: 12px; }
+.account-experience .traveller-experience .checkout-grid { gap: 26px; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+.account-experience #traveller-editor { border-top: 4px solid #006756; padding-top: 24px; }
+.account-experience .traveller-profile-list { padding: 0; min-width: 0; }
+.account-experience .traveller-list-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin: 0 0 20px; }
+.account-experience .traveller-list-heading h2 { font: 650 22px var(--font-geist-sans), sans-serif; }
+.account-experience .traveller-list-heading p { font-size: 12px; }
+.account-experience .traveller-profile-list .booking-record { padding: 22px; margin-bottom: 16px; }
+.account-experience .traveller-profile-list .booking-record.is-editing { outline: 2px solid #006756; outline-offset: 2px; }
+.account-experience .traveller-profile-avatar { background: #e3f0e8; color: #006756; font-family: inherit; font-weight: 650; }
+.account-experience .traveller-profile-list .booking-record .secondary { font-size: 12px; padding: 9px 12px; }
+.account-experience .traveller-documents { border-style: dashed; background: #f5f8f3; }
+.account-experience .reset-experience { max-width: 620px; margin: 22px auto; }
+.reset-heading { padding: 28px 0 12px; }
+.reset-heading > span { display: grid; place-items: center; width: 64px; height: 64px; background: #e3f0e8; border-radius: 20px; color: #006756; margin-bottom: 24px; }
+
+@media (max-width: 1100px) {
+  .account-workspace-layout { grid-template-columns: 175px minmax(0, 1fr); gap: 24px; width: calc(100% - 40px); }
+  .account-experience .account-experience-grid { grid-template-columns: minmax(0, 1fr); }
+  .account-experience .account-benefits { order: 2; min-height: 0; }
+  .account-experience .account-benefits ul { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .account-experience .account-benefits h2 { max-width: none; }
+  .account-experience .traveller-experience .checkout-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 750px) {
+  .account-workspace-layout { grid-template-columns: minmax(0, 1fr); gap: 26px; width: calc(100% - 32px); margin-top: 16px; }
+  .account-workspace-sidebar { position: static; }
+  .account-workspace-label, .account-workspace-help { display: none; }
+  .account-workspace-sidebar .account-experience-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 5px; gap: 4px; background: #fff; border: 1px solid #dce7e1; border-radius: 16px; }
+  .account-workspace-sidebar .account-experience-nav a { flex-direction: column; justify-content: center; padding: 10px 4px; text-align: center; gap: 6px; min-height: 64px; font-size: 11px; }
+  .account-experience .account-card { padding: 24px; }
+  .account-experience .account-benefits ul { grid-template-columns: minmax(0, 1fr); }
+  .account-experience .account-workspace-content h1 { font-size: 34px; }
+  .account-experience .account-card .account-links { flex-direction: column; }
+  .account-experience .account-card .account-links > a { flex: auto; width: 100%; }
+  .account-experience .traveller-profile-list .booking-record .secondary { width: 100%; }
+  .account-experience .reset-experience { margin-top: 0; }
+}
+
+.account-experience .account-workspace-content .primary { border-color: #006756; }
+.account-experience .account-workspace-content .primary:hover:not(:disabled) { background: #005447; border-color: #005447; }
+
+@media (max-width: 600px) {
+  .account-experience .traveller-experience .form-row label:has(input[type="date"]) { grid-column: 1 / -1; }
+}

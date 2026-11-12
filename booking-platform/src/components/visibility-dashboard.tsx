@@ -39,6 +39,14 @@ export default function VisibilityDashboard() {
 
     <aside className="visibility-notice"><h2>Prepared, not activated</h2><p>Optional analytics is off. No analytics tags, visitor identifiers or outbound measurement are installed by this foundation. External account existence and access are unverified; “not connected” means not connected to this dashboard.</p><p>The platform is In Testing. Amounts below are testing records, <strong>not production revenue, organic sales or a growth baseline</strong>.</p></aside>
 
+    <div className="visibility-workbench">
+      <nav className="visibility-jump-nav" aria-label="Dashboard sections">
+        <a href="#ledger-heading">Ledger snapshot</a>
+        <a href="#connections-heading">Connections</a>
+        <a href="#funnel-heading">Booking funnel</a>
+        <a href="#baseline-heading">Search & growth</a>
+      </nav>
+      <div className="visibility-content">
     <section className="visibility-section" aria-labelledby="ledger-heading" aria-busy={loading}>
       <div className="visibility-sectionHeading"><div><p className="visibility-eyebrow">FIRST-PARTY DATABASE · INR</p><h2 id="ledger-heading">Current ledger snapshot</h2></div><span className="visibility-badge">In Testing</span></div>
       {loading && <p role="status">Loading authorised aggregate records…</p>}
@@ -65,5 +73,7 @@ export default function VisibilityDashboard() {
     <section className="visibility-section" aria-labelledby="baseline-heading"><p className="visibility-eyebrow">UNKNOWN IS NOT ZERO</p><h2 id="baseline-heading">Search & growth baseline</h2><p>Use the first complete 28-day production window after approved activation. Record source, dates, time zone, consent gaps and test exclusions before setting traffic or conversion growth targets.</p>
       <div className="visibility-tableWrap" role="region" aria-label="Search and growth baseline" tabIndex={0}><table className="visibility-table"><caption>Unmeasured baseline; performance thresholds are targets, not results.</caption><thead><tr><th scope="col">Metric</th><th scope="col">Source</th><th scope="col">Baseline</th><th scope="col">Target</th></tr></thead><tbody>{VISIBILITY_BASELINES.map(metric => <tr key={metric.metric}><th scope="row">{metric.metric}</th><td>{metric.source}</td><td>Not measured</td><td>{metric.target ?? "Set after baseline"}</td></tr>)}</tbody></table></div>
     </section>
+      </div>
+    </div>
   </main>;
 }

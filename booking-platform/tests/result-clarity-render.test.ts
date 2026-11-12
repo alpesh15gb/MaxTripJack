@@ -20,6 +20,16 @@ test('flight card uses readable local dates and truthful total scope without inv
  assert.match(empty,/Date unavailable/);assert.match(empty,/Stop details unavailable/);assert.doesNotMatch(empty,/Non-stop|NaN|undefined/);
 });
 
+test('empty fare inventory is distinct from supplied fares incompatible with the outbound',()=>{
+ const empty=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,group:'RETURN',flight:{...flightProps.flight,totalPriceList:[]},isCompatible:()=>false}));
+ assert.match(empty,/Price at review/);
+ assert.doesNotMatch(empty,/No compatible fare|These fares do not match your outbound selection/);
+ const incompatible=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,group:'RETURN',isCompatible:()=>false}));
+ assert.match(incompatible,/No compatible fare/);
+ assert.match(incompatible,/These fares do not match your outbound selection/);
+ assert.match(incompatible,/disabled=""/);
+});
+
 test('flight pending is scoped, truthful and before its action; read-only cards stay noninteractive',()=>{
  const html=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,busy:true,checkingFareId:'fare-1'}));
  assert.match(html,/role="status"/);assert.match(html,/Price and availability are not confirmed yet/);
@@ -47,10 +57,29 @@ test('hotel benefits omit negative metadata without implying an accessible shutt
  assert.doesNotMatch(renderToStaticMarkup(createElement(HotelResults,{...hotelProps,busy:true,checkingHotelId:'other'})),/Checking available rooms/);
 });
 
+test('hotel comparison toolbar retains submitted dates beside the selected stay scope',()=>{
+ const html=renderToStaticMarkup(createElement(HotelResults,{...hotelProps,context:roomProps.context}));
+ const toolbar=html.slice(html.indexOf('class="hotel-shopping-toolbar"'),html.indexOf('<aside'));
+ assert.match(toolbar,/<p class="hotel-search-dates" aria-label="Selected check-in and check-out dates">31 Oct 2026 – 2 Nov 2026<\/p><p class="hotel-search-scope">2 nights · 2 rooms · 3 guests<\/p>/);
+ assert.doesNotMatch(renderToStaticMarkup(createElement(HotelResults,hotelProps)),/hotel-search-dates/);
+});
+
 test('photo renderer hides cached internal captions and has a real missing-photo fallback',()=>{
  const html=renderToStaticMarkup(createElement(HotelPropertyMedia,{name:'Test stay',gallery:true,photos:[{url:'https://i.travelapi.com/lodging/10000/room.jpg',caption:'CoverImage',isHero:true}]}));
  assert.doesNotMatch(html,/CoverImage|figcaption/);assert.match(html,/supplier property photo 1/);
  assert.match(renderToStaticMarkup(createElement(HotelPropertyMedia,{name:'Test stay',photos:[]})),/Property photos not available/);
+});
+
+test('hotel result photo count includes only distinct safe photos and uses the supplied hero',()=>{
+ const first='https://i.travelapi.com/lodging/10000/room.jpg',hero='https://i.travelapi.com/lodging/10000/property.jpg';
+ const photos=[{url:first,isHero:false},{url:first,isHero:false},{url:'https://evil.example/private.jpg',isHero:false},{url:hero,isHero:true}];
+ const html=renderToStaticMarkup(createElement(HotelPropertyMedia,{name:'Test stay',photos,showPhotoCount:true}));
+ assert.match(html,/class="hotel-photo-count">2 photos<\/span>/);assert.equal((html.match(/<img /g)??[]).length,1);
+ assert.ok(html.includes(`src="${hero}"`));assert.doesNotMatch(html,/evil\.example/);
+ assert.doesNotMatch(renderToStaticMarkup(createElement(HotelPropertyMedia,{name:'Test stay',photos})),/hotel-photo-count/);
+ assert.doesNotMatch(renderToStaticMarkup(createElement(HotelPropertyMedia,{name:'Test stay',photos,gallery:true,showPhotoCount:true})),/hotel-photo-count/);
+ const unavailable=renderToStaticMarkup(createElement(HotelPropertyMedia,{name:'Test stay',photos:[photos[2]],metadataStatus:'unavailable',showPhotoCount:true}));
+ assert.match(unavailable,/Property photos unavailable right now/);assert.doesNotMatch(unavailable,/<img |hotel-photo-count|evil\.example/);
 });
 
 test('cancellation display separates unknown charges from original supplier values',()=>{

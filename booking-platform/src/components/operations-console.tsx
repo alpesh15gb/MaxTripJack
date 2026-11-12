@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo } from "./brand-logo";
+import { TravelIcon } from "./travel-shell";
 import type { Resource } from "@/lib/admin-resources";
 import { adminDesks, adminDeskPermissions } from "@/lib/admin-navigation";
 import OperationsAction, {
@@ -40,6 +41,10 @@ const guidance: Record<Resource, string> = {
   sync: "Review CRM delivery and the workers behind booking operations.",
   audit: "See who changed a record, what happened and when.",
 };
+const deskIcons = {
+  bookings: "bag", companies: "hotel", pricing: "receipt", cancellations: "swap",
+  payments: "shield", refunds: "refresh", sync: "globe", audit: "clock",
+} as const;
 const statuses: Partial<Record<Resource, string[]>> = {
   bookings: [
     "PAYMENT_PENDING",
@@ -511,7 +516,8 @@ export default function OperationsConsole() {
                 className={name === tab ? "selected-desk" : ""}
                 onClick={() => setMenu(false)}
               >
-                {headings[name]}
+                <TravelIcon name={deskIcons[name]} size={19} />
+                <span>{headings[name]}</span>
               </Link>
             ))}
           </nav>
@@ -541,9 +547,9 @@ export default function OperationsConsole() {
           </div>
         ) : (
           <>
-            <div className="page-heading">
+            <header className="page-heading ops-desk-heading">
               <div>
-                <div className="ops-eyebrow">Staff workspace</div>
+                <div className="ops-eyebrow">Operations</div>
                 <h1>{headings[tab]}</h1>
                 <p>{guidance[tab]}</p>
               </div>
@@ -565,7 +571,7 @@ export default function OperationsConsole() {
                   </button>
                 ))}
               </div>
-            </div>
+            </header>
             {pending && (
               <section className="ops-pending" role="status">
                 <strong>A previous request needs review.</strong>

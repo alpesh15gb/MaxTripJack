@@ -60,3 +60,80 @@ test('automatic return advance clears group filters but preserves selected outbo
  await page.getByRole('button',{name:/^Outbound/}).click();await expect(page.getByRole('button',{name:'Selected',exact:true})).toHaveAttribute('aria-pressed','true');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
+
+test('flight sort controls reorder loaded options by price, duration and local departure', async ({page, provider}) => {
+ const cheapest: Flight = flight('ONWARD', 'cheapest');
+ cheapest.sI[0] = {...cheapest.sI[0], dt: `${departure}T10:00:00`, duration: 180, fD: {...cheapest.sI[0].fD, aI: {name: 'Price fixture'}}};
+ cheapest.totalPriceList[0].customerEstimateMinor = 300000;
+ const shortest: Flight = flight('ONWARD', 'shortest');
+ shortest.sI[0] = {...shortest.sI[0], dt: `${departure}T11:00:00`, duration: 60, fD: {...shortest.sI[0].fD, aI: {name: 'Duration fixture'}}};
+ shortest.totalPriceList[0].customerEstimateMinor = 600000;
+ const earliest: Flight = flight('ONWARD', 'earliest');
+ earliest.sI[0] = {...earliest.sI[0], dt: `${departure}T06:00:00`, duration: 120, fD: {...earliest.sI[0].fD, aI: {name: 'Departure fixture'}}};
+ earliest.totalPriceList[0].customerEstimateMinor = 900000;
+ const unknown: Flight = flight('ONWARD', 'unknown');
+ unknown.sI[0] = {...unknown.sI[0], dt: 'unknown', at: 'unknown', duration: undefined, fD: {...unknown.sI[0].fD, aI: {name: 'Unknown fixture'}}};
+ unknown.totalPriceList[0].customerEstimateMinor = undefined;
+ provider.search = {searchId, results: {searchResult: {tripInfos: {ONWARD: [unknown, earliest, shortest, cheapest]}}}};
+ await page.goto('/book?' + new URLSearchParams({product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: '1', autoSearch: '1'}));
+ const names = page.locator('.flight-shopping-list .airline-identity strong');
+ await expect(names).toHaveText(['Price fixture', 'Duration fixture', 'Departure fixture', 'Unknown fixture']);
+ const desktopSort = page.getByRole('group', {name: 'Sort flights', exact: true});
+ const mobileSort = page.getByRole('combobox', {name: 'Sort by', exact: true});
+ for (const sort of [
+  {value: 'duration', label: 'Shortest', order: ['Duration fixture', 'Departure fixture', 'Price fixture', 'Unknown fixture']},
+  {value: 'departure', label: 'Earliest', order: ['Departure fixture', 'Price fixture', 'Duration fixture', 'Unknown fixture']},
+  {value: 'price', label: 'Lowest price', order: ['Price fixture', 'Duration fixture', 'Departure fixture', 'Unknown fixture']},
+ ]) {
+  if (page.viewportSize()!.width > 1100) {
+   await expect(desktopSort).toBeVisible();
+   await expect(mobileSort).toHaveCount(0);
+   await desktopSort.getByRole('button', {name: sort.label, exact: true}).click();
+   await expect(desktopSort.getByRole('button', {name: sort.label, exact: true})).toHaveAttribute('aria-pressed', 'true');
+  } else {
+   await expect(desktopSort).toHaveCount(0);
+   await mobileSort.selectOption(sort.value);
+   await expect(mobileSort).toHaveValue(sort.value);
+  }
+  await expect(names).toHaveText(sort.order);
+ }
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('return headlines, ordering and budget use fares compatible with the selected outbound', async ({page, provider}, testInfo) => {
+ const mixed: Flight = flight('RETURN', 'compatible-expensive');
+ mixed.sI[0].fD.aI.name = 'Mixed return fixture';
+ mixed.totalPriceList[0].customerEstimateMinor = 900000;
+ mixed.totalPriceList.unshift({...mixed.totalPriceList[0], id: 'incompatible-cheap', fareIdentifier: 'SPECIAL_RETURN', customerEstimateMinor: 100000, msri: ['another-outbound']});
+ const compatible: Flight = flight('RETURN', 'compatible-cheaper');
+ compatible.sI[0].fD.aI.name = 'Compatible return fixture';
+ compatible.totalPriceList[0].customerEstimateMinor = 700000;
+ provider.search = {searchId, results: {searchResult: {tripInfos: {ONWARD: [flight()], RETURN: [mixed, compatible]}}}};
+ await page.goto('/book?' + new URLSearchParams({product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, returnDate: returning, adults: '1', autoSearch: '1'}));
+ await page.locator('.flight-shopping-list .fare-comparison > summary').click();
+ await page.getByRole('button', {name: 'Choose this outbound fare', exact: true}).click();
+ const cards = page.locator('.flight-shopping-list .live-flight-card');
+ await expect(cards).toHaveCount(2);
+ await expect(cards.first()).toContainText('Compatible return fixture');
+ const mixedCard = cards.filter({hasText: 'Mixed return fixture'});
+ await expect(mixedCard.locator('.fare-comparison > summary')).toContainText('From ₹9,000.00');
+ await expect(mixedCard.locator('.fare-comparison > summary')).not.toContainText('₹1,000.00');
+ await expectNoHorizontalOverflow(page);
+ await capture(page, testInfo, 'compatible-return-results');
+ const toggle = page.getByRole('button', {name: /^Filters/});
+ if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+ await page.getByLabel('Maximum total for all travellers (₹)', {exact: true}).fill('8000');
+ await expect(cards).toHaveCount(1);
+ await expect(cards.first()).toContainText('Compatible return fixture');
+ await page.getByRole('button', {name: 'Reset flight filters', exact: true}).click();
+ if (await toggle.isVisible()) await toggle.click();
+ await mixedCard.locator('.fare-comparison > summary').click();
+ const unavailable = mixedCard.locator('.fare-option').filter({has: page.getByRole('heading', {name: 'SPECIAL RETURN', exact: true})});
+ await expect(unavailable.getByRole('button', {name: 'Choose this return fare', exact: true})).toBeDisabled();
+ await expect(mixedCard.locator('.fare-option').filter({has: page.getByRole('heading', {name: 'STANDARD', exact: true})}).getByRole('button', {name: 'Choose this return fare', exact: true})).toBeEnabled();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});

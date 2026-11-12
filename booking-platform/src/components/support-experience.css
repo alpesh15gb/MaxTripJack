@@ -41,3 +41,56 @@
 .support-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media(max-width:1000px) { .support-layout { grid-template-columns: minmax(0,1fr) 285px; gap: 18px; } .support-task { padding: 18px; } }
 @media(max-width:760px) { .support-intro { align-items: flex-start; flex-direction: column; gap: 20px; margin: 25px 0; } .support-layout { grid-template-columns: 1fr; } .support-task-grid { grid-template-columns: 1fr; gap: 12px; } .support-task { padding: 21px; } .support-task-icon { margin-bottom: 14px; } .support-contact { margin-top: 8px; padding: 22px; } .support-answers { grid-template-columns: 1fr; gap: 8px; margin-top: 32px; } .support-resource-links { gap: 4px; flex-direction: column; } }
+
+/* Booking help uses a task list with a persistent human contact alongside it. */
+body .support-experience { max-width: 1240px; width: calc(100% - 48px); }
+.support-experience .support-intro {
+  align-items: center;
+  background: #102b31;
+  color: #fff;
+  padding: clamp(28px, 4vw, 48px);
+  border-radius: 24px;
+  gap: 48px;
+}
+.support-experience .support-intro .support-eyebrow { color: #e2f6c7!important; }
+.support-experience .support-intro > div > p:last-child { color: #dcece7; line-height: 1.7; }
+.support-intro-contact { display: grid; gap: 16px; max-width: 260px; flex-shrink: 0; }
+.support-intro-contact > span { color: #e0ece7; font-size: 14px; line-height: 1.7; }
+.support-intro .support-contact-jump { background: #e2f6c7; color: #102b31; text-decoration: none; border-radius: 999px; }
+.support-experience .support-layout { grid-template-columns: minmax(0, 1fr) 330px; gap: 32px; }
+.support-experience .support-task-grid { grid-template-columns: 1fr; gap: 14px; }
+.support-experience .support-task {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 8px 20px;
+  padding: 26px;
+}
+.support-task > .support-task-icon { grid-column: 1; grid-row: 1/4; margin: 0; }
+.support-task > :is(h3, p, a, small) { grid-column: 2; }
+.support-task > .support-task-action { border-top: 0; padding: 6px 0; justify-content: flex-start; margin: 0; }
+.support-task > small { padding-top: 10px; border-top: 1px solid #dce7e1; }
+.support-experience .support-contact { position: sticky; top: 24px; background: #e8f4ee; border: 0; border-radius: 20px; }
+.support-experience .support-answers { background: #fff; border: 1px solid #dce7e1; border-radius: 22px; padding: 32px; }
+.support-question-list details[open] { background: #f5f7f3; border-radius: 12px; padding: 0 14px 2px; margin: 8px 0; }
+.support-experience .support-resource-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.support-resource-links a { padding: 20px; border: 1px solid #dce7e1; background: #fff; border-radius: 14px; text-decoration: none; color: #006756; }
+@media (max-width: 900px) {
+  .support-experience .support-layout { grid-template-columns: minmax(0, 1fr) 285px; gap: 22px; }
+  .support-experience .support-task { padding: 22px; gap: 8px 14px; }
+  .support-experience .support-intro { gap: 28px; }
+}
+@media (max-width: 760px) {
+  body .support-experience { width: calc(100% - 32px); }
+  .support-experience .support-intro { align-items: flex-start; }
+  .support-intro-contact { max-width: none; }
+  .support-experience .support-layout { grid-template-columns: 1fr; }
+  .support-experience .support-contact { position: static; }
+  .support-experience .support-answers { padding: 24px; }
+  .support-experience .support-resource-links { grid-template-columns: 1fr; }
+}
+@media (max-width: 400px) {
+  .support-experience .support-task { grid-template-columns: 36px minmax(0, 1fr); padding: 20px 16px; gap: 8px 12px; }
+  .support-task > .support-task-icon { width: 36px; height: 36px; }
+  .support-task > .support-task-icon svg { width: 21px; height: 21px; }
+  .support-task > small { grid-column: 1/-1; }
+}

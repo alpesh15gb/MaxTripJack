@@ -134,3 +134,82 @@
 
 .public-office-card#contact-options { scroll-margin-top:128px; }
 .public-office-card#contact-options:focus { outline:3px solid #2455e7; outline-offset:4px; }
+
+/* Article navigation and route summaries give each guide a useful first screen. */
+body .public-site .public-main { max-width: 1320px; }
+body .public-site .public-hero.public-hero--editorial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: center;
+  padding: clamp(28px, 4vw, 52px);
+  background: #102b31;
+}
+.public-hero--editorial .public-hero-copy { min-width: 0; }
+.public-hero--editorial .public-hero-copy h1 { font-size: clamp(32px, 4.1vw, 54px); letter-spacing: -.045em; }
+.public-hero--editorial .public-hero-copy .public-intro { font-size: 16px; line-height: 1.75; }
+body .public-site .public-hero--editorial .public-section-links {
+  margin: 0;
+  padding: 24px;
+  background: #ffffff0d;
+  border: 1px solid #ffffff30;
+  border-radius: 18px;
+  color: #fff;
+}
+.public-hero--editorial .public-section-links ul { list-style: none; padding: 0; }
+.public-hero--editorial .public-section-links li + li { border-top: 1px solid #ffffff20; }
+body .public-site .public-hero--editorial .public-section-links a {
+  color: #e2f6c7;
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 0;
+  text-decoration: none;
+}
+.public-hero--editorial .public-section-links a:hover { text-decoration: underline; }
+.public-route-pass {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 28px 22px;
+  border-radius: 18px;
+  background: #f5f7f3;
+  color: #102b31;
+}
+.public-route-pass > div:last-of-type { text-align: right; }
+.public-route-pass > div > span { display: block; font-size: 12px; color: #526961; }
+.public-route-pass strong { display: block; font-size: 38px; letter-spacing: -.05em; margin: 10px 0; }
+.public-route-pass p { margin: 0; font-size: 13px; }
+.public-route-pass > a { grid-column: 1/-1; border-top: 1px dashed #b5c9c1; padding-top: 20px; color: #006756; font-size: 13px; text-underline-offset: 4px; }
+body .public-site .public-layout { gap: 32px; grid-template-columns: minmax(0, 1fr) 300px; }
+body .public-site .public-article { padding: clamp(22px, 3vw, 42px); border-radius: 20px; border-color: #dce7e1; }
+.public-site .public-section { padding: 32px 0; }
+.public-site .public-section h2 { font-size: 26px; max-width: 32ch; }
+.public-site .public-section :is(p, ul) { max-width: 70ch; }
+.public-site .public-rail { position: sticky; top: 24px; }
+body .public-site .public-office-card { box-shadow: none; background: #fff; padding: 26px; }
+.public-site .public-contact-links a { min-height: 44px; }
+.public-site .public-questions details { background: #f5f7f3; border: 1px solid #dce7e1; border-radius: 12px; padding: 18px 20px; margin: 10px 0; }
+.public-site .public-questions summary { font-size: 15px; }
+.public-site .public-related { padding: 32px; background: #e8f4ee; }
+.public-site .public-related > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.public-site .public-related a { background: #fff; border: 1px solid #dce7e1; border-radius: 12px; padding: 16px; color: #006756; font-size: 14px; text-decoration: none; }
+.public-site .public-related a:hover { text-decoration: underline; }
+@media (max-width: 1000px) {
+  body .public-site .public-hero.public-hero--editorial { grid-template-columns: minmax(0, 1fr); }
+  .public-hero--editorial .public-section-links ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+  .public-route-pass { max-width: 460px; width: 100%; }
+}
+@media (max-width: 850px) {
+  body .public-site .public-layout { grid-template-columns: minmax(0, 1fr); }
+  .public-site .public-rail { position: static; }
+  .public-site .public-related > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  body .public-site .public-hero.public-hero--editorial { padding: 28px 22px; }
+  .public-hero--editorial .public-section-links ul { grid-template-columns: 1fr; }
+  .public-site .public-section h2 { font-size: 23px; }
+  .public-site .public-related { padding: 24px; }
+  .public-site .public-related > div { grid-template-columns: 1fr; }
+}

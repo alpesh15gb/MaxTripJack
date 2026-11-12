@@ -32,13 +32,16 @@ export function siteRobots(environment: SeoEnvironment = process.env): Metadata[
 export function pageMetadata(path: string, title: string, description: string): Metadata {
   const canonical = canonicalUrl(path);
   const publicPage = isPublicSeoPath(new URL(canonical).pathname);
+  const images = path === "/"
+    ? [{ url: "/travel/maldives.jpg", alt: "Overwater villas in the Maldives" }]
+    : [{ url: "/brand/maxtravel-logo.jpg", alt: SITE_NAME }];
   return {
     title,
     description,
     alternates: { canonical },
     robots: publicPage ? siteRobots() : { index: false, follow: false },
-    openGraph: { type: "website", siteName: SITE_NAME, title, description, url: canonical, locale: "en_IN" },
-    twitter: { card: "summary", title, description },
+    openGraph: { type: "website", siteName: SITE_NAME, title, description, url: canonical, locale: "en_IN", images },
+    twitter: { card: path === "/" ? "summary_large_image" : "summary", title, description, images },
   };
 }
 

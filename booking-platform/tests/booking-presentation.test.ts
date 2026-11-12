@@ -1,8 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { initialAdults,parseHotelIds,flightStops,journeyMinutes,orderedGroups,compatibleReturnPair,quoteRemaining,paymentFailureAction,refundLabel,type Flight,type FlightFare } from '../src/lib/booking-presentation';
+import { estimatedFare,initialAdults,parseHotelIds,flightStops,journeyMinutes,orderedGroups,compatibleReturnPair,quoteRemaining,paymentFailureAction,refundLabel,type Flight,type FlightFare } from '../src/lib/booking-presentation';
 const segment={dt:'2026-12-10T10:00',at:'2026-12-10T11:00',fD:{aI:{name:'Airline'},fN:'123'},da:{code:'DEL'},aa:{code:'DXB'}};
 const flight:Flight={sI:[segment],totalPriceList:[]};
+test('result price ordering uses the same valid minor-unit estimates as fare cards',()=>{
+ const invalid = [null, undefined, 0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1];
+ const offers = invalid.map((value, index) => ({id: String(index), fareIdentifier: 'STANDARD', customerEstimateMinor: value, fD: {}}));
+ const unpriced = {...flight, totalPriceList: offers};
+ const priced = {...flight, totalPriceList: [...offers, {id: 'valid', fareIdentifier: 'STANDARD', customerEstimateMinor: 650000, fD: {}}]};
+ assert.equal(estimatedFare(unpriced), Infinity);
+ assert.equal(estimatedFare(priced), 650000);
+ assert.deepEqual([unpriced, priced].sort((a, b) => estimatedFare(a) - estimatedFare(b)), [priced, unpriced]);
+ assert.equal(priced.totalPriceList.length, offers.length + 1);
+});
 test('canonical home occupancy is retained and invalid party counts rejected',()=>{assert.equal(initialAdults('4','HOTEL'),4);assert.equal(initialAdults('1','HOTEL'),1);assert.equal(initialAdults('5','HOTEL'),1);assert.equal(initialAdults('9','FLIGHT'),9);assert.equal(initialAdults('-1'),1);});
 test('only bounded numeric hotel IDs are accepted from navigation',()=>{assert.deepEqual(parseHotelIds('1,2,1'),['1','2']);assert.deepEqual(parseHotelIds('1,hotel'),[]);assert.deepEqual(parseHotelIds(Array(101).fill('1').join(',')),[]);});
 test('COMBO itineraries never masquerade as stops or total journey duration',()=>{assert.equal(flightStops({...flight,sI:[segment,segment]},'COMBO'),null);assert.equal(journeyMinutes(flight,'COMBO'),null);assert.equal(flightStops(flight,'ONWARD'),0);});

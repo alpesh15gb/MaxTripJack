@@ -12,12 +12,12 @@ import { indiaToday } from "@/lib/booking-presentation";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
 
 type Product = "FLIGHT" | "HOTEL";
-const photos = {
-  hero: "/travel/maldives.jpg",
-  goa: "/travel/goa.jpg",
-  dubai: "/travel/dubai.jpg",
-  bali: "/travel/bali.jpg",
-};
+const destinations = [
+  { name: "The Maldives", image: "/travel/maldives.jpg", alt: "Turquoise lagoon and overwater villas in the Maldives", detail: "Lagoons and overwater villas" },
+  { name: "Goa", image: "/travel/goa.jpg", alt: "Goa's coastline", detail: "Beach days and coastal cafés" },
+  { name: "Dubai", image: "/travel/dubai.jpg", alt: "Dubai's skyline", detail: "Skyline views and desert sunsets" },
+  { name: "Bali", image: "/travel/bali.jpg", alt: "Ulun Danu Beratan temple reflected in a lake in Bali", detail: "Lakeside temples and island stays" },
+];
 
 function dateAfter(days: number) {
   const date = new Date();
@@ -28,6 +28,7 @@ function dateAfter(days: number) {
 export default function HomeSearch({ children }: { children: ReactNode }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
+  const [featured, setFeatured] = useState(destinations[0]);
   const [product, setProduct] = useState<Product>("FLIGHT");
   const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
   const [airportRevision, setAirportRevision] = useState(0);
@@ -106,12 +107,26 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={changeProduct} />
     <main id="main-content">
       <section className="home-intro" aria-labelledby="home-title">
-        <div className="studio-hero-copy"><p className="home-kicker"><span aria-hidden="true">✦</span> THE JOURNEY STUDIO</p><h1 id="home-title">A great trip starts with <em>a clear plan.</em></h1><p>Flights, stays and thoughtfully planned journeys.<span className="studio-hero-support">A little less searching. A lot more looking forward.</span></p><span className="studio-hero-signature">Your world. Your kind of journey.</span></div>
-        <div className="studio-hero-photo"><Image src={photos.hero} alt="Turquoise lagoon and overwater villas in the Maldives" fill sizes="(max-width:700px) 38vw, 48vw" priority/><span><TravelIcon name="pin" size={15}/>The Maldives · Travel inspiration</span><div className="studio-photo-note" aria-hidden="true">Somewhere<br/><em>different.</em></div></div>
+        <div className="studio-hero-copy">
+          <h1 id="home-title">Find your <em>next escape.</em></h1>
+          <p>Beach days in Goa, city lights in Dubai, or somewhere you haven’t thought of yet.</p>
+          <a className="hero-explore-link" href="#discover">Explore destinations <TravelIcon name="arrow" size={18} /></a>
+        </div>
+        <div className="studio-hero-photo">
+          <Image src={featured.image} alt={featured.alt} fill sizes="(max-width: 1288px) 100vw, 1240px" preload={featured === destinations[0]} />
+          <span role="status"><TravelIcon name="pin" size={15} />{featured.name}</span>
+        </div>
+        <div className="hero-destination-picker" role="group" aria-label="Preview a destination">
+          {destinations.map(destination => (
+            <button key={destination.name} type="button" aria-pressed={featured === destination} onClick={() => setFeatured(destination)}>
+              {destination.name}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section id="trip-search" className="home-search-card" aria-label="Plan your trip">
-        <div className="home-search-top"><div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div><span><TravelIcon name="shield" size={16} /> Flights, stays & a fresh start.</span></div>
+        <div className="home-search-top"><div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div></div>
         <form ref={form} className="home-search-form" aria-describedby={notice?'home-search-error':undefined} onChange={event=>{const target=event.target;if(target instanceof HTMLInputElement&&['From airport','To airport'].includes(target.getAttribute('aria-label')??'')&&['Choose different departure and arrival airports.','Select a departure and arrival airport, or enter their three-letter airport codes.'].includes(notice))setNotice('');}} onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><span className="home-economy">{cabin.replaceAll("_", " ").toLowerCase()}</span></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
           {product === "FLIGHT" && <details className="home-party-options"><summary>Children, infants & cabin <span>{childCount||infants||cabin!=="ECONOMY"?`${childCount} children · ${infants} infants · ${cabin.replaceAll("_", " ").toLowerCase()}`:""}</span></summary><div><label>Children · age 2–11<select aria-label="Children · age 2–11" value={childCount} onChange={event => setChildCount(Number(event.target.value))}>{Array.from({length: 10 - adults}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Infants · under 2<select aria-label="Infants · under 2" value={infants} onChange={event => setInfants(Number(event.target.value))}>{Array.from({length: adults + 1}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Cabin<select aria-label="Cabin" value={cabin} onChange={event => setCabin(event.target.value)}><option value="ECONOMY">Economy</option><option value="PREMIUM_ECONOMY">Premium economy</option><option value="BUSINESS">Business</option><option value="FIRST">First</option></select></label></div><p>Up to 9 adults and children. Each infant travels with an adult. Ages apply on the travel date.</p></details>}
@@ -130,9 +145,24 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
 
       <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Review the total and supplier rules</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Updates and documents in My trips</small></span></div></section>
 
-      <HomePackages/>
+      <section id="discover" className="home-discover" aria-labelledby="discover-heading">
+        <div className="home-section-heading">
+          <div><h2 id="discover-heading">Pick a place to get away</h2></div>
+          <Link href="/book?product=HOTEL">Search all stays <TravelIcon name="arrow" size={18} /></Link>
+        </div>
+        <div className="home-destinations">
+          {destinations.map(destination => (
+            <Link className="home-destination" href={`/book?product=HOTEL&city=${encodeURIComponent(destination.name === "The Maldives" ? "Maldives" : destination.name)}`} key={destination.name} aria-label={`Explore stays in ${destination.name}`}>
+              <Image className="home-destination-photo" src={destination.image} alt="" fill sizes="(max-width: 700px) 90vw, 50vw" loading="lazy" />
+              <span className="home-destination-shade" aria-hidden="true" />
+              <div><h3>{destination.name}</h3><p>{destination.detail}</p></div>
+              <span className="home-destination-arrow"><TravelIcon name="arrow" /></span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-      <section className="home-discover" aria-labelledby="discover-heading"><div className="home-section-heading"><div><p className="home-kicker">A CHANGE OF SCENERY</p><h2 id="discover-heading">Where will you go next?</h2><p>For a long weekend, a fresh perspective, or no reason at all.</p></div><Link href="/book?product=HOTEL">Find your kind of stay<TravelIcon name="arrow" size={18} /></Link></div><div className="home-destinations">{[{ name: "Goa", image: photos.goa, mood: "SALT IN THE AIR", detail: "Slow days. Sea views. Your pace.", number: "01" }, { name: "Dubai", image: photos.dubai, mood: "A DIFFERENT PERSPECTIVE", detail: "Big city lights, bigger possibilities.", number: "02" }, { name: "Bali", image: photos.bali, mood: "FIND YOUR OWN RHYTHM", detail: "A little green. A little getaway.", number: "03" }].map(destination => <Link className="home-destination" href={`/book?product=HOTEL&city=${encodeURIComponent(destination.name)}`} key={destination.name} aria-label={`Explore stays in ${destination.name}`}><Image className="home-destination-photo" src={destination.image} alt="" fill sizes="(max-width:700px) 90vw, 33vw" loading="lazy"/><span className="home-destination-shade" aria-hidden="true"/><span className="home-destination-mood">{destination.mood}</span><span className="home-destination-number">{destination.number}</span><div><h3>{destination.name}</h3><p>{destination.detail}</p></div><span className="home-destination-arrow"><TravelIcon name="arrow" /></span></Link>)}</div></section>
+      <HomePackages />
 
       {children}
 

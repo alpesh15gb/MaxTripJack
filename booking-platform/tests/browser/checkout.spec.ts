@@ -487,7 +487,8 @@ test('mobile filters expand accessibly without replacing the visible sort or tri
   await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveValue('IndiGo');
   await expectFlightToolbarValuesFit(page);
  }
- await expect(page.getByRole('combobox',{name:'Sort by',exact:true})).toBeVisible();
+ if (page.viewportSize()!.width <= 1100) await expect(page.getByRole('combobox',{name:'Sort by',exact:true})).toBeVisible();
+ else await expect(page.getByRole('group',{name:'Sort flights',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });
 

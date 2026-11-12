@@ -28,7 +28,9 @@ test('missing metadata and failed or empty rates have explicit non-blocking reco
 test('rates retain exact IDs, complete multi-room composition and customer total without invented discounts or tax splits',async()=>{
  const html=await render({selectedOptionId:'exact-option-A',options:[{optionId:'exact-option-A',roomInfo:[{id:'twin',name:'Twin'},{id:'double',name:'Double'}],mealBasis:'ROOM_ONLY',inclusions:['Wi-Fi'],bookingNotes:'Check supplier conditions.',pricing:{totalPrice:8765.43},cancellation:{isRefundable:true,penalties:[]}},{optionId:'exact-option-B',roomInfo:[{name:'Twin'},{name:'Double'}],pricing:{totalPrice:9000}}]});
  assert.match(html,/data-room-option-id="exact-option-A"/);assert.match(html,/data-room-option-id="exact-option-B"/);
- assert.match(html,/Twin \+ Double/);assert.match(html,/₹8,765.43/);assert.match(html,/All selected rooms and guests/);assert.match(html,/Selected room rate/);
+ assert.match(html,/Twin \+ Double/);assert.match(html,/Selected room rate/);
+ assert.match(html,/<div class="stay-preview-price"><small>Estimated full stay total from<\/small><strong>₹8,765\.43<\/strong><span>2 nights · 2 rooms · 4 guests<\/span><\/div>/);
+ for(const total of ['₹8,765.43','₹9,000.00'])assert.ok(html.includes(`<small>Estimated full stay total</small><strong>${total}</strong><p>2 nights · 2 rooms · 4 guests</p>`));
  assert.match(html,/Cancellation terms require review/);assert.match(html,/ROOM ONLY/);assert.match(html,/Wi-Fi/);
  assert.equal((html.match(/>Review stay<\/button>/g)??[]).length,2);
  assert.doesNotMatch(html,/free.cancellation|per night|taxes included|discount/i);

@@ -77,6 +77,8 @@ export default function BookingReports() {
     <nav className="reports-nav" aria-label="Operations navigation"><Link href="/operations">← Operations workspace</Link><Link href="/operations/visibility">Measurement readiness</Link><Link href="/account">Account & security</Link></nav>
     <header className="reports-heading"><div><p className="reports-eyebrow">PRIVATE · FINANCE REPORTING</p><h1>Know where every booking stands.</h1><p>One order cohort. Clear booking, payment and refund totals.</p></div><span className="reports-badge">In Testing</span></header>
     <aside className="reports-notice"><strong>Current state, not period cash flow.</strong><p>Dates select when bookings were created in Asia/Kolkata. Payments and refunds include later updates to those bookings. These records are not production revenue, bank settlement or net profit. Test and live records cannot be separated by an existing per-order environment marker.</p></aside>
+    <div className="reports-workbench">
+    <aside className="reports-filter-rail"><h2>Choose your view</h2>
     <form className="reports-filters" aria-label="Report filters" onSubmit={event => { event.preventDefault(); apply({ ...draft, cursor: undefined }); }}>
       <label>Created from (IST)<input type="date" required value={draft.from} onChange={e => setDraft({ ...draft, from: e.target.value })}/></label>
       <label>Created through (IST)<input type="date" required value={draft.to} onChange={e => setDraft({ ...draft, to: e.target.value })}/></label>
@@ -86,7 +88,8 @@ export default function BookingReports() {
       <div className="reports-filter-actions"><button type="submit">Apply filters</button><button type="button" className="reports-secondary" onClick={() => apply(defaultReportFilters())}>This month</button></div>
       <p className="reports-filter-help">Maximum 366 days, inclusive. {unapplied ? "You have unapplied changes. Displayed results and export use the applied filters below." : "All summary cards and exports use the same applied booking cohort."}</p>
       {filterError && <p className="reports-error" role="alert">{filterError}</p>}
-    </form>
+    </form></aside>
+    <div className="reports-results">
     {applied && <section className="reports-applied" aria-label="Applied report filters"><div><strong>Applied: {applied.from} → {applied.to} · Asia/Kolkata</strong><p>{label(applied.product)} products · {label(applied.status)} statuses · {applied.scope === "ALL" ? "All order types" : label(applied.scope)} · Current-state creation cohort</p></div><div className="reports-actions"><button type="button" className="reports-secondary" disabled={loading} onClick={refreshReport}>Refresh report</button><button type="button" disabled={loading || !report || exporting} onClick={() => void exportReport()}>{exporting ? "Preparing CSV…" : "Export full cohort CSV"}</button></div></section>}
     {exportError && <p className="reports-error" role="alert">{exportError}</p>}
     {loading && <section className="reports-loading" role="status" aria-live="polite"><span/>Loading authorised report…</section>}
@@ -105,6 +108,7 @@ export default function BookingReports() {
       {!report.rows.length ? <div className="reports-empty"><h3>No bookings match this view.</h3><p>Try a wider date range or different product, status or order scope. This is an empty result, not a reporting error.</p></div> : <BookingReportRows rows={report.rows}/>}
       <nav className="reports-pagination" aria-label="Report pages"><button className="reports-secondary" type="button" disabled={!applied?.cursor || loading} onClick={() => apply({ ...applied!, cursor: undefined })}>First page</button><span>{applied?.cursor ? "Older booking records" : "Newest booking records"}</span><button type="button" disabled={!report.nextCursor || loading} onClick={() => apply({ ...applied!, cursor: report.nextCursor! })}>Older bookings →</button></nav></section>
     </>}
+    </div></div>
     <section id="report-definitions" className="reports-definitions"><p className="reports-eyebrow">THE RULES BEHIND THE NUMBERS</p><h2>Report definitions</h2><dl>{REPORT_DEFINITIONS.map(([name, definition]) => <div key={name}><dt>{name}</dt><dd>{definition}</dd></div>)}</dl><p>CSV exports all matching rows, up to 5,000, regardless of the visible page. Amount columns explicitly ending in <code>_minor</code> are exact integer paise. Dates, timezone, generation time and testing status accompany each data row. Import text columns as text; spreadsheet applications can treat formula-like values differently after re-saving.</p></section>
   </main>;
 }

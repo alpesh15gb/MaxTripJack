@@ -13,7 +13,7 @@ test('production visibility access boundary retains its scoped layout', async ({
   await expect(main.getByRole('heading', { name: 'Visibility dashboard', exact: true })).toBeVisible();
   await expect(main.getByRole('heading', { name: /Authorised access required|Access verification unavailable/ })).toBeVisible();
   await expect(main).toContainText('No reporting data has been loaded.');
-  await expect(main).toHaveCSS('background-color', 'rgb(245, 247, 250)');
+  await expect(main).toHaveCSS('background-color', 'rgb(245, 247, 243)');
   await expect(main.locator('.visibility-notice')).toHaveCSS('border-radius', '18px');
   await expect(main).toHaveCSS('padding-left', page.viewportSize()!.width <= 600 ? '16px' : '40px');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

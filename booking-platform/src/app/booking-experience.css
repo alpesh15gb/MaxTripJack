@@ -380,3 +380,184 @@
 .guest-error-summary button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .guest-field-error { display: block; margin-top: .35rem; color: #b42318; font-size: .85rem; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
 .booking-review [aria-invalid="true"] { border-color: #b42318; }
+
+/* Booking pages share a clear workspace, with distinct search and checkout layouts. */
+body .booking-workflow.journey-flow {
+  --booking-ink: #102b31;
+  --booking-muted: #526963;
+  --booking-blue: #006756;
+  --booking-teal: #006756;
+  max-width: 1320px;
+  padding-inline: 32px;
+}
+body .booking-workflow.journey-flow .booking-intro {
+  margin: 4px 0 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid #dce7e1;
+}
+.booking-heading-copy { display: flex; align-items: center; gap: 20px; min-width: 0; }
+.booking-heading-icon { display: grid; place-items: center; flex: 0 0 58px; height: 58px; background: #e1efe7; color: #006756; border-radius: 18px; }
+body .booking-workflow.journey-flow .booking-intro h1 { margin: 0 0 10px; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.12; letter-spacing: -.045em; }
+body .booking-workflow.journey-flow.has-journey .booking-intro h1 { margin-bottom: 0; font-size: clamp(28px, 3vw, 38px); }
+body .booking-workflow.journey-flow .booking-intro p { margin: 0; max-width: 650px; }
+body .booking-workflow.journey-flow .booking-progress {
+  max-width: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin: 0 0 28px;
+}
+body .booking-workflow.journey-flow .booking-progress:has(li:last-child:nth-child(3)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body .booking-workflow.journey-flow .booking-progress li {
+  padding: 12px 8px;
+  border-bottom: 3px solid #dce7e1;
+  color: #536963;
+  justify-content: flex-start;
+}
+body .booking-workflow.journey-flow .booking-progress li::after { display: none; }
+body .booking-workflow.journey-flow .booking-progress li.is-current { border-color: #006756; color: #006756; }
+body .booking-workflow.journey-flow .booking-progress li.is-complete { border-color: #79a793; }
+body .booking-workflow.journey-flow .booking-progress li span { box-shadow: none; width: 26px; height: 26px; background: #e5eee8; }
+body .booking-workflow.journey-flow .booking-progress li.is-current span { background: #006756; color: white; }
+body .booking-workflow.journey-flow .booking-product-tabs { background: #e6eee8; border-radius: 999px; padding: 5px; }
+body .booking-workflow.journey-flow .booking-product-tabs button { border-radius: 999px; }
+body .booking-workflow.journey-flow .booking-search-panel { border-color: #dce7e1; border-radius: 20px; }
+body .booking-workflow.journey-flow:not(.has-journey) .booking-search-panel > summary { padding: 26px 28px 12px; font-size: 23px; letter-spacing: -.025em; }
+body .booking-workflow.journey-flow .booking-search-panel .live-search { padding: 8px 28px 28px; }
+body .booking-workflow.journey-flow:not(.has-journey) .booking-layout { grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr); gap: 32px; }
+body .booking-workflow.journey-flow .booking-summary.is-planning { padding: 0 24px 24px; overflow: hidden; position: static; }
+.booking-planning-photo { position: relative; height: 230px; margin-inline: -24px; margin-bottom: 24px; background: #102b31; }
+.booking-planning-photo img { object-fit: cover; }
+.booking-planning-photo > span { position: absolute; bottom: 14px; left: 16px; padding: 7px 10px; border-radius: 999px; background: #102b31e6; color: white; font-size: 12px; }
+body .booking-workflow.journey-flow .booking-summary.is-planning .summary-compass { display: none; }
+body .booking-workflow.journey-flow .booking-summary h2 { font-size: 25px; }
+body .booking-workflow.journey-flow .booking-guide { gap: 18px; }
+body .booking-workflow.journey-flow .booking-guide li { align-items: flex-start; }
+body .booking-workflow.journey-flow .booking-guide svg { color: #006756; margin-top: 2px; }
+body .booking-workflow.journey-flow .booking-guide p { margin: 5px 0 0; font-size: 13px; }
+
+/* Results use an uncluttered comparison area and a fixed-width filter rail. */
+body .booking-workflow.journey-flow .results-heading,
+body .booking-workflow.journey-flow .hotel-shopping-toolbar {
+  background: white;
+  border: 1px solid #dce7e1;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+body .booking-workflow.journey-flow .results-heading h2,
+body .booking-workflow.journey-flow .hotel-shopping-toolbar h2 { font-size: 25px; letter-spacing: -.035em; }
+body .booking-workflow.journey-flow .results-count { background: #e8f4ee; color: #245b4c; border-radius: 999px; padding: 10px 14px; font-size: 13px; }
+body .booking-workflow.journey-flow .flight-shopping-controls,
+body .booking-workflow.journey-flow .hotel-search-filters { background: #fff; border-color: #dce7e1; border-radius: 18px; box-shadow: none; }
+body .booking-workflow.journey-flow .live-flight-card { border-radius: 18px; border-color: #dce7e1; box-shadow: 0 6px 24px #102b3106; }
+body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > summary { background: #f1f6f2; border-left: 1px dashed #bdcfc5; border-radius: 0 17px 17px 0; }
+body .booking-workflow.journey-flow .fare-decision-grid .fare-option-compact { border-color: #dce7e1; border-radius: 14px; box-shadow: none; }
+body .booking-workflow.journey-flow .fare-option-heading { padding-bottom: 12px; border-bottom: 1px solid #e3ece7; }
+body .booking-workflow.journey-flow .hotel-shopping-card { padding: 0; overflow: hidden; }
+body .booking-workflow.journey-flow .hotel-shopping-card .hotel-card-photo { border-radius: 0; min-height: 260px; }
+body .booking-workflow.journey-flow .hotel-result-content { padding-block: 24px; }
+body .booking-workflow.journey-flow .hotel-result-content h3 { font-size: 23px; letter-spacing: -.035em; }
+body .booking-workflow.journey-flow .hotel-result-action { padding: 24px; background: #f1f6f2; border-left: 1px dashed #bdcfc5; }
+body .booking-workflow.journey-flow .hotel-amenity-list li { background: #edf5ef; border-radius: 6px; }
+
+/* The review form uses separate cards for names, contact and the final payment. */
+body .booking-workflow.journey-flow .booking-review { padding: 28px; background: #fff; border-color: #dce7e1; }
+body .booking-workflow.journey-flow .booking-review > .page-heading { padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid #dce7e1; align-items: flex-start; }
+body .booking-workflow.journey-flow .booking-review > .page-heading h2 { font-size: clamp(26px, 3vw, 34px); letter-spacing: -.04em; }
+body .booking-workflow.journey-flow .traveller-card { padding: 24px; margin-top: 26px; border: 1px solid #dce7e1; border-radius: 16px; background: #f7faf7; }
+body .booking-workflow.journey-flow .traveller-card legend { padding: 0 9px; font-size: 17px; font-weight: 700; color: #102b31; }
+body .booking-workflow.journey-flow .booking-contact { padding: 24px; margin: 28px 0; border: 1px solid #dce7e1; border-radius: 16px; background: #f7faf7; }
+body .booking-workflow.journey-flow .booking-contact h3 { font-size: 21px; letter-spacing: -.02em; }
+body .booking-workflow.journey-flow .booking-summary:not(.is-planning) { border-top: 5px solid #006756; background: white; }
+body .booking-workflow.journey-flow .booking-total { padding: 20px 0; border-block: 1px solid #dce7e1; margin-top: 20px; }
+body .booking-workflow.journey-flow .booking-total dd { font-size: 27px; font-weight: 750; color: #006756; }
+body .booking-workflow.journey-flow .booking-payment-heading { display: flex; gap: 16px; align-items: center; padding: 24px; margin: -1px -1px 24px; border-radius: 16px; background: #102b31; color: white; }
+body .booking-workflow.journey-flow .booking-payment-heading h3 { margin: 0 0 7px; color: white; font-size: 23px; }
+body .booking-workflow.journey-flow .booking-payment-heading p { margin: 0; color: #d8e9e2; font-size: 14px; line-height: 1.6; }
+body .booking-workflow.journey-flow .booking-payment-total { font-size: clamp(32px, 4vw, 44px); letter-spacing: -.045em; color: #006756; }
+body .booking-workflow.journey-flow .booking-continue { width: 100%; margin-top: 24px; min-height: 54px; font-size: 16px; }
+body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: #005345; }
+
+@media (max-width: 1000px) {
+  body .booking-workflow.journey-flow { padding-inline: 24px; }
+  body .booking-workflow.journey-flow:not(.has-journey) .booking-layout { grid-template-columns: minmax(0, 1fr) 290px; gap: 22px; }
+}
+@media (max-width: 900px) {
+  body .booking-workflow.journey-flow:not(.has-journey) .booking-layout { grid-template-columns: minmax(0, 1fr); }
+  body .booking-workflow.journey-flow .booking-summary.is-planning { display: none; }
+  body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > summary { border-left: 0; border-top: 1px dashed #bdcfc5; border-radius: 0 0 17px 17px; }
+}
+@media (max-width: 600px) {
+  body .booking-workflow.journey-flow { width: 100%; padding-inline: 16px; }
+  body .booking-workflow.journey-flow .booking-intro { padding: 12px 0 20px; gap: 12px; }
+  .booking-heading-copy { gap: 12px; }
+  .booking-heading-icon { flex-basis: 42px; height: 42px; border-radius: 13px; }
+  body .booking-workflow.journey-flow .booking-intro h1 { font-size: 29px; }
+  body .booking-workflow.journey-flow .booking-intro p { font-size: 14px; }
+  body .booking-workflow.journey-flow .booking-progress { gap: 6px; margin-bottom: 22px; }
+  body .booking-workflow.journey-flow .booking-progress li { flex-direction: column; align-items: flex-start; font-size: 11px; padding: 8px 2px; gap: 7px; }
+  body .booking-workflow.journey-flow .booking-search-panel > summary,
+  body .booking-workflow.journey-flow:not(.has-journey) .booking-search-panel > summary { padding: 20px 18px 10px; font-size: 19px; }
+  body .booking-workflow.journey-flow .booking-search-panel .live-search { padding: 6px 18px 22px; }
+  body .booking-workflow.journey-flow .results-heading,
+  body .booking-workflow.journey-flow .hotel-shopping-toolbar { padding: 18px; gap: 14px; }
+  body .booking-workflow.journey-flow .results-count { padding: 8px 11px; font-size: 12px; }
+  body .booking-workflow.journey-flow .hotel-shopping-card .hotel-card-photo { min-height: 200px; }
+  body .booking-workflow.journey-flow .hotel-result-content { padding: 18px; }
+  body .booking-workflow.journey-flow .hotel-result-action { padding: 18px; border-left: 0; border-top: 1px dashed #bdcfc5; }
+  body .booking-workflow.journey-flow .booking-review { padding: 18px; }
+  body .booking-workflow.journey-flow .booking-review > .page-heading { gap: 14px; }
+  body .booking-workflow.journey-flow .traveller-card,
+  body .booking-workflow.journey-flow .booking-contact { padding: 18px; }
+  body .booking-workflow.journey-flow .booking-payment-heading { padding: 20px; }
+}
+
+body .booking-workflow.journey-flow .choose-fare-label { background: #006756; }
+body .booking-workflow.journey-flow .fare-comparison > summary:hover .choose-fare-label { background: #005345; }
+
+@media (min-width: 1051px) {
+  body .booking-workflow.journey-flow .hotel-shopping-card { grid-template-columns: minmax(170px, 23%) minmax(0, 1fr) 220px; }
+}
+body .booking-workflow.journey-flow .hotel-shopping-card .primary { padding-inline: 14px; gap: 10px; }
+
+/* Keep the first option visible on phones while retaining the search and filter controls. */
+@media (max-width: 600px) {
+  body .booking-workflow.journey-flow.has-journey .back { margin-bottom: 0; }
+  body .booking-workflow.journey-flow.has-journey .booking-intro { margin-bottom: 12px; }
+  body .booking-workflow.journey-flow.has-journey .booking-test-badge { display: none; }
+  body .booking-workflow.journey-flow.has-journey .booking-progress { margin-bottom: 16px; }
+  body .booking-workflow.journey-flow.has-journey .booking-search-panel:not([open]) > summary { padding: 14px 16px; font-size: 14px; line-height: 1.5; }
+  body .booking-workflow.journey-flow .results-heading { padding: 14px 16px; gap: 8px; margin-bottom: 12px; }
+  body .booking-workflow.journey-flow .results-heading h2 { font-size: 22px; }
+  body .booking-workflow.journey-flow .results-heading p { font-size: 13px; margin: 6px 0 0; }
+}
+
+@media (max-width: 600px) {
+  body .booking-workflow.journey-flow.has-journey .booking-intro { padding: 6px 0 12px; margin-bottom: 8px; }
+  body .booking-workflow.journey-flow.has-journey .booking-progress { margin-bottom: 8px; }
+  body .booking-workflow.journey-flow.has-journey .booking-progress li {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 2px;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  body .booking-workflow.journey-flow.has-journey .booking-progress li span {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  body .booking-workflow.journey-flow .results-heading { padding-block: 12px; }
+  body .booking-workflow.journey-flow .results-heading p { line-height: 1.5; }
+  body .booking-workflow.journey-flow .results-count { padding-block: 4px; }
+}

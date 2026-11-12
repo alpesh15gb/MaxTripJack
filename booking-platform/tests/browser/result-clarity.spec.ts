@@ -31,7 +31,7 @@ test('hotel amenities, photo labels and cancellation charges show only supported
  await expect(card.locator('img')).toHaveAttribute('alt','Clarity fixture stay · supplier property photo 1');
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
  await expect(page.locator('.stay-date-strip')).toContainText(travelDateLabel(departure));
- await expect(page.locator('.room-option-card')).toContainText('All selected rooms and guests');
+ await expect(page.locator('.room-option-card .stay-room-rate-action')).toContainText('4 nights · 1 room · 2 guests');
  await page.getByText('Full cancellation policy & room details',{exact:true}).click();
  const timeline=page.getByRole('region',{name:'Hotel cancellation windows'});
  await expect(timeline.getByText('Exact charge needs confirmation',{exact:true})).toBeVisible();

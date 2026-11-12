@@ -1209,3 +1209,99 @@
   margin-top: 20px;
   font-weight: 600;
 }
+
+/* Desk navigation, register controls and record detail share one workspace. */
+body .ops-workspace {
+  grid-template-columns: 244px minmax(0, 1fr);
+  background: #f5f7f3;
+}
+body .ops-workspace .operations-sidebar {
+  padding: 28px 16px;
+  background: #102b31;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+}
+.ops-workspace .ops-nav-body nav { flex-direction: column; }
+.ops-workspace .ops-nav-body nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 10px;
+  padding: 13px 14px;
+  min-height: 48px;
+  color: #d1e4df;
+}
+body .ops-workspace .ops-nav-body nav a.selected-desk {
+  background: #e2f6c7;
+  color: #102b31;
+  box-shadow: none;
+  font-weight: 700;
+}
+.ops-workspace .ops-nav-body nav a:hover { background: #ffffff16; color: white; }
+.ops-workspace .ops-staff { margin-top: 28px; padding: 20px 12px 0; }
+body .ops-workspace .operations-main { padding: 32px clamp(20px, 3vw, 48px) 64px; }
+.ops-workspace .ops-desk-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 8px 0 28px;
+  border-bottom: 1px solid #dce7e1;
+}
+.ops-workspace .ops-desk-heading h1 { font-size: clamp(30px, 3.2vw, 46px); letter-spacing: -.045em; }
+.ops-workspace .ops-desk-heading p { max-width: 58ch; line-height: 1.7; font-size: 15px; }
+.ops-workspace .ops-heading-actions { max-width: 260px; justify-content: flex-end; }
+.ops-workspace .ops-register-bar {
+  background: #fff;
+  padding: 20px;
+  border: 1px solid #dce7e1;
+  border-radius: 16px;
+  align-items: end;
+  box-shadow: 0 8px 24px #102b3106;
+}
+.ops-workspace .ops-register-bar form { flex: 1; }
+.ops-workspace .ops-register-bar input, .ops-workspace .ops-register-bar select {
+  min-height: 46px;
+  background: #f8faf8;
+  border-color: #cbdad3;
+  border-radius: 9px;
+}
+.ops-workspace .ops-register-caption { padding: 8px 2px; line-height: 1.6; }
+.ops-workspace .ops-register-caption > p { font-weight: 700; }
+.ops-workspace .ops-register-caption > p span { font-weight: 400; }
+.ops-workspace .operations-table thead { background: #edf3ef; }
+.ops-workspace .operations-table th { font-size: 12px; letter-spacing: .02em; }
+.ops-workspace .operations-table td { padding-block: 20px; }
+.ops-workspace .operations-table tbody tr:hover { background: #f7fbf8; }
+.ops-workspace .operations-table td button { color: #006756; font-weight: 650; }
+.ops-dialog {
+  border: 1px solid #dce7e1;
+  border-radius: 22px;
+  box-shadow: 0 28px 100px #102b3150;
+}
+.ops-dialog > header {
+  margin: -28px -28px 24px;
+  padding: 24px 28px;
+  background: #edf5f0;
+  border-radius: 22px 22px 0 0;
+}
+.ops-dialog .ops-detail-grid { gap: 0; border: 1px solid #dce7e1; border-radius: 14px; overflow: hidden; }
+.ops-dialog .ops-detail-grid > div { padding: 16px; border-bottom: 1px solid #e4ece7; }
+.ops-dialog .ops-detail-grid dd { font-size: 15px; font-weight: 650; }
+.ops-dialog .ops-record-actions { padding: 20px; background: #f5f7f3; border-radius: 14px; }
+
+@media (max-width: 1050px) {
+  .ops-workspace .ops-desk-heading { grid-template-columns: 1fr; gap: 18px; }
+  .ops-workspace .ops-heading-actions { justify-content: flex-start; max-width: none; }
+}
+@media (max-width: 760px) {
+  body .ops-workspace { display: block; }
+  body .ops-workspace .operations-sidebar { position: relative; height: auto; overflow: visible; padding: 16px; }
+  body .ops-workspace .operations-main { padding: 24px 16px 48px; }
+  .ops-workspace .ops-nav-body nav a { min-height: 48px; }
+  .ops-workspace .operations-table td { padding: 0; }
+  .ops-workspace .ops-register-bar { padding: 16px; align-items: stretch; }
+  .ops-workspace .ops-register-bar form { width: 100%; }
+  .ops-workspace .ops-register-caption { display: block; }
+  .ops-dialog > header { margin: -20px -20px 20px; padding: 20px; }
+}

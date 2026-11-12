@@ -19,3 +19,12 @@ test('flight departure and budget filters use known group totals without new pri
  assert.equal(matchesFlightRefinements({...flight,sI:[{...flight.sI[0],dt:'unknown'}]},'ONWARD','MORNING',''),false);
  assert.equal(matchesFlightRefinements(flight,'ONWARD','ALL','not a price'),false);
 });
+test('invalid estimates cannot make an unpriced or over-budget flight pass a budget filter',()=>{
+ for (const customerEstimateMinor of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+  const invalid = {...flight.totalPriceList[0], customerEstimateMinor};
+  assert.equal(matchesFlightRefinements({...flight, totalPriceList: [invalid]}, 'ONWARD', 'ALL', '12000'), false);
+  assert.equal(matchesFlightRefinements({...flight, totalPriceList: [invalid]}, 'ONWARD', 'ALL', ''), true);
+  assert.equal(matchesFlightRefinements({...flight, totalPriceList: [invalid, ...flight.totalPriceList]}, 'ONWARD', 'ALL', '11999'), false);
+  assert.equal(matchesFlightRefinements({...flight, totalPriceList: [invalid, ...flight.totalPriceList]}, 'ONWARD', 'ALL', '12000'), true);
+ }
+});

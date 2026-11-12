@@ -51,3 +51,285 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Stray overflow never produces a sideways page scroll; clip keeps sticky headers working. */
 html,body{overflow-x:clip}
+
+/* Shared visual system for discovery, booking and account workspaces. */
+:root {
+  --brand-ink: #102b31;
+  --brand-action: #006756;
+  --brand-tint: #e8f4ee;
+  --brand-paper: #f5f7f3;
+  --brand-border: #dce7e1;
+  --brand-shadow: 0 16px 40px #102b3110;
+  --ink: var(--brand-ink);
+  --blue: var(--brand-action);
+  --line: var(--brand-border);
+  --studio-paper: var(--brand-paper);
+  --studio-ink: var(--brand-ink);
+  --studio-teal: var(--brand-action);
+  --travel-navy: var(--brand-ink);
+}
+
+body { font-family: var(--font-geist-sans), system-ui, sans-serif; }
+body .travel-header { background: #fff; border-bottom-color: var(--brand-border); }
+body .travel-header .travel-account { border-radius: 999px; border-color: var(--brand-border); }
+body .travel-header nav a[aria-current="page"] { color: var(--brand-action); }
+body .travel-footer.travel-footer--reference { background: var(--brand-ink); color: #dcece7; }
+body .travel-footer--reference a { color: #e6f3ef; }
+body .travel-footer--reference .travel-footer-copyright { background: #0a2026; color: #e6f3ef; }
+
+.trip-home .home-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: 0;
+  min-height: 450px;
+  width: min(1240px, calc(100% - 48px));
+  margin: 24px auto 0;
+  padding: clamp(60px, 6vw, 80px) clamp(24px, 6vw, 80px) 74px;
+  isolation: isolate;
+  border-radius: 28px;
+  background: var(--brand-ink);
+}
+.trip-home .studio-hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  min-height: 0;
+  aspect-ratio: auto;
+  border-radius: inherit;
+  box-shadow: none;
+}
+.trip-home .studio-hero-photo::after {
+  background: linear-gradient(90deg, #071f27ec, #082a33c4 50%, #082a331a 100%);
+}
+.trip-home .studio-hero-photo > span {
+  inset: 20px 20px auto auto;
+  background: #102b31de;
+}
+.trip-home .studio-hero-copy { padding: 0; }
+.trip-home .home-intro h1 {
+  color: #fff;
+  font-size: clamp(42px, 6vw, 80px);
+  line-height: .99;
+  letter-spacing: -.055em;
+  max-width: 720px;
+  margin: 0 0 20px;
+}
+.trip-home .home-intro h1 em { color: #e2f6c7; font-weight: 400; }
+.trip-home .home-intro .studio-hero-copy > p:last-of-type {
+  color: #f3f9f7;
+  font-size: clamp(15px, 2vw, 18px);
+  max-width: 430px;
+}
+.trip-home .home-search-card {
+  width: min(1140px, calc(100% - 80px));
+  margin-top: -54px;
+  background: #fff;
+  border-color: var(--brand-border);
+  border-radius: 22px;
+  box-shadow: var(--brand-shadow);
+}
+.trip-home .home-search-input { border-radius: 12px; border-color: var(--brand-border); }
+.trip-home .home-product-tabs button[aria-pressed="true"] {
+  background: var(--brand-tint);
+  color: var(--brand-action);
+  border-radius: 999px;
+}
+.trip-home .home-search-submit { background: var(--brand-action); color: #fff; border-radius: 12px; }
+.trip-home .home-search-submit:hover { box-shadow: 0 8px 22px #00675633; }
+.trip-home .home-destination { border-radius: 22px; }
+.trip-home .home-section-heading h2 { letter-spacing: -.045em; }
+.trip-home .home-confidence > div { border-color: var(--brand-border); }
+
+body .public-site .public-hero {
+  background: linear-gradient(120deg, #102b31, #105246);
+  border: 0;
+  border-radius: 24px;
+}
+body .public-site .public-hero :is(h1, .public-intro, .public-cta-note) { color: #fff; }
+body .public-site .public-hero .public-eyebrow { color: #cceba9; }
+body .public-site .public-button { background: #e2f6c7; color: #102b31; border-color: #e2f6c7; }
+body .public-site .public-section :is(p, li), body .public-site .public-questions p { font-size: 16px; line-height: 1.75; }
+body :is(.public-office-card, .public-rail-note, .public-route-card, .package-card, .package-quote) {
+  border-color: var(--brand-border);
+  border-radius: 20px;
+  box-shadow: var(--brand-shadow);
+}
+body :is(.package-quote, .public-office-card, .public-rail-note) { background: var(--brand-paper); }
+body .package-heading {
+  max-width: none;
+  padding: clamp(22px, 4vw, 54px);
+  border-radius: 24px;
+  background: var(--brand-tint);
+}
+body .package-heading p { max-width: 65ch; }
+body .package-button:not(.secondary), body .package-state button {
+  background: var(--brand-action);
+  border-color: var(--brand-action);
+}
+body :is(.journey-flow, .account-page, .operations-access) { color: var(--brand-ink); }
+body :is(.journey-flow, .account-page) :is(.white-card, .booking-pending, .filters) {
+  border-color: var(--brand-border);
+  border-radius: 18px;
+  box-shadow: var(--brand-shadow);
+}
+
+@media (max-width: 700px) {
+  .trip-home .home-intro {
+    min-height: 300px;
+    width: calc(100% - 24px);
+    margin-top: 12px;
+    padding: 62px 22px 45px;
+    border-radius: 20px;
+  }
+  .trip-home .studio-hero-photo > span { inset: 12px 12px auto auto; font-size: 12px; }
+  .trip-home .studio-hero-photo::after { background: linear-gradient(90deg, #071f27e6, #082a33b8); }
+  .trip-home .home-search-card { width: calc(100% - 32px); margin-top: -24px; }
+}
+
+.public-section-links {
+  margin: 24px 0 8px;
+  padding: 20px 24px;
+  background: var(--brand-tint);
+  border-radius: 16px;
+}
+.public-section-links p { font-weight: 700; margin-bottom: 8px; }
+.public-section-links ul { margin: 0; padding-inline-start: 20px; }
+.public-section-links a {
+  display: inline-block;
+  padding-block: 5px;
+  color: var(--brand-action);
+  text-underline-offset: .2em;
+}
+.public-section, #questions-heading { scroll-margin-top: 96px; }
+
+body :is(.journey-flow, .account-experience, .trips-workspace, .ops-workspace) {
+  background-color: var(--brand-paper);
+  color: var(--brand-ink);
+}
+body .account-experience .workspace-masthead {
+  background: var(--brand-ink);
+  border-color: var(--brand-ink);
+  border-radius: 20px;
+  color: #fff;
+}
+body .account-experience .workspace-masthead :is(p, span) { color: inherit; }
+body .account-experience .workspace-mark { background: var(--brand-action); }
+body .ops-workspace .operations-sidebar { background: var(--brand-ink); }
+body .ops-workspace .selected-desk { background: #27504e; color: #fff; }
+body :is(.ops-workspace, .account-experience, .trips-workspace, .journey-flow) .white-card {
+  border-color: var(--brand-border);
+  border-radius: 16px;
+}
+body :is(.ops-workspace, .account-experience, .trips-workspace, .journey-flow) .primary {
+  background: var(--brand-action);
+  color: #fff;
+}
+
+body .journey-flow :is(.live-flight-card, .hotel-card, .room-workspace, .summary),
+body :is(.trips-workspace, .reset-experience) .white-card {
+  border-color: var(--brand-border);
+  border-radius: 18px;
+  box-shadow: var(--brand-shadow);
+}
+body .reset-experience .primary { background: var(--brand-action); color: #fff; }
+body .travel-footer { border-top-color: var(--brand-action); }
+
+.hero-explore-link {
+  display: inline-flex;
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 0 17px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 999px;
+  background: #e2f6c7;
+  color: var(--brand-ink);
+  text-decoration: none;
+  font-weight: 750;
+}
+.hero-explore-link:hover { background: #f2ffde; }
+.hero-destination-picker {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 18px;
+}
+.hero-destination-picker button {
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 0 14px;
+  background: #102b31ed;
+  color: #fff;
+  border: 1px solid #ffffff60;
+  font-size: 13px;
+  font-weight: 650;
+}
+.hero-destination-picker button[aria-pressed="true"] {
+  background: #fff;
+  color: var(--brand-ink);
+  border-color: #fff;
+}
+.trip-home .home-intro { padding-top: clamp(60px, 6vw, 80px); padding-bottom: 74px; }
+.trip-home .home-discover { scroll-margin-top: 32px; }
+.trip-home .home-destinations { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.trip-home .home-destination { grid-column: span 5; min-height: clamp(230px, 26vw, 370px); }
+.trip-home .home-destination:is(:first-child, :last-child) { grid-column: span 7; border-radius: 22px; }
+.trip-home .home-destination-photo { transition: transform .5s ease; }
+.trip-home .home-destination:hover .home-destination-photo { transform: scale(1.045); }
+
+@media (min-width: 1000px) {
+  .hero-destination-picker { position: absolute; right: 24px; bottom: 74px; margin: 0; }
+}
+@media (max-width: 700px) {
+  .trip-home .home-intro { padding-bottom: 45px; }
+  .hero-destination-picker { justify-content: flex-start; }
+  .hero-destination-picker button { padding: 0 10px; font-size: 12px; }
+  .trip-home .home-destinations { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .trip-home .home-destination { grid-column: span 1; min-height: 190px; }
+  .trip-home .home-destination:is(:first-child, :last-child) { grid-column: 1 / -1; }
+  .trip-home .home-destination h3 { font-size: clamp(22px, 6vw, 34px); }
+  .trip-home .home-destination p { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-home .home-destination-photo { transition: none; }
+  .trip-home .home-destination:hover .home-destination-photo { transform: none; }
+}
+
+body :is(.reports-page, .visibility-page) { background: var(--brand-paper); color: var(--brand-ink); }
+body :is(.reports-page .reports-heading, .visibility-page .visibility-heading) {
+  background: var(--brand-ink);
+  border-radius: 20px;
+  padding: clamp(20px, 4vw, 36px);
+  color: #fff;
+}
+body :is(.reports-heading, .visibility-heading) p { color: #dcece7; }
+body :is(.reports-filters, .reports-cards article, .visibility-metric) {
+  border-color: var(--brand-border);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.state-page--discovery {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+  max-width: 1120px;
+  width: calc(100% - 48px);
+  padding: 56px 0;
+  text-align: left;
+}
+.state-page--discovery p { margin-left: 0; }
+.state-page--discovery .state-actions { justify-content: flex-start; }
+.state-page--discovery .state-code { font-size: 72px; color: #b1c7bc; }
+.state-photo { position: relative; min-height: 440px; border-radius: 24px; overflow: hidden; }
+.state-photo img { object-fit: cover; }
+.state-page .state-actions .state-primary { background: #006756; border-color: #006756; }
+.state-page .state-actions a, .state-page .state-actions button { border-color: #006756; color: #006756; }
+.state-page .state-actions .state-primary { color: #fff; }
+@media (max-width: 700px) {
+  .state-page--discovery { grid-template-columns: 1fr; gap: 28px; width: calc(100% - 32px); padding: 36px 0; }
+  .state-photo { min-height: 220px; }
+}

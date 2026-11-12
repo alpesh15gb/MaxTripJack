@@ -271,7 +271,7 @@ test('room availability progress stays with the chosen property and prevents dup
 async function seedOwnedSelection(page:Page,ownerId:string){
  const selectionKey='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  await page.goto('/account');
- await expect(page.getByRole('heading',{level:1,name:'Your account. Your next chapter.'})).toBeVisible();
+ await expect(page.getByRole('heading',{level:1,name:'Your account'})).toBeVisible();
  await page.evaluate(({key,ownerId,selectionKey,searchId})=>sessionStorage.setItem(key,JSON.stringify({version:1,key:selectionKey,ownerId,savedAt:Date.now(),product:'FLIGHT',searchId,selection:{priceIds:['onward-standard']},flights:[]})),{key,ownerId,selectionKey,searchId});
  return '/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',resumeSelection:'1',resumeReview:'0',selectionKey});
 }

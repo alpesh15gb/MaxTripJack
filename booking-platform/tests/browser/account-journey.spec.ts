@@ -94,7 +94,7 @@ test('verification failure keeps the return action blocked and shows local truth
 test('ordinary and malicious account returns do not invent a booking handoff',async({page,provider})=>{
  for(const url of ['/account','/account?'+new URLSearchParams({returnTo:'https://example.invalid/book?resumeSelection=1'})]){
   await page.goto(url);
-  await expect(page.getByRole('heading',{level:1,name:'Your account. Your next chapter.'})).toBeVisible();
+  await expect(page.getByRole('heading',{level:1,name:'Your account'})).toBeVisible();
   await expect(page.getByRole('region',{name:'Continue your booking journey'})).toHaveCount(0);
   await expect(page.locator('.account-links').getByRole('link',{name:'My trips',exact:true})).toHaveAttribute('href','/my-trips');
   await expect(page.locator('.account-links').getByRole('link',{name:'My trips',exact:true})).toHaveClass('primary');

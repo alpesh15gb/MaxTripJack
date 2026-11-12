@@ -192,7 +192,9 @@ export async function expectNoHorizontalOverflow(page: Page) {
 export async function expectFlightToolbarValuesFit(page: Page) {
   const filters=page.getByRole('button',{name:/^Filters/});
   if(await filters.isVisible()&&await filters.getAttribute('aria-expanded')==='false')await filters.click();
-  for (const label of ['Sort by', 'Airline (any segment)', 'Stops']) {
+  const mobileSort = page.viewportSize()!.width <= 1100;
+  if (!mobileSort) await expect(page.getByRole('group', { name: 'Sort flights', exact: true })).toBeVisible();
+  for (const label of [...(mobileSort ? ['Sort by'] : []), 'Airline (any segment)', 'Stops']) {
     const select = page.getByRole('combobox', { name: label, exact: true });
     const size = await select.evaluate(element => {
       const input = element as HTMLSelectElement;

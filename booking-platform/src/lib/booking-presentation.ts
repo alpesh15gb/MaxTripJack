@@ -1,4 +1,5 @@
 import {suppliedMinutes,supplierInstant} from './supplier-time';
+import {comparableFareEstimate} from './fare-display';
 /** Pure customer-facing presentation helpers. Never infer a supplier promise. */
 export type FlightSegment = {
   dt: string; at: string; duration?: number; isRs?: boolean;
@@ -24,7 +25,7 @@ export function indiaToday(now = new Date()) {
   return new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
 }
 export function estimatedFare(flight: Flight) {
-  const prices = flight.totalPriceList.map(fare => fare.customerEstimateMinor).filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  const prices = flight.totalPriceList.map(fare => comparableFareEstimate(fare, 'INR')).filter((value): value is number => value !== null);
   return prices.length ? Math.min(...prices) : Number.POSITIVE_INFINITY;
 }
 /** Return/multicity COMBO contains several journeys, not connecting stops. */

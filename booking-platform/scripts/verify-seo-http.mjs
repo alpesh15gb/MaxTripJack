@@ -11,6 +11,7 @@ import { once } from "node:events";
 import { createServer } from "node:net";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { officeServices } from "../src/lib/business-profile.ts";
 import {legalPolicies} from "../src/lib/legal-policies.ts";
 import { PUBLIC_SEO_PAGES } from "../src/lib/seo-registry.ts";
 
@@ -38,15 +39,20 @@ function jsonLd(html) {
       return JSON.parse(match[2]);
     });
 }
-function inspectSchema(value) {
-  if (Array.isArray(value)) { value.forEach(inspectSchema); return; }
+function inspectSchema(value, serviceOffer = false) {
+  if (Array.isArray(value)) { value.forEach(item => inspectSchema(item, serviceOffer)); return; }
   if (!value || typeof value !== "object") return;
   const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
-  for (const type of types) check(!["Offer", "AggregateOffer", "AggregateRating", "Review", "Flight"].includes(type), `No invented public ${type} schema`);
+  for (const type of types) check(!["AggregateOffer", "AggregateRating", "Review", "Flight"].includes(type), `No invented public ${type} schema`);
   for (const key of ["offers", "price", "lowPrice", "highPrice", "priceRange", "aggregateRating", "review", "reviewCount"]) {
     check(!(key in value), `No unapproved public schema field ${key}`);
   }
-  Object.values(value).forEach(inspectSchema);
+  if (types.includes("Offer")) {
+    check(serviceOffer && value.itemOffered?.["@type"] === "Service" && officeServices.includes(value.itemOffered.name), "Only verified office services may use unpriced Offer markup");
+  }
+  for (const [key, child] of Object.entries(value)) {
+    inspectSchema(child, key === "makesOffer" && types.includes("TravelAgency"));
+  }
 }
 function inspectDiscoveryGraph(schemas, html, path) {
   const nodes = schemas.flat();
@@ -179,13 +185,13 @@ await withServer({ SEO_INDEXING_ENABLED: "false", SEO_SITE_ORIGIN: origin }, asy
     // parsed URLs so / and the empty root path remain the same resource.
     equal(new URL(canonicals[0]).href, new URL(origin + path).href, `${path}: self canonical`);
     check(robotsValues(html).some(value => value.includes("noindex")), `${path}: UAT meta noindex`);
-    const schemas = jsonLd(html); check(schemas.length > 0, `${path}: JSON-LD server-rendered`); schemas.forEach(inspectSchema); inspectDiscoveryGraph(schemas, html, path);
+    const schemas = jsonLd(html); check(schemas.length > 0, `${path}: JSON-LD server-rendered`); schemas.forEach(schema => inspectSchema(schema)); inspectDiscoveryGraph(schemas, html, path);
     check(!/(?:₹|INR\s*)\s*[0-9][0-9,]*(?:\.[0-9]+)?/.test(cleanText(html)), `${path}: no invented public fare`);
     check(!/guaranteed (?:lowest|cheapest|first.place)|\b\d[\d,]*\s+(?:happy customers|verified reviews)\b/i.test(cleanText(html)), `${path}: no unsupported superlatives/testimonials`);
     if (path === "/") {
       const hero = tags(html, "img").find(tag => tag.alt === "Turquoise lagoon and overwater villas in the Maldives");
       check(Boolean(hero), "Homepage editorial hero is an actual accessible responsive image");
-      check(Boolean(hero.srcset) && hero.sizes === "(max-width:700px) 38vw, 48vw", "Split hero declares responsive candidates and its actual layout sizes");
+      check(Boolean(hero.srcset) && hero.sizes === "(max-width: 1288px) 100vw, 1240px", "Full-width hero declares responsive candidates and its actual layout sizes");
       check(hero.loading !== "lazy", "Above-fold editorial hero is not deferred as a below-fold image");
       const imagePreloads = tags(html, "link").filter(tag => tag.rel === "preload" && tag.as === "image");
       check(imagePreloads.length === 1 && imagePreloads[0].imagesrcset === hero.srcset && imagePreloads[0].imagesizes === hero.sizes, "Only the above-fold responsive hero receives an image preload");
