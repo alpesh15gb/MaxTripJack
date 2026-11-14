@@ -17,6 +17,7 @@ import "./journey-flow.css";
 import "./journey-polish.css";
 import "./flight-decision.css";
 import "./visual-polish.css";
+import "./checkout-flow.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

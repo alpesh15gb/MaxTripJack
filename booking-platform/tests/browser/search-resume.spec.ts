@@ -41,7 +41,7 @@ test('hotel occupancy survives successful submission and reload without an autom
  expect(provider.requests('/api/travel/search')[1].body).toMatchObject({rooms:rooms.map(room=>({...room,children:room.childAge.length}))});
 });
 
-test('sign-in return retains submitted multicity passengers rather than the original URL or draft',async({page,provider})=>{
+test('legacy sign-in return retains submitted multicity passengers rather than the original URL or draft',async({page,provider})=>{
  provider.session=null;
  provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',legs:JSON.stringify(legs),date:departure,adults:'2',cabin:'BUSINESS'}));
@@ -50,13 +50,14 @@ test('sign-in return retains submitted multicity passengers rather than the orig
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
  await page.locator('.fare-comparison > summary').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
- const link=page.getByRole('link',{name:'Sign in to review selection',exact:true});
- await expect(link).toBeVisible();
- const target=new URL((await link.getAttribute('href'))!,'http://127.0.0.1:3100').searchParams.get('returnTo')!;
- const params=new URL(target,'http://127.0.0.1:3100').searchParams;
+ await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
+ // Existing return links must retain the submitted search even though new
+ // verification now runs inline without leaving the booking workspace.
+ const target=new URL(page.url());target.searchParams.set('resumeReview','1');
+ const params=target.searchParams;
  expect(params.get('adults')).toBe('3');expect(JSON.parse(params.get('legs')!)).toEqual(legs);expect(params.get('cabin')).toBe('BUSINESS');
  provider.session=syntheticSession();delete provider.overrides['POST /api/travel/review'];
- await page.goto(target);
+ await page.goto(target.href);
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });

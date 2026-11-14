@@ -84,7 +84,7 @@ test('same-price hotel room, meal and cancellation changes show explicit previou
  await expect(disclosure(page)).toContainText('Same price does not mean same terms.');
  await retainedTraveller(page);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'same-price-hotel-room-meal-cancellation');
  await reviewPayment(page);await expect(consent(page)).not.toBeChecked();await page.getByRole('button',{name:/^Pay .* securely$/}).click();expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await page.getByRole('button',{name:'Back to travellers',exact:true}).click();await retainedTraveller(page);expect(provider.requests('/api/travel/review')).toHaveLength(2);
+ await page.getByRole('button',{name:'Back to guests',exact:true}).click();await retainedTraveller(page);expect(provider.requests('/api/travel/review')).toHaveLength(2);
 });
 
 test('reordered reviewed outbound/return journeys do not invent changed baggage or refund terms',async({page,provider},testInfo)=>{

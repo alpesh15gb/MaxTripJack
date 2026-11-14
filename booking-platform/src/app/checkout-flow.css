@@ -1,0 +1,115 @@
+/* Booking decisions stay together, including email verification and the receipt. */
+.journey-flow .booking-layout:has(.checkout-verification-stage) { grid-template-columns: minmax(0, 1fr); }
+.journey-flow .checkout-verification-stage {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.8fr);
+  gap: 28px;
+  align-items: start;
+  max-width: 1040px;
+  margin: 24px auto 36px;
+  padding: 32px;
+  border: 1px solid #dce5de;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 12px 36px #173b2c08;
+}
+.checkout-verification-stage > * { min-width: 0; }
+.checkout-verification-stage > h2 { grid-column: 1 / -1; margin: 0; letter-spacing: -.03em; }
+.checkout-verification-stage > .booking-verification-actions { grid-column: 1 / -1; margin-top: 0; }
+.booking-verification-summary {
+  padding: 24px;
+  border: 1px solid #dce5de;
+  border-radius: 14px;
+  background: #f4f7f2;
+  overflow-wrap: anywhere;
+}
+.journey-flow .booking-verification-summary.signin-selection-context { padding: 24px; margin: 0; }
+.checkout-verification-actions { margin-top: 14px; }
+.booking-verification-summary h2,
+.booking-verification-summary h3 { color: #183b2c; margin: 0 0 12px; }
+.booking-verification-summary p { margin: 8px 0; line-height: 1.6; }
+.booking-verification-summary small { display: block; color: #55635a; line-height: 1.5; }
+.booking-verification-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.checkout-verification { min-width: 0; color: #233c30; }
+.checkout-verification-heading h2,
+.checkout-verification-heading h3 { font-size: clamp(22px, 2.5vw, 28px); letter-spacing: -.035em; line-height: 1.2; margin: 0 0 12px; }
+.checkout-verification-heading p,
+.checkout-verification-note { color: #5a685f; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.checkout-verification-form { display: grid; gap: 18px; margin-top: 24px; }
+.checkout-verification-form label { display: grid; gap: 8px; font-size: 14px; font-weight: 600; }
+.checkout-verification-form input:not([type="checkbox"]) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #abbcaf;
+  border-radius: 10px;
+  color: #183b2c;
+  font: inherit;
+  font-size: 16px;
+}
+.checkout-verification-form label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 10px; font-weight: 400; }
+.checkout-verification-form input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: #1f5940; }
+.checkout-verification-form .checkout-verification-code { font-size: 24px; letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+.checkout-verification-form button.primary { min-height: 50px; border-radius: 10px; background: #1f5940; color: #fff; border: 1px solid #1f5940; }
+.checkout-verification-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.checkout-verification-actions button { min-height: 44px; white-space: normal; }
+.checkout-verification [role="alert"] { padding: 12px 14px; background: #fff5ed; border: 1px solid #eed5bc; border-radius: 10px; color: #753e1d; font-size: 14px; line-height: 1.5; }
+.checkout-verification [role="status"] { color: #53675a; font-size: 14px; line-height: 1.5; }
+.checkout-verification :focus-visible { outline: 3px solid #328759; outline-offset: 3px; }
+.checkout-verification button:disabled { opacity: .6; cursor: not-allowed; }
+
+.booking-status-page { width: 100%; max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; color: #233c30; }
+.booking-status-back { display: inline-flex; margin-bottom: 28px; color: #1f5940; text-decoration: none; font-weight: 600; }
+.booking-status-header { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
+.booking-status-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 58px; height: 58px; border-radius: 50%; background: #e6eee5; color: #1f5940; }
+.booking-status-header.is-attention .booking-status-icon { background: #fff1dc; color: #835b19; }
+.booking-status-header .eyebrow { margin-top: 0; }
+.booking-status-header h1 { margin: 10px 0 12px; font-size: clamp(28px, 4vw, 40px); line-height: 1.15; letter-spacing: -.04em; color: #183b2c; }
+.booking-status-header p { color: #5a685f; line-height: 1.6; max-width: 65ch; }
+.booking-status-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 24px; align-items: start; }
+.booking-status-main { display: grid; gap: 20px; min-width: 0; }
+.booking-status-card, .booking-status-summary { padding: 28px; background: #fff; border: 1px solid #dce5de; border-radius: 16px; min-width: 0; overflow-wrap: anywhere; }
+.booking-status-card h2, .booking-status-summary h2 { margin: 0 0 16px; font-size: 21px; line-height: 1.3; letter-spacing: -.025em; }
+.booking-status-card p, .booking-status-summary p { line-height: 1.6; }
+.booking-status-steps { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 18px; }
+.booking-status-steps li { display: flex; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid #e8eee9; line-height: 1.5; }
+.booking-status-step-icon { display: inline-flex; justify-content: center; align-items: center; flex: 0 0 34px; height: 34px; border: 1px solid #dce5de; border-radius: 50%; color: #6c7b70; background: #f4f7f2; }
+.booking-status-steps li.is-complete .booking-status-step-icon { background: #1f5940; border-color: #1f5940; color: white; }
+.booking-status-steps li.is-current .booking-status-step-icon { border-color: #1f5940; color: #1f5940; box-shadow: 0 0 0 3px #e5efe7; }
+.booking-status-steps h3 { font-size: 16px; margin: 3px 0; }
+.booking-status-steps li strong { display: block; }
+.booking-status-steps li p, .booking-status-steps li small { margin: 4px 0 0; color: #5a685f; font-size: 14px; }
+.booking-status-summary dl { margin: 0; }
+.booking-status-summary dt { color: #5a685f; font-size: 13px; margin-top: 18px; }
+.booking-status-summary dd { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
+.booking-status-refresh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.booking-status-refresh > span { font-size: 12px; color: #5a685f; }
+.booking-status-refresh button, .booking-status-confirmation > a { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; }
+.booking-status-passenger { margin: 16px 0; padding: 14px; border-radius: 10px; background: #f4f7f2; }
+.booking-status-passenger h3 { font-size: 16px; margin: 0 0 8px; }
+.booking-status-passenger p { font-size: 14px; margin: 4px 0; }
+.booking-status-confirmation dd { margin: 6px 0 0; font-weight: 600; }
+.booking-status-summary-note { color: #5a685f; font-size: 13px; margin-top: 24px; }
+.booking-status-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.booking-status-actions a, .booking-status-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 11px 18px; text-decoration: none; border-radius: 10px; }
+.booking-status-page [role="alert"] { padding: 16px; border: 1px solid #eed5bc; border-radius: 12px; background: #fff8ef; line-height: 1.6; }
+.booking-status-page [role="status"] { line-height: 1.6; }
+
+@media (max-width: 700px) {
+  .journey-flow .checkout-verification-stage { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 20px; margin: 16px 0 24px; }
+  .journey-flow .booking-verification-summary.signin-selection-context { padding: 16px; }
+  .checkout-verification-form { margin-top: 18px; }
+  .checkout-verification-actions { align-items: stretch; }
+  .checkout-verification-actions button { flex: 1 1 auto; }
+  .booking-status-page { padding: 24px 16px 48px; }
+  .booking-status-header { gap: 12px; }
+  .booking-status-icon { flex-basis: 40px; height: 40px; }
+  .booking-status-icon svg { width: 23px; height: 23px; }
+  .booking-status-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .booking-status-card, .booking-status-summary { padding: 20px; }
+  .booking-status-actions a, .booking-status-actions button { flex: 1 1 auto; text-align: center; }
+}

@@ -1,20 +1,19 @@
 import type {Locator,Page,TestInfo} from '@playwright/test';
-import {test,expect,openFlightSearch,departure,returning,searchId,syntheticSession,expectNoHorizontalOverflow} from './fixtures';
+import {test,expect,openFlightSearch,departure,returning,searchId,syntheticSession,expectNoHorizontalOverflow,reviewedQuote} from './fixtures';
 
 const key='maxtravel:selection:v1';
 async function chooseFlight(page:Page){
  await page.locator('.fare-comparison > summary').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
 }
-async function followAccountLink(page:Page,selection=true){
- const link=page.getByRole('link',{name:selection?'Sign in to review selection':'Sign in, then search again',exact:true});
- const href=await link.getAttribute('href');expect(href).not.toBeNull();
- const accountUrl=new URL(href!,page.url()).href;
- await link.click();
- // Next client navigation completes after the click handler. Before reading the
- // URL, reloading or pressing Back, prove the destination/history entry committed.
+// Deliberately exercise previously issued account-return URLs. New checkout
+// verification is inline and no longer renders a link to the account page.
+async function followLegacyAccountLink(page:Page){
+ const target=new URL(page.url());target.searchParams.set('resumeReview','1');
+ const accountUrl=new URL('/account?'+new URLSearchParams({returnTo:target.pathname+target.search}),page.url()).href;
+ await page.goto(accountUrl);
  await expect(page).toHaveURL(accountUrl);
- await expect(page.getByRole('heading',{level:1,name:selection?'Sign in to review your selection':'Sign in to continue your search',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{level:1,name:'Sign in to review your selection',exact:true})).toBeVisible();
  return accountUrl;
 }
 async function naturalViewportEvidence(page:Page,info:TestInfo,name:string,critical:Locator[]){
@@ -55,7 +54,7 @@ async function savedSelection(page:Page){
  return saved;
 }
 
-test('flight sign-in interruption preserves visible choice through Back, Forward and reload without repeat supplier calls',async({page,provider},info)=>{
+test('legacy flight account return preserves visible choice through Back, Forward and reload without repeat supplier calls',async({page,provider},info)=>{
  provider.session=null;
  provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await openFlightSearch(page);await chooseFlight(page);
@@ -66,7 +65,7 @@ test('flight sign-in interruption preserves visible choice through Back, Forward
  const historyUrl=page.url();
  expect(new URL(historyUrl).searchParams.get('resumeReview')).toBe('0');
  expect(new URL(historyUrl).searchParams.get('selectionKey')).toMatch(/^[0-9a-f-]{36}$/);
- await followAccountLink(page);
+ await followLegacyAccountLink(page);
  await expect(page).toHaveURL(/\/account\?/);
  await page.goBack();
  await expect(page).toHaveURL(historyUrl);
@@ -77,7 +76,7 @@ test('flight sign-in interruption preserves visible choice through Back, Forward
  const saved=await savedSelection(page);
  await expect(saved).toContainText('BOM → DEL');await expect(saved).toContainText('Selected fare: STANDARD');
  await expect(saved).toBeFocused();
- await naturalViewportEvidence(page,info,'saved-flight-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'BOM → DEL',exact:true}),saved.getByText('Selected fare: STANDARD',{exact:true}),saved.getByRole('link',{name:'Sign in to review selection',exact:true}),saved.getByRole('button',{name:'Search again',exact:true})]);
+ await naturalViewportEvidence(page,info,'saved-flight-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'BOM → DEL',exact:true}),saved.getByText('Selected fare: STANDARD',{exact:true}),saved.getByRole('heading',{name:'Continue with your email',exact:true})]);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(1);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -88,7 +87,7 @@ test('verified history return remains view-only; explicit account Continue check
  await openFlightSearch(page);await chooseFlight(page);
  await expect(page.locator('#booking-signin-title')).toBeVisible();
  const historyUrl=page.url();
- const accountUrl=await followAccountLink(page);
+ const accountUrl=await followLegacyAccountLink(page);
  provider.session=syntheticSession();delete provider.overrides['POST /api/travel/review'];
  await page.goto(historyUrl);
  const saved=await savedSelection(page);
@@ -103,7 +102,7 @@ test('verified history return remains view-only; explicit account Continue check
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('hotel account interruption retains property, room and meals but never a cached price',async({page,provider},info)=>{
+test('legacy hotel account return retains property, room and meals but never a cached price',async({page,provider},info)=>{
  provider.session=null;
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Palm House',customerEstimateMinor:800000}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'deluxe',roomInfo:[{name:'Deluxe twin room'}],mealBasis:'BREAKFAST',pricing:{totalPrice:8000},cancellation:{isRefundable:false,penalties:[]}}]}};
@@ -113,7 +112,7 @@ test('hotel account interruption retains property, room and meals but never a ca
  await page.getByRole('button',{name:'Review stay',exact:true}).click();
  await expect(page.locator('.signin-selection-context')).toContainText('Deluxe twin room');
  const historyUrl=page.url();
- await followAccountLink(page);await page.goBack();
+ await followLegacyAccountLink(page);await page.goBack();
  await expect(page).toHaveURL(historyUrl);
  await expect(page.getByRole('main')).toContainText('Deluxe twin room');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -123,7 +122,7 @@ test('hotel account interruption retains property, room and meals but never a ca
  const saved=await savedSelection(page);
  await expect(saved).toContainText('Palm House');await expect(saved).toContainText('Deluxe twin room');await expect(saved).toContainText('BREAKFAST');
  await expect(saved).toBeFocused();
- await naturalViewportEvidence(page,info,'saved-hotel-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'Palm House',exact:true}),saved.getByText('Deluxe twin room',{exact:true}),saved.getByRole('link',{name:'Sign in to review selection',exact:true}),saved.getByRole('button',{name:'Search again',exact:true})]);
+ await naturalViewportEvidence(page,info,'saved-hotel-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'Palm House',exact:true}),saved.getByText('Deluxe twin room',{exact:true}),saved.getByRole('heading',{name:'Continue with your email',exact:true})]);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(1);
@@ -136,7 +135,7 @@ for(const corruption of ['expired','malformed','malformed-key','superseded'] as 
   await openFlightSearch(page);await chooseFlight(page);
   await expect(page.locator('#booking-signin-title')).toBeVisible();
   const historyUrl=page.url();
-  await followAccountLink(page);
+  await followLegacyAccountLink(page);
   await page.evaluate(({key,corruption})=>{
    const handoff=JSON.parse(sessionStorage.getItem(key)!);
    if(corruption==='expired')handoff.savedAt=Date.now()-14*60*1000;
@@ -324,12 +323,10 @@ test('an older account Continue link cannot adopt a newer saved selection',async
  await openFlightSearch(page);await chooseFlight(page);
  await expect(page.locator('#booking-signin-title')).toBeVisible();
  const originalKey=new URL(page.url()).searchParams.get('selectionKey');
- const signIn=page.getByRole('link',{name:'Sign in to review selection',exact:true});
- const accountTarget=new URL((await signIn.getAttribute('href'))!,'http://127.0.0.1:3100');
- const returnTarget=new URL(accountTarget.searchParams.get('returnTo')!,'http://127.0.0.1:3100');
+ const returnTarget=new URL(page.url());returnTarget.searchParams.set('resumeReview','1');
  expect(returnTarget.searchParams.get('selectionKey')).toBe(originalKey);
  expect(returnTarget.searchParams.get('resumeReview')).toBe('1');
- await followAccountLink(page);
+ await followLegacyAccountLink(page);
  await page.evaluate(key=>{
   const handoff=JSON.parse(sessionStorage.getItem(key)!);
   handoff.key='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';handoff.selection={priceIds:['different-newer-fare']};
@@ -358,7 +355,7 @@ test('legacy keyless account Continue cannot adopt a newer keyed handoff',async(
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('failed storage replacement clears old selection and keeps account Back free of supplier requests',async({page,provider})=>{
+test('storage failure keeps inline verification and the current choice without resurrecting an older handoff',async({page,provider})=>{
  provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await openFlightSearch(page);await chooseFlight(page);
  await expect(page.locator('#booking-signin-title')).toBeVisible();
@@ -367,22 +364,90 @@ test('failed storage replacement clears old selection and keeps account Back fre
   const original=Storage.prototype.setItem;
   Storage.prototype.setItem=function(key,value){if(key==='maxtravel:selection:v1')throw new DOMException('Synthetic storage quota','QuotaExceededError');return original.call(this,key,value);};
  });
- await page.getByRole('button',{name:'Back to fares',exact:true}).click();
+ await page.getByRole('button',{name:'Back to flights',exact:true}).click();
  await page.locator('.fare-option').getByRole('button',{name:'Selected',exact:true}).click();
- await expect(page.locator('#booking-feedback')).toContainText('cannot preserve this selection');
+ await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
+ await expect(page.locator('.booking-verification-summary')).toContainText('BOM → DEL');
+ await expect(page.locator('#booking-results')).toBeHidden();
  expect(await page.evaluate(key=>sessionStorage.getItem(key),key)).toBeNull();
- const historyUrl=page.url();
- expect(new URL(historyUrl).searchParams.has('resumeSelection')).toBe(false);
- expect(new URL(historyUrl).searchParams.has('autoSearch')).toBe(false);
- await followAccountLink(page,false);
- await page.goBack();await expect(page).toHaveURL(historyUrl);
- await expect(page.locator('#booking-search')).toBeVisible();
- await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+ expect(new URL(page.url()).pathname).toBe('/book');
+ expect(new URL(page.url()).searchParams.has('resumeSelection')).toBe(false);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(2);
+ await page.getByRole('button',{name:'Back to flights',exact:true}).click();
+ await expect(page.locator('#booking-results')).toBeVisible();
  await page.reload();
  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(2);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
+
+for(const product of ['FLIGHT','HOTEL'] as const){
+ test(product.toLowerCase()+' browser Back and Forward preserve traveller drafts and the selected choice',async({page,provider})=>{
+  if(product==='FLIGHT'){await openFlightSearch(page);await chooseFlight(page);}
+  else{
+   provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Palm House',customerEstimateMinor:800000}]}};
+   provider.quote=reviewedQuote({product:'HOTEL',hotelName:'Palm House',summary:{checkIn:departure,checkOut:returning,adults:1,rooms:[{adults:1,children:0,childAge:[]}]},review:{option:{roomInfo:[{name:'Deluxe room'}],cancellation:{isRefundable:false,penalties:[]}}}});
+   await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'1',autoSearch:'1'}));
+   await page.getByRole('button',{name:'Choose room',exact:true}).click();
+   await page.getByRole('button',{name:'Review stay',exact:true}).click();
+  }
+  const form=page.getByRole('form',{name:'Review and travellers'});
+  await expect(form).toBeVisible();
+  await form.getByLabel('First name',{exact:true}).fill('Aarav');
+  await form.getByLabel('Last name',{exact:true}).fill('Example');
+  await form.getByLabel('Email',{exact:true}).fill('draft@example.test');
+  await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+  await page.getByRole('button',{name:'Review booking',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+  await page.goBack();
+  await expect(form.getByLabel('First name',{exact:true})).toBeVisible();
+  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+  await page.goForward();
+  await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+  await expect(page.locator('.final-traveller-summary')).toContainText('draft@example.test');
+  await page.goBack();await page.goBack();
+  await expect(product==='FLIGHT'?page.locator('#booking-results'):page.locator('#booking-rooms')).toBeVisible();
+  await expect(form).toHaveCount(0);
+  await page.goForward();
+  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+  await expect(form.getByLabel('Email',{exact:true})).toHaveValue('draft@example.test');
+  const stored=await page.evaluate(()=>JSON.stringify({history:history.state,session:{...sessionStorage}}));
+  expect(stored).not.toContain('draft@example.test');expect(stored).not.toContain('9876543210');
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+  expect(provider.requests('/api/travel/review')).toHaveLength(1);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ });
+}
+
+for(const incomplete of [false,true]){
+ test(`browser Forward requires a new review after ${incomplete?'incomplete':'valid'} traveller edits`,async({page,provider})=>{
+  await openFlightSearch(page);await chooseFlight(page);
+  const form=page.getByRole('form',{name:'Review and travellers'});
+  await form.getByLabel('First name',{exact:true}).fill('Aarav');
+  await form.getByLabel('Last name',{exact:true}).fill('Example');
+  await form.getByLabel('Email',{exact:true}).fill('original@example.test');
+  await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+  await page.getByRole('button',{name:'Review booking',exact:true}).click();
+  await expect(page.locator('.final-traveller-summary')).toContainText('original@example.test');
+  await page.goBack();
+  await form.getByLabel('First name',{exact:true}).fill(incomplete?'':'Isha');
+  await form.getByLabel('Email',{exact:true}).fill('updated@example.test');
+  await page.goForward();
+  await expect(form.getByLabel('First name',{exact:true})).toBeVisible();
+  await expect(form.getByLabel('First name',{exact:true})).toHaveValue(incomplete?'':'Isha');
+  await expect(page.locator('.final-traveller-summary')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/^Pay .* securely$/})).toHaveCount(0);
+  await page.getByRole('button',{name:'Review booking',exact:true}).click();
+  if(incomplete){
+   await expect(page.locator('#traveller-errors')).toBeVisible();
+   await expect(page.getByRole('button',{name:/^Pay .* securely$/})).toHaveCount(0);
+  }else{
+   await expect(page.locator('.final-traveller-summary')).toContainText('Isha');
+   await expect(page.locator('.final-traveller-summary')).toContainText('updated@example.test');
+   await expect(page.locator('.final-traveller-summary')).not.toContainText('original@example.test');
+  }
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ });
+}

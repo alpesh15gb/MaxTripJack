@@ -6,7 +6,8 @@ export function safeAccountReturn(value: unknown): string {
     const decoded = decodeURIComponent(value);
     if (/[\\\u0000-\u001f\u007f]/.test(decoded) || decoded.startsWith("//")) return "/my-trips";
     const url = new URL(value, "https://account-return.invalid");
-    if (url.origin !== "https://account-return.invalid" || !["/book", "/my-trips", "/travellers"].includes(url.pathname)) return "/my-trips";
+    const bookingStatus = /^\/my-trips\/[^/]+$/.test(url.pathname) && z.string().uuid().safeParse(url.pathname.slice("/my-trips/".length)).success;
+    if (url.origin !== "https://account-return.invalid" || (!bookingStatus && !["/book", "/my-trips", "/travellers"].includes(url.pathname))) return "/my-trips";
     // Only non-sensitive search criteria may travel through authentication URLs.
     const safe = new URLSearchParams();
     const allowed = ["product", "from", "to", "date", "returnDate", "end", "adults", "children", "infants", "cabin", "city", "nationality", "rooms", "legs", "hotelIds", "autoSearch"];

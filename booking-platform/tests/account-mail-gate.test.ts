@@ -12,7 +12,7 @@ test('mail outage gates reset and verification before account lookup, uniformly 
     }}]});
   const compiled={exports:{} as {POST:(request:Request)=>Promise<Response>;GET:(request:Request)=>Promise<Response>}};
   new Function('module','exports',output.outputFiles[0].text)(compiled,compiled.exports);
-  for(const endpoint of ['request-password-reset','send-verification-email','sign-up/email','request-password-reset/','send-verification-email/','sign-up/email/']){
+  for(const endpoint of ['request-password-reset','send-verification-email','sign-up/email','request-password-reset/','send-verification-email/','sign-up/email/','email-otp/send-verification-otp','email-otp/send-verification-otp/']){
     const results=[];
     for(const email of ['existing@example.test','missing@example.test']){
       const response=await compiled.exports.POST(new Request(`https://example.test/api/auth/${endpoint}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email})}));

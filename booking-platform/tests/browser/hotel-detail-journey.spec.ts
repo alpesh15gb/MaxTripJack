@@ -111,7 +111,7 @@ test('multi-room bundled rate preserves exact option and total through sign-in r
  await page.goto('/book?'+new URLSearchParams(params));await title(page).click();
  const rate=page.locator('.room-option-card');await expect(rate).toContainText('Twin room + Family room');await expect(rate).toContainText('₹12,000');await expect(rate).not.toContainText('₹24,000');
  await expect(page.locator('#booking-rooms')).toContainText('2 rooms');await expect(page.locator('#booking-rooms')).toContainText('4 guests');
- await rate.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.getByRole('link',{name:'Sign in to review selection',exact:true})).toBeVisible();
+ await rate.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('.checkout-verification')).toBeVisible();
  await expect(page.locator('.signin-selection-context')).toContainText('Twin room + Family room');
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'exact-two-room-bundle'}]);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

@@ -14,6 +14,13 @@ test('account return rejects external, encoded protocol-relative, control and in
  for(const value of [null,{},'https://evil.test','//evil.test','/\\evil.test','/%2fevil.test','/book%0a','/book\n','/api/auth/sign-out','/account','/reset-password','/operations','javascript:alert(1)','/%ZZ','/book/../../api/auth',' /book'])assert.equal(safeAccountReturn(value),'/my-trips',String(value));
 });
 
+test('booking status return accepts an exact UUID and strips query strings and fragments',()=>{
+ const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ assert.equal(safeAccountReturn(`/my-trips/${id}?token=private&email=test%40example.test#receipt`),`/my-trips/${id}`);
+ assert.equal(accountHref(`/my-trips/${id}`),`/account?returnTo=%2Fmy-trips%2F${id}`);
+ for(const path of ['/my-trips/not-a-booking','/my-trips/'+id+'/cancel','/my-trips/'+id+'%2F..','/my-trips/%2e%2e/operations'])assert.equal(safeAccountReturn(path),'/my-trips');
+});
+
 test('account redirects preserve the exact bounded selection key and review intent',()=>{
  const selectionKey='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  for(const resumeReview of ['0','1']){
