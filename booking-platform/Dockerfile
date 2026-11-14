@@ -19,6 +19,7 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/scripts/standalone-server.mjs ./scripts/standalone-server.mjs
 COPY --from=build /app/scripts/migrate.mjs ./scripts/migrate.mjs
+COPY --from=build /app/scripts/migrate-checkout-identity.mjs ./scripts/migrate-checkout-identity.mjs
 COPY --from=build /app/scripts/provision-runtime-role.mjs ./scripts/provision-runtime-role.mjs
 COPY --from=build /app/scripts/release-check.mjs ./scripts/release-check.mjs
 COPY --from=build /app/db ./db

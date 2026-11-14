@@ -154,6 +154,7 @@ export const test = base.extend<{ provider: ProviderFixture }>({
         } }; break;
         case 'GET /api/admin/context': reply={body:{userId:'synthetic-staff',name:'Synthetic operations',permissions:['bookings:read','bookings:reconcile','companies:manage','pricing:manage','finance:read','payments:manage','cancellations:manage','cancellations:execute','refunds:manage','refunds:execute','integrations:manage','audit:read']}};break;
         case 'GET /api/auth/get-session': reply = { body: provider.session }; break;
+        case 'GET /api/auth/channels': reply = { body: { email: true, whatsapp: false } }; break;
         case 'GET /api/auth/list-accounts': reply = { body: [{ id: 'synthetic-credential', providerId: 'credential', accountId: syntheticSession().user.id }] }; break;
       }
       if (!reply) {

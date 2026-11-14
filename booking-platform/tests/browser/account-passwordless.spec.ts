@@ -14,7 +14,7 @@ test('account email-code sign-in returns to the exact booking status and drops u
     itinerary: { from: 'BOM', to: 'DEL', date: departure, adults: 1 }, passengers: [], refunds: [],
   } };
   await page.goto('/account?' + new URLSearchParams({ returnTo: `${statusPath}?email=discard-me@example.test#discard` }));
-  await page.getByRole('button', { name: 'Sign in with an email code', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign in with a code', exact: true }).click();
   const verification = page.locator('.checkout-verification');
   await verification.getByLabel('Email address', { exact: true }).fill(email);
   await verification.getByRole('button', { name: 'Send verification code', exact: true }).click();

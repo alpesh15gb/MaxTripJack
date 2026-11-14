@@ -28,7 +28,7 @@ export async function reportHarness(entry: string, state: Harness) {
     "./auth": `${prefix} import {HttpError} from ${JSON.stringify(resolve("src/lib/http.ts"))}; export function getAuth(){return {api:{async getSession(){
       if(state.denied===401)return null;
       if(state.denied===503)throw new HttpError(503,'Synthetic authentication unavailable');
-      return {user:{id:'synthetic-report-user',emailVerified:true,twoFactorEnabled:state.denied!==403}};
+      return {user:{id:'synthetic-report-user',email:'synthetic-report@example.test',emailVerified:true,twoFactorEnabled:state.denied!==403}};
     }}};}`,
     "./request-limit": "export async function requestLimit(){}",
     "next/navigation": "export function unstable_rethrow(){}",

@@ -121,7 +121,7 @@ test('leaving a pending sign-in prevents its late response from redirecting the 
  try{
   await page.goto('/account?returnTo=%2Ftravellers');await page.getByLabel('Email',{exact:true}).fill('person@example.test');await page.getByLabel('Password',{exact:true}).fill('SyntheticPassword123');
   await page.getByRole('button',{name:'Sign in',exact:true}).last().click();await expect.poll(()=>writes).toBe(1);
-  await page.locator('.account-shell').getByRole('link',{name:'← Max Travel home',exact:true}).click();await expect(page).toHaveURL('/');
+  await page.getByRole('banner').getByRole('link',{name:'Max Travel home',exact:true}).click();await expect(page).toHaveURL('/');
  }finally{const response=page.waitForResponse('**/api/auth/sign-in/email');release();await response;}
  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
  await expect(page).toHaveURL('/');expect(writes).toBe(1);

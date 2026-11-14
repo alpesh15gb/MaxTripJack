@@ -5,7 +5,7 @@ import { accountMailOriginAllowed } from "@/lib/auth-origin";
 async function handle(request: Request) {
   try {
     const path = new URL(request.url).pathname.replace(/\/+$/, "");
-    const initiatesMail = ["/api/auth/sign-up/email", "/api/auth/request-password-reset", "/api/auth/send-verification-email", "/api/auth/email-otp/send-verification-otp"].includes(path);
+    const initiatesMail = ["/api/auth/sign-up/email", "/api/auth/request-password-reset", "/api/auth/send-verification-email", "/api/auth/email-otp/send-verification-otp", "/api/auth/phone-number/send-otp", "/api/auth/phone-number/verify"].includes(path);
     if (request.method === "POST" && initiatesMail && !accountMailOriginAllowed(request, process.env.BETTER_AUTH_URL)) throw new HttpError(403, "Untrusted account request origin.");
     // Privileged accounts cannot remove MFA through a generic client endpoint.
     if (path.endsWith("/two-factor/disable")) throw new HttpError(403, "Contact account administration for MFA recovery.");

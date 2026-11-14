@@ -15,7 +15,7 @@ export function checkoutTwoFactor() {
       after: plugin.hooks.after.map(hook => ({
         ...hook,
         matcher: (context: Parameters<typeof hook.matcher>[0]) =>
-          context.path === "/sign-in/email-otp" || hook.matcher(context),
+          context.path === "/sign-in/email-otp" || context.path === "/phone-number/verify" || hook.matcher(context),
       })),
     },
   };

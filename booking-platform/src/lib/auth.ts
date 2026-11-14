@@ -10,6 +10,10 @@ import { createAccountMailDispatcher } from "./account-mail-dispatch";
 import { authTrustedOrigins,configuredAuthBaseURL } from "./auth-origin";
 import { checkoutEmailOTP, checkoutTwoFactor } from "./checkout-auth";
 import { requestLimit } from "./request-limit";
+import { checkoutPhoneOTP } from "./phone-auth";
+import { linkWhatsAppAccount, postgresPhoneChallengeStore } from "./phone-challenge-store";
+import { sendWhatsAppCode, whatsappReady } from "./whatsapp";
+import { customerEmail } from "./customer-identity";
 
 const dispatchAccountMail = createAccountMailDispatcher({
   schedule: after, send: sendAccountMail,
@@ -27,15 +31,20 @@ function createAuth() {
   return betterAuth({
     appName: "Max Travel", secret, baseURL, database: database(), trustedOrigins: authTrustedOrigins(baseURL),
     emailAndPassword: { enabled: true, minPasswordLength: 12, maxPasswordLength: 128, requireEmailVerification: true,revokeSessionsOnPasswordReset:true,
-      sendResetPassword: async ({ user, url }) => { dispatchAccountMail("reset", user.email, url); } },
+      sendResetPassword: async ({ user, url }) => { if (customerEmail(user)) dispatchAccountMail("reset", user.email, url); } },
     emailVerification: { sendOnSignUp: true, autoSignInAfterVerification: false,
-      sendVerificationEmail: async ({ user, url }) => { dispatchAccountMail("verification", user.email, url); } },
+      sendVerificationEmail: async ({ user, url }) => { if (customerEmail(user)) dispatchAccountMail("verification", user.email, url); } },
     session: { expiresIn: 60 * 60 * 12, updateAge: 60 * 30, cookieCache: { enabled: false } },
-    rateLimit: { enabled: true, storage: "database", window: 60, max: 30, customRules: { "/sign-in/email": { window: 60, max: 5 }, "/sign-up/email": { window: 60, max: 3 },"/request-password-reset":{window:60,max:3},"/two-factor/verify-totp":{window:60,max:5},"/two-factor/verify-backup-code":{window:60,max:5},"/email-otp/send-verification-otp":{window:60,max:3},"/sign-in/email-otp":{window:60,max:5} } },
+    rateLimit: { enabled: true, storage: "database", window: 60, max: 30, customRules: { "/sign-in/email": { window: 60, max: 5 }, "/sign-up/email": { window: 60, max: 3 },"/request-password-reset":{window:60,max:3},"/two-factor/verify-totp":{window:60,max:5},"/two-factor/verify-backup-code":{window:60,max:5},"/email-otp/send-verification-otp":{window:60,max:3},"/sign-in/email-otp":{window:60,max:5},"/phone-number/send-otp":{window:60,max:3},"/phone-number/verify":{window:60,max:5} } },
     plugins: [expo(), checkoutEmailOTP({
       secret,
       send: (email, code) => dispatchAccountMail("signin-code", email, code),
       limitEmail: identifier => requestLimit(identifier, "checkout-email-code", 1),
+    }), checkoutPhoneOTP({
+      secret, ready: whatsappReady, send: sendWhatsAppCode,
+      limitPhone: identifier => requestLimit(identifier, "checkout-whatsapp-code", 1),
+      store: postgresPhoneChallengeStore((sql, values) => database().query(sql, values)),
+      linkAccount: (userId, phone) => linkWhatsAppAccount((sql, values) => database().query(sql, values), userId, phone),
     }), checkoutTwoFactor(), nextCookies()],
     advanced: { useSecureCookies: new URL(baseURL).protocol === "https:" },
   });

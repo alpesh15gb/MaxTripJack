@@ -18,7 +18,8 @@ import {completeHotelRooms,type DraftHotelRoom} from '@/lib/hotel-occupancy';
 import {bookingSearchPrefill,bookingSearchUrl,searchRooms,searchLegs} from '@/lib/booking-search-state';
 import {accountHref} from '@/lib/account-return';
 import {nextBookingSessionBoundary,type BookingSessionBoundary} from '@/lib/booking-session';
-import CheckoutVerification from './checkout-verification';
+import CheckoutVerification, {type VerifiedContact} from './checkout-verification';
+import {customerEmail,hasVerifiedCustomerIdentity} from '@/lib/customer-identity';
 import {type AvailableHotelOption} from './hotel-room-view';
 import HotelDetailView from './hotel-detail-view';
 import {hotelJourneyUrl,readHotelBrowse,writeHotelBrowse} from '@/lib/hotel-journey-state';
@@ -102,6 +103,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const [signInWithoutSelection,setSignInWithoutSelection]=useState(false);
   const [verificationSelection,setVerificationSelection]=useState<Selection|null>(null);
   const [verifiedEmail,setVerifiedEmail]=useState('');
+  const [verifiedPhone,setVerifiedPhone]=useState('');
   const [freshSearchRequired,setFreshSearchRequired]=useState(false);
   const [resumeSelection,setResumeSelection]=useState<Selection|null>(null);
   const handoffRead=useRef(false),resumeReviewAllowed=useRef(false);
@@ -600,20 +602,20 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       }else {if(current(task.id)&&error instanceof BookingApiError&&[400,403,404,409].includes(error.status))clearSelectionHandoff();report(error,task.id);}
     }finally{finish(task.id);}
   }
-  function continueVerifiedSelection(email:string){
+  function continueVerifiedSelection(contact:VerifiedContact){
     if(!mounted.current||busyRef.current||payment||paymentUncertain||recovery.blocked)return;
-    setVerifiedEmail(email);
+    setVerifiedEmail(contact.email);setVerifiedPhone(contact.phoneNumber??'');
     const nextSelection=verificationSelection??resumeSelection??savedHandoff?.selection;
     if(nextSelection&&results){resumeReviewAllowed.current=false;void review(nextSelection);}
-    else {clearSelectionHandoff();setMessage('Email verified. Choose your flight or room to continue.');}
+    else {clearSelectionHandoff();setMessage('Sign-in verified. Choose your flight or room to continue.');}
   }
   useEffect(()=>{
-    if(!resumeReviewAllowed.current||!resumeSelection||!results||!checkoutSession?.user.emailVerified||recovery.blocked)return;
+    if(!resumeReviewAllowed.current||!resumeSelection||!results||!hasVerifiedCustomerIdentity(checkoutSession?.user)||recovery.blocked)return;
     const timer=setTimeout(()=>{setResumeSelection(null);void review(resumeSelection);},0);
     return()=>clearTimeout(timer);
     // review is intentionally triggered once after account and recovered IDs resolve.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[resumeSelection,results,checkoutSession?.user.emailVerified,recovery.blocked]);
+  },[resumeSelection,results,checkoutSession?.user.emailVerified,checkoutSession?.user.phoneNumberVerified,recovery.blocked]);
   // Browser Back follows checkout stages while keeping private entries only in
   // this account's mounted workspace. History never contains traveller fields.
   useEffect(()=>{
@@ -832,11 +834,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           <p className="muted search-footnote">{product==='FLIGHT'?'Up to 9 adults and children, plus infants. All results show the estimated total for all travellers.':'Set guests for each room. Child ages must match their dates of birth at check-in.'}</p><button className="primary booking-search-submit" disabled={busy}>{busy?'Checking availability…':product==='FLIGHT'?'Search flights':'Search stays'}</button>
         </fieldset>{quote&&<p className="muted">To edit your search, return to your selection first.</p>}
       </form></details>
-      {busy&&verificationSelection&&checkingSelection&&<section className="white-card" role="status"><h2>Checking your selected {product==='HOTEL'?'room':'flight'}</h2><p>Your email is verified. We’re confirming the latest price and availability.</p></section>}
+      {busy&&verificationSelection&&checkingSelection&&<section className="white-card" role="status"><h2>Checking your selected {product==='HOTEL'?'room':'flight'}</h2><p>Your sign-in is verified. We’re confirming the latest price and availability.</p></section>}
       {verificationActive&&<section className="white-card checkout-verification-stage" aria-labelledby="booking-signin-title">
         <h2 id="booking-signin-title" tabIndex={-1}>{product==='HOTEL'?'Continue to guest details':'Continue to traveller details'}</h2>
         <div className="booking-verification-summary signin-selection-context"><strong>{product==='HOTEL'?rooms?.name||savedHandoff?.hotel?.name||'Selected stay':'Your selected flight'}</strong><p>{product==='HOTEL'?(savedHandoff?.hotel?.roomLabel||hotelRoomLabel({roomInfo:selectedRoom?.roomInfo??[]})):selectedJourney.map(flight=>flight.sI[0]?.da.code+' → '+flight.sI.at(-1)?.aa.code+' · '+travelDateTimeLabel(flight.sI[0]?.dt)).join(' / ')}</p>{product==='FLIGHT'&&<p>Selected fare: {selectedJourney.flatMap(flight=>flight.totalPriceList.map(fare=>fare.fareIdentifier.replaceAll('_',' '))).join(' / ')}</p>}{product==='HOTEL'&&(selectedRoom?.mealBasis||savedHandoff?.hotel?.mealBasis)&&<p>{(selectedRoom?.mealBasis||savedHandoff?.hotel?.mealBasis)?.replaceAll('_',' ')}</p>}{selectedEstimate!==null&&<p className="booking-verification-estimate"><strong>{money(selectedEstimate)}</strong> estimated {product==='HOTEL'?'stay total':'total for all travellers'}</p>}<p className="muted">Your choice stays here. We’ll confirm the latest price and availability before you enter traveller details.</p></div>
-        <CheckoutVerification initialEmail={checkoutSession?.user.email} onVerified={continueVerifiedSelection}/>
+        <CheckoutVerification initialEmail={customerEmail(checkoutSession?.user)} initialPhoneNumber={checkoutSession?.user.phoneNumber??undefined} onVerified={continueVerifiedSelection}/>
         <div className="booking-verification-actions"><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>{if(product==='HOTEL')returnToRoomOptions();else backToFlightResults();}}>{product==='HOTEL'?'Back to room options':'Back to flights'}</button></div>
       </section>}
       <div id="booking-feedback" tabIndex={-1}>{message&&!verificationActive&&<div className="booking-status info-message" role="alert" tabIndex={-1}>
@@ -879,7 +881,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
             const documents=<div className="form-row"><label>Passport number{passportRequired?'':' (optional)'}<input {...fieldProps(`passport-${index}`)} name={`passport-${index}`} required={passportRequired} maxLength={30} autoComplete="off"/>{fieldError(`passport-${index}`)}</label><label>Passport expiry{expiryRequired?'':' (optional)'}<input {...fieldProps(`expiry-${index}`)} name={`expiry-${index}`} required={expiryRequired} type="date"/>{fieldError(`expiry-${index}`)}</label><label>Passport nationality · 2-letter code<input {...fieldProps(`nationality-${index}`)} name={`nationality-${index}`} required={passportRequired} pattern="[A-Za-z]{2}" maxLength={2} placeholder="IN"/>{fieldError(`nationality-${index}`)}</label>{pt==='ADULT'&&<label>PAN{panRequired?'':' (optional)'}<input {...fieldProps(`pan-${index}`)} name={`pan-${index}`} required={panRequired} pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" maxLength={10}/>{fieldError(`pan-${index}`)}</label>}</div>;
             return <fieldset key={index} className="traveller-card"><legend>{quote.product==='HOTEL'?`Room ${hotelParty[index].roomIndex+1} · `:''}{pt==='ADULT'?'Adult':pt==='CHILD'?'Child':'Infant'} {index+1}</legend><p className="muted">Enter the name exactly as shown on the travel document.</p><SavedProfileFill index={index} type={pt}/><div className="form-row traveller-identity"><label>Title<select {...fieldProps(`title-${index}`)} name={`title-${index}`} defaultValue={pt==='ADULT'?'Mr':'Master'}><option>Mr</option><option>Ms</option><option>Mrs</option><option>Master</option><option>Miss</option></select>{fieldError(`title-${index}`)}</label><label>First name<input {...fieldProps(`first-${index}`)} name={`first-${index}`} required maxLength={80} autoComplete="given-name"/>{fieldError(`first-${index}`)}</label><label>Last name<input {...fieldProps(`last-${index}`)} name={`last-${index}`} required maxLength={80} autoComplete="family-name"/>{fieldError(`last-${index}`)}</label>{dobRequired&&<label>Date of birth<input {...fieldProps(`dob-${index}`)} name={`dob-${index}`} type="date" max={indiaToday()} required/>{fieldError(`dob-${index}`)}</label>}</div>{!dobRequired&&<details><summary>Add date of birth (optional)</summary><label>Date of birth<input {...fieldProps(`dob-${index}`)} name={`dob-${index}`} type="date" max={indiaToday()}/>{fieldError(`dob-${index}`)}</label></details>}{passportRequired||expiryRequired||panRequired?<><h4>Required travel documents</h4>{documents}</>:<details><summary>Travel documents (optional for this fare)</summary>{documents}</details>}</fieldset>;
           })}
-          <section id="booking-contact-details" className="booking-contact"><h3>Where should we send your trip details?</h3><p className="muted">Booking updates and confirmation will go to these contact details.</p><div className="form-row"><label>Email<input {...fieldProps('email')} name="email" type="email" autoComplete="email" defaultValue={verifiedEmail||checkoutSession?.user.email||''} required/>{fieldError('email')}</label><label>Indian mobile number<input {...fieldProps('phone')} name="phone" type="tel" inputMode="numeric" autoComplete="tel-national" pattern="[6-9][0-9]{9}" required placeholder="10-digit mobile number"/>{fieldError('phone')}</label></div></section>
+          <section id="booking-contact-details" className="booking-contact"><h3>Where should we send your trip details?</h3><p className="muted">Booking updates and confirmation will go to these contact details.</p><div className="form-row"><label>Email<input {...fieldProps('email')} name="email" type="email" autoComplete="email" defaultValue={verifiedEmail||customerEmail(checkoutSession?.user)} required/>{fieldError('email')}</label><label>Indian mobile number<input {...fieldProps('phone')} name="phone" type="tel" inputMode="numeric" autoComplete="tel-national" pattern="[6-9][0-9]{9}" defaultValue={/^\+91[6-9][0-9]{9}$/.test(verifiedPhone||checkoutSession?.user.phoneNumber||'')?(verifiedPhone||checkoutSession?.user.phoneNumber||'').slice(3):''} required placeholder="10-digit mobile number"/>{fieldError('phone')}</label></div></section>
           <details open={gstRequired}><summary>GST billing details{gstRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>GST number<input {...fieldProps('gstNumber')} name="gstNumber" onChange={event=>setGstEntered(Boolean(event.target.value.trim()))} required={gstRequired} minLength={15} maxLength={15}/>{fieldError('gstNumber')}</label><label>Registered business name<input {...fieldProps('gstName')} name="gstName" required={gstRequired||gstEntered} maxLength={35}/>{fieldError('gstName')}</label><label>Billing address<input {...fieldProps('gstAddress')} name="gstAddress" maxLength={70}/>{fieldError('gstAddress')}</label></div></details>
           <details open={emergencyRequired}><summary>Emergency contact{emergencyRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>Contact name<input {...fieldProps('emergencyName')} name="emergencyName" onChange={event=>setEmergencyEntered(Boolean(event.target.value.trim()))} required={emergencyRequired} maxLength={100}/>{fieldError('emergencyName')}</label><label>Contact email<input {...fieldProps('emergencyEmail')} name="emergencyEmail" required={emergencyRequired||emergencyEntered} type="email"/>{fieldError('emergencyEmail')}</label><label>Contact phone with country code<input {...fieldProps('emergencyPhone')} name="emergencyPhone" required={emergencyRequired||emergencyEntered} type="tel" minLength={10} maxLength={20}/>{fieldError('emergencyPhone')}</label></div></details>
           {quote.product==='FLIGHT'&&<CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={total=>setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total}:current)}/>}

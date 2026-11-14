@@ -2,6 +2,8 @@
 
 Flight and hotel checkout request a six-digit email code without leaving the selected journey. Code sign-in is also available on `/account`. Existing password sign-in remains available.
 
+For the WhatsApp alternative, its configuration and required additive migrations, see [WhatsApp or email verification](CHECKOUT-WHATSAPP-VERIFICATION.md). The no-migration statement below describes the original email-only change.
+
 ## Customer journey
 
 Both products now use three stages: **Choose → Travellers / Guests → Review & pay**. A guest verifies their email inside the second stage, with their selected fare or room still visible. Successful verification checks the selected inventory again and prefills the contact email. Existing verified sessions continue directly.

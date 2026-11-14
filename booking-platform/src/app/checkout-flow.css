@@ -32,12 +32,16 @@
 .booking-verification-summary small { display: block; color: #55635a; line-height: 1.5; }
 .booking-verification-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 .checkout-verification { min-width: 0; color: #233c30; }
+.checkout-verification-channels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; margin-bottom: 22px; border: 1px solid #dce5de; border-radius: 12px; background: #f4f7f2; }
+.checkout-verification-channels button { min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 8px; font: inherit; font-weight: 600; color: #53675a; background: transparent; cursor: pointer; }
+.checkout-verification-channels button[aria-pressed="true"] { color: #183b2c; border-color: #c5d7cb; background: #fff; box-shadow: 0 2px 5px #183b2c08; }
 .checkout-verification-heading h2,
 .checkout-verification-heading h3 { font-size: clamp(22px, 2.5vw, 28px); letter-spacing: -.035em; line-height: 1.2; margin: 0 0 12px; }
 .checkout-verification-heading p,
 .checkout-verification-note { color: #5a685f; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
 .checkout-verification-form { display: grid; gap: 18px; margin-top: 24px; }
 .checkout-verification-form label { display: grid; gap: 8px; font-size: 14px; font-weight: 600; }
+.checkout-verification-form label > small { font-weight: 400; font-size: 12px; line-height: 1.5; color: #5a685f; }
 .checkout-verification-form input:not([type="checkbox"]) {
   box-sizing: border-box;
   width: 100%;
@@ -61,6 +65,10 @@
 .checkout-verification [role="status"] { color: #53675a; font-size: 14px; line-height: 1.5; }
 .checkout-verification :focus-visible { outline: 3px solid #328759; outline-offset: 3px; }
 .checkout-verification button:disabled { opacity: .6; cursor: not-allowed; }
+.account-whatsapp { margin: 24px 0; padding: 20px; border: 1px solid #dce5de; border-radius: 14px; background: #f4f7f2; overflow-wrap: anywhere; }
+.account-whatsapp h3 { margin: 0 0 12px; }
+.account-whatsapp p { font-size: 14px; line-height: 1.6; }
+.account-whatsapp .checkout-verification { margin-top: 24px; }
 
 .booking-status-page { width: 100%; max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; color: #233c30; }
 .booking-status-back { display: inline-flex; margin-bottom: 28px; color: #1f5940; text-decoration: none; font-weight: 600; }

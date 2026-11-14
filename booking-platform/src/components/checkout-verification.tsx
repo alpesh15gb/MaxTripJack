@@ -3,67 +3,94 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { customerEmail, hasVerifiedCustomerIdentity, normalizeWhatsAppPhone } from "@/lib/customer-identity";
 
-type Stage = "email" | "code" | "mfa" | "check";
-type Props = { onVerified: (email: string) => void | Promise<void>; initialEmail?: string };
+type Stage = "contact" | "code" | "mfa" | "check";
+type Channel = "email" | "whatsapp";
+export type VerifiedContact = { email: string; phoneNumber?: string };
+type Props = { onVerified: (contact: VerifiedContact) => void | Promise<void>; initialEmail?: string; initialPhoneNumber?: string; expectedUserId?: string; mode?: "signin" | "link-phone" };
 
-/** Authentication stays in the mounted booking workspace; no return URLs or redirects. */
-export default function CheckoutVerification({ onVerified, initialEmail = "" }: Props) {
-  const id = useId();
-  const [email, setEmail] = useState(initialEmail);
-  const [code, setCode] = useState("");
-  const [stage, setStage] = useState<Stage>("email");
-  const [recovery, setRecovery] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [finished, setFinished] = useState(false);
-  const mounted = useRef(false), inFlight = useRef(false), complete = useRef(false);
+/** Authentication stays in the mounted workspace; contact ownership is checked server-side. */
+export default function CheckoutVerification({ onVerified, initialEmail = "", initialPhoneNumber = "", expectedUserId, mode = "signin" }: Props) {
+  const id = useId(), linking = mode === "link-phone";
+  const [channel, setChannel] = useState<Channel>(linking ? "whatsapp" : "email");
+  const [email, setEmail] = useState(initialEmail), [phone, setPhone] = useState(initialPhoneNumber);
+  const [channels, setChannels] = useState<{ whatsapp: boolean; email: boolean } | null>(null);
+  const [code, setCode] = useState(""), [stage, setStage] = useState<Stage>("contact");
+  const [recovery, setRecovery] = useState(false), [busy, setBusy] = useState(false);
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({}), [now, setNow] = useState(() => Date.now());
+  const [message, setMessage] = useState(""), [error, setError] = useState(""), [finished, setFinished] = useState(false);
+  const mounted = useRef(false), inFlight = useRef(false), complete = useRef(false), linkUserId = useRef<string | null>(null);
   const codeInput = useRef<HTMLInputElement>(null);
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = email.trim().toLowerCase(), normalizedPhone = normalizeWhatsAppPhone(phone);
+  const destination = channel === "email" ? normalizedEmail : normalizedPhone || phone.trim();
+  const cooldownKey = `${channel}:${destination}`;
+  const cooldown = Math.max(0, Math.ceil(((cooldowns[cooldownKey] || 0) - now) / 1000));
+  const channelUnavailable = channel === "whatsapp" ? channels?.whatsapp !== true : channels?.email === false;
 
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setTimeout(() => setCooldown(value => Math.max(0, value - 1)), 1000);
+    mounted.current = true;
+    const controller = new AbortController();
+    void fetch("/api/auth/channels", { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) })
+      .then(async response => { if (!response.ok) throw Error(); const value = await response.json(); if (mounted.current) setChannels({ whatsapp: value.whatsapp === true, email: value.email !== false }); })
+      .catch(() => { if (mounted.current && !controller.signal.aborted) setChannels({ whatsapp: false, email: true }); });
+    return () => { mounted.current = false; controller.abort(); };
+  }, []);
+  useEffect(() => {
+    if (!Object.values(cooldowns).some(until => until > now)) return;
+    const timer = setTimeout(() => setNow(Date.now()), 1000);
     return () => clearTimeout(timer);
-  }, [cooldown]);
+  }, [cooldowns, now]);
   useEffect(() => { if (stage === "code" || stage === "mfa") codeInput.current?.focus(); }, [stage, recovery]);
+  function startCooldown() { const current = Date.now(); setNow(current); setCooldowns(previous => ({ ...previous, [cooldownKey]: current + 60000 })); }
 
   async function confirmSession() {
     const response = await authClient.getSession({ fetchOptions: { cache: "no-store" } });
     if (!mounted.current) return;
     if (response.error) throw Error("We couldn’t check your sign-in. Please check again; your selection is still here.");
     const user = response.data?.user;
-    if (!user?.emailVerified || user.email.toLowerCase() !== normalizedEmail) {
+    const matchingContact = user && hasVerifiedCustomerIdentity(user) && (channel === "email"
+      ? user.emailVerified && customerEmail(user).toLowerCase() === normalizedEmail
+      : user.phoneNumberVerified === true && user.phoneNumber === normalizedPhone);
+    if (!matchingContact || (linking && (!linkUserId.current || user?.id !== linkUserId.current || (expectedUserId && user?.id !== expectedUserId)))) {
       setStage("code");
-      throw Error("Your email has not been verified for this sign-in. Enter your code or request a new one.");
+      throw Error(linking ? "We couldn’t confirm this number for your account. Check your sign-in and request a new code."
+        : `Your ${channel === "email" ? "email" : "WhatsApp number"} has not been verified for this sign-in. Enter your code or request a new one.`);
     }
     if (complete.current) return;
-    complete.current = true;
-    setFinished(true);
-    setCode("");
-    await onVerified(user.email);
+    complete.current = true; setFinished(true); setCode("");
+    await onVerified({ email: customerEmail(user), ...(user.phoneNumberVerified && user.phoneNumber ? { phoneNumber: user.phoneNumber } : {}) });
   }
 
   async function sendCode() {
-    if (inFlight.current || cooldown > 0) return;
+    if (inFlight.current || cooldown > 0 || channelUnavailable) return;
     inFlight.current = true; setBusy(true); setError(""); setMessage("");
     try {
-      const result = await authClient.emailOtp.sendVerificationOtp({ email: normalizedEmail, type: "sign-in" });
+      if (channel === "whatsapp" && !normalizedPhone) throw Error("Enter a 10-digit Indian mobile number, or include + and the country code for another country.");
+      if (linking) {
+        const current = await authClient.getSession({ fetchOptions: { cache: "no-store" } });
+        if (!mounted.current) return;
+        const user = current.data?.user;
+        if (current.error || !user?.emailVerified || !customerEmail(user) || (expectedUserId && user.id !== expectedUserId) || (initialEmail && customerEmail(user).toLowerCase() !== initialEmail.trim().toLowerCase()) || (linkUserId.current && linkUserId.current !== user.id))
+          throw Error("Sign in to your verified email account again before connecting WhatsApp.");
+        linkUserId.current = user.id;
+      }
+      const result = channel === "email"
+        ? await authClient.emailOtp.sendVerificationOtp({ email: normalizedEmail, type: "sign-in" })
+        : await authClient.$fetch("/phone-number/send-otp", { method: "POST", body: { phoneNumber: normalizedPhone!, purpose: linking ? "link" : "signin" } });
       if (!mounted.current) return;
       if (result.error) {
-        if (result.error.status === 429) setCooldown(60);
-        throw Error(result.error.status === 429
-          ? "Please wait a minute before requesting another code."
+        if (result.error.status === 429) startCooldown();
+        throw Error(result.error.status === 429 ? "Please wait a minute before requesting another code."
+          : channel === "whatsapp" ? linking ? "We couldn’t request a WhatsApp code right now. Please try again later." : "We couldn’t request a WhatsApp code right now. Try again or choose Email."
           : "We couldn’t request a code right now. Please try again or contact support.");
       }
-      setEmail(normalizedEmail); setCode(""); setStage("code"); setCooldown(60);
-      setMessage("Code requested. Check your inbox and spam folder. Use the latest code within 5 minutes.");
-    } catch (failure) {
-      if (mounted.current) setError(failure instanceof Error ? failure.message : "We couldn’t request a code. Please try again.");
-    } finally { inFlight.current = false; if (mounted.current) setBusy(false); }
+      if (channel === "email") setEmail(normalizedEmail); else setPhone(normalizedPhone!);
+      setCode(""); setStage("code"); startCooldown();
+      setMessage(channel === "email" ? "Code requested. Check your inbox and spam folder. Use the latest code within 5 minutes."
+        : "Code requested. Check WhatsApp on this number. Use the latest code within 5 minutes.");
+    } catch (failure) { if (mounted.current) setError(failure instanceof Error ? failure.message : "We couldn’t request a code. Please try again."); }
+    finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   }
 
   async function verify() {
@@ -73,56 +100,62 @@ export default function CheckoutVerification({ onVerified, initialEmail = "" }: 
       if (stage === "check") { await confirmSession(); return; }
       const result = stage === "mfa"
         ? recovery ? await authClient.twoFactor.verifyBackupCode({ code: code.trim() }) : await authClient.twoFactor.verifyTotp({ code: code.trim() })
-        : await authClient.signIn.emailOtp({ email: normalizedEmail, otp: code.trim() });
+        : channel === "email" ? await authClient.signIn.emailOtp({ email: normalizedEmail, otp: code.trim() })
+        : await authClient.phoneNumber.verify({ phoneNumber: normalizedPhone!, code: code.trim(), ...(linking ? { updatePhoneNumber: true } : {}) });
       if (!mounted.current) return;
-      if (result.error) throw Error(result.error.status === 429
-        ? "Too many attempts. Please wait a minute before trying again."
+      if (result.error) throw Error(result.error.status === 429 ? "Too many attempts. Please wait a minute before trying again."
         : stage === "mfa" ? "That security code could not be verified. Please try again."
-        : "That code is invalid or has expired. Check the latest email or request a new code.");
+        : `That code is invalid or has expired. Check the latest ${channel === "email" ? "email" : "WhatsApp message"} or request a new code.`);
       setCode("");
       if (result.data && "twoFactorRedirect" in result.data && result.data.twoFactorRedirect) {
-        setStage("mfa");
-        setMessage("Your email is verified. Complete your account’s authenticator check to continue.");
-        return;
+        setStage("mfa"); setMessage("Your code is verified. Complete your account’s authenticator check to continue."); return;
       }
-      setStage("check");
-      await confirmSession();
+      setStage("check"); await confirmSession();
     } catch (failure) {
       if (mounted.current) {
-        // An interrupted response can follow a consumed code. Allow a read-only
-        // session check without asking the customer to repeat the sign-in mutation.
         if (!(failure instanceof Error)) setStage("check");
         setError(failure instanceof Error ? failure.message : "We couldn’t confirm your sign-in. Check its status before trying again.");
       }
     } finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   }
 
-  function changeEmail() {
-    if (busy) return;
-    setStage("email"); setCode(""); setRecovery(false); setMessage(""); setError("");
+  function changeContact(nextChannel = channel) {
+    if (busy || finished) return;
+    setChannel(nextChannel); setStage("contact"); setCode(""); setRecovery(false); setMessage(""); setError("");
   }
 
   return <section className="checkout-verification" aria-labelledby={`${id}-heading`} aria-busy={busy}>
+    {!linking && channels?.whatsapp && <div className="checkout-verification-channels" role="group" aria-label="Verification method">
+      <button type="button" aria-pressed={channel === "email"} disabled={busy || finished} onClick={() => changeContact("email")}>Email</button>
+      <button type="button" aria-pressed={channel === "whatsapp"} disabled={busy || finished} onClick={() => changeContact("whatsapp")}>WhatsApp</button>
+    </div>}
     <header className="checkout-verification-heading">
-      <h3 id={`${id}-heading`}>{stage === "email" ? "Continue with your email" : stage === "mfa" ? "Your account security check" : stage === "check" ? "Confirm your sign-in" : "Enter your email code"}</h3>
-      <p>{stage === "email" ? "We’ll send a one-time code. No password needed." : stage === "mfa" ? "Your existing two-factor protection stays on." : `Continue securely as ${normalizedEmail}.`}</p>
+      <h3 id={`${id}-heading`}>{stage === "contact" ? linking ? "Connect WhatsApp to your account" : channel === "email" ? "Continue with your email" : "Continue with WhatsApp"
+        : stage === "mfa" ? "Your account security check" : stage === "check" ? linking ? "Confirm your WhatsApp number" : "Confirm your sign-in" : channel === "email" ? "Enter your email code" : "Enter your WhatsApp code"}</h3>
+      <p>{stage === "contact" ? linking ? "Verify your number to use WhatsApp codes for this same account and its trips." : "We’ll send a one-time code. No password needed."
+        : stage === "mfa" ? "Your existing two-factor protection stays on." : `Continue securely as ${destination}.`}</p>
     </header>
-    <form className="checkout-verification-form" onSubmit={event => { event.preventDefault(); void (stage === "email" ? sendCode() : verify()); }}>
-      {stage === "email" ? <label htmlFor={`${id}-email`}>Email address
+    {channelUnavailable && <p role="status">{channel === "whatsapp" ? channels === null ? "Checking WhatsApp availability…" : "WhatsApp verification is unavailable right now. Please try again later."
+      : "Email verification is unavailable right now. Choose WhatsApp or try again later."}</p>}
+    <form className="checkout-verification-form" onSubmit={event => { event.preventDefault(); void (stage === "contact" ? sendCode() : verify()); }}>
+      {stage === "contact" ? channel === "email" ? <label htmlFor={`${id}-email`}>Email address
         <input id={`${id}-email`} name="email" type="email" autoComplete="email" maxLength={254} required value={email} onChange={event => setEmail(event.target.value)} disabled={busy} />
+      </label> : <label htmlFor={`${id}-phone`}>WhatsApp number
+        <input id={`${id}-phone`} name="phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={24} required value={phone} placeholder="98765 43210 or +country code" onChange={event => setPhone(event.target.value)} disabled={busy} aria-label="WhatsApp number" aria-describedby={`${id}-phone-hint`} />
+        <small id={`${id}-phone-hint`}>India (+91) for 10-digit numbers. For another country, include + and its country code.</small>
       </label> : stage !== "check" ? <label htmlFor={`${id}-code`}>{stage === "mfa" ? recovery ? "One-time backup code" : "Authenticator code" : "Verification code"}
         <input ref={codeInput} className="checkout-verification-code" id={`${id}-code`} name="code" type="text" inputMode={recovery ? "text" : "numeric"} autoComplete="one-time-code" pattern={recovery ? undefined : "[0-9]{6}"} maxLength={recovery ? 80 : 6} required value={code} onChange={event => setCode(recovery ? event.target.value : event.target.value.replace(/\D/g, "").slice(0, 6))} disabled={busy} aria-describedby={error ? `${id}-error` : undefined} aria-invalid={Boolean(error)} />
       </label> : null}
       {stage === "mfa" && <label className="checkbox"><input type="checkbox" checked={recovery} onChange={event => { setRecovery(event.target.checked); setCode(""); setError(""); }} disabled={busy} />Use a saved recovery code</label>}
-      <button className="primary" disabled={busy || finished || (stage === "email" && cooldown > 0)}>{busy ? "Please wait…" : stage === "email" ? cooldown > 0 ? `Send code in ${cooldown}s` : "Send verification code" : stage === "check" ? "Check sign-in status" : "Verify & continue"}</button>
+      <button className="primary" disabled={busy || finished || (stage === "contact" && (cooldown > 0 || channelUnavailable))}>{busy ? "Please wait…" : stage === "contact" ? cooldown > 0 ? `Send code in ${cooldown}s` : channel === "email" ? "Send verification code" : "Send WhatsApp code" : stage === "check" ? "Check sign-in status" : "Verify & continue"}</button>
     </form>
-    {stage !== "email" && <div className="checkout-verification-actions">
+    {stage !== "contact" && <div className="checkout-verification-actions">
       {stage === "code" && <button type="button" className="secondary" disabled={busy || cooldown > 0} onClick={() => void sendCode()}>{cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}</button>}
-      <button type="button" className="secondary" disabled={busy} onClick={changeEmail}>Use a different email</button>
+      <button type="button" className="secondary" disabled={busy} onClick={() => changeContact()}>{channel === "email" ? "Use a different email" : "Use a different number"}</button>
       {stage === "code" && error && <button type="button" className="secondary" disabled={busy} onClick={() => { setStage("check"); setError(""); }}>Already verified? Check sign-in</button>}
     </div>}
     {message && <p className="info-message" role="status">{message}</p>}
     {error && <p id={`${id}-error`} className="info-message" role="alert">{error}</p>}
-    <p className="checkout-verification-note">Your email gives you secure access to your trips. <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</Link> · <Link href="/customer-support" target="_blank" rel="noopener noreferrer">Need help?</Link></p>
+    <p className="checkout-verification-note">{linking ? "Your trips stay in this account." : channel === "whatsapp" ? "Use this verified number to return to your trips." : "Your email gives you secure access to your trips."} <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</Link> · <Link href="/customer-support" target="_blank" rel="noopener noreferrer">Need help?</Link></p>
   </section>;
 }
