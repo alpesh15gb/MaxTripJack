@@ -10,6 +10,10 @@ Both products now use three stages: **Choose → Travellers / Guests → Review 
 
 Search controls stay out of checkout. Change selection returns to the loaded comparisons or room options. Browser Back and Forward retain traveller entries in memory for the same account; changing those entries requires another explicit review before payment. Signing out or switching accounts clears private drafts. Browser storage and history never hold traveller names, contacts or document fields.
 
+The final review uses one explicit **Agree & pay** action beside the current total and linked terms; there is no separate acceptance checkbox. The mobile action advances the current stage. Supplier-required documents stay visible, while optional document fields remain collapsed independently (for example, a required PAN does not expand optional passport fields).
+
+If the price expires during entry, continuing checks the selected inventory again and retains the entered details. Refreshed requirements are validated before opening the payment review; new required fields or optional extras that need review return to the details stage. A refresh from the payment screen never creates a payment order: the customer sees the latest total and changed terms and must explicitly choose **Agree & pay** again. Existing or uncertain payment orders keep their recovery controls and cannot start a new quote/payment through this shortcut.
+
 Successful Razorpay verification opens `/my-trips/{bookingId}`. This page reads the owned booking and distinguishes payment receipt, supplier confirmation and the ticket or stay confirmation. Pending status refreshes automatically. **Track booking** in My trips returns to it. Uncertain payments keep the existing order and duplicate-payment protections.
 
 ## Production configuration

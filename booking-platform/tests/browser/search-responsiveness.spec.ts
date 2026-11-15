@@ -126,7 +126,7 @@ for(const metadataFirst of [false,true]){
    if(!metadataFirst){await expect(rooms).not.toContainText('Verified room property address');releaseContent();}
    await expect(rooms).toContainText('Verified room property address');
    expect(await option.innerText()).toBe(rateAndPolicy);
-   await rooms.getByRole('button',{name:'Review stay',exact:true}).click();
+   await rooms.getByRole('button',{name:'Continue with room',exact:true}).click();
    await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
    expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,hid:'10001',optionId:hotelOption.optionId});
    expect(provider.requests('/api/payments/create')).toHaveLength(0);

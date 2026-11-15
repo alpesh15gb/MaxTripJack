@@ -32,12 +32,13 @@ test('rates retain exact IDs, complete multi-room composition and customer total
  assert.match(html,/<div class="stay-preview-price"><small>Estimated full stay total from<\/small><strong>₹8,765\.43<\/strong><span>2 nights · 2 rooms · 4 guests<\/span><\/div>/);
  for(const total of ['₹8,765.43','₹9,000.00'])assert.ok(html.includes(`<small>Estimated full stay total</small><strong>${total}</strong><p>2 nights · 2 rooms · 4 guests</p>`));
  assert.match(html,/Cancellation terms require review/);assert.match(html,/ROOM ONLY/);assert.match(html,/Wi-Fi/);
- assert.equal((html.match(/>Review stay<\/button>/g)??[]).length,2);
+ assert.equal((html.match(/>Continue with room<\/button>/g)??[]).length,2);
+ assert.doesNotMatch(html,/<button[^>]*aria-pressed=[^>]*>Continue with room<\/button>/);
  assert.doesNotMatch(html,/free.cancellation|per night|taxes included|discount/i);
 });
 test('invalid rate total cannot be selected and active review locks property-back controls',async()=>{
  const html=await render({busy:true,options:[{optionId:'invalid',pricing:{totalPrice:NaN}}]});
- assert.match(html,/Price unavailable/);assert.match(html,/<button[^>]*disabled=""[^>]*aria-pressed="false"[^>]*>Review stay<\/button>/);
+ assert.match(html,/Price unavailable/);assert.match(html,/<button[^>]*disabled=""[^>]*>Continue with room<\/button>/);
  assert.match(html,/<button type="button" disabled=""[^>]*>/);assert.doesNotMatch(html,/NaN/);
 });
 test('gallery shows only deduplicated allowlisted supplier images without leaking referrers or inventing counts',async()=>{

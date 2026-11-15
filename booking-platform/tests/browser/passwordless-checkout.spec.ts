@@ -143,9 +143,9 @@ test('verified payment opens this booking status without claiming supplier confi
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
   await form.getByLabel('Indian mobile number', { exact: true }).fill('9876543210');
-  await page.getByRole('button', { name: 'Review booking', exact: true }).click();
-  await page.getByRole('checkbox', { name: /I accept the reviewed total and supplier rules/ }).check();
-  await page.getByRole('button', { name: /^Pay .* securely$/ }).click();
+  await page.locator('#booking-review').getByRole('button', { name: 'Continue to review', exact: true }).click();
+  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
+  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
   await expect.poll(() => page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
   await page.evaluate('window.__syntheticGateway.complete()');
   await expect(page).toHaveURL(new RegExp(`/my-trips/${bookingId}$`));
@@ -164,7 +164,7 @@ test('hotel verification retains property and room and continues into guest deta
   provider.quote = reviewedQuote({ product: 'HOTEL', totalMinor: 800000, summary: { city: 'Goa', checkIn: departure, checkOut: returning, rooms: [{ adults: 2, children: 0, childAge: [] }] }, review: { option } });
   await page.goto('/book?' + new URLSearchParams({ product: 'HOTEL', hotelIds: '10001', city: 'Goa', date: departure, end: returning, adults: '2', autoSearch: '1' }));
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
-  await page.getByRole('button', { name: 'Review stay', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue with room', exact: true }).click();
   await expect(page.locator('.booking-verification-summary')).toContainText('Palm House');
   await expect(page.locator('.booking-verification-summary')).toContainText('Deluxe twin room');
   const verification = await requestCode(page);

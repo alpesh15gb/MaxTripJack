@@ -43,7 +43,7 @@ test('normalization is bounded and never includes private fare fields',()=>{
  const rows=reviewedTerms('FLIGHT',{tripInfos:Array.from({length:1000},()=>trip('DEL','BOM'))});assert.ok(rows.length<=120);
  assert.equal(rows.some(row=>row.label.includes('Journey 13')),false);
 });
-test('refresh disclosure is accessible and keeps consent and draft flow untouched',()=>{
+test('refresh disclosure remains accessible and retains the comparison and private draft boundary',()=>{
  const ui=readFileSync(new URL('../src/components/refreshed-terms.tsx',import.meta.url),'utf8');
  assert.match(ui,/role="status"/);assert.match(ui,/aria-labelledby="refreshed-terms-title"/);assert.match(ui,/Previously:/);assert.match(ui,/Now:/);assert.match(ui,/Total unchanged/);assert.match(ui,/No differences detected in the comparable details/);
  const checkout=readFileSync(new URL('../src/components/live-booking.tsx',import.meta.url),'utf8');

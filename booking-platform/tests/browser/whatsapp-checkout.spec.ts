@@ -69,7 +69,7 @@ test('hotel WhatsApp verification keeps the exact property and room', async ({ p
   provider.quote = reviewedQuote({ product: 'HOTEL', totalMinor: 800000, summary: { city: 'Goa', checkIn: departure, checkOut: returning, rooms: [{ adults: 2, children: 0, childAge: [] }] }, review: { option } });
   await page.goto('/book?' + new URLSearchParams({ product: 'HOTEL', hotelIds: '10001', city: 'Goa', date: departure, end: returning, adults: '2', autoSearch: '1' }));
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
-  await page.getByRole('button', { name: 'Review stay', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue with room', exact: true }).click();
   const verification = await requestPhoneCode(page, '+91 98765 43210');
   await expect(page.locator('.booking-verification-summary')).toContainText('Palm House');
   await expect(page.locator('.booking-verification-summary')).toContainText('Garden twin room');

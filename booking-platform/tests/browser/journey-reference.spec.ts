@@ -51,7 +51,7 @@ test('flight decision has an explicit next action and reversible fare choice',as
  await summary.press('Space');
  await card.locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();
- await expect(page.getByRole('button',{name:'Review booking',exact:true})).toBeVisible();
+ await expect(page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true})).toBeVisible();
  await expect(page.locator('#booking-review')).toContainText(travelDateLabel(departure));
  await expect(page.locator('.selected-journey-recap')).toContainText(travelDateLabel(departure));
  await expect(page.locator('#booking-summary')).toContainText(travelDateLabel(departure));
@@ -92,7 +92,7 @@ test('room workspace and back preserve the exact filtered search without another
  await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');if(await toggle.isVisible())await toggle.click();
  const choose=page.getByRole('button',{name:'Choose room',exact:true});await choose.click();
  await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#hotel-detail-title')).toBeFocused();
- await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toBeVisible();
  await reference(page,testInfo,'journey-property-overview');
  await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeFocused();
  await reference(page,testInfo,'journey-room-workspace');

@@ -68,14 +68,22 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   await expect(page.locator('.selected-reviewed-total')).toContainText('₹7,400.50');await expect(page.locator('.selected-reviewed-total')).not.toContainText('₹7,200.50');
   const expiryWidth=await page.locator('.booking-expiry').evaluate(node=>{const content=node.firstElementChild!.getBoundingClientRect(),box=node.getBoundingClientRect();return {content:content.width,available:box.width-22};});
   if((page.viewportSize()?.width??1440)<=600)expect(expiryWidth.content).toBeGreaterThanOrEqual(expiryWidth.available-1);
-  await shot(page,info,'compact-traveller-entry',[page.locator('.selected-reviewed-total'),page.locator('.booking-expiry'),page.getByRole('textbox',{name:'First name',exact:true})]);
-  await expect(page.locator('.mobile-booking-action')).toHaveCount(0);
+  const mobileAction=page.locator('.mobile-booking-action'),mobile=(page.viewportSize()?.width??1440)<=700;
+  if(mobile){
+   await expect(mobileAction).toBeVisible();
+   await expect(mobileAction.getByRole('button',{name:'Continue to review',exact:true})).toBeEnabled();
+   await expect(mobileAction).toContainText('₹7,400.50');
+  }else await expect(mobileAction).toBeHidden();
+  // A narrow screen can show the reviewed context and persistent continuation
+  // before the name fields; keyboard entry must scroll those fields clear of it.
+  await shot(page,info,'compact-traveller-entry',[page.locator('.selected-reviewed-total'),page.locator('.booking-expiry'),...(mobile?[mobileAction]:[])]);
   const firstName=page.getByRole('textbox',{name:'First name',exact:true});
-  const firstVisibility=await firstName.evaluate(node=>{const r=node.getBoundingClientRect(),view=visualViewport;return {top:r.top,bottom:r.bottom,viewportTop:view?.offsetTop??0,viewportBottom:(view?.offsetTop??0)+(view?.height??innerHeight),hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===node};});
-  expect(firstVisibility.top).toBeGreaterThanOrEqual(firstVisibility.viewportTop);expect(firstVisibility.bottom).toBeLessThanOrEqual(firstVisibility.viewportBottom);expect(firstVisibility.hit).toBe(true);
   await expect(page.locator('#booking-review-title')).toBeFocused();
   for(let tabs=0;tabs<12&&!await firstName.evaluate(node=>node===document.activeElement);tabs++)await page.keyboard.press('Tab');
   await expect(firstName).toBeFocused();
+  await shot(page,info,'compact-traveller-name-entry',[firstName]);
+  const firstVisibility=await firstName.evaluate(node=>{const r=node.getBoundingClientRect(),view=visualViewport,sticky=document.querySelector('.mobile-booking-action')?.getBoundingClientRect();return {top:r.top,bottom:r.bottom,viewportTop:view?.offsetTop??0,viewportBottom:Math.min((view?.offsetTop??0)+(view?.height??innerHeight),sticky?.height?sticky.top:innerHeight),hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===node};});
+  expect(firstVisibility.top).toBeGreaterThanOrEqual(firstVisibility.viewportTop);expect(firstVisibility.bottom).toBeLessThanOrEqual(firstVisibility.viewportBottom);expect(firstVisibility.hit).toBe(true);
   await page.getByText('Original search details & fare',{exact:true}).click();await expect(page.locator('.selected-source-details')).toContainText('₹7,200.50');await expect(page.locator('.selected-source-details')).toContainText('Estimated total');
   if((page.viewportSize()?.width??1440)<=600){
    const title=page.locator('select[name="title-0"]');await title.selectOption('Master');
@@ -91,7 +99,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Policy fixture stay',customerEstimateMinor:800000}]}};
   provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'room-exact-id',roomInfo:[{name:'Twin room'}],pricing:{totalPrice:8000},cancellation:{isRefundable:true,penalties:[{from:'2020-01-01T00:00:00',to:'2099-01-01T00:00:00',amount:0}]}}]}};
   provider.quote=reviewedQuote({product:'HOTEL',summary:{city:'Goa',date:departure,end:returning,adults:1},review:{conditions:{},option:{optionId:'room-exact-id'}}});
-  await page.goto(hotelQuery());await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Review stay',exact:true}).click();
+  await page.goto(hotelQuery());await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Continue with room',exact:true}).click();
   await expect(page.locator('.selected-journey-recap')).toContainText('Cancellation terms require review');await expect(page.locator('.selected-journey-recap')).not.toContainText('free-cancellation');
   await expect(page.getByText('Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.',{exact:true})).toBeVisible();expect(provider.requests('/api/payments/create')).toHaveLength(0);
  });

@@ -37,6 +37,14 @@ test('flight pending is scoped, truthful and before its action; read-only cards 
  for(const props of [{busy:false,checkingFareId:'fare-1'},{busy:true,checkingFareId:'other'},{busy:true,checkingFareId:'fare-1',readOnly:true}])assert.doesNotMatch(renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,...props})),/Checking current fare/);
 });
 
+test('continuing with a flight is an action while choosing a journey leg retains selection semantics',()=>{
+ const single=renderToStaticMarkup(createElement(BookingFlightCard,flightProps));
+ assert.match(single,/>Check fare &amp; continue<\/button>/);
+ assert.doesNotMatch(single,/<button[^>]*aria-pressed=/);
+ const leg=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,selectionMode:'leg'}));
+ assert.match(leg,/<button[^>]*aria-pressed="true"[^>]*>Selected<\/button>/);
+});
+
 test('room cards retain full-stay scope, known selection and safe missing-data fallback',()=>{
  const html=renderToStaticMarkup(createElement(HotelRoomView,{...roomProps,busy:true,checkingOptionId:'room-1',selectedOptionId:'room-1'}));
  assert.match(html,/31 Oct 2026 – 2 Nov 2026/);assert.match(html,/2 nights · 2 rooms · 3 guests/);

@@ -109,7 +109,7 @@ test('legacy hotel account return retains property, room and meals but never a c
  provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
- await page.getByRole('button',{name:'Review stay',exact:true}).click();
+ await page.getByRole('button',{name:'Continue with room',exact:true}).click();
  await expect(page.locator('.signin-selection-context')).toContainText('Deluxe twin room');
  const historyUrl=page.url();
  await followLegacyAccountLink(page);await page.goBack();
@@ -231,12 +231,12 @@ test('slow room review stays beside its rate and blocks repeated clicks',async({
  try{
   await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
   await page.getByRole('button',{name:'Choose room',exact:true}).click();
-  await page.getByRole('button',{name:'Review stay',exact:true}).click();
+  await page.getByRole('button',{name:'Continue with room',exact:true}).click();
   const option=page.locator('.room-option-card').first(),status=option.getByRole('status');
-  await expect(option.getByRole('button',{name:'Checking room…',exact:true})).toBeDisabled();
+  await expect(option.getByRole('button',{name:'Checking your room…',exact:true})).toBeDisabled();
   await expect(status).toBeVisible();
   await expect.poll(()=>status.evaluate(node=>{const r=node.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;})).toBe(true);
-  await naturalViewportEvidence(page,info,'selected-room-check-pending',[status,option.getByRole('button',{name:'Checking room…',exact:true})]);
+  await naturalViewportEvidence(page,info,'selected-room-check-pending',[status,option.getByRole('button',{name:'Checking your room…',exact:true})]);
   await option.locator('button').last().evaluate(node=>{(node as HTMLButtonElement).click();(node as HTMLButtonElement).click();});
   release();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
@@ -255,7 +255,7 @@ test('room availability progress stays with the chosen property and prevents dup
   const property=page.locator('#booking-rooms');
   await expect(property.locator('#hotel-detail-title')).toHaveText('Palm House');
   await expect(property.locator('#hotel-room-options')).toContainText('Checking available rooms');
-  await expect(property.getByRole('button',{name:'Review stay',exact:true})).toHaveCount(0);
+  await expect(property.getByRole('button',{name:'Continue with room',exact:true})).toHaveCount(0);
   await naturalViewportEvidence(page,info,'property-room-availability-pending',[property.locator('#hotel-detail-title')]);
   // Exploring the property while availability loads must not start duplicate requests.
   await property.locator('.stay-rate-preview > .primary').click();
@@ -365,7 +365,7 @@ test('storage failure keeps inline verification and the current choice without r
   Storage.prototype.setItem=function(key,value){if(key==='maxtravel:selection:v1')throw new DOMException('Synthetic storage quota','QuotaExceededError');return original.call(this,key,value);};
  });
  await page.getByRole('button',{name:'Back to flights',exact:true}).click();
- await page.locator('.fare-option').getByRole('button',{name:'Selected',exact:true}).click();
+ await page.locator('.fare-option').getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
  await expect(page.locator('.booking-verification-summary')).toContainText('BOM → DEL');
  await expect(page.locator('#booking-results')).toBeHidden();
@@ -391,7 +391,7 @@ for(const product of ['FLIGHT','HOTEL'] as const){
    provider.quote=reviewedQuote({product:'HOTEL',hotelName:'Palm House',summary:{checkIn:departure,checkOut:returning,adults:1,rooms:[{adults:1,children:0,childAge:[]}]},review:{option:{roomInfo:[{name:'Deluxe room'}],cancellation:{isRefundable:false,penalties:[]}}}});
    await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'1',autoSearch:'1'}));
    await page.getByRole('button',{name:'Choose room',exact:true}).click();
-   await page.getByRole('button',{name:'Review stay',exact:true}).click();
+   await page.getByRole('button',{name:'Continue with room',exact:true}).click();
   }
   const form=page.getByRole('form',{name:'Review and travellers'});
   await expect(form).toBeVisible();
@@ -399,7 +399,7 @@ for(const product of ['FLIGHT','HOTEL'] as const){
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('draft@example.test');
   await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
-  await page.getByRole('button',{name:'Review booking',exact:true}).click();
+  await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
   await page.goBack();
   await expect(form.getByLabel('First name',{exact:true})).toBeVisible();
@@ -429,7 +429,7 @@ for(const incomplete of [false,true]){
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('original@example.test');
   await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
-  await page.getByRole('button',{name:'Review booking',exact:true}).click();
+  await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();
   await expect(page.locator('.final-traveller-summary')).toContainText('original@example.test');
   await page.goBack();
   await form.getByLabel('First name',{exact:true}).fill(incomplete?'':'Isha');
@@ -437,12 +437,12 @@ for(const incomplete of [false,true]){
   await page.goForward();
   await expect(form.getByLabel('First name',{exact:true})).toBeVisible();
   await expect(form.getByLabel('First name',{exact:true})).toHaveValue(incomplete?'':'Isha');
-  await expect(page.locator('.final-traveller-summary')).toHaveCount(0);
-  await expect(page.getByRole('button',{name:/^Pay .* securely$/})).toHaveCount(0);
-  await page.getByRole('button',{name:'Review booking',exact:true}).click();
+  await expect(page.locator('.final-traveller-summary')).not.toBeVisible();
+  await expect(page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /})).toHaveCount(0);
+  await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();
   if(incomplete){
    await expect(page.locator('#traveller-errors')).toBeVisible();
-   await expect(page.getByRole('button',{name:/^Pay .* securely$/})).toHaveCount(0);
+   await expect(page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /})).toHaveCount(0);
   }else{
    await expect(page.locator('.final-traveller-summary')).toContainText('Isha');
    await expect(page.locator('.final-traveller-summary')).toContainText('updated@example.test');

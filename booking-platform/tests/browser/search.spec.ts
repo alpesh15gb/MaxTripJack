@@ -87,7 +87,7 @@ test('hotel search sends separate adults and child ages for every room', async (
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'hotel-results');
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
-  await page.getByRole('button', { name: 'Review stay', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue with room', exact: true }).click();
   const review = page.getByRole('form', { name: 'Review and travellers' });
   await expect(review.locator('.traveller-card')).toHaveCount(7);
   await expect(review.getByRole('group', { name: 'Room 1 · Child 4', exact: true })).toBeVisible();
@@ -129,7 +129,7 @@ test('a hotel with no available room options never exposes a review action', asy
   await page.goto(`/book?${query}`);
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No rooms available for this stay', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Review stay', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Continue with room', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   await capture(page, testInfo, 'hotel-no-rooms');
 });
@@ -194,7 +194,8 @@ test(`hotel real supplier metadata and photos render with a truthful broken-phot
  provider.overrides['POST /api/travel/hotel-detail']={body:{property,options:[{optionId:'room1',roomInfo:[{name:'Deluxe room'}],inclusions:['Breakfast included'],mealBasis:'Breakfast',pricing:{totalPrice:12000,currency:'INR'},cancellation:{isRefundable:false,penalties:[]}}]}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,autoSearch:'1'}));
  await expect(page.getByText('Example Road, Goa',{exact:true})).toBeVisible();
- await expect(page.getByText('Property category: 4 stars',{exact:true})).toBeVisible();
+ const category=page.getByRole('article',{name:'Fixture stay',exact:true}).locator('.hotel-property-category');
+ await expect(category).toBeVisible();await expect(category).toHaveText('★ 4-star property category');
  await expect(page.getByRole('list',{name:'Property amenities'}).getByText('Wi-Fi',{exact:true})).toBeVisible();
  await expect(page.getByRole('list',{name:'Property amenities'}).getByText('Restaurant',{exact:true})).toBeVisible();
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toBeVisible();

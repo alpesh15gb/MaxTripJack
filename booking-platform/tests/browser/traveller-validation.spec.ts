@@ -6,7 +6,7 @@ function after(date:string,days:number){return new Date(Date.parse(`${date}T00:0
 async function selectFare(page:Page){await page.locator('.flight-shopping-list .fare-comparison').first().locator(':scope > summary').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();}
 async function openPartyFlightSearch(page:Page,children:number,infants:number){await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',children:String(children),infants:String(infants),autoSearch:'1'}));}
 async function fillParty(page:Page,count:number){const form=page.getByRole('form',{name:'Review and travellers'});for(let i=0;i<count;i++){await form.locator(`[name="first-${i}"]`).fill(`Traveller ${i+1}`);await form.locator(`[name="last-${i}"]`).fill('Example');}await form.locator('[name="email"]').fill('traveller@example.test');await form.locator('[name="phone"]').fill('9876543210');}
-async function review(page:Page){await page.getByRole('button',{name:'Review booking',exact:true}).click();}
+async function review(page:Page){await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();}
 async function noPrivateStorage(page:Page){expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBeNull();}
 
 test('child and infant age errors focus each field, retain corrections and never start payment on review',async({page,provider},testInfo)=>{
@@ -25,17 +25,18 @@ test('child and infant age errors focus each field, retain corrections and never
  await page.locator('[name="dob-1"]').fill(birthForAge(5));await page.locator('[name="dob-2"]').fill(birthForAge(1));
  await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
  await expect(summary).toHaveCount(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
- // noValidate must not remove the explicit reviewed-total consent gate.
- await page.getByRole('button',{name:/^Pay .* securely$/}).click();expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await expect(page.locator('[name="consent"]')).toBeFocused();
+ // Review does not create a payment. Consent belongs to the explicit payment action.
+ await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
+ await expect(page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
  // Revalidate the exact payload at payment too, even if a browser autofill or
  // extension changes an offscreen field after the first review.
- await page.locator('[name="consent"]').check();
+ await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
  await page.locator('[name="dob-1"]').evaluate((element,value)=>{(element as HTMLInputElement).value=value;},birthForAge(13));
- await page.getByRole('button',{name:/^Pay .* securely$/}).click();
+ await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();
  await expect(page.locator('[name="dob-1"]')).toBeFocused();expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.locator('[name="dob-1"]').fill(birthForAge(5));await review(page);
- await expect(page.locator('[name="consent"]')).not.toBeChecked();
+ await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
  await page.getByRole('button',{name:'Back to travellers',exact:true}).click();
  await expect(page.locator('[name="dob-1"]')).toHaveValue(birthForAge(5));await expect(page.locator('[name="first-0"]')).toHaveValue('Traveller 1');
  await noPrivateStorage(page);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'traveller-correction-no-payment');
@@ -83,7 +84,7 @@ test('hotel child ages are checked in their own reviewed room and can be correct
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[hotelOption]}};
  provider.quote=reviewedQuote({product:'HOTEL',hotelName:'Synthetic traveller validation stay',summary:{checkIn:departure,checkOut:returning,adults:1,childrenAges:[5],rooms},review:{option:hotelOption}});
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Delhi',hotelIds:'10001',date:departure,end:returning,adults:'1',rooms:JSON.stringify(rooms),autoSearch:'1'}));
- await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Review stay',exact:true}).click();await fillParty(page,4);
+ await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Continue with room',exact:true}).click();await fillParty(page,4);
  await page.locator('[name="dob-1"]').fill(birthForAge(5));await page.locator('[name="dob-3"]').fill(birthForAge(8));
  await review(page);await expect(page.locator('[name="dob-3"]')).toBeFocused();
  await expect(page.locator('#traveller-errors')).toContainText('Room 2 · Child 4 · Date of birth');await expect(page.locator('#guest-error-dob-3')).toContainText('room 2 (9)');
@@ -95,14 +96,17 @@ test('hotel child ages are checked in their own reviewed room and can be correct
 test('authoritative server field errors survive API decoding and return focus to optional fields',async({page,provider})=>{
  provider.overrides['POST /api/payments/create']={status:400,body:{error:'Invalid request fields.',fields:[{path:'guests.travellers.0.dob',message:'Supplier requires a corrected date of birth.'}]}};
  await openFlightSearch(page);await selectFare(page);await fillParty(page,1);await review(page);
- await page.locator('[name="consent"]').check();await page.getByRole('button',{name:/^Pay .* securely$/}).click();
+ await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();
  await expect(page.locator('[name="dob-0"]')).toBeFocused();await expect(page.locator('[name="dob-0"]')).toBeVisible();
  await expect(page.locator('[name="dob-0"]')).toHaveAccessibleDescription('Supplier requires a corrected date of birth.');
  await expect(page.locator('#traveller-errors')).toContainText('Adult 1 · Date of birth');
  await expect(page.locator('[name="first-0"]')).toHaveValue('Traveller 1');await noPrivateStorage(page);
  expect(provider.requests('/api/payments/create')).toHaveLength(1);expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(0);
  await page.locator('[name="dob-0"]').fill('1990-01-01');await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
- await expect(page.locator('[name="consent"]')).not.toBeChecked();expect(provider.requests('/api/payments/create')).toHaveLength(1);
+ await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);expect(provider.requests('/api/payments/create')).toHaveLength(1);
+ await page.getByRole('button',{name:'Change selection',exact:true}).click();
+ await expect(page.locator('.flight-shopping-list')).toBeVisible();
+ expect(provider.requests('/api/payments/create')).toHaveLength(1);
 });
 
 test('required supplier documents collect all missing fields before any payment attempt',async({page,provider})=>{
@@ -125,7 +129,7 @@ for(const product of ['FLIGHT','HOTEL'] as const){
    provider.overrides['POST /api/travel/hotel-detail']={body:{options:[hotelOption]}};
    provider.quote=reviewedQuote({product:'HOTEL',summary:{checkIn:departure,checkOut:returning,adults:1,childrenAges:[0],rooms},review:{option:hotelOption}});
    await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Delhi',hotelIds:'10001',date:departure,end:returning,adults:'1',rooms:JSON.stringify(rooms),autoSearch:'1'}));
-   await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Review stay',exact:true}).click();
+   await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Continue with room',exact:true}).click();
   }
   await fillParty(page,2);
   const dob=page.locator('[name="dob-1"]'),today=(await dob.getAttribute('max'))!;
@@ -135,8 +139,8 @@ for(const product of ['FLIGHT','HOTEL'] as const){
   expect(provider.requests('/api/payments/create')).toHaveLength(0);await expectNoHorizontalOverflow(page);
   await dob.fill(today);expect(await dob.evaluate(element=>(element as HTMLInputElement).validity.valid)).toBe(true);
   await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
-  await page.locator('[name="consent"]').check();await dob.evaluate((element,value)=>{(element as HTMLInputElement).value=value;},future);
-  await page.getByRole('button',{name:/^Pay .* securely$/}).click();await expect(dob).toBeFocused();
+  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);await dob.evaluate((element,value)=>{(element as HTMLInputElement).value=value;},future);
+  await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();await expect(dob).toBeFocused();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);await noPrivateStorage(page);
  });
 }

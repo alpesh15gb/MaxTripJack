@@ -52,10 +52,10 @@ test('hotel NAME opens property overview, gallery, room rate, review and reversi
  await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeInViewport();
  const breakfast=page.locator('.room-option-card').filter({hasText:'₹9,200'});await expect(breakfast).toContainText('BREAKFAST');
  await expect(page.locator('.room-option-card')).toHaveCount(2);await capture(page,testInfo,'hotel-room-rate-comparison');
- await breakfast.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
+ await breakfast.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'exact-breakfast'}]);
  await page.getByRole('button',{name:'Change selection',exact:true}).click();await expect(page.locator('#hotel-detail-title')).toBeVisible();
- await expect(breakfast).toContainText('Selected');await expect(breakfast.getByRole('button',{name:'Review stay',exact:true})).toBeFocused();await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(title(page)).toBeFocused();
+ await expect(breakfast).toContainText('Selected');await expect(breakfast.getByRole('button',{name:'Continue with room',exact:true})).toBeFocused();await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(title(page)).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);await expectNoHorizontalOverflow(page);
 });
 
@@ -111,7 +111,7 @@ test('multi-room bundled rate preserves exact option and total through sign-in r
  await page.goto('/book?'+new URLSearchParams(params));await title(page).click();
  const rate=page.locator('.room-option-card');await expect(rate).toContainText('Twin room + Family room');await expect(rate).toContainText('₹12,000');await expect(rate).not.toContainText('₹24,000');
  await expect(page.locator('#booking-rooms')).toContainText('2 rooms');await expect(page.locator('#booking-rooms')).toContainText('4 guests');
- await rate.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('.checkout-verification')).toBeVisible();
+ await rate.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('.checkout-verification')).toBeVisible();
  await expect(page.locator('.signin-selection-context')).toContainText('Twin room + Family room');
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'exact-two-room-bundle'}]);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
@@ -129,7 +129,7 @@ test('missing photos and static content do not invent property facts or block re
 test('empty live rates retain the property overview and offer a reversible return to results',async({page,provider},testInfo)=>{
  provider.overrides['POST /api/travel/hotel-detail']={body:{property,options:[]}};
  await page.goto(searchUrl());await title(page).click();await expect(page.locator('#hotel-detail-title')).toHaveText(name);
- await expect(page.getByRole('heading',{name:'No rooms available for this stay',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Review stay',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'No rooms available for this stay',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'View all 3 photos',exact:true})).toBeVisible();await capture(page,testInfo,'hotel-available-property-no-room-inventory');
  await page.locator('#hotel-room-options').getByRole('button',{name:'Browse other stays',exact:true}).click();await expect(title(page)).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -145,7 +145,7 @@ test('browser Back during a held room review cannot resurrect its quote or prope
  let release!:()=>void,settle!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;}),settled=new Promise<void>(resolve=>{settle=resolve;});let requested=false;
  await page.route('**/api/travel/review',async route=>{requested=true;provider.calls.push({method:'POST',path:'/api/travel/review',query:{},body:route.request().postDataJSON()});await held;await route.fulfill({json:provider.quote}).catch(()=>{}).finally(settle);});
  try{
-  await page.goto(searchUrl());await title(page).click();await page.locator('.room-option-card').first().getByRole('button',{name:'Review stay',exact:true}).click();await expect.poll(()=>requested).toBe(true);
+  await page.goto(searchUrl());await title(page).click();await page.locator('.room-option-card').first().getByRole('button',{name:'Continue with room',exact:true}).click();await expect.poll(()=>requested).toBe(true);
   await page.goBack();await expect(card(page)).toBeVisible();await expect(page).not.toHaveURL(/stay=10001/);
   release();await settled;await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
   await expect(card(page)).toBeVisible();await expect(page.locator('#booking-review')).toHaveCount(0);await expect(page).not.toHaveURL(/stayStep=review|stay=10001/);
@@ -191,7 +191,7 @@ test('rate plans group only identical room compositions without losing bundled o
  await expect(groups.nth(0).locator('.room-option-card')).toHaveCount(2);await expect(groups.nth(0).locator('.stay-room-group-heading')).toContainText('2 rate plans');
  await expect(groups.nth(0).locator('[data-room-option-id="exact-room-only"]')).toContainText('₹8,000');await expect(groups.nth(0).locator('[data-room-option-id="exact-breakfast"]')).toContainText('₹9,200');
  await expect(groups.nth(1).locator('.room-option-card')).toHaveCount(1);await expect(groups.nth(1)).toContainText('Twin room + Family room');await expect(groups.nth(1).locator('[data-room-option-id="exact-combination"]')).toContainText('₹12,000');
- await groups.nth(1).getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
+ await groups.nth(1).getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,hid:'10001',optionId:'exact-combination'});expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

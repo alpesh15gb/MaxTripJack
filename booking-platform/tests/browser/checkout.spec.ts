@@ -24,13 +24,12 @@ async function fillDomesticTraveller(page: Page) {
 
 async function showPaymentReview(page: Page) {
   await fillDomesticTraveller(page);
-  await page.getByRole('button', { name: 'Review booking', exact: true }).click();
+  await page.locator('#booking-review').getByRole('button', { name: 'Continue to review', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Review your booking', exact: true })).toBeVisible();
 }
 
 async function openSyntheticPayment(page: Page) {
-  await page.getByRole('checkbox', { name: /I accept the reviewed total and supplier rules/ }).check();
-  await page.getByRole('button', { name: /^Pay .* securely$/ }).click();
+  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
   await expect.poll(() => page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
 }
 
@@ -74,7 +73,7 @@ test('domestic adult documents remain optional rather than blocking checkout', a
   await expect(form.locator('[name="passport-0"]')).not.toBeVisible();
   await expect(form.locator('[name="passport-0"]')).not.toHaveAttribute('required');
   await showPaymentReview(page);
-  await expect(page.getByRole('button', { name: /^Pay .* securely$/ })).toBeEnabled();
+  await expect(page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / })).toBeEnabled();
   // Reaching payment review must not itself create a gateway order.
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await page.getByRole('button', { name: 'Back to travellers', exact: true }).click();
@@ -102,30 +101,33 @@ test('supplier-required documents, GST and emergency details are visible and req
     'Emergency contact name, email address and phone number.',
   ]);
   await fillDomesticTraveller(page);
-  await page.getByRole('button', { name: 'Review booking', exact: true }).click();
+  await page.locator('#booking-review').getByRole('button', { name: 'Continue to review', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Review your booking', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'supplier-required-documents');
 });
 
-test('expired quotes block payment and refresh explicitly without losing traveller details', async ({ page, provider }, testInfo) => {
+test('expired Continue refreshes before review, preserves guests and Back/Forward, and never creates payment', async ({ page, provider }, testInfo) => {
   provider.quote = reviewedQuote({ expiresAt: new Date(Date.now() - 60_000).toISOString() });
-  await openReviewedFlight(page);
-  await fillDomesticTraveller(page);
-  await expect(page.getByText('A fresh price review is required', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Review booking', exact: true })).toBeDisabled();
-  expect(provider.requests('/api/payments/create')).toHaveLength(0);
-  await capture(page, testInfo, 'expired-quote');
-  provider.quote = reviewedQuote({ quoteId: '44444444-4444-4444-8444-444444444444', totalMinor: 724000 });
-  await page.getByRole('button', { name: 'Refresh reviewed price', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Review booking', exact: true })).toBeEnabled();
-  await expect(page.getByLabel('First name', { exact: true })).toHaveValue('Aarav');
-  await expect(page.getByLabel('Email', { exact: true })).toHaveValue('traveller@example.test');
-  await expect(page.getByRole('complementary', { name: 'Your journey summary' })).toContainText('₹7,240');
+  await openReviewedFlight(page);await fillDomesticTraveller(page);
+  const review=page.locator('#booking-review');
+  await expect(review.getByRole('button',{name:'Continue to review',exact:true})).toBeEnabled();
+  await capture(page,testInfo,'expired-quote');
+  provider.quote=reviewedQuote({quoteId:'44444444-4444-4444-8444-444444444444',totalMinor:724000});
+  await review.getByRole('button',{name:'Continue to review',exact:true}).click();
+  await expect(review.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+  await expect(review.getByRole('button',{name:/^Agree & pay ₹7,240/})).toBeEnabled();
+  await expect(review.getByRole('checkbox')).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(2);
-  await page.getByRole('button', { name: 'Review booking', exact: true }).click();
-  await expect(page.getByRole('checkbox', { name: /I accept the reviewed total/ })).not.toBeChecked();
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+  await page.getByRole('button',{name:'Back to travellers',exact:true}).click();
+  await expect(review.getByLabel('First name',{exact:true})).toBeVisible();
+  await expect(review.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+  await expect(review.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
+  await page.goForward();await expect(review.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Change selection',exact:true}).click();
+  await expect(page.locator('.flight-shopping-list')).toBeVisible();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
@@ -166,7 +168,7 @@ test('uncertain verification directs to status without another payment or fake t
   await page.evaluate('window.__syntheticGateway.complete()');
   await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Check My trips before attempting another payment.');
   await expect(page.getByRole('button', { name: 'Resume secure checkout', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /^Pay .* securely$/ })).toHaveCount(0);
+  await expect(page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / })).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/verify')).toHaveLength(1);
   await capture(page, testInfo, 'payment-verification-uncertain');
@@ -184,11 +186,10 @@ test('supplier review-required errors do not automatically repeat payment creati
   provider.overrides['POST /api/payments/create'] = { status: 409, body: { error: 'Price changed. Accept the latest review.' } };
   await openReviewedFlight(page);
   await showPaymentReview(page);
-  await page.getByRole('checkbox', { name: /I accept the reviewed total/ }).check();
-  await page.getByRole('button', { name: /^Pay .* securely$/ }).click();
+  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
   await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Price changed. Accept the latest review.');
   await expect(page.getByRole('button', { name: 'Refresh reviewed price', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Pay .* securely$/ })).toBeDisabled();
+  await expect(page.locator('#booking-review').getByRole('button', { name: 'Check latest price & continue',exact:true })).toBeEnabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/verify')).toHaveLength(0);
   expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(0);
@@ -247,11 +248,10 @@ for (const status of [409, 503]) test(`uncertain payment creation (${status}) lo
   provider.overrides['POST /api/payments/create'] = { status, body: { error: 'Payment order creation is pending reconciliation. Do not create another payment.' } };
   await openReviewedFlight(page);
   await showPaymentReview(page);
-  await page.getByRole('checkbox', { name: /I accept the reviewed total/ }).check();
-  await page.getByRole('button', { name: /^Pay .* securely$/ }).click();
+  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
   await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Payment order creation is pending reconciliation');
   await expect(page.getByRole('link', { name: 'Check payment status in My trips', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Pay .* securely$/ })).toHaveCount(0);
+  await expect(page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Change selection', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Refresh reviewed price', exact: true })).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
@@ -268,8 +268,7 @@ test('reload preserves an uncertain create marker and no-order-yet never unlocks
   } };
   await openReviewedFlight(page);
   await showPaymentReview(page);
-  await page.getByRole('checkbox', { name: /I accept the reviewed total/ }).check();
-  await page.getByRole('button', { name: /^Pay .* securely$/ }).click();
+  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
   await expect(page.getByRole('link', { name: 'Check payment status in My trips', exact: true })).toBeVisible();
   expect(await page.evaluate('JSON.parse(sessionStorage.getItem("maxtravel.pending-checkout.v1"))')).toEqual({ quoteId });
   await page.reload();
@@ -417,8 +416,7 @@ test('final review displays selected flight and exact traveller contact before p
 test('known unavailable provider reports no payment started without an uncertainty lock or irrelevant SDK',async({page,provider})=>{
  provider.overrides['POST /api/payments/create']={status:503,body:{code:'PAYMENT_PROVIDER_UNAVAILABLE',error:'Online payment is not available yet. No payment was started.'}};
  await openReviewedFlight(page);await showPaymentReview(page);
- await page.getByRole('checkbox',{name:/I accept the reviewed total/}).check();
- await page.getByRole('button',{name:/^Pay .* securely$/}).click();
+ await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();
  await expect(page.getByRole('button',{name:'Online payment unavailable',exact:true})).toBeDisabled();
  await expect(page.locator('#booking-feedback')).toContainText('No payment was started');
  expect(await page.evaluate(()=>Object.keys(sessionStorage).filter(key=>key.includes('checkout')))).toEqual([]);
@@ -454,7 +452,7 @@ test('legacy guest return resumes without persisting private fields or an old qu
 test('changing fare preserves private traveller draft only in the current page',async({page})=>{
  await openReviewedFlight(page);await fillDomesticTraveller(page);
  await page.getByRole('button',{name:'Change selection',exact:true}).click();
- await selectVisibleFare(page,'Selected');
+ await selectVisibleFare(page);
  await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
  await expect(page.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
@@ -519,7 +517,7 @@ test('forbidden fare review is not presented as a sign-in bypass or a saved book
  await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
  provider.overrides['POST /api/travel/review']={status:403,body:{error:'Your account is suspended. Contact support.'}};
  await page.getByRole('button',{name:'Back to flights',exact:true}).click();
- await selectVisibleFare(page,'Selected');
+ await selectVisibleFare(page);
  await expect(page.locator('#booking-feedback')).toContainText('Your account is suspended. Contact support.');
  await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toHaveCount(0);
  await expect(page.getByRole('form',{name:'Review and travellers'})).toHaveCount(0);
@@ -592,7 +590,7 @@ test('expired selection abandons obsolete account handoff without an automatic n
  await savedGuestSelection(page,provider);
  provider.overrides['POST /api/travel/review']={status:409,body:{error:'This search has expired. Search again for current availability.'}};
  await page.getByRole('button',{name:'Back to flights',exact:true}).click();
- await selectVisibleFare(page,'Selected');await page.getByRole('button',{name:'Start a fresh search',exact:true}).click();
+ await selectVisibleFare(page);await page.getByRole('button',{name:'Start a fresh search',exact:true}).click();
  await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toHaveCount(0);
  await expect(page.locator('.signin-selection-context')).toHaveCount(0);
@@ -606,15 +604,15 @@ test('hotel sign-in gate dismisses on room and results returns, then only the ne
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'first-room-id',roomInfo:[{name:'First twin room'}],pricing:{totalPrice:8000,currency:'INR'}}]}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Delhi',hotelIds:'10001,10002',date:departure,end:returning,adults:'1',autoSearch:'1'}));
  await page.getByRole('article',{name:'First synthetic stay',exact:true}).getByRole('button',{name:'Choose room',exact:true}).click();
- await page.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Back to room options',exact:true}).click();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);
- await expect(page.locator('.room-option-card')).toContainText('First twin room');await expect(page.getByRole('button',{name:'Review stay',exact:true})).toBeVisible();
+ await expect(page.locator('.room-option-card')).toContainText('First twin room');await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
- await page.getByRole('button',{name:'Review stay',exact:true}).click();await expect(page.locator('#booking-signin-title')).toBeVisible();
+ await page.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('#booking-signin-title')).toBeVisible();
  await page.getByRole('button',{name:'Back to room options',exact:true}).click();
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(page.locator('#booking-results')).toBeVisible();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'second-room-id',roomInfo:[{name:'Second suite'}],pricing:{totalPrice:9000,currency:'INR'}}]}};
- await page.getByRole('article',{name:'Second synthetic stay',exact:true}).getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Review stay',exact:true}).click();
+ await page.getByRole('article',{name:'Second synthetic stay',exact:true}).getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Continue with room',exact:true}).click();
  const context=page.locator('.signin-selection-context');await expect(context).toContainText('Second synthetic stay');await expect(context).toContainText('Second suite');await expect(context).not.toContainText('First synthetic stay');await expect(context).not.toContainText('First twin room');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(2);
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'first-room-id'},{searchId,hid:'10001',optionId:'first-room-id'},{searchId,hid:'10002',optionId:'second-room-id'}]);
