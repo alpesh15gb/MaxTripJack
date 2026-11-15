@@ -1,0 +1,85 @@
+import type {Page} from '@playwright/test';
+import {publicSupplierReview} from '../../src/lib/public-supplier-review';
+import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
+
+const renewedId='44444444-4444-4444-8444-444444444444';
+const form=(page:Page)=>page.getByRole('form',{name:'Review and travellers'});
+function supplierRules(amount=3675,missingReturnCancellation=false){
+ return {fareRule:{
+  'BOM-DEL':{tfr:{
+   CANCELLATION:[{st:'0',et:'8760',amount,additionalFee:50,policyInfo:'Cancellation fee applies, limited to the base fare.',fcs:{ACF:amount,ACFT:183.75,CCF:50,CCFT:9},supplierToken:'PRIVATE_POLICY_MARKER'}],
+   DATECHANGE:[{st:'0',et:'8760',amount:3150,policyInfo:'Fare difference also applies.'}],
+   NO_SHOW:[{st:'0',et:'8760',policyInfo:'No refund for no-show.'}],
+  }},
+  'DEL-BOM':{tfr:{
+   ...(!missingReturnCancellation?{CANCELLATION:[{pp:'BEFORE_DEPARTURE',amount:4200,policyInfo:'Cancellation has a fee.'},{pp:'AFTER_DEPARTURE',policyInfo:'Cancellation not available.'}]}:{}),
+   DATECHANGE:[{pp:'DEFAULT',policyInfo:'Changes depend on availability.'}],
+  }},
+ },bookingId:'PRIVATE_BOOKING_MARKER',status:{success:true}};
+}
+function quote(amount=3675,missingReturnCancellation=false,id?:string){
+ return reviewedQuote({...(id?{quoteId:id}:{}),totalMinor:1308000,
+  summary:{from:'BOM',to:'DEL',date:departure,returnDate:returning,adults:1,children:0,infants:0},
+  review:publicSupplierReview('FLIGHT',{conditions:{},tripInfos:[flight(),flight('RETURN')],fareRules:supplierRules(amount,missingReturnCancellation)}),
+ });
+}
+async function selectFare(page:Page,label:string){
+ const comparison=page.locator('.flight-shopping-list .fare-comparison').first();
+ if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
+ await page.getByRole('button',{name:label,exact:true}).first().click();
+}
+async function reviewRoundTrip(page:Page,provider:ProviderFixture){
+ provider.search=flightResults(true);
+ await openFlightSearch(page,{roundTrip:true});
+ await selectFare(page,'Choose this outbound fare');await selectFare(page,'Choose this return fare');
+ await page.getByRole('button',{name:/Review selected journey \(2\/2\)/}).click();
+ await expect(form(page)).toBeVisible();
+ await form(page).getByLabel('First name',{exact:true}).fill('Aarav');await form(page).getByLabel('Last name',{exact:true}).fill('Example');
+ await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+ await form(page).getByRole('button',{name:'Continue to review',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+}
+async function showConditions(page:Page){
+ const details=page.locator('.review-conditions');
+ if(await details.getAttribute('open')===null)await details.locator(':scope > summary').click();
+ return page.getByRole('region',{name:'Cancellation and fare rules',exact:true});
+}
+
+test('review shows official-shaped cancellation rules for both routes with readable fee disclosures',async({page,provider},testInfo)=>{
+ provider.quote=quote();await reviewRoundTrip(page,provider);const policy=await showConditions(page);
+ const outbound=policy.locator('.flight-policy-route').filter({has:page.getByRole('heading',{name:'BOM → DEL',exact:true})});
+ const inbound=policy.locator('.flight-policy-route').filter({has:page.getByRole('heading',{name:'DEL → BOM',exact:true})});
+ await expect(outbound).toBeVisible();await expect(inbound).toBeVisible();
+ await expect(outbound).toContainText('0–8760 hours before departure');await expect(outbound).toContainText('3,675');await expect(outbound).toContainText('Supplier fee');
+ await expect(inbound).toContainText('Before departure');await expect(inbound).toContainText('4,200');await expect(inbound).toContainText('After departure');await expect(inbound).toContainText('Cancellation not available.');
+ await outbound.getByText('Supplied fee breakdown',{exact:true}).click();await expect(outbound).toContainText('Tax on airline cancellation fee');await expect(outbound).toContainText('183.75');
+ await outbound.getByText('Date changes',{exact:true}).click();await expect(outbound.getByText('Fare difference also applies.',{exact:true})).toBeVisible();
+ await outbound.getByText('No-show',{exact:true}).click();await expect(outbound.getByText('No refund for no-show.',{exact:true})).toBeVisible();
+ await expect(policy).not.toContainText('Cancellation charges are unavailable');await expect(policy).not.toContainText('PRIVATE_');await expect(policy).not.toContainText('[object Object]');
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-reviewed-cancellation-rules');
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('a return route with date-change rules alone keeps its cancellation warning visible',async({page,provider},testInfo)=>{
+ provider.quote=quote(3675,true);await reviewRoundTrip(page,provider);
+ await expect(page.locator('.review-conditions')).toHaveAttribute('open','');
+ const policy=page.getByRole('region',{name:'Cancellation and fare rules',exact:true});
+ const inbound=policy.locator('.flight-policy-route').filter({has:page.getByRole('heading',{name:'DEL → BOM',exact:true})});
+ await expect(inbound.getByText(/Cancellation charges are unavailable for this route/)).toBeVisible();
+ await expect(inbound).toContainText('Do not assume this fare is refundable.');
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-missing-return-cancellation');
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('same-price cancellation fee refresh shows the changed route and preserves traveller details',async({page,provider},testInfo)=>{
+ provider.quote=quote();await reviewRoundTrip(page,provider);provider.quote=quote(4000,false,renewedId);
+ await page.getByRole('button',{name:'Refresh reviewed price',exact:true}).click();
+ const disclosure=page.getByRole('region',{name:'Review the refreshed terms',exact:true});
+ await expect(disclosure.getByRole('status')).toContainText('Total unchanged. 1 reviewed detail has changed');
+ const changed=disclosure.locator(':scope > dl > .policy-row');await expect(changed).toHaveCount(1);
+ await expect(changed).toContainText('BOM → DEL · Cancellation');await expect(changed).toContainText('Previously:');await expect(changed).toContainText('Airline fee 3675');await expect(changed).toContainText('Now:');await expect(changed).toContainText('Airline fee 4000');
+ await expect(form(page).getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+ await expect(form(page).getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-refreshed-cancellation-fee');
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});

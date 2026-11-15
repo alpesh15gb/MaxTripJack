@@ -9,6 +9,14 @@ export type GuestReview = {
   conditions?: {pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};
   option?: {compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string}};
 };
+/** Tripjack requires hotel PAN only for the primary adult, not every room guest.
+ * PAN flags are documented booleans; strings such as "false" do not establish
+ * a requirement to collect an otherwise optional identity document. */
+export function panRequiredForTraveller(review:GuestReview,party:readonly {pt:string;roomIndex?:number}[],index:number):boolean {
+  if(party[index]?.pt!=='ADULT')return false;
+  const primary=party.findIndex(traveller=>traveller.pt==='ADULT'&&(traveller.roomIndex??0)===0);
+  return review.conditions?.ipa===true || (review.option?.compliance?.panRequired===true&&index===primary);
+}
 function ageAt(birthDate:string, travelDate:string) {
   const birth=new Date(`${birthDate}T00:00:00Z`),travel=new Date(`${travelDate}T00:00:00Z`);
   let age=travel.getUTCFullYear()-birth.getUTCFullYear();
@@ -68,7 +76,7 @@ export function reviewGuestIssues(guests:Guests,review:GuestReview):GuestIssue[]
       if(!t.eD)add('eD','Passport expiry is required for this fare.');
     }else if(conditions.pcs?.pped&&!t.eD)add('eD','Passport expiry is required for this fare.');
     if((t.pt==='ADULT'?conditions.dob?.adobr:t.pt==='CHILD'?conditions.dob?.cdobr:conditions.dob?.idobr)&&!t.dob)add('dob','Date of birth is required for this fare.');
-    if((conditions.ipa||compliance.panRequired)&&t.pt==='ADULT'&&!t.pan)add('pan','PAN is required for this fare.');
+    if(panRequiredForTraveller(review,guests.travellers,i)&&!t.pan)add('pan',review.option?.compliance?.panRequired===true?'This room rate requires the primary guest’s PAN.':'This fare requires an adult traveller’s PAN.');
   });
   if((conditions.gst?.igm||['PASSTHROUGH','RESELLER'].includes(compliance.gstType??''))&&!guests.gstInfo)issues.push({path:'gstInfo.gstNumber',message:'GST information is required for this option.'},{path:'gstInfo.registeredName',message:'Registered business name is required for this option.'});
   if(conditions.iecr&&!guests.contactInfo)issues.push({path:'contactInfo.ecn',message:'Emergency contact is required for this fare.'},{path:'contactInfo.emails.0',message:'Emergency contact email is required for this fare.'},{path:'contactInfo.contacts.0',message:'Emergency contact phone is required for this fare.'});

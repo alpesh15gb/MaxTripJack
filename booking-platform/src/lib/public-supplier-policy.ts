@@ -1,4 +1,5 @@
 import {hotelCancellation,hotelObject} from './hotel-presentation';
+import {publicFlightFareRule} from './flight-fare-rules';
 /** No truncation: partial text must not look like a complete supplier rule. */
 export function policyText(value:unknown):string|null {
  if(typeof value!=='string'||value.length>2000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value))return null;
@@ -12,7 +13,7 @@ export function publicSupplierPolicy(source:unknown):Record<string,unknown>|null
  const raw=hotelObject(source),out:Record<string,unknown>={};
  const note=policyText(source);if(note)out.policyText=note;
  for(const key of ['policyText','policy','cancellation'] as const){const value=policyText(raw[key]);if(value)out[key]=value;}
- const misc=policyText(hotelObject(raw.fareRule).miscInfo);if(misc)out.fareRule={miscInfo:misc};
+ const fareRule=publicFlightFareRule(raw);if(fareRule)out.fareRule=fareRule;
  const policy=hotelCancellation(raw);
  if(typeof policy.isRefundable==='boolean')out.isRefundable=policy.isRefundable;
  if(Array.isArray(raw.penalties)&&raw.penalties.length>0&&raw.penalties.length<=40&&policy.penalties.length===raw.penalties.length)out.penalties=policy.penalties;

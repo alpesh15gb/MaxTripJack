@@ -17,10 +17,12 @@ test('public review allowlist excludes arbitrary fields at every raw boundary wi
  assert.match(boundary,/review:publicSupplierReview\(product,data\)/);
 
 });
-test('all required flags retain server truthiness and validation parity including malformed supplier values',()=>{
+test('required flags retain server validation parity without coercing malformed PAN flags into requirements',()=>{
  for(const value of [true,false,0,1,'false','',null,[],{token:'PRIVATE_TOKEN'}]){
   const raw={conditions:{pcs:{pm:value,pped:value},dob:{adobr:value,cdobr:value,idobr:value},gst:{igm:value},iecr:value,ipa:value},option:{compliance:{passportRequired:value,panRequired:value,gstType:'NA'}}};
   const projected=publicSupplierReview('FLIGHT',raw);
+  assert.equal(projected.conditions.ipa,value===true);
+  assert.equal(projected.option?.compliance.panRequired,value===true);
   assert.deepEqual(reviewGuestIssues(guests,projected),reviewGuestIssues(guests,raw as GuestReview));
   assert.doesNotMatch(JSON.stringify(projected),/PRIVATE_TOKEN/);
  }

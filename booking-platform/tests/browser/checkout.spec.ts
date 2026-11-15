@@ -96,7 +96,7 @@ test('supplier-required documents, GST and emergency details are visible and req
   await expect(form.getByRole('region', { name: 'Required booking details', exact: true }).getByRole('listitem')).toHaveText([
     'Passport number, nationality and expiry date for every traveller.',
     'Date of birth for each adult.',
-    'PAN for each adult.',
+    'PAN for each adult, required by this fare.',
     'GST number and registered business name.',
     'Emergency contact name, email address and phone number.',
   ]);

@@ -569,6 +569,39 @@ body .booking-workflow.journey-flow .hotel-shopping-card .primary { padding-inli
 }
 
 /* The final review keeps one total and the current action close on small screens. */
+.booking-workflow .document-field-hint { display:block; margin-top:8px; color:#5b6d7d; font-size:12px; font-weight:400; line-height:1.5; }
+.booking-workflow .required-documents { margin-top:20px; padding:16px; border:1px solid #dce7e1; border-radius:12px; background:#f8faf9; }
+.booking-workflow .required-documents h4 { margin:0 0 12px; font-size:14px; }
+.booking-workflow .refreshed-terms { margin:20px 0; padding:20px; border:1px solid #dce7e1; border-left:4px solid #6b8e80; border-radius:14px; background:#f6f9f7; }
+.booking-workflow .refreshed-terms--changed { border-color:#e7d8b7; border-left-color:#b78226; background:#fffbf3; }
+.booking-workflow .refreshed-terms h3 { margin:0 0 10px; font-size:19px; letter-spacing:-.02em; }
+.booking-workflow .refreshed-terms > p { margin:8px 0; font-size:14px; line-height:1.65; }
+.booking-workflow .refreshed-terms .policy-row dd p + p { margin-top:12px; }
+.booking-workflow .refreshed-terms > details { margin:14px 0 0; padding-top:12px; border-top:1px solid #dce7e1; }
+.booking-workflow .refreshed-terms > details > summary { font-size:13px; line-height:1.5; }
+.booking-workflow .flight-policy-routes { display:grid; gap:16px; }
+.booking-workflow .flight-policy-route { min-width:0; overflow-wrap:anywhere; border:1px solid #dce5e2; border-radius:14px; overflow:hidden; background:#fff; }
+.booking-workflow .flight-policy-route h5 { margin:0; padding:14px 18px; color:#165746; background:#f0f6f3; font-size:16px; letter-spacing:.02em; }
+.booking-workflow .flight-policy-category { margin:0; padding:16px 18px; border-top:1px solid #e5ece8; }
+.booking-workflow .flight-policy-category h6 { margin:0 0 14px; font-size:15px; }
+.booking-workflow .flight-policy-category > summary { font-size:14px; font-weight:650; }
+.booking-workflow .flight-policy-bands { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.booking-workflow details.flight-policy-category[open] > .flight-policy-bands { margin-top:16px; }
+.booking-workflow .flight-policy-band { margin:0; padding:14px; border:1px solid #e4ebe7; border-radius:10px; background:#fafcfb; }
+.booking-workflow .flight-policy-window { margin:0 0 6px; font-size:14px; font-weight:700; color:#173e35; }
+.booking-workflow .flight-policy-description { margin:6px 0; white-space:pre-wrap; font-size:13px; line-height:1.65; color:#52675e; }
+.booking-workflow .flight-policy-fees { display:flex; flex-wrap:wrap; gap:12px 24px; margin:12px 0 0; }
+.booking-workflow .flight-policy-fees > div { display:grid; gap:4px; }
+.booking-workflow .flight-policy-fees dt { color:#65766f; font-size:12px; }
+.booking-workflow .flight-policy-fees dd { margin:0; font-size:15px; font-weight:650; }
+.booking-workflow .flight-policy-breakdown { margin-top:12px; }
+.booking-workflow .flight-policy-breakdown > summary { font-size:12px; }
+.booking-workflow .flight-policy-unavailable { padding:12px; border-left:3px solid #b78226; background:#fffbf3; }
+@media (max-width:600px) {
+  .booking-workflow .refreshed-terms { padding:16px; }
+  .booking-workflow .flight-policy-route h5,.booking-workflow .flight-policy-category { padding:14px; }
+  .booking-workflow .flight-policy-band { padding:12px; }
+}
 .booking-workflow .booking-review.is-payment-review .booking-payment-heading { padding:16px; margin-bottom:16px; }
 .booking-workflow .booking-review.is-payment-review .booking-payment-heading h3 { font-size:20px; }
 .booking-workflow .booking-review.is-payment-review .final-traveller-summary { padding:0; background:transparent; }

@@ -39,6 +39,99 @@ test('canonical cancellation schedule ignores ordering and equivalent offset for
  b.option.cancellation.penalties[0].amount=100;
  assert.match(compareReviewedTerms(reviewedTerms('HOTEL',a),reviewedTerms('HOTEL',b))[0].after,/currency, units and basis unverified/);
 });
+
+const firstReview=Date.parse('2026-11-16T01:07:30+05:30'),nextReview=Date.parse('2026-11-16T01:09:30+05:30');
+function rollingHotel(start='2026-11-16T01:07:00'){
+ return {option:{...hotel().option,cancellation:{isRefundable:true,penalties:[
+  {from:start,to:'2026-11-21T05:59:00',amount:0},
+  {from:'2026-11-21T05:59:00',to:'2026-11-23T00:00:00',amount:2033.53},
+ ]}}};
+}
+const hotelTerms=(source:unknown,observedAt=firstReview)=>reviewedTerms('HOTEL',source,observedAt);
+test('rolling origin in a currently active free hotel window does not invent a terms change',()=>{
+ const before=hotelTerms(rollingHotel()),after=hotelTerms(rollingHotel('2026-11-16T01:09:00'),nextReview);
+ assert.deepEqual(compareReviewedTerms(before,after),[]);
+ // Original dates remain available in the full policy; only equality is semantic.
+ assert.match(before.find(row=>row.key==='cancellation')!.display!,/01:07 am/);
+ assert.match(after.find(row=>row.key==='cancellation')!.display!,/01:09 am/);
+ assert.equal(after.find(row=>row.key==='cancellation')?.hotelCancellation?.observedAt,nextReview);
+});
+
+test('rolling hotel origin never hides changed charges, future boundaries or expired windows',()=>{
+ const before=hotelTerms(rollingHotel());
+ for(const change of [
+  (value:ReturnType<typeof rollingHotel>)=>{value.option.cancellation.penalties[0].amount=1;},
+  (value:ReturnType<typeof rollingHotel>)=>{value.option.cancellation.penalties[1].amount=2034;},
+  (value:ReturnType<typeof rollingHotel>)=>{value.option.cancellation.penalties[0].to='2026-11-21T05:58:59.999';value.option.cancellation.penalties[1].from='2026-11-21T05:58:59.999';},
+  (value:ReturnType<typeof rollingHotel>)=>{value.option.cancellation.penalties[1].to='2026-11-22T23:59:59';},
+  (value:ReturnType<typeof rollingHotel>)=>{value.option.cancellation.penalties[1].from='2026-11-21T06:00:00';},
+ ]){
+  const after=rollingHotel('2026-11-16T01:09:00');change(after);
+  assert.ok(compareReviewedTerms(before,hotelTerms(after,nextReview)).some(row=>row.key==='cancellation'));
+ }
+ for(const observedAt of [Date.parse('2026-11-21T05:59:00+05:30'),Date.parse('2026-11-23T00:00:00+05:30')]){
+  assert.equal(compareReviewedTerms(before,hotelTerms(rollingHotel('2026-11-16T01:09:00'),observedAt)).length,1);
+ }
+});
+
+test('future, backward or unknown hotel window origins retain exact comparison',()=>{
+ const before=hotelTerms(rollingHotel());
+ for(const [start,observedAt] of [
+  ['2026-11-16T01:10:00',nextReview],
+  ['2026-11-16T01:06:00',nextReview],
+  ['2026-11-16T01:09:00',NaN],
+  ['2026-11-16T01:09:00',Infinity],
+  ['2026-11-16T01:09:00',firstReview-1],
+ ] as const){
+  assert.equal(compareReviewedTerms(before,hotelTerms(rollingHotel(start),observedAt)).length,1);
+ }
+ const initiallyFuture=hotelTerms(rollingHotel(),firstReview-60_000);
+ assert.equal(compareReviewedTerms(initiallyFuture,hotelTerms(rollingHotel('2026-11-16T01:09:00'),nextReview)).length,1);
+ const withoutCapture=before.map(term=>{const plain={...term};delete plain.hotelCancellation;return plain;});
+ assert.equal(compareReviewedTerms(withoutCapture,hotelTerms(rollingHotel('2026-11-16T01:09:00'),nextReview)).length,1);
+});
+
+test('rolling origin with missing or changed refundability and incomplete schedules stays visible',()=>{
+ const before=hotelTerms(rollingHotel());
+ for(const isRefundable of [false,undefined,'true']){
+  const option=rollingHotel('2026-11-16T01:09:00').option;
+  const after=hotelTerms({option:{...option,cancellation:{...option.cancellation,isRefundable}}},nextReview);
+  const changes=compareReviewedTerms(before,after);
+  assert.ok(changes.some(row=>row.key==='refund'));assert.ok(changes.some(row=>row.key==='cancellation'));
+ }
+ for(const boundary of ['2026-11-21T06:00:00','2026-11-21T05:58:00','2026-02-30T00:00:00','not supplied']){
+  const old=rollingHotel(),latest=rollingHotel('2026-11-16T01:09:00');
+  old.option.cancellation.penalties[1].from=boundary;latest.option.cancellation.penalties[1].from=boundary;
+  const previous=hotelTerms(old),next=hotelTerms(latest,nextReview);
+  if(previous.find(row=>row.key==='cancellation')?.value===null){
+   assert.equal(next.find(row=>row.key==='cancellation')?.value,null,'Malformed schedules stay unknown');
+   assert.ok(compareReviewedTerms(before,next).some(row=>row.key==='cancellation'));
+  }else assert.equal(compareReviewedTerms(previous,next).length,1,'Gaps/overlaps cannot support semantic equality');
+ }
+});
+
+test('cancellation comparison rejects stale or malformed metadata instead of masking exact changes',()=>{
+ const before=hotelTerms(rollingHotel()),latest=hotelTerms(rollingHotel('2026-11-16T01:09:00'),nextReview);
+ const term=latest.find(row=>row.key==='cancellation')!;
+ for(const data of [null,{...term.hotelCancellation,windows:[null]},{...term.hotelCancellation,windows:Array(41).fill(term.hotelCancellation!.windows[0])},{...term.hotelCancellation,observedAt:'2026-11-16'}]){
+  const after=latest.map(row=>row.key==='cancellation'?{...row,hotelCancellation:data}:row) as typeof latest;
+  assert.equal(compareReviewedTerms(before,after).length,1);
+ }
+ assert.equal(compareReviewedTerms(before,latest.map(row=>row.key==='cancellation'?{...row,value:row.value+'; additional supplied restriction'}:row)).length,1);
+});
+
+test('unchanged hotel refresh is neutral while full prior/latest policies remain available',async()=>{
+ const {createElement}=await import('react'),{renderToStaticMarkup}=await import('react-dom/server');
+ const {default:RefreshedTerms}=await import('../src/components/refreshed-terms');
+ const before={totalMinor:203353,review:{terms:hotelTerms(rollingHotel()),option:rollingHotel().option}};
+ const after={totalMinor:203353,review:{terms:hotelTerms(rollingHotel('2026-11-16T01:09:00'),nextReview),option:rollingHotel('2026-11-16T01:09:00').option}};
+ const html=renderToStaticMarkup(createElement(RefreshedTerms,{before,after}));
+ assert.match(html,/refreshed-terms--unchanged/);assert.match(html,/No differences detected in the comparable details/);
+ assert.doesNotMatch(html,/Same price does not mean same terms|Previously:|Now:/);
+ assert.match(html,/Previous supplier policy/);assert.match(html,/Latest supplier policy/);
+ assert.match(html,/2026-11-16T01:07:00/);assert.match(html,/2026-11-16T01:09:00/);
+ assert.match(html,/Some terms could not be compared/);
+});
 test('normalization is bounded and never includes private fare fields',()=>{
  const rows=reviewedTerms('FLIGHT',{tripInfos:Array.from({length:1000},()=>trip('DEL','BOM'))});assert.ok(rows.length<=120);
  assert.equal(rows.some(row=>row.label.includes('Journey 13')),false);

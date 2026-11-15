@@ -1,0 +1,13 @@
+# Checkout policy and document correction
+
+16 November 2026. Fixes the live flight review losing route-specific cancellation rules and hotel refreshes incorrectly warning when only the first, already-active free-cancellation window's start advances.
+
+Hotel comparisons retain the complete original schedule for disclosure. A server capture timestamp permits ignoring only a forward-moving start of the initial zero-charge window while both versions are still active. End times, later start times, fees and refundability must agree. Missing capture metadata, incomplete schedules, gaps, overlaps, future starts and expired free windows retain conservative exact comparison. An unchanged refresh gets a compact neutral panel; real changes retain visible before/after details and an explicit payment action.
+
+PAN is optional unless the reviewed supplier boolean explicitly requires it. The [TripJack Hotel v3 reference](https://tripjack.com/page/api-doc) defines `compliance.panRequired` for the **primary guest**, so the shared browser/server guard now requires it only for the first adult in room 1, including API inputs ordered differently from the supplier's room-grouped payload. Other adults may leave PAN blank. The flight reference's PAN Handling section defines `conditions.ipa=true` as mandatory; that requirement remains in place to avoid collecting payment for a booking missing required details. Non-boolean values such as the string `"false"` no longer become mandatory through truthiness. A supplied PAN still undergoes format validation.
+
+The guest form explains required PAN at the field and keeps optional documents collapsed. Accessible descriptions retain both the hint and validation error. Route-specific flight policy cards and refresh panels are styled for desktop and mobile.
+
+No schema migration or environment change is required. Deploy the rebuilt app container. Production booking/payment workers are unchanged. Automated browser checks use intercepted supplier APIs and a synthetic gateway; they do not verify the deployed provider response or place live bookings.
+
+Validation: production Next build, ESLint on changed TypeScript files, and 586 unit tests passed. The first browser run passed 132 desktop/mobile cases. After visual feedback and final refinements, all 58 targeted cases passed (flight rules, hotel refresh, PAN, traveller validation). Screenshot review confirmed readable policy cards and neutral versus changed hotel notices; focused PAN bounds/hit-testing confirmed it clears the mobile action bar, and correcting PAN clears its stale error while retaining its accessible hint.

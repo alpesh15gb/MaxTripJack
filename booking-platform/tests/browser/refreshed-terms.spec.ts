@@ -87,6 +87,31 @@ test('same-price hotel room, meal and cancellation changes show explicit previou
  await page.getByRole('button',{name:'Back to guests',exact:true}).click();await retainedTraveller(page);expect(provider.requests('/api/travel/review')).toHaveLength(2);
 });
 
+test('rolling current hotel free-window start stays neutral while a later fee change is highlighted',async({page,provider},testInfo)=>{
+ const now=Date.now();
+ const policy=(from:string,amount=2033.53)=>({...room(),cancellation:{isRefundable:true,penalties:[
+  {from,to:`${departure}T05:59:00`,amount:0},
+  {from:`${departure}T05:59:00`,to:`${returning}T00:00:00`,amount},
+ ]}});
+ provider.quote=hotelQuote(policy(new Date(now-120_000).toISOString()));
+ await openHotel(page,provider);await fillTraveller(page);await reviewPayment(page);
+ provider.quote=hotelQuote(policy(new Date(now-30_000).toISOString()),renewedId);await refresh(page);
+ await expect(disclosure(page)).toHaveClass(/refreshed-terms--unchanged/);
+ await expect(disclosure(page).getByRole('status')).toContainText('Total unchanged. No differences detected in the comparable details.');
+ await expect(disclosure(page).locator(':scope > dl')).toHaveCount(0);
+ await expect(disclosure(page)).not.toContainText('Same price does not mean same terms.');
+ await retainedTraveller(page);await expect(pay(page)).toBeEnabled();expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-refresh-rolling-origin-unchanged');
+ provider.quote=hotelQuote(policy(new Date(now-10_000).toISOString(),2500),'66666666-6666-4666-8666-666666666666');await refresh(page);
+ await expect(disclosure(page)).toHaveClass(/refreshed-terms--changed/);
+ await expect(disclosure(page).getByRole('status')).toContainText('Total unchanged. 1 reviewed detail has changed');
+ await expect(changedRow(page,'Cancellation schedule')).toContainText('Supplier amount 2033.53');
+ await expect(changedRow(page,'Cancellation schedule')).toContainText('Supplier amount 2500');
+ await expect(disclosure(page)).toContainText('Same price does not mean same terms.');
+ await retainedTraveller(page);await expect(pay(page)).toBeEnabled();expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-refresh-material-fee-change');
+});
+
 test('reordered reviewed outbound/return journeys do not invent changed baggage or refund terms',async({page,provider},testInfo)=>{
  const out=fare('ONWARD',1,'15 Kg'),back=fare('RETURN',0,'20 Kg');provider.search=flightResults(true);provider.quote=flightQuote([out,back]);
  await openFlightSearch(page,{roundTrip:true});await selectFare(page,'Choose this outbound fare');await selectFare(page,'Choose this return fare');

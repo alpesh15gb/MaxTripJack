@@ -3,8 +3,9 @@ import {hotelCancellation,hotelObject} from './hotel-presentation';
 import {refundLabel} from './booking-presentation';
 import {supplierInstant} from './supplier-time';
 import {hotelPolicyDateTime} from './hotel-cancellation-timeline';
+import {flightFareRuleTerms} from './flight-fare-rules';
 
-import type {ReviewTerm} from './review-term-changes';
+import {hotelCancellationValue,type ReviewTerm} from './review-term-changes';
 import {policyText as text} from './public-supplier-policy';
 function completeList(source:unknown,max:number,read:(item:unknown)=>string|null):string[]|null {
  if(!Array.isArray(source)||source.length===0||source.length>max)return null;
@@ -19,7 +20,7 @@ function itineraryKey(source:unknown):string|null {
 }
 /** Only reviewed customer-facing fields; never search cards, raw JSON, IDs,
  * expiry, supplier totals or commission. Missing values do not mean “none”. */
-export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown):ReviewTerm[]{
+export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown,observedAt=Date.now()):ReviewTerm[]{
  const review=hotelObject(source),rows:ReviewTerm[]=[];
  const add=(key:string,label:string,value:string|null,display?:string)=>rows.push({key,label,value,...(display?{display}:{})});
  if(product==='HOTEL'){
@@ -33,8 +34,12 @@ export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown):ReviewTer
   const penalties=policy.penalties;
   const schedule=Array.isArray(raw.penalties)&&penalties.length>0&&penalties.length===raw.penalties.length?penalties.map(row=>({from:supplierInstant(row.from,'+05:30')!,to:supplierInstant(row.to,'+05:30')!,amount:row.amount})).sort((a,b)=>a.from-b.from||a.to-b.to||a.amount-b.amount):null;
   // Canonical comparison identity stays independent of customer date formatting.
-  add('cancellation','Cancellation schedule',schedule?.map(row=>`${new Date(row.from).toISOString()} to ${new Date(row.to).toISOString()}: supplier amount ${row.amount} (currency, units and basis unverified)`).join('; ')??null,
+  add('cancellation','Cancellation schedule',schedule?hotelCancellationValue(schedule):null,
    schedule?.map(row=>`${hotelPolicyDateTime(row.from)} IST → ${hotelPolicyDateTime(row.to)} IST · Supplier amount ${row.amount} (currency, units and basis unverified)`).join('; '));
+  // Preserve exact text for disclosure. The comparator may disregard only an
+  // elapsed rolling free-window origin, using server capture time and this
+  // complete schedule; it revalidates continuity and all other boundaries.
+  if(schedule&&policy.isRefundable===true)rows[rows.length-1].hotelCancellation={observedAt,refundable:true,windows:schedule};
   add('notes','Booking notes',text(option.bookingNotes));
  }else{
   const trips=Array.isArray(review.tripInfos)&&review.tripInfos.length<=12?review.tripInfos:[];
@@ -56,9 +61,7 @@ export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown):ReviewTer
     add(`${prefix}.cabin`,`${route} · ${pax} cabin baggage`,text(baggage.cB));
    }
   }
-  // This text shape is exercised by the supplier review fixtures. Other shapes
-  // are explicitly unavailable; we do not infer their schema or meaning.
-  add('fareRules.miscInfo','Fare rule notes',text(hotelObject(hotelObject(review.fareRules).fareRule).miscInfo));
+  rows.push(...flightFareRuleTerms(review.fareRules));
  }
  return rows.slice(0,120);
 }

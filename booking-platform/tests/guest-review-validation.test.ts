@@ -16,6 +16,22 @@ test('valid children, infants and optional adult documents need no extra require
  assert.deepEqual(guestDetailsIssues(guests,flight,{}),[]);
  assert.deepEqual(reviewGuestIssues(guests,{}),[]);
 });
+test('PAN stays optional by default and hotel PAN is required only for the primary adult',()=>{
+ const party:Guests={...guests,travellers:[{...adult,roomIndex:0},{...adult,roomIndex:0},{...adult,roomIndex:1}]};
+ for(const panRequired of [undefined,false,'false',1,null]){
+  const review={option:{compliance:{panRequired}}} as Parameters<typeof reviewGuestIssues>[1];
+  assert.deepEqual(reviewGuestIssues(party,review),[]);
+  assert.doesNotThrow(()=>validateGuestReview(party,review));
+ }
+ const review={option:{compliance:{panRequired:true}}};
+ assert.deepEqual(paths(reviewGuestIssues(party,review)),['travellers.0.pan']);
+ const completed={...party,travellers:party.travellers.map((traveller,index)=>index===0?{...traveller,pan:'ABCDE1234F'}:traveller)};
+ assert.doesNotThrow(()=>validateGuestReview(completed,review));
+ const reordered={...party,travellers:[party.travellers[2],party.travellers[0],party.travellers[1]]};
+ assert.deepEqual(paths(reviewGuestIssues(reordered,review)),['travellers.1.pan']);
+ assert.deepEqual(paths(reviewGuestIssues(party,{conditions:{ipa:true}})),['travellers.0.pan','travellers.1.pan','travellers.2.pan']);
+ assert.deepEqual(reviewGuestIssues(party,{conditions:{ipa:'false'}} as unknown as Parameters<typeof reviewGuestIssues>[1]),[]);
+});
 test('age errors are collected per traveller; exact second/twelfth birthdays use departure',()=>{
  const invalid={...guests,travellers:[{...adult,dob:'2016-06-16'},{...guests.travellers[1],dob:'2015-06-15'},{...guests.travellers[2],dob:'2025-06-15'}]};
  assert.deepEqual(paths(guestDetailsIssues(invalid,flight,{})),['travellers.0.dob','travellers.1.dob','travellers.2.dob']);
