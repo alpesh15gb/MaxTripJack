@@ -1,6 +1,38 @@
 import {travelDateLabel} from '../../src/lib/travel-date';
 import {test,expect,capture,departure,returning,flight,searchId,reviewedQuote,expectNoHorizontalOverflow} from './fixtures';
 import type {Flight} from '../../src/lib/booking-presentation';
+test('320px flight results keep the fare label and arrow inside their tap target',async({page,provider},testInfo)=>{
+ await page.setViewportSize({width:320,height:844});
+ await page.emulateMedia({reducedMotion:'reduce'});
+ const ordinary=flight('ONWARD','ordinary-mobile-fare'),higher=flight('ONWARD','higher-mobile-fare');
+ higher.totalPriceList[0].customerEstimateMinor=12345678;
+ provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[ordinary,higher]}}}};
+ await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
+ const cards=page.locator('.flight-shopping-list .live-flight-card');
+ await expect(cards).toHaveCount(2);
+ await page.evaluate(async()=>{await document.fonts.ready;});
+ for(let index=0;index<2;index++){
+  const label=cards.nth(index).locator('.choose-fare-label');
+  await label.scrollIntoViewIfNeeded();
+  const bounds=await label.evaluate(node=>{
+   const box=node.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(node);
+   const text=range.getBoundingClientRect(),arrow=node.querySelector('[aria-hidden]')!.getBoundingClientRect();
+   return {left:box.left,right:box.right,height:box.height,textLeft:text.left,textRight:text.right,arrowLeft:arrow.left,arrowRight:arrow.right};
+  });
+  await testInfo.attach(`mobile-fare-${index}-bounds`,{body:JSON.stringify(bounds),contentType:'application/json'});
+  expect(bounds.height).toBeGreaterThanOrEqual(44);
+  expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.left);
+  expect(bounds.textRight).toBeLessThanOrEqual(bounds.right);
+  expect(bounds.arrowLeft).toBeGreaterThanOrEqual(bounds.left);
+  expect(bounds.arrowRight).toBeLessThanOrEqual(bounds.right);
+  await expectNoHorizontalOverflow(page);
+  await testInfo.attach(`mobile-fare-${index}`,{body:await page.screenshot({path:testInfo.outputPath(`mobile-fare-${index}.png`),animations:'disabled'}),contentType:'image/png'});
+ }
+ await cards.first().locator('.fare-comparison>summary').click();
+ await expect(cards.first().getByRole('button',{name:'Check fare & continue',exact:true})).toBeVisible();
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 test('flight shopping preserves local dates, airport identity and party fare contracts while filtering',async({page,provider},testInfo)=>{
  const tomorrow=new Date(departure+'T00:00:00Z');tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
  const night:Flight={sI:[{dt:departure+'T23:25:00',at:tomorrow.toISOString().slice(0,10)+'T01:50:00',duration:145,fD:{aI:{name:'Example International Airways',code:'EX'},fN:'123'},da:{code:'DEL',city:'New Delhi'},aa:{code:'NMI',city:'Navi Mumbai'}}],totalPriceList:[{id:'night-standard',fareIdentifier:'STANDARD',customerEstimateMinor:1200000,fD:{ADULT:{cc:'ECONOMY',rT:0,bI:{cB:'7 Kg',iB:'15 Kg'}},CHILD:{bI:{cB:'5 Kg',iB:'10 Kg'}},INFANT:{bI:{iB:'No allowance'}}}},{id:'night-flex',fareIdentifier:'FLEXIBLE',customerEstimateMinor:1450000,fD:{ADULT:{cc:'ECONOMY',rT:1,bI:{cB:'7 Kg',iB:'25 Kg'}}}}]};

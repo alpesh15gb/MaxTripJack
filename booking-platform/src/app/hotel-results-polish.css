@@ -115,6 +115,7 @@ body .booking-workflow.journey-flow .hotel-shopping .hotel-result-action .primar
 }
 @media (max-width: 360px) {
   body .booking-workflow.journey-flow .hotel-shopping .hotel-shopping-card { grid-template-columns: 96px minmax(0, 1fr); }
-  body .booking-workflow.journey-flow .hotel-shopping .hotel-result-action { gap: 8px; padding: 12px; }
-  body .booking-workflow.journey-flow .hotel-shopping .hotel-result-action .primary { min-width: 112px; padding: 10px; }
+  body .booking-workflow.journey-flow .hotel-shopping .hotel-result-action { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
+  .hotel-shopping .hotel-stay-price .hotel-price-review-note { max-width: none; }
+  body .booking-workflow.journey-flow .hotel-shopping .hotel-result-action .primary { width: 100%; min-width: 0; padding: 10px; }
 }

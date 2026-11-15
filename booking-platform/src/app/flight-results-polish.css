@@ -114,6 +114,7 @@ body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .c
 @media (max-width: 350px) {
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary,
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison[open] > summary { grid-template-columns: minmax(0, 1fr) 108px; gap: 8px; padding-inline: 12px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .choose-fare-label { padding-inline: 8px; font-size: 13px; gap: 4px; }
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-route-line { grid-template-columns: minmax(0, 1fr) minmax(80px, 1.1fr) minmax(0, 1fr); padding-inline: 12px; gap: 5px; }
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-route-line strong { font-size: 21px; }
 }

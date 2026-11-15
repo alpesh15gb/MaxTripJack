@@ -162,6 +162,9 @@ body .booking-workflow.journey-flow .stay-detail .stay-room-rate .primary { back
 }
 @media (max-width: 520px) {
   body .booking-workflow.journey-flow .stay-detail .stay-date-strip { padding-bottom: 0; }
+  body .booking-workflow.journey-flow .stay-detail .stay-rate-preview { grid-template-columns: minmax(0, 1fr); }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action { grid-template-columns: minmax(0, 1fr); }
+  body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > .primary { grid-column: 1; grid-row: auto; width: 100%; margin-top: 8px; }
   body .booking-workflow.journey-flow .stay-detail .stay-section-nav { gap: 8px 16px; }
   body .booking-workflow.journey-flow .stay-detail .stay-section-nav a { font-size: 13px; }
   body .booking-workflow.journey-flow .stay-detail .stay-photo-mosaic { height: 240px; }

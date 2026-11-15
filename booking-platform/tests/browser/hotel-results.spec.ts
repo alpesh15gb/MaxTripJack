@@ -10,6 +10,51 @@ test.beforeEach(async({page})=>{
  await page.route(photo,route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"><rect width="480" height="320" fill="#a7c8c5"/><text x="20" y="80">Synthetic property fixture</text></svg>'}));
 });
 
+for(const width of [320,390])test(`${width}px hotel totals and room actions stay readable without splitting amounts`,async({page,provider},testInfo)=>{
+ await page.setViewportSize({width,height:844});
+ await page.emulateMedia({reducedMotion:'reduce'});
+ const amounts=[204659,12345678];
+ provider.search={searchId,results:{hotels:amounts.map((amount,index)=>({tjHotelId:`1000${index+1}`,name:`Mobile stay ${index+1}`,customerEstimateMinor:amount}))}};
+ provider.overrides['POST /api/travel/hotel-detail']={body:{options:amounts.map((amount,index)=>({optionId:`mobile-room-${index}`,roomInfo:[{name:`Room ${index+1}`}],pricing:{totalPrice:amount/100,currency:'INR'},cancellation:{isRefundable:false,penalties:[]}}))}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
+ const cards=page.locator('.hotel-shopping-card');
+ await expect(cards).toHaveCount(2);
+ await page.evaluate(async()=>{await document.fonts.ready;});
+ // A document overflow assertion alone misses prices wrapped at the decimal.
+ const amountBounds=async(selector:string,index:number)=>page.locator(selector).nth(index).evaluate(node=>{
+  const amount=Array.from(node.childNodes).find(child=>child.nodeType===Node.TEXT_NODE&&child.textContent?.includes('₹'));
+  if(!amount)throw new Error('Expected a formatted rupee amount');
+  const range=document.createRange();range.selectNodeContents(amount);
+  const lines=Array.from(range.getClientRects()).filter(rect=>rect.width>0),box=node.getBoundingClientRect();
+  return {lines:lines.length,left:box.left,right:box.right,textLeft:Math.min(...lines.map(line=>line.left)),textRight:Math.max(...lines.map(line=>line.right))};
+ });
+ for(let index=0;index<2;index++){
+  await cards.nth(index).locator('.hotel-result-action').scrollIntoViewIfNeeded();
+  const bounds=await amountBounds('.hotel-shopping-card .hotel-stay-price>strong',index);
+  expect(bounds.lines).toBe(1);expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.left);expect(bounds.textRight).toBeLessThanOrEqual(bounds.right);
+  await expectNoHorizontalOverflow(page);
+  await testInfo.attach(`mobile-hotel-total-${index}`,{body:await page.screenshot({path:testInfo.outputPath(`mobile-hotel-total-${index}.png`),animations:'disabled'}),contentType:'image/png'});
+ }
+ await cards.first().getByRole('button',{name:'Choose room',exact:true}).click();
+ const rates=page.locator('.stay-room-rate');
+ await expect(rates).toHaveCount(2);
+ const preview=await amountBounds('.stay-preview-price>strong',0);
+ expect(preview.lines).toBe(1);expect(preview.textRight).toBeLessThanOrEqual(preview.right);
+ for(let index=0;index<2;index++){
+  const action=rates.nth(index).locator('.stay-room-rate-action');
+  await action.scrollIntoViewIfNeeded();
+  const bounds=await amountBounds('.stay-room-rate-action>strong',index);
+  expect(bounds.lines).toBe(1);expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.left);expect(bounds.textRight).toBeLessThanOrEqual(bounds.right);
+  const button=action.getByRole('button',{name:'Continue with room',exact:true});
+  const buttonBounds=await button.evaluate(node=>{const range=document.createRange();range.selectNodeContents(node);const box=node.getBoundingClientRect(),text=range.getBoundingClientRect();return {height:box.height,left:box.left,right:box.right,textLeft:text.left,textRight:text.right,lines:range.getClientRects().length};});
+  expect(buttonBounds.lines).toBe(1);expect(buttonBounds.height).toBeGreaterThanOrEqual(44);
+  expect(buttonBounds.textLeft).toBeGreaterThanOrEqual(buttonBounds.left);expect(buttonBounds.textRight).toBeLessThanOrEqual(buttonBounds.right);
+  await expectNoHorizontalOverflow(page);
+  await testInfo.attach(`mobile-room-action-${index}`,{body:await page.screenshot({path:testInfo.outputPath(`mobile-room-action-${index}.png`),animations:'disabled'}),contentType:'image/png'});
+ }
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 test('hotel results prioritize real stay totals with scoped filters, sorting and intact room flow',async({page,provider},testInfo)=>{
 
  provider.search={searchId,results:{hotels}};
@@ -59,8 +104,8 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(page.locator('.room-option-card').getByRole('heading',{name:'Deluxe twin room',exact:true})).toBeVisible();
  await expect(page.locator('#hotel-detail-title')).toHaveRole('heading');
  await expect(page.locator('#hotel-detail-title')).toHaveText('Palm House');
- await expect(page.getByRole('heading',{level:1,name:'Your stay',exact:true})).toBeVisible();
- await expect(page.getByRole('heading',{name:'Choose your room',exact:true})).toHaveCount(1);
+ await expect(page.getByRole('heading',{level:1,name:'Choose your room',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{level:2,name:'Choose your room',exact:true})).toHaveCount(1);
  await expect(page.locator('#hotel-detail-title')).toBeFocused();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10001'});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/search')[0].body).toMatchObject({checkIn:departure,checkOut:returning});expect(provider.requests('/api/payments/create')).toHaveLength(0);
