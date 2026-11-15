@@ -11,7 +11,7 @@ import { guestIssueField,guestNativeIssues,guestsFromForm,parseGuestIssues } fro
 import { useRouter,useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import Script from 'next/script';
+import {loadRazorpayCheckout,RazorpayCheckoutLoadError} from '@/lib/razorpay-checkout-loader';
 import {hotelCancellationLabel,hotelRoomLabel,type HotelPropertyDetails,type HotelRoomOption} from '@/lib/hotel-presentation';
 import {BOOKING_HANDOFF_KEY,inspectBookingHandoff,parseBookingHandoff,type BookingHandoff} from '@/lib/booking-handoff';
 import {completeHotelRooms,type DraftHotelRoom} from '@/lib/hotel-occupancy';
@@ -51,10 +51,7 @@ type Hotel={tjHotelId:string;name:string;options?:HotelOption[];customerEstimate
 type Results={searchId:string;propertyContentPending?:boolean;propertyContentUnavailable?:boolean;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
 type Quote={quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;childrenAges?:number[];rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{terms?:ReviewTerm[];fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
 type Selection={priceIds?:string[];hid?:string;optionId?:string};
-type CheckoutResult={razorpay_order_id:string;razorpay_payment_id:string;razorpay_signature:string};
 type Payment={provider?:'RAZORPAY';bookingId:string;orderId:string;amount:number;currency:string;keyId:string}|{provider:'PAYGLOCAL';bookingId:string;checkoutUrl:string;amount:number;currency:'INR'};
-type Gateway={key:string;amount:number;currency:string;order_id:string;name:string;handler:(result:CheckoutResult)=>void;modal:{ondismiss:()=>void}};
-declare global{interface Window{Razorpay?:new(options:Gateway)=>{open:()=>void;on:(event:string,callback:()=>void)=>void}}}
 class BookingApiError extends Error { constructor(message:string,public status:number,public code?:string,public fields:GuestIssue[]=[]){super(message);} }
 async function api<T>(path:string,data:unknown,signal?:AbortSignal):Promise<T>{
   const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal});
@@ -210,8 +207,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const travellerReviewCurrent=useRef(false);
   const [selectedJourney,setSelectedJourney]=useState<Flight[]>([]);
   const [providerUnavailable,setProviderUnavailable]=useState(!checkoutConfigured);
-  const [loadRazorpay,setLoadRazorpay]=useState(false);
-  const queuedCheckout=useRef<Payment|null>(null);
+  const checkoutLaunch=useRef(0);
   const [extrasPending,setExtrasPending]=useState(false);
   const [gstEntered,setGstEntered]=useState(false),[emergencyEntered,setEmergencyEntered]=useState(false);
   const [checkoutStep,setCheckoutStep]=useState<'travellers'|'payment'>('travellers');
@@ -223,7 +219,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const autoSearchStarted=useRef(false),operation=useRef(0),requestController=useRef<AbortController|null>(null),busyRef=useRef(false);
   const mounted=useRef(true),verificationStarted=useRef(false);
 
-  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;requestController.current?.abort();hotelRequest.current?.abort();snapshotController.current?.abort();if(searchFocusFrame.current!==null)cancelAnimationFrame(searchFocusFrame.current);};},[]);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;checkoutLaunch.current+=1;requestController.current?.abort();hotelRequest.current?.abort();snapshotController.current?.abort();if(searchFocusFrame.current!==null)cancelAnimationFrame(searchFocusFrame.current);};},[]);
   const ownedRoute=useRef<{url:string;state:unknown}>({url:'/book?'+new URLSearchParams(prefill).toString(),state:null});
   useEffect(()=>{
     const rememberRoute=()=>{
@@ -718,15 +714,19 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     const nextGroup=fareGroups[fareGroups.indexOf(group)+1];
     if(nextGroup){setActiveGroup(nextGroup);setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');}
   }
-  function openCheckout(order:Payment){
+  async function openCheckout(order:Payment){
     if(order.provider==='PAYGLOCAL'){
       if(!isResumableHostedCheckout({...order,canResume:true}))throw Error('Hosted checkout details could not be verified. Check My trips before paying again.');
       setActivity('Redirecting to secure checkout; payment verification follows in My trips');
       window.location.assign(order.checkoutUrl);return;
     }
-    if(!window.Razorpay){queuedCheckout.current=order;setLoadRazorpay(true);setActivity('Loading secure checkout');return;}
+    const launch=++checkoutLaunch.current;
+    setActivity('Loading secure checkout');
+    try{
+    const Razorpay=await loadRazorpayCheckout();
+    if(!mounted.current||launch!==checkoutLaunch.current)return;
     verificationStarted.current=false;
-    const checkout=new window.Razorpay({key:order.keyId,amount:order.amount,currency:order.currency,order_id:order.orderId,name:'Max Travel · Test booking',handler:async result=>{
+    const checkout=new Razorpay({key:order.keyId,amount:order.amount,currency:order.currency,order_id:order.orderId,name:'Max Travel · Test booking',handler:async result=>{
       verificationStarted.current=true;
       try{await api('/api/payments/verify',{bookingId:order.bookingId,...result});clearCheckoutMarker({bookingId:order.bookingId});if(mounted.current){recovery.clear();router.push(`/my-trips/${encodeURIComponent(order.bookingId)}`);}}
       catch(error){if(mounted.current){setPaymentUncertain(true);setMessage(`${error instanceof Error?error.message:'Payment verification is pending.'} Check My trips before attempting another payment.`);scrollToSection('booking-feedback');}}
@@ -734,6 +734,12 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     },modal:{ondismiss:()=>{if(!mounted.current||verificationStarted.current)return;busyRef.current=false;setBusy(false);setActivity('');setMessage('Checkout closed. Your payment order is preserved. Resume the same checkout or check My trips.');scrollToSection('booking-feedback');}}});
     checkout.on('payment.failed',()=>{if(mounted.current&&!verificationStarted.current){busyRef.current=false;setBusy(false);setActivity('');setMessage('This payment attempt failed. Your existing order is preserved; resume the same checkout to retry.');scrollToSection('booking-feedback');}});
     checkout.open();
+    setActivity('Complete secure checkout');
+    }catch(error){if(mounted.current&&launch===checkoutLaunch.current){
+      busyRef.current=false;setBusy(false);setActivity('');
+      setMessage(`${error instanceof RazorpayCheckoutLoadError?error.message:'Secure checkout could not open.'} Your existing payment order is preserved. Use Resume secure checkout to try again, or check My trips.`);
+      scrollToSection('booking-feedback');
+    }}
   }
   async function submitCheckout(form:HTMLFormElement){
     if(!quote||busyRef.current)return;
@@ -768,7 +774,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         if(!response.ok||!status||(!isResumableCheckout(status)&&!isResumableHostedCheckout(status))){setPaymentUncertain(true);throw Error(status?.message||'Your order may already be processing. Check its status in My trips before paying again.');}
         if(Date.parse(quote.expiresAt)<=new Date().getTime())throw Error('This reviewed price has expired. Your original order is preserved; check My trips before making another payment.');
         const verifiedOrder:Payment=isResumableHostedCheckout(status)?status:{bookingId:status.bookingId,orderId:status.orderId,keyId:status.keyId,amount:status.amount,currency:status.currency};
-        setPayment(verifiedOrder);openCheckout(verifiedOrder);return;
+        setPayment(verifiedOrder);await openCheckout(verifiedOrder);return;
       }
       if(!saveCheckoutMarker({quoteId:quote.quoteId}))throw new BookingApiError('Your browser could not preserve checkout recovery. Enable session storage before starting payment.',400);
       const order=await api<Payment>('/api/payments/create',{quoteId:quote.quoteId,acceptedTotalMinor:quote.totalMinor,guests,...(billingRequired?{billingData:billingFromForm(values)}:{})});
@@ -777,7 +783,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       if(!mounted.current)return;
       setPayment(order);
       if(quoteRemaining(quote.expiresAt,new Date().getTime())<=0){setPaymentUncertain(true);throw Error('The price review expired while checkout was being prepared. Your original order is preserved.');}
-      openCheckout(order);
+      await openCheckout(order);
     }catch(error){if(mounted.current){
       const failureMessage=error instanceof Error?error.message:'Checkout unavailable.';
       const action=paymentFailureAction(error instanceof BookingApiError?error.status:undefined,failureMessage,error instanceof BookingApiError?error.code:undefined);
@@ -800,7 +806,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       if(!response.ok||!data||(!isResumableCheckout(data)&&!isResumableHostedCheckout(data))||!data.quoteExpiresAt||quoteRemaining(data.quoteExpiresAt,new Date().getTime())<=0)throw Error(data?.message||'This checkout cannot be resumed safely. Check My trips before paying again.');
       if(!mounted.current)return;
       const order:Payment=isResumableHostedCheckout(data)?data:{bookingId:data.bookingId,orderId:data.orderId,keyId:data.keyId,amount:data.amount,currency:data.currency};
-      saveCheckoutMarker({...marker,bookingId:order.bookingId});setPayment(order);openCheckout(order);
+      saveCheckoutMarker({...marker,bookingId:order.bookingId});setPayment(order);await openCheckout(order);
     }catch(error){if(mounted.current){recovery.invalidate();setMessage(error instanceof Error?error.message:'Check the existing payment in My trips.');busyRef.current=false;setBusy(false);setActivity('');}}
   }
 
@@ -809,7 +815,6 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const roomListing=rooms?.searchId===results?.searchId?results?.results.hotels?.find(hotel=>hotel.tjHotelId===rooms?.hid):undefined;
   const roomProperty=roomListing?.propertyContentStatus==='resolved'?roomListing.property??rooms?.property:rooms?.property??roomListing?.property;
   return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow${results||quote?' has-journey':''}${!checkoutStarted?' booking-shopping':' checkout-active'}${busy&&activity==='Finding available journeys'?' is-searching':''}${product==='HOTEL'&&results&&!checkoutStarted?' hotel-results-page':''}${product==='FLIGHT'&&results&&!checkoutStarted?' flight-results-page':''}${results&&!checkoutStarted?' results-only':''}`}>
-    {loadRazorpay&&<Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" onReady={()=>{const order=queuedCheckout.current;queuedCheckout.current=null;if(order&&mounted.current)openCheckout(order);}} onError={()=>{queuedCheckout.current=null;busyRef.current=false;setBusy(false);setActivity('');setMessage('Checkout could not load. Your existing order is preserved. Check My trips before trying again.');}}/>}
     <Link href="/" className="back">← Back to explore</Link>
     {busy&&activity==='Finding available journeys'&&<SearchJourneyPending product={product} context={pendingSearchContext} onStop={stopAvailabilitySearch}/>}
     {busy&&activity!=='Finding available journeys'&&!checkingSelection&&!checkingHotelId&&<section id="booking-pending" className="booking-skeleton booking-pending" role="status" aria-live="polite" aria-label="Search and booking activity"><span aria-hidden="true" className="booking-spinner"/><strong>{activity}…</strong><p>{activity==='Finding available journeys'?'Waiting for live supplier availability. Results will appear here when the response arrives; prices are not confirmed yet.':'We’re checking the details. Please wait before trying again.'}</p><div className="booking-loading-lines" aria-hidden="true"><i/><i/><i/></div></section>}

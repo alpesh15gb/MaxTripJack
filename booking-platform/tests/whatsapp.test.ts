@@ -13,6 +13,7 @@ const transport = build({ entryPoints: ["src/lib/whatsapp.ts"], bundle: true, pl
 }).then(output => { const compiled = { exports: {} as Transport }; new Function("module", "exports", output.outputFiles[0].text)(compiled, compiled.exports); return compiled.exports; });
 
 const phone = "+919876543210", code = "123456", apiKey = "synthetic-private-api-key";
+const diagnostic = (fields: Record<string, unknown>) => ["WhatsApp transport", JSON.stringify(fields)];
 function configured() {
   const before = { ...process.env };
   Object.assign(process.env, { EVOLUTION_API_URL: "http://evolution_api:8080/", EVOLUTION_API_KEY: apiKey, EVOLUTION_INSTANCE: "maxtravel-test" });
@@ -25,7 +26,8 @@ async function withServer(handler: RequestListener, run: (url: string) => Promis
   finally { server.closeAllConnections(); await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 }
 
-test("WhatsApp configuration is server-only, explicit and rejects credential/query URLs before I/O", async () => {
+test("WhatsApp configuration is server-only, explicit and rejects credential/query URLs before I/O", async t => {
+  const logged = t.mock.method(console, "error", () => {});
   const { whatsappReady, sendWhatsAppCode } = await transport;
   const restore = configured(); let calls = 0;
   try {
@@ -39,6 +41,8 @@ test("WhatsApp configuration is server-only, explicit and rejects credential/que
     process.env.EVOLUTION_API_URL = original;
     for (const invalid of ["", ".", "..", "../other-instance", "instance/other", "instance\\other", " instance?key=value ", "instance#fragment", "instance\nother", "a".repeat(129)]) { process.env.EVOLUTION_INSTANCE = invalid; assert.equal(whatsappReady(), false, JSON.stringify(invalid)); }
     assert.equal(calls, 0);
+    assert.equal(logged.mock.callCount(), 6);
+    for (const call of logged.mock.calls) assert.deepEqual(call.arguments, diagnostic({ operation: "send", outcome: "unavailable", reason: "configuration", httpStatus: null }));
   } finally { restore(); }
 });
 
@@ -61,7 +65,8 @@ test("Evolution instance names preserve spaces and Unicode as one encoded URL se
   } finally { restore(); }
 });
 
-test("Evolution v2 receives one bounded send with country code, six digits and private API header", async () => {
+test("Evolution v2 receives one bounded send with country code, six digits and private API header", async t => {
+  const logged = t.mock.method(console, "error", () => {});
   const { sendWhatsAppCode } = await transport;
   const restore = configured(); let calls = 0;
   try {
@@ -77,38 +82,47 @@ test("Evolution v2 receives one bounded send with country code, six digits and p
       return Response.json({ key: { id: "synthetic-message", fromMe: true }, status: "PENDING" }, { status: 201 });
     } });
     assert.equal(calls, 1, "an acknowledgement never triggers a second send or delivery check");
+    assert.equal(logged.mock.callCount(), 0, "successful requests are not logged");
     for (const [number, otp] of [["919876543210", code], [phone + "@g.us", code], [phone, "not-a-code"]]) await assert.rejects(sendWhatsAppCode(number, otp, { fetch: async () => { calls++; return Response.json({}); } }), { outcome: "unavailable" });
     assert.equal(calls, 1);
+    assert.equal(logged.mock.callCount(), 3);
+    for (const call of logged.mock.calls) assert.deepEqual(call.arguments, diagnostic({ operation: "send", outcome: "unavailable", reason: "input", httpStatus: null }));
   } finally { restore(); }
 });
 
-test("provider failures and malformed acknowledgements stay private and are never retried", async () => {
+test("provider failures log one sanitized diagnostic with bounded status and are never retried", async t => {
+  const logged = t.mock.method(console, "error", () => {});
   const { sendWhatsAppCode, WhatsAppDeliveryError } = await transport;
   const restore = configured();
   const cases = [
-    { response: () => Response.json({ error: `${phone} ${code} ${apiKey}` }, { status: 401 }), outcome: "rejected" },
-    { response: () => Response.json({ error: `${phone} ${code} ${apiKey}` }, { status: 500 }), outcome: "unconfirmed" },
-    { response: () => Response.json({ success: true }), outcome: "unconfirmed" },
-    { response: () => Response.json({ key: { id: "fixture" }, status: "ERROR" }), outcome: "unconfirmed" },
-    { response: () => Response.json({ key: { id: "fixture" }, success: false }), outcome: "unconfirmed" },
-    { response: () => new Response("not-json", { headers: { "content-type": "application/json" } }), outcome: "unconfirmed" },
-    { response: () => Response.json({ value: "x".repeat(33_000) }), outcome: "unconfirmed" },
-    { response: () => Response.json({}, { headers: { "content-length": "9999999" } }), outcome: "unconfirmed" },
-    { response: () => { throw Error(`network ${phone} ${code} ${apiKey}`); }, outcome: "unconfirmed" },
+    ...[400, 401, 403, 404, 429, 500].map(status => ({ response: () => Response.json({ error: `${phone} ${code} ${apiKey}` }, { status }), outcome: status >= 500 ? "unconfirmed" : "rejected", reason: "provider-http", httpStatus: status })),
+    { response: () => Response.json({ success: true }), outcome: "unconfirmed", reason: "acknowledgement", httpStatus: 200 },
+    { response: () => Response.json({ key: { id: "fixture" }, status: "ERROR" }), outcome: "unconfirmed", reason: "acknowledgement", httpStatus: 200 },
+    { response: () => Response.json({ key: { id: "fixture" }, success: false }), outcome: "unconfirmed", reason: "acknowledgement", httpStatus: 200 },
+    { response: () => new Response("not-json", { headers: { "content-type": "application/json" } }), outcome: "unconfirmed", reason: "response", httpStatus: 200 },
+    { response: () => Response.json({ value: "x".repeat(33_000) }), outcome: "unconfirmed", reason: "response", httpStatus: 200 },
+    { response: () => Response.json({}, { headers: { "content-length": "9999999" } }), outcome: "unconfirmed", reason: "response", httpStatus: 200 },
+    { response: () => { throw Error(`network ${phone} ${code} ${apiKey}`); }, outcome: "unconfirmed", reason: "transport", httpStatus: null },
   ];
   try {
     for (const sample of cases) {
       let calls = 0;
+      const previousLogs = logged.mock.callCount();
       await assert.rejects(sendWhatsAppCode(phone, code, { fetch: async () => { calls++; return sample.response(); } }), error => {
         assert.ok(error instanceof WhatsAppDeliveryError); assert.equal(error.outcome, sample.outcome);
+        assert.equal(error.reason, sample.reason); assert.equal(error.httpStatus, sample.httpStatus);
         assert.doesNotMatch(error.message, /9876543210|123456|synthetic-private|network|9999999/); return true;
       });
       assert.equal(calls, 1);
+      assert.equal(logged.mock.callCount(), previousLogs + 1, "each failure logs once, including invalid acknowledgements");
+      assert.deepEqual(logged.mock.calls.at(-1)!.arguments, diagnostic({ operation: "send", outcome: sample.outcome, reason: sample.reason, httpStatus: sample.httpStatus }));
     }
+    assert.doesNotMatch(JSON.stringify(logged.mock.calls.map(call => call.arguments)), /9876543210|123456|synthetic-private|not-json|9999999|fixture|https?:\/\/|maxtravel-test/);
   } finally { restore(); }
 });
 
-test("real HTTP redirect cannot forward the Evolution credential or issue another message", async () => {
+test("real HTTP redirect cannot forward the Evolution credential or issue another message", async t => {
+  const logged = t.mock.method(console, "error", () => {});
   const { sendWhatsAppCode } = await transport;
   const restore = configured(); let sends = 0, followed = 0;
   try {
@@ -116,11 +130,13 @@ test("real HTTP redirect cannot forward the Evolution credential or issue anothe
       process.env.EVOLUTION_API_URL = url;
       await assert.rejects(sendWhatsAppCode(phone, code), { outcome: "unconfirmed" });
       assert.equal(sends, 1); assert.equal(followed, 0);
+      assert.deepEqual(logged.mock.calls.map(call => call.arguments), [diagnostic({ operation: "send", outcome: "unconfirmed", reason: "transport", httpStatus: null })]);
     });
   } finally { restore(); }
 });
 
-for (const partialBody of [false, true]) test(`real HTTP ${partialBody ? "body" : "header"} stall aborts once and remains delivery-unknown`, async () => {
+for (const partialBody of [false, true]) test(`real HTTP ${partialBody ? "body" : "header"} stall aborts once and remains delivery-unknown`, async t => {
+  const logged = t.mock.method(console, "error", () => {});
   const { sendWhatsAppCode } = await transport;
   const restore = configured(); let sends = 0;
   try {
@@ -129,7 +145,23 @@ for (const partialBody of [false, true]) test(`real HTTP ${partialBody ? "body" 
       const start = Date.now();
       await assert.rejects(sendWhatsAppCode(phone, code, { timeoutMs: 80 }), { outcome: "unconfirmed" });
       assert.equal(sends, 1); assert.ok(Date.now() - start < 1500, "both connection and response body obey one deadline");
+      assert.deepEqual(logged.mock.calls.map(call => call.arguments), [diagnostic({ operation: "send", outcome: "unconfirmed", reason: "timeout", httpStatus: partialBody ? 200 : null })]);
     });
+  } finally { restore(); }
+});
+
+test("connection failures identify only the operation and metadata cannot contain raw values", async t => {
+  const logged = t.mock.method(console, "error", () => {});
+  const { whatsappConnectionReady, WhatsAppDeliveryError } = await transport;
+  const restore = configured();
+  try {
+    await assert.rejects(whatsappConnectionReady({ fetch: async () => Response.json({ error: `${phone} ${code} ${apiKey}` }, { status: 404 }) }), { outcome: "rejected", reason: "provider-http", httpStatus: 404 });
+    assert.deepEqual(logged.mock.calls.map(call => call.arguments), [diagnostic({ operation: "connection", outcome: "rejected", reason: "provider-http", httpStatus: 404 })]);
+    for (const httpStatus of [NaN, Infinity, -1, 0, 99, 600, 200.5]) {
+      const error = new WhatsAppDeliveryError("unconfirmed", { reason: apiKey as never, httpStatus });
+      assert.equal(error.reason, "transport"); assert.equal(error.httpStatus, null);
+      assert.doesNotMatch(JSON.stringify(error), /synthetic-private/);
+    }
   } finally { restore(); }
 });
 
