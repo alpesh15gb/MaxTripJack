@@ -29,7 +29,7 @@ try{
  const login=await originalFetch(base+"/api/auth/sign-in/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password})});assert.equal(login.status,200);cookie=login.headers.getSetCookie().map(v=>v.split(";")[0]).join("; ");
  process.env.PAYMENT_PROVIDER="RAZORPAY";process.env.TRIPJACK_FLIGHT_API_KEY="contract-test-key";process.env.TRIPJACK_HOTEL_API_KEY="contract-test-hotel-key";process.env.RAZORPAY_KEY_ID="rzp_test_contract";process.env.RAZORPAY_KEY_SECRET="contract-test-secret";
  globalThis.fetch=async(input,init)=>{const url=String(input);const payload=init?.body?JSON.parse(String(init.body)):{};const ok=(data:unknown)=>Promise.resolve(Response.json(data));
-  if(url==="https://apitest.tripjack.com/ums/v1/user-detail")return ok({status:{success:true},walletBalance});
+  if(url==="https://apitest.tripjack.com/ums/v1/user-detail")return ok({status:{success:true},user:{userId:"synthetic-account",bs:{walletBalance,totalBalance:walletBalance}}});
   if(url.startsWith("https://apitest.tripjack.com")){
    assert.equal(new Headers(init?.headers).get("apikey"),"contract-test-key");
    if(url.endsWith("air-search-all"))return ok({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[{da:{code:"BOM"},aa:{code:"DEL"},dt:"2026-12-20T10:00"}],totalPriceList:[{id:"price-contract",fD:{ADULT:{fC:{TF:5000}}}}]}]}}});

@@ -22,6 +22,8 @@ The report contains booleans, fixed status labels and HTTP status codes. It does
 - `razorpayCredentialCheck.authentication: accepted` establishes test API credential acceptance, not browser SDK availability or a successful payment.
 - `diagnostic_timeout` applies only to this probe's 12-second limit. It does not establish that the normal supplier request, which has a different timeout, will fail.
 
+The deployed TripJack UAT account response places balances under `user.bs` (including `user.bs.walletBalance`), whereas the published User Detail table lists root balance fields. Checkout, finance display and diagnostics now accept both explicit formats. A nested response takes precedence and must contain a valid wallet balance; a missing or malformed nested wallet cannot fall back to a root balance, credit or total balance. A failed balance check still blocks a new payment order. Available funds are compared in integer paise without rounding the wallet up. Finance fields absent from the response remain unavailable instead of becoming zero.
+
 After the new image is installed, the equivalent command is:
 
 ```bash

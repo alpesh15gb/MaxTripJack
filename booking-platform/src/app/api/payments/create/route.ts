@@ -17,6 +17,7 @@ import { razorpay,razorpayKey } from "@/lib/providers/razorpay";
 import { seal,unseal } from "@/lib/vault";
 import { validateParty, validateGuestReview } from "@/lib/guest-validation";
 import { tripjack } from "@/lib/providers/tripjack";
+import { tripjackWalletCovers } from "@/lib/providers/tripjack-wallet";
 import { markGatewayIntentUnknown, persistGatewayOrder } from "@/lib/payment-intent";
 import { FareValidationBlockedError } from "@/lib/fare-validation";
 export async function POST(request:Request){try{
@@ -53,7 +54,7 @@ export async function POST(request:Request){try{
  if(quote.product==="FLIGHT"&&!quote.service_kind&&((quote.fare_validation_state&&quote.fare_validation_state!=="SUCCEEDED")||quote.booking_validation_state)){if(existingIntent.rowCount)throw new HttpError(409,"Existing checkout requires reconciliation. Check My trips and do not pay again.");throw new FareValidationBlockedError();}
  if(existingIntent.rowCount&&!isDeepStrictEqual(unseal(existingIntent.rows[0].guests_encrypted,existingIntent.rows[0].id),guests))throw new HttpError(409,"Checkout already contains different traveller or contact details. Review the original order in My trips before paying.");
  if(quote.selection.checkoutExtras&&!existingIntent.rowCount)await validateInitialExtras(quote,guests);
- if(!existingIntent.rowCount){const account=await tripjack(quote.product,"/ums/v1/user-detail",undefined,false,"GET");const wallet=Number(account.walletBalance);if(!Number.isFinite(wallet)||wallet*100<Number(quote.supplier_minor))throw new HttpError(503,"Booking is temporarily unavailable. Please contact Max Travel before making payment.");assertFresh(quote.expires_at);}
+ if(!existingIntent.rowCount){const account=await tripjack(quote.product,"/ums/v1/user-detail",undefined,false,"GET");if(!tripjackWalletCovers(account,quote.supplier_minor))throw new HttpError(503,"Booking is temporarily unavailable. Please contact Max Travel before making payment.");assertFresh(quote.expires_at);}
  const intent=await transaction(async tx=>{
   const currentQuote=await tx.query("SELECT total_minor,selection,review,service_kind FROM supplier_quotes WHERE id=$1 FOR UPDATE",[quote.id]);if(Number(currentQuote.rows[0].total_minor)!==Number(quote.total_minor)||!isDeepStrictEqual(currentQuote.rows[0].selection,quote.selection))throw new HttpError(409,"Extras changed. Accept the updated total before paying.");
   if(Number(quote.total_minor)===0){const freeExisting=await tx.query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(freeExisting.rowCount)return {id:freeExisting.rows[0].id,created:false,free:true,gateway_order_id:null};}

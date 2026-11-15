@@ -157,9 +157,19 @@ export async function diagnoseCheckout(dependencies = {}) {
   ]);
   const status = result => ({ outcome: result.outcome, httpStatus: result.httpStatus });
   const supplier = result => {
-    const wallet = result.data.walletBalance;
-    const numericWallet = typeof wallet === "number" || (typeof wallet === "string" && wallet.trim().length > 0);
-    return { ...status(result), success: bool(record(result.data.status).success), walletBalanceFinite: numericWallet && Number.isFinite(Number(wallet)) };
+    // Keep this standalone for stdin use in older images. Tests compare this
+    // predicate with the app's strict tripjack-wallet.ts parser.
+    const balances = Object.hasOwn(result.data, "user") ? record(record(result.data.user).bs) : result.data;
+    const wallet = balances.walletBalance;
+    const text = typeof wallet === "number" || typeof wallet === "string" ? String(wallet).trim() : "";
+    let valid = text.length <= 100 && /^-?\d+(?:\.\d+)?$/.test(text) && Number.isFinite(Number(text));
+    if (valid) {
+      const negative = text.startsWith("-"), [whole, fraction = ""] = (negative ? text.slice(1) : text).split(".");
+      const magnitude = BigInt(whole) * 100n + BigInt((fraction + "00").slice(0, 2));
+      const minor = negative ? -magnitude - (/[1-9]/.test(fraction.slice(2)) ? 1n : 0n) : magnitude;
+      valid = minor <= BigInt(Number.MAX_SAFE_INTEGER) && minor >= BigInt(Number.MIN_SAFE_INTEGER);
+    }
+    return { ...status(result), success: bool(record(result.data.status).success), walletBalanceFinite: valid };
   };
   const connectionState = record(connection.data.instance).state;
   return {

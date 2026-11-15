@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { diagnoseCheckout, runCheckoutDiagnostics, DATABASE_DIAGNOSTIC_SQL } from "../scripts/diagnose-checkout.mjs";
+import { tripjackWallet } from "../src/lib/providers/tripjack-wallet";
 
 const fixture = () => ({
   DATABASE_URL: "postgresql://runtime:private-runtime-secret@synthetic-db:5432/travel",
@@ -27,7 +28,7 @@ const ordinaryFetch: typeof fetch = async input => {
   if (url.endsWith("/api/auth/channels")) return json({ email: true, whatsapp: true });
   if (url.endsWith("/api/payments/config")) return json({ provider: "RAZORPAY", configured: true });
   if (url.includes("connectionState")) return json({ instance: { state: "open", instanceName: "max travel", owner: "919876543210" } });
-  if (url.includes("tripjack")) return json({ status: { success: true }, walletBalance: 7654321, name: "Traveller Name", email: "private-person@example.test" });
+  if (url.includes("tripjack")) return json({ status: { success: true }, user: { userId: "private-user", bs: { walletBalance: 7654321, totalBalance: 7654321 }, name: "Traveller Name", email: "private-person@example.test" } });
   return json({ items: [{ id: "order_secret", receipt: "private-order-receipt" }] });
 };
 
@@ -178,6 +179,22 @@ test("supplier wallet metadata accepts numeric strings without coercing empty or
     ? json({ status: { success: true } }) : ordinaryFetch(input, options) });
   assert.equal(missing.tripjack.flight.walletBalanceFinite, false);
   noSecrets(missing);
+});
+
+test("standalone wallet diagnostic stays in parity with app parsing for nested and flat account shapes", async () => {
+  const environment = { ...fixture(), DATABASE_URL: "" };
+  const wallets = [0, '0.00', 2006.2, '2006.2099', '-0.001', '1.15', null, true, false, '', ' ', [], {}, '1e3', '0x100', '90071992547410', 'private-wallet'];
+  const responses = wallets.flatMap(walletBalance => [
+    { walletBalance },
+    { walletBalance: 999999, user: { userId: 'private-account', bs: { walletBalance, totalBalance: 999999, creditBalance: 999999 } } },
+  ]);
+  for (const account of [...responses, { walletBalance: 999999, user: null }, { user: { bs: { totalBalance: 999999 } } }, { user: [] }, {}]) {
+    const result = await diagnoseCheckout({ environment, fetch: async (input, options) => String(input).includes('tripjack')
+      ? json({ ...account, status: { success: true } }) : ordinaryFetch(input, options) });
+    assert.equal(result.tripjack.flight.walletBalanceFinite, tripjackWallet(account) !== null);
+    assert.equal(result.tripjack.hotel.walletBalanceFinite, tripjackWallet(account) !== null);
+    noSecrets(result);
+  }
 });
 
 test("stdin operator invocation executes its guard and prints only synthetic safe output", () => {
