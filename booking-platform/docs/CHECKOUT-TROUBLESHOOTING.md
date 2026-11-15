@@ -47,6 +47,14 @@ cd /opt/max-travel-booking/booking-platform
 
 The Razorpay loader now stops after 15 seconds if the SDK does not load. A failed load or launch preserves the payment order and presents **Resume secure checkout**. Explicit resume retries the SDK with the same verified order; it does not automatically create another order or attempt a payment. An expired or uncertain order still requires checking My trips.
 
+## Hotel room review pairing
+
+TripJack's [Hotel v3 contract](https://tripjack.com/page/api-doc) requires the selected room option and review hash from the same pricing response. The previous checkout fetched pricing again during review and compared the original option ID with that new response, which could reject the selection before reaching payment.
+
+The app now keeps a bounded, private copy of the option IDs, availability flags and matching hash on the owned search record. Sign-in retains that record. Review uses the exact saved pair and asks TripJack to confirm its current availability and price; the hash is never sent to the browser. Context expires after ten minutes or when the search expires, whichever comes first. Refreshing a hotel's room options replaces its previous context, so an older selection must be chosen again; a different room is never substituted automatically.
+
+After deploying this update, start a **new hotel search** and choose a room again. Searches made before the update have no saved detail context. This fix uses the existing search JSON field and requires no database migration. A successful supplier review and payment launch still need verification on the deployed site.
+
 ## WhatsApp failures after updating
 
 Request a code once using your own test number. Then collect only the new transport diagnostics:

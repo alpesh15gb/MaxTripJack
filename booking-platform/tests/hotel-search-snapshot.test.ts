@@ -16,7 +16,7 @@ async function harness() {
     search: {
       product: 'HOTEL', expires_at: new Date(Date.now() + 60000).toISOString(), service_kind: null as null | string,
       criteria: {product: 'HOTEL', hotelIds: ['10001'], checkIn: tomorrow(2), checkOut: tomorrow(4), adults: 2, nationality: '106', rooms: [{adults: 2, children: 1, childAge: [7]}, {adults: 1, children: 0, childAge: []}]},
-      results: {reviewHash: 'PRIVATE_HASH', supplierToken: 'PRIVATE_TOKEN', hotels: [
+      results: {reviewHash: 'PRIVATE_HASH', supplierToken: 'PRIVATE_TOKEN', _maxtravelHotelReview: {'10001': {version:1,fetchedAt:Date.now(),reviewHash:'PRIVATE_PAIRED_HASH',options:[{optionId:'exact-bundle',available:true}]}}, hotels: [
         {tjHotelId: '10001', name: 'Fixture stay', internalEmail: 'PRIVATE_EMAIL', options: [{optionId: 'exact-bundle', roomInfo: [{name: 'Twin'}, {name: 'Single'}], pricing: {currency: 'INR', totalPrice: 8000}, commercial: {secret: 'PRIVATE_COMMISSION'}}]},
         {tjHotelId: '99999', name: 'Out of scope'},
       ]},
@@ -63,7 +63,7 @@ test('snapshot projects owned customer hotel results, exact multi-room criteria 
     assert.equal(data.results.hotels[0].options[0].optionId, 'exact-bundle');
     assert.equal(data.results.hotels[0].property.address, 'Cached property address');
     assert.equal(data.results.hotels[0].propertyContentStatus, 'resolved');
-    assert.doesNotMatch(JSON.stringify(data), /PRIVATE_|guest:fixture-owner|company_id|correlation/);
+    assert.doesNotMatch(JSON.stringify(data), /PRIVATE_|_maxtravelHotelReview|guest:fixture-owner|company_id|correlation/);
     assert.equal(h.state.providerCalls, 0);assert.equal(h.state.contentCalls, 0);
     assert.deepEqual(h.state.limits, ['hotel-search-snapshot']);
     const query = h.state.queries.find(item => item.sql.includes('FROM supplier_searches'))!;

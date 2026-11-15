@@ -3,7 +3,7 @@ import { extrasCatalogue,saveCheckoutExtras } from "../src/lib/checkout-extras";
 import assert from "node:assert/strict";
 import { randomBytes,randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { searchSupplier,reviewSupplier } from "../src/lib/supplier-flow";
+import { searchSupplier,reviewSupplier,customerHotelDetail } from "../src/lib/supplier-flow";
 import { POST as createPayment } from "../src/app/api/payments/create/route";
 import { GET as confirmationDocument } from "../src/app/api/bookings/[id]/document/route";
 import { POST as verifyPayment } from "../src/app/api/payments/verify/route";
@@ -75,6 +75,7 @@ try{
  console.log("PASS initial checkout extras, ownership, forged options, locked checkout: mocked flight search → review → server-priced Razorpay order → signed capture verification → supplier timeout recovery → ticketed; duplicate checkout and tampered totals handled.");
  gatewayAmount=500000;gatewayOrder=`order_${randomUUID().replaceAll("-","")}`;gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
  const hotelSearch=await searchSupplier({product:"HOTEL",hotelIds:["100001"],checkIn:"2026-12-20",checkOut:"2026-12-22",adults:1,childrenAges:[5],rooms:[{adults:2,children:1,childAge:[5]},{adults:1,children:1,childAge:[8]}],nationality:"106"},actor);fixtureSearches.push(hotelSearch.searchId);
+ await customerHotelDetail(hotelSearch.searchId,"100001",actor);
  const hotelQuote=await reviewSupplier(hotelSearch.searchId,{hid:"100001",optionId:"hotel-option"},actor);fixtureQuotes.push(hotelQuote.quoteId);
  const hotelGuests={...guests,travellers:[{...guests.travellers[0],roomIndex:0},{...guests.travellers[0],fN:"Second",roomIndex:0},{ti:"Master",pt:"CHILD",fN:"Young",lN:"Guest",roomIndex:0,dob:"2021-01-01"},{...guests.travellers[0],fN:"Third",roomIndex:1},{ti:"Master",pt:"CHILD",fN:"Older",lN:"Guest",roomIndex:1,dob:"2018-01-01"}]};
  const hotelPayment=await createPayment(request("/api/payments/create",{quoteId:hotelQuote.quoteId,guests:hotelGuests,acceptedTotalMinor:hotelQuote.totalMinor}));assert.equal(hotelPayment.status,200);const hotelGateway=await hotelPayment.json();fixtureBookings.push(hotelGateway.bookingId);

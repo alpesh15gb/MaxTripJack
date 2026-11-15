@@ -13,6 +13,7 @@ import { SearchTiming } from "./search-timing";
 import { cachedFlightSearch } from "./flight-search-cache";
 import { exactAirportGroups } from "./flight-airport-scope";
 import { orderedFlightSelection } from "./flight-selection";
+import { createHotelReviewSnapshot,hotelReviewHash,SAVE_HOTEL_REVIEW_SNAPSHOT_SQL,HOTEL_REVIEW_SNAPSHOT_KEY } from "./hotel-review-snapshot";
 export type Actor={userId:string;companyId:string|null};
 export async function pricingRule(product:Product,actor:Actor){const rules=await database().query<PricingRule>("SELECT * FROM pricing_rules WHERE active=true AND product=$1 AND (company_id=$2 OR company_id IS NULL) ORDER BY company_id NULLS LAST,created_at DESC LIMIT 1",[product,actor.companyId]);return rules.rows[0];}
 export async function owned(table:"supplier_searches"|"supplier_quotes"|"orders",id:string,actor:Actor){const result=await database().query(`SELECT * FROM ${table} WHERE id=$1 AND user_id=$2 AND company_id IS NOT DISTINCT FROM $3::uuid`,[id,actor.userId,actor.companyId]);if(!result.rows[0])throw new HttpError(404,"Record not found.");return result.rows[0];}
@@ -28,7 +29,7 @@ export async function searchSupplier(criteria:Search,actor:Actor,timing=new Sear
  const id=randomUUID(),correlationId=randomUUID();
  const supplierRequest=criteria.product==="FLIGHT"?flightSearch(criteria):hotelSearch(criteria,correlationId);
  const [data,rule]=await Promise.all([timing.measure("supplier",()=>criteria.product==="FLIGHT"?cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest)):tripjack(criteria.product,paths[criteria.product].search,supplierRequest)),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
- await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes')",[id,actor.userId,actor.companyId,criteria.product,criteria,data,correlationId]));
+ await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes')",[id,actor.userId,actor.companyId,criteria.product,criteria,criteria.product==="HOTEL"?{...data,[HOTEL_REVIEW_SNAPSHOT_KEY]:{}}:data,correlationId]));
  return timing.sync("projection",()=>{
  if(criteria.product==="FLIGHT")return {searchId:id,product:criteria.product,results:customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule)};
  const results=customerHotelResults(data,rule);
@@ -53,6 +54,11 @@ export async function customerHotelDetail(searchId:string,hid:string,actor:Actor
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
  if(search.product!=="HOTEL"||!search.criteria.hotelIds.includes(hid))throw new HttpError(400,"Hotel not part of this search.");
  const [data,rule]=await Promise.all([hotelDetail(searchId,hid,actor),pricingRule("HOTEL",actor)]);
+ // Persist the exact detail/hash pair before exposing its selectable option IDs.
+ // Merge against the current JSON in SQL so other hotel details survive races.
+ const snapshot=createHotelReviewSnapshot(data);
+ const saved=await database().query(SAVE_HOTEL_REVIEW_SNAPSHOT_SQL,[searchId,actor.userId,actor.companyId,hid,JSON.stringify(snapshot)]);
+ if(saved.rowCount!==1)throw new HttpError(409,"This search is no longer available. Search again to continue.");
  // Room availability and mandatory rate policies must not wait for optional static content.
  // The owned hotel-content request enriches the UI separately; never start detached work here.
  const properties=hotelContentForSearch.peek([hid],search.criteria.hotelIds);
@@ -68,9 +74,9 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
   chosen={priceIds};data=await tripjack("FLIGHT",paths.FLIGHT.review,chosen);if(data.bookingId)data.fareRules=await tripjack("FLIGHT","/fms/v2/farerule",{flowType:"REVIEW",id:data.bookingId});
  }else{
   if(!selection.hid||!selection.optionId)throw new HttpError(400,"Choose a hotel room option.");
-  const detail=await hotelDetail(searchId,selection.hid,actor);
-  if(!detail.options?.some((o:{optionId:string;inventory?:{available?:boolean}})=>o.optionId===selection.optionId&&o.inventory?.available!==false)||!detail.reviewHash)throw new HttpError(409,"Room option unavailable.");
-  chosen={hid:selection.hid,optionId:selection.optionId,reviewHash:detail.reviewHash,correlationId:search.correlation_id};data=await tripjack("HOTEL",paths.HOTEL.review,chosen);
+  if(!search.criteria.hotelIds.includes(selection.hid))throw new HttpError(400,"Hotel not part of this search.");
+  const reviewHash=hotelReviewHash(search.results,selection.hid,selection.optionId);
+  chosen={hid:selection.hid,optionId:selection.optionId,reviewHash,correlationId:search.correlation_id};data=await tripjack("HOTEL",paths.HOTEL.review,chosen);
  }
  const product=search.product as Product;
  if(product==="HOTEL"&&data.option?.inventory?.available===false)throw new HttpError(409,"Room option unavailable. Search again to choose another room.");

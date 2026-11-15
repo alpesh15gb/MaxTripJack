@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes,randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { searchSupplier,reviewSupplier } from "../src/lib/supplier-flow";
+import { searchSupplier,reviewSupplier,customerHotelDetail } from "../src/lib/supplier-flow";
 import { POST as createPayment } from "../src/app/api/payments/create/route";
 import { GET as confirmationDocument } from "../src/app/api/bookings/[id]/document/route";
 import { POST as verifyPayment } from "../src/app/api/payments/verify/route";
@@ -104,6 +104,7 @@ try{
  console.log("PASS: stale STARTED gateway recovery is serialized/idempotent, late creator cannot downgrade capture, and interrupted/stale successful PREBOOK validation never repeats validation or Book.");
  gatewayOrder=`order_${randomUUID().replaceAll("-","")}`;gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
  const hotelSearch=await searchSupplier({product:"HOTEL",hotelIds:["100001"],checkIn:"2026-12-20",checkOut:"2026-12-22",adults:1,childrenAges:[],nationality:"106"},actor);fixtureSearches.push(hotelSearch.searchId);
+ await customerHotelDetail(hotelSearch.searchId,"100001",actor);
  for(const invalidPrice of [null,"",false]){hotelOption.pricing.totalPrice=invalidPrice;await assert.rejects(reviewSupplier(hotelSearch.searchId,{hid:"100001",optionId:"hotel-option"},actor));}
  hotelOption.pricing.totalPrice=5000;
  assert.equal((await pool.query("SELECT count(*)::int AS n FROM supplier_quotes WHERE search_id=$1",[hotelSearch.searchId])).rows[0].n,0,"invalid hotel prices must not create a payable quote");
