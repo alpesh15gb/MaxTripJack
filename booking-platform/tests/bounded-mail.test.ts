@@ -30,9 +30,9 @@ function harness() {
 for (const secure of [false, true]) {
   test(`SMTP secure=${secure}: retains auth/TLS options and destroys socket on success`, async () => {
     const h = harness(); const auth = { user: "synthetic", pass: "synthetic" };
-    const task = boundedMail({ host: "smtp.example.test", port: 587, secure, auth }, { to: "recipient@example.test", text: "synthetic" }, h.deps);
+    const task = boundedMail({ name:"maxtravel.in", host: "smtp.example.test", port: 587, secure, auth }, { to: "recipient@example.test", text: "synthetic" }, h.deps);
     h.socket.emit("connect"); h.resolve(); await task;
-    assert.equal(h.options().secure, secure); assert.deepEqual(h.options().auth, auth);
+    assert.equal(h.options().name,"maxtravel.in");assert.equal(h.options().secure, secure); assert.deepEqual(h.options().auth, auth);
     assert.equal(h.options().tls, undefined); assert.equal(h.options().ignoreTLS, undefined);
     assert.equal(h.options().socketTimeout, SMTP_PHASE_TIMEOUT_MS);
     assert.deepEqual(h.events, ["connect", "connected", "clearTimer", "destroy", "close"]);

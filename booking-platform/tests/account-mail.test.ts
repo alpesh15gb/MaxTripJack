@@ -30,7 +30,7 @@ test("account mail keeps configuration guard, recipient, subject and reset/verif
     process.env.SMTP_PORT = "465"; process.env.SMTP_SECURE = "true";
     process.env.SMTP_USER = "synthetic"; process.env.SMTP_PASSWORD = "synthetic";
     await compiled.exports.sendAccountMail("recipient@example.test", "Reset password", "https://example.test/reset");
-    assert.deepEqual(calls[0][0],{host:"smtp.example.test",port:465,secure:true,auth:{user:"synthetic",pass:"synthetic"}});
+    assert.deepEqual(calls[0][0],{name:"maxtravel.in",host:"smtp.example.test",port:465,secure:true,auth:{user:"synthetic",pass:"synthetic"}});
     const message=calls[0][1] as Record<string,string>;
     assert.equal(message.from,"sender@example.test");assert.equal(message.to,"recipient@example.test");assert.equal(message.subject,"Reset password");
     assert.equal(message.replyTo,"max@maxtravel.us");
