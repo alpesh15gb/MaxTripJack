@@ -12,7 +12,7 @@ test('layover needs explicit offsets, same airport, coherent journey and nonnega
  const current={...segment,at:'2026-12-10T23:30:00+05:30'};
  assert.equal(connectionLabel(current,next),'Connection at DEL · 1h 30m');
  assert.equal(connectionLabel(current,{...next,dt:current.at}),'Connection at DEL · 0h 0m');
- for(const dt of ['2026-12-11T01:00:00','2026-12-10T22:00:00+05:30','2026-02-30T01:00Z'])assert.match(connectionLabel(current,{...next,dt}),/duration not supplied/);
+ for(const dt of ['2026-12-10T22:00:00+05:30','2026-02-30T01:00Z'])assert.match(connectionLabel(current,{...next,dt}),/duration not supplied/);
  assert.match(connectionLabel(current,{...next,da:{code:'NMI'}}),/Transfer between DEL and NMI/);
  assert.equal(connectionLabel(current,next,'COMBO'),'Connection duration not supplied');assert.equal(connectionLabel(current,{...next,isRs:true}),'Connection duration not supplied');
  assert.equal(connectionLabel({...current,at:'2026-12-10T18:00:00Z'},next),'Connection at DEL · 1h 30m');

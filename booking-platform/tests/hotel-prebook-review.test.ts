@@ -54,3 +54,12 @@ test('post-payment guard preserves price, currency, compliance and supplier refe
   [(r:ReturnType<typeof review>)=>{r.option.cancellation.penalties[1].amount=1;},'HOTEL_CANCELLATION_CHANGED'],
  ] as const){const fresh=review('2026-11-16T10:56:00');change(fresh);assert.throws(()=>assertHotelPrebookReview(review(),fresh,1000000,beforeAt,afterAt),(e:unknown)=>e instanceof HotelPrebookReviewError&&e.code===code);}
 });
+
+
+test('nonrefundable active origin can roll forward without ignoring raw restrictions',()=>{
+ const old=policy(),fresh=policy('2026-11-16T10:56:00');
+ for(const p of [old,fresh]){p.isRefundable=false;p.penalties[0].amount=10000;}
+ assert.equal(equal(old,fresh),true);
+ fresh.penalties[0].currency='USD';assert.equal(equal(old,fresh),false);
+ fresh.penalties[0].currency='INR';fresh.penalties[0].amount=9999;assert.equal(equal(old,fresh),false);
+});

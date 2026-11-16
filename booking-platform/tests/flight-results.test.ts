@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {arrivalDayLabel,matchesFlightRefinements} from '../src/lib/flight-results';
+import {groupIdenticalFlights,arrivalDayLabel,matchesFlightRefinements} from '../src/lib/flight-results';
 import type {Flight} from '../src/lib/booking-presentation';
 const flight:Flight={sI:[{dt:'2026-11-04T23:25:00',at:'2026-11-05T01:50:00',fD:{aI:{name:'Example'},fN:'1'},da:{code:'DEL'},aa:{code:'NMI'}}],totalPriceList:[{id:'fare',fareIdentifier:'STANDARD',customerEstimateMinor:1200000,fD:{}}]};
 test('arrival day badge uses valid local calendar dates, not inferred elapsed duration',()=>{
@@ -27,4 +27,14 @@ test('invalid estimates cannot make an unpriced or over-budget flight pass a bud
   assert.equal(matchesFlightRefinements({...flight, totalPriceList: [invalid, ...flight.totalPriceList]}, 'ONWARD', 'ALL', '11999'), false);
   assert.equal(matchesFlightRefinements({...flight, totalPriceList: [invalid, ...flight.totalPriceList]}, 'ONWARD', 'ALL', '12000'), true);
  }
+});
+
+
+test('identical flight grouping retains distinct fares, compatibility and conflicts without mutation',()=>{
+ const a=structuredClone(flight),b={...structuredClone(flight),totalPriceList:[{...flight.totalPriceList[0],id:'other',sri:'outbound',msri:['return']}]};
+ const before=structuredClone([a,b]);
+ const grouped=groupIdenticalFlights([a,b,a]);assert.equal(grouped.length,1);
+ assert.deepEqual(grouped[0].totalPriceList,[a.totalPriceList[0],b.totalPriceList[0]]);assert.deepEqual([a,b],before);
+ assert.equal(groupIdenticalFlights([a,{...b,totalPriceList:[{...a.totalPriceList[0],sri:'different'}]}]).length,2);
+ assert.equal(groupIdenticalFlights([a,{...b,sI:[{...b.sI[0],dt:'2027-01-01T12:00:00'}]}]).length,2);
 });

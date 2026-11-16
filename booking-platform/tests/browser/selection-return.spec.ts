@@ -176,7 +176,7 @@ test('same return URL in a separate tab cannot invent a saved selection or call 
  // as strictly as the main fixture. Never let a new tab reach a real provider.
  await separate.route('**/*',async route=>{
   const url=new URL(route.request().url());
-  if(url.origin!=='http://127.0.0.1:3100'){await route.abort();return;}
+  if(url.origin!==new URL(page.url()).origin){await route.abort();return;}
   if(url.pathname==='/api/auth/get-session'){await route.fulfill({json:null});return;}
   if(url.pathname.startsWith('/api/')){unexpected.push(url.pathname);await route.fulfill({status:501,json:{error:'Unmocked separate-tab request'}});return;}
   await route.continue();

@@ -244,3 +244,12 @@ test('readable hotel policy boundaries preserve nonzero seconds and milliseconds
  const {hotelPolicyDateTime}=await import('../src/lib/hotel-cancellation-timeline');
  assert.match(hotelPolicyDateTime(Date.parse('2027-01-01T00:00:12.345+05:30')),/12:00:12\.345 am/);
 });
+
+
+test('nonrefundable active window origin may advance but amounts and refundability remain exact',()=>{
+ const before=rollingHotel(),after=rollingHotel('2026-11-16T01:09:00');
+ for(const value of [before,after]){value.option.cancellation.isRefundable=false;value.option.cancellation.penalties[0].amount=2033;}
+ assert.deepEqual(compareReviewedTerms(hotelTerms(before),hotelTerms(after,nextReview)),[]);
+ after.option.cancellation.penalties[0].amount=2034;
+ assert.ok(compareReviewedTerms(hotelTerms(before),hotelTerms(after,nextReview)).some(row=>row.key==='cancellation'));
+});

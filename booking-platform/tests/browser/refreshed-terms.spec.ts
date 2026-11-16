@@ -87,10 +87,10 @@ test('same-price hotel room, meal and cancellation changes show explicit previou
  await page.getByRole('button',{name:'Back to guests',exact:true}).click();await retainedTraveller(page);expect(provider.requests('/api/travel/review')).toHaveLength(2);
 });
 
-test('rolling current hotel free-window start stays neutral while a later fee change is highlighted',async({page,provider},testInfo)=>{
+for(const refundable of [true,false])test(`rolling current hotel ${refundable?'free':'paid'}-window start stays neutral while a later fee change is highlighted`,async({page,provider},testInfo)=>{
  const now=Date.now();
- const policy=(from:string,amount=2033.53)=>({...room(),cancellation:{isRefundable:true,penalties:[
-  {from,to:`${departure}T05:59:00`,amount:0},
+ const policy=(from:string,amount=2033.53)=>({...room(),cancellation:{isRefundable:refundable,penalties:[
+  {from,to:`${departure}T05:59:00`,amount:refundable?0:2033.53},
   {from:`${departure}T05:59:00`,to:`${returning}T00:00:00`,amount},
  ]}});
  provider.quote=hotelQuote(policy(new Date(now-120_000).toISOString()));

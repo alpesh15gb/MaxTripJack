@@ -31,7 +31,6 @@ test('total journey includes overnight layover only for an explicit coherent off
  assert.equal(journey([]),null);
  assert.equal(journey([{...first,dt:'2026-10-31T23:00:00',at:'2026-11-01T01:00:00',duration:120}]),120);
  for(const second of [
-  {...next,dt:'2026-11-01T02:30:00'},
   {...next,dt:'2026-11-01T00:59:00+05:30'},
   {...next,at:'2026-11-01T01:00:00+05:30'},
   {...next,da:{code:'NMI'}},
@@ -39,7 +38,8 @@ test('total journey includes overnight layover only for an explicit coherent off
   {...next,at:'2026-11-01T05:00:30+04:00'},
  ])assert.equal(journey([first,second]),null);
  // Known flight minutes do not silently exclude the unknown layover.
- assert.equal(journey([{...first,duration:120,at:'2026-11-01T01:00:00'},{...next,duration:240}]),null);
+ assert.equal(journey([{...first,duration:120,at:'2026-11-01T01:00:00'},{...next,duration:240}]),450);
+ assert.equal(journey([{...first,aa:{code:'ZZZ'},at:'2026-11-01T01:00:00'},{...next,da:{code:'ZZZ'}}]),null);
  assert.equal(durationLabel(null),'Total duration unavailable');
 });
 

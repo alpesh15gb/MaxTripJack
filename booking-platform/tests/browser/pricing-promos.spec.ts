@@ -12,7 +12,8 @@ test('admin edits pricing with percentage service fee and can deactivate the rul
  await expect(dialog.getByLabel('Service fee (% of supplier price)',{exact:true})).toHaveValue('2');
  await dialog.getByLabel('Service fee (% of supplier price)',{exact:true}).fill('3');
  await expect(dialog).toContainText('11375.00');
- await expectNoHorizontalOverflow(page);await capture(page,info,'edit-pricing-percentage-fee');
+ await page.setViewportSize({width:320,height:844});
+ await expectNoHorizontalOverflow(page);expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);await capture(page,info,'edit-pricing-percentage-fee');
  await dialog.getByRole('button',{name:'Save pricing changes',exact:true}).click();
  expect(provider.requests('/api/admin/pricing').find(call=>call.method==='POST')?.body).toMatchObject({replacesId:id,serviceFeeBasisPoints:300,product:'HOTEL',companyId:null});
  await dialog.getByRole('button',{name:'Close action',exact:true}).click();
@@ -60,5 +61,67 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
  await expect(promo).toContainText('You save ₹100.00');await expect(form.getByRole('button',{name:/^Agree & pay /})).toContainText('6,440');
  await expectNoHorizontalOverflow(page);await capture(page,info,`${product.toLowerCase()}-promo-applied`);
  await promo.getByRole('button',{name:'Remove code',exact:true}).click();await expect(form.getByRole('button',{name:/^Agree & pay /})).toContainText('6,540');
+ await page.unroute('**/api/travel/promo');
+ await page.route('**/api/travel/promo',route=>route.fulfill({status:404,json:{error:'Promo code is unavailable.'}}));
+ await promo.getByLabel('Promo code',{exact:true}).fill('INVALID');await promo.getByRole('button',{name:'Apply code',exact:true}).click();
+ await expect(promo).toContainText('Try another code or continue without this discount.');
+ await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
+ await page.unroute('**/api/travel/promo');
+ await page.route('**/api/travel/promo',route=>route.fulfill({status:503,json:{error:'Service unavailable.'}}));
+ await promo.getByRole('button',{name:'Apply code',exact:true}).click();
+ await expect(promo).toContainText('Payment is paused');
+ await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeDisabled();
+ await capture(page,info,`${product.toLowerCase()}-promo-recovery`);
+ await page.unroute('**/api/travel/promo');
+ await page.route('**/api/travel/promo',route=>route.fulfill({json:{quoteId,totalMinor:654000,originalTotalMinor:654000,discountMinor:0,code:null}}));
+ await promo.getByRole('button',{name:'Remove code',exact:true}).click();
+ await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+
+test('flight reload restores public selection without persisting traveller details',async({page,provider},info)=>{
+ await openFlightSearch(page);await page.locator('.fare-comparison > summary').first().click();
+ await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
+ const form=page.getByRole('form',{name:'Review and travellers'});
+ await form.getByLabel('First name',{exact:true}).fill('Privatefirstname');
+ await page.reload();
+ const recovery=page.getByRole('region',{name:'Saved selection',exact:true});
+ await expect(recovery).toBeVisible();await expect(recovery).toContainText('For privacy');
+ expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('Privatefirstname');
+ await expectNoHorizontalOverflow(page);await capture(page,info,'flight-reload-recovery');
+ await recovery.getByRole('button',{name:'Check current price and conditions',exact:true}).click();
+ await expect(form.getByLabel('First name',{exact:true})).toHaveValue('');
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('hotel rejected room review offers room refresh and return to stays',async({page,provider},info)=>{
+ const option={optionId:'rejected-room',roomInfo:[{name:'Standard room'}],pricing:{totalPrice:6540,currency:'INR'},cancellation:{isRefundable:false,penalties:[]}};
+ provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Recovery test hotel',customerEstimateMinor:654000}]}};
+ provider.overrides['POST /api/travel/hotel-detail']={body:{options:[option]}};
+ provider.overrides['POST /api/travel/review']={status:502,body:{error:'The supplier could not validate this room rate.'}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'1',autoSearch:'1'}));
+ await page.getByRole('button',{name:'Choose room',exact:true}).first().click();
+ await page.getByRole('button',{name:'Continue with room',exact:true}).first().click();
+ await expect(page.getByRole('button',{name:'Refresh room options',exact:true})).toBeVisible();
+ await expectNoHorizontalOverflow(page);await capture(page,info,'hotel-review-recovery');
+ await page.getByRole('button',{name:'Refresh room options',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Continue with room',exact:true}).first()).toBeEnabled();
+ await page.getByRole('button',{name:'Continue with room',exact:true}).first().click();
+ await page.getByRole('button',{name:'Browse other stays',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Choose room',exact:true}).first()).toBeVisible();
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+
+test('duplicate destination names remain distinguishable without losing supplier regions',async({page,provider},info)=>{
+ provider.overrides['GET /api/travel/destinations']={body:{destinations:[{region_id:'1001',label:'Hyderabad, India'},{region_id:'1002',label:'Hyderabad, India'}]}};
+ await page.goto('/book?product=HOTEL');
+ await page.getByLabel('Destination',{exact:true}).fill('Hyderabad');
+ const choices=page.getByRole('group',{name:'Destination suggestions',exact:true});
+ await expect(choices.getByRole('button')).toHaveCount(2);
+ await expect(choices).toContainText('Hotel collection 1');await expect(choices).toContainText('Hotel collection 2');
+ await expectNoHorizontalOverflow(page);await capture(page,info,'distinct-hotel-collections');
+ await choices.getByRole('button',{name:'Hyderabad, India · Hotel collection 2',exact:true}).click();
+ expect(provider.requests('/api/travel/destination-hotels')[0].body).toMatchObject({regionId:'1002'});
 });

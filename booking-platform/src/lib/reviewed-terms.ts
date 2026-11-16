@@ -39,7 +39,7 @@ export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown,observedAt
   // Preserve exact text for disclosure. The comparator may disregard only an
   // elapsed rolling free-window origin, using server capture time and this
   // complete schedule; it revalidates continuity and all other boundaries.
-  if(schedule&&policy.isRefundable===true)rows[rows.length-1].hotelCancellation={observedAt,refundable:true,windows:schedule};
+  if(schedule&&typeof policy.isRefundable==='boolean')rows[rows.length-1].hotelCancellation={observedAt,refundable:policy.isRefundable,windows:schedule};
   add('notes','Booking notes',text(option.bookingNotes));
  }else{
   const trips=Array.isArray(review.tripInfos)&&review.tripInfos.length<=12?review.tripInfos:[];

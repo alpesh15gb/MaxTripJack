@@ -472,7 +472,7 @@ export default function OperationsAction({
       <p>{definition.help}</p>
       {row && (
         <div className="ops-record-context">
-          <strong>{String(row.reference ?? row.name ?? row.id)}</strong>
+          <strong>{String(row.reference ?? row.name ?? (row.product ? `${row.product} pricing rule` : row.id))}</strong>
           <span>{String(row.status ?? "").replaceAll("_", " ")}</span>
         </div>
       )}

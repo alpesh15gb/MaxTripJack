@@ -1305,3 +1305,9 @@ body .ops-workspace .operations-main { padding: 32px clamp(20px, 3vw, 48px) 64px
   .ops-workspace .ops-register-caption { display: block; }
   .ops-dialog > header { margin: -20px -20px 20px; padding: 20px; }
 }
+
+/* Keep action forms inside narrow mobile dialogs without nested horizontal scrolling. */
+.ops-dialog { box-sizing: border-box; }
+.ops-dialog form, .ops-dialog fieldset, .ops-dialog label { min-width: 0; }
+.ops-dialog input, .ops-dialog select { box-sizing: border-box; max-width: 100%; min-width: 0; }
+@media (max-width: 600px) { .ops-dialog > header { margin: 0 0 20px; padding: 0 0 20px; } }

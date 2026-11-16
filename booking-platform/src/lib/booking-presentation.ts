@@ -1,4 +1,5 @@
-import {suppliedMinutes,supplierInstant} from './supplier-time';
+import {suppliedMinutes} from './supplier-time';
+import {flightInstant} from './flight-instant';
 import {comparableFareEstimate} from './fare-display';
 /** Pure customer-facing presentation helpers. Never infer a supplier promise. */
 export type FlightSegment = {
@@ -34,11 +35,11 @@ export function flightStops(flight: Flight, group: string): number | null {
   return Math.max(0, flight.sI.length - 1);
 }
 /** Local airport timestamps have no common timezone. Use supplier duration for a
- * nonstop segment; only subtract timestamps when they carry explicit offsets. */
+ * nonstop segment; resolve local timestamps using verified airport timezones. */
 export function journeyMinutes(flight: Flight, group?: string): number | null {
   if (group === 'COMBO' || !flight.sI.length) return null;
   if (flight.sI.length === 1 && suppliedMinutes(flight.sI[0].duration)!==null) return suppliedMinutes(flight.sI[0].duration);
-  const times=flight.sI.map(segment=>({start:supplierInstant(segment.dt),end:supplierInstant(segment.at)}));
+  const times=flight.sI.map(segment=>({start:flightInstant(segment.dt,segment.da),end:flightInstant(segment.at,segment.aa)}));
   // A connected itinerary needs an offset-bearing, chronological segment chain.
   // Segment durations alone do not include layovers; never sum them as a trip total.
   if(times.some((time,index)=>{

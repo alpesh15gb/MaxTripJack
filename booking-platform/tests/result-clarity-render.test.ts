@@ -15,7 +15,7 @@ const hotelProps:ComponentProps<typeof HotelResults>={searchId:'11111111-1111-41
 test('flight card uses readable local dates and truthful total scope without invented duration',()=>{
  const html=renderToStaticMarkup(createElement(BookingFlightCard,flightProps));
  assert.match(html,/31 Oct 2026/);assert.doesNotMatch(html,/2026-10-31|flight group|party total/);
- assert.match(html,/Total duration unavailable/);assert.match(html,/Estimated total · all travellers/);assert.match(html,/Outbound journey/);
+ assert.match(html,/Total journey 2h 0m/);assert.match(html,/Estimated total · all travellers/);assert.match(html,/Outbound journey/);
  const empty=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,flight:{sI:[],totalPriceList:[]}}));
  assert.match(empty,/Date unavailable/);assert.match(empty,/Stop details unavailable/);assert.doesNotMatch(empty,/Non-stop|NaN|undefined/);
 });

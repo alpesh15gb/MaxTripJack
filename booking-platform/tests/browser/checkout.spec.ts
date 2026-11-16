@@ -198,6 +198,7 @@ test('supplier review-required errors do not automatically repeat payment creati
 test('unknown local-time duration is not guessed and COMBO journeys are not connecting stops', async ({ page, provider }) => {
   const unknownDuration = flight();
   unknownDuration.sI[0].duration = 0;
+  unknownDuration.sI[0].da.code='ZZZ';unknownDuration.sI[0].aa.code='ZZY';
   provider.search = { searchId, results: { searchResult: { tripInfos: { ONWARD: [unknownDuration] } } } };
   await openFlightSearch(page);
   await expect(page.getByText('Total duration unavailable', { exact: true })).toBeVisible();
@@ -275,7 +276,7 @@ test('reload preserves an uncertain create marker and no-order-yet never unlocks
   const recovery = page.getByRole('region', { name: 'Interrupted checkout', exact: true });
   await expect(recovery).toBeVisible();
   await expect(recovery).toContainText('No payment order is visible yet');
-  await expect(page.getByRole('button', { name: 'Search flights', exact: true })).toBeDisabled();
+  await expect(page.getByRole('region',{name:'Saved selection',exact:true}).getByRole('button',{name:'Search again',exact:true})).toBeDisabled();
   await expect(page.getByRole('button', { name: /^Resume existing checkout/ })).toHaveCount(0);
   expect(provider.requests('/api/payments/status')[0].query).toEqual({ quoteId });
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -441,7 +442,7 @@ test('legacy guest return resumes without persisting private fields or an old qu
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  await expect(page.getByRole('region',{name:'Selected itinerary'})).toContainText('IndiGo');
  expect(provider.requests('/api/travel/review')).toHaveLength(2);
- expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
+ expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')||'null')?.selection)).toEqual({priceIds:['onward-standard']});
  await page.getByRole('button',{name:'Change selection',exact:true}).click();
  await expect(page.locator('#booking-search-recovery')).toContainText('Previous search results are not available in this tab');
  await expect(page.getByRole('heading',{name:'No flights found for these airports',exact:true})).toHaveCount(0);

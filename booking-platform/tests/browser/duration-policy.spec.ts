@@ -7,7 +7,7 @@ test(`flight segment durations are readable without inventing unknown connection
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[first]}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DXB',date:departure,adults:'1',autoSearch:'1'}));
  const details=page.locator('.flight-segment-details');await details.locator('summary').press('Enter');
- await expect(details).toContainText('Segment duration: 2h 10m');await expect(details).toContainText('Segment duration: 2h 25m');await expect(details).toContainText('Connection at DEL · duration not supplied');
+ await expect(details).toContainText('Segment duration: 2h 10m');await expect(details).toContainText('Segment duration: 2h 25m');await expect(details).toContainText('Connection at DEL · 2h 5m');
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'duration-details-synthetic');
  await page.locator('.fare-comparison>summary').click();const next=page.getByRole('button',{name:'Check fare & continue',exact:true});await expect(next).toBeInViewport();
  expect(provider.requests('/api/travel/review')).toHaveLength(0);

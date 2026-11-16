@@ -801,7 +801,7 @@ export default function OperationsConsole() {
             <div>
               <span className="ops-eyebrow">{headings[tab]}</span>
               <h2 id="ops-record-title">
-                {text(detail.reference ?? detail.name ?? detail.id)}
+                {text(detail.reference ?? detail.name ?? (tab === "pricing" ? `${detail.product} pricing rule` : detail.id))}
               </h2>
             </div>
             <button

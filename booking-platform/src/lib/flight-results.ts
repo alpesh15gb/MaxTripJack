@@ -12,3 +12,16 @@ export function matchesFlightRefinements(flight:Flight,group:string,departureWin
  const time=flight.sI[0]?.dt.slice(11,16);if(!time||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))return false;
  const hour=Number(time.slice(0,2));return departureWindow==='EARLY'?hour<6:departureWindow==='MORNING'?hour>=6&&hour<12:departureWindow==='AFTERNOON'?hour>=12&&hour<18:departureWindow==='EVENING'?hour>=18:false;
 }
+
+/** Combine identical segment payloads, retaining every distinct supplier fare. */
+export function groupIdenticalFlights(flights:Flight[]):Flight[]{
+ const result:Flight[]=[],index=new Map<string,Flight>();
+ for(const flight of flights){
+  const key=JSON.stringify(flight.sI),previous=index.get(key);
+  if(!previous){const copy={...flight,totalPriceList:[...flight.totalPriceList]};index.set(key,copy);result.push(copy);continue;}
+  const conflict=flight.totalPriceList.some(fare=>previous.totalPriceList.some(old=>old.id===fare.id&&JSON.stringify(old)!==JSON.stringify(fare)));
+  if(conflict){result.push(flight);continue;}
+  for(const fare of flight.totalPriceList)if(!previous.totalPriceList.some(old=>old.id===fare.id))previous.totalPriceList.push(fare);
+ }
+ return result;
+}

@@ -12,7 +12,7 @@ export class HotelPrebookReviewError extends Error {
 }
 
 /** Unlike the customer-facing comparison, booking must preserve ALL raw policy
- * fields. Only the first active zero-charge window's elapsed origin is ignored.
+ * fields. Only the first active window's elapsed origin is ignored.
  * Capture times are supplied by the database/worker, never by the browser. */
 export function sameHotelPrebookCancellation(before:unknown,after:unknown,beforeAt:number,afterAt:number):boolean {
  if(isDeepStrictEqual(before,after))return true;
