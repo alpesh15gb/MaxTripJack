@@ -72,10 +72,32 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
  await expect(promo).toContainText('Payment is paused');
  await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeDisabled();
  await capture(page,info,`${product.toLowerCase()}-promo-recovery`);
+ // A promo outage must not strand a customer who returns to edit their details.
+ await form.getByRole('button',{name:product==='HOTEL'?'Back to guests':'Back to travellers',exact:true}).click();
+ await expect(form.getByRole('button',{name:'Continue to review',exact:true})).toBeEnabled();
+ await form.getByLabel('First name',{exact:true}).fill('Aarav Updated');
+ await expect(form.getByRole('status',{name:'Promo total confirmation',exact:true})).toContainText('continue to review');
+ if(product==='FLIGHT'){
+  provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'extra-segment',tripIndex:0,label:'BOM to DEL',options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:10000}]}],travellerTypes:['ADULT'],choices:[]}};
+  provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:664000}};
+  await form.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+  await form.getByRole('combobox',{name:'Meal',exact:true}).selectOption('MEAL1');
+  await form.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
+  await expect(form.getByRole('button',{name:'Extras applied',exact:true})).toBeVisible();
+ }
+ await form.getByRole('button',{name:'Continue to review',exact:true}).click();
+ await expect(promo).toBeVisible();await expect(form.getByRole('status',{name:'Promo total confirmation',exact:true})).toContainText('Payment is paused');
+ await form.getByRole('button',{name:'Review promo code',exact:true}).click();await expect(promo.getByLabel('Promo code',{exact:true})).toBeFocused();
+ await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeDisabled();
+ // Even a direct form submission must not create a payment against an uncertain total.
+ await form.evaluate(node=>(node as HTMLFormElement).requestSubmit());
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expect(form).toContainText('Aarav Updated');
  await page.unroute('**/api/travel/promo');
- await page.route('**/api/travel/promo',route=>route.fulfill({json:{quoteId,totalMinor:654000,originalTotalMinor:654000,discountMinor:0,code:null}}));
+ await page.route('**/api/travel/promo',route=>route.fulfill({json:{quoteId,totalMinor:product==='FLIGHT'?664000:654000,originalTotalMinor:product==='FLIGHT'?664000:654000,discountMinor:0,code:null}}));
  await promo.getByRole('button',{name:'Remove code',exact:true}).click();
  await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
+ await expect(form.getByRole('status',{name:'Promo total confirmation',exact:true})).toHaveCount(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

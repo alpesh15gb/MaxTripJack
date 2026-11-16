@@ -5,5 +5,15 @@
   "licenseUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
   "sourceSha256": "9387cdb38df5bd664da823f8ccb69fdd9b33a1888f5b7cca09c34a3cd9ff59f9",
   "retrievedAt": "2026-11-01",
-  "note": "IATA to IANA zone only; duplicate codes with conflicting zones excluded. Runtime ICU supplies date-specific offsets; legacy numeric DST/offset columns are not used."
+  "note": "IATA to IANA zone only; duplicate codes with conflicting zones excluded. Runtime ICU supplies date-specific offsets; legacy numeric DST/offset columns are not used.",
+  "maintainedAdditions": [
+    {
+      "iata": "GOX",
+      "timezone": "Asia/Kolkata",
+      "verifiedAt": "2026-11-16",
+      "airportSource": "https://www.gmrgroup.com/airports-and-aero-services/airports/manohar-international-airport",
+      "timeStandardSource": "https://www.nplindia.res.in/clockcode/html/",
+      "note": "Manohar International Airport in Goa, India; uses Indian Standard Time. Added because the pinned OpenFlights snapshot does not contain GOX."
+    }
+  ]
 }

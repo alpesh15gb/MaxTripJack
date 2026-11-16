@@ -68,6 +68,7 @@ test('same-price flight baggage/refund changes retain travellers, require explic
  await capture(page,testInfo,'refreshed-flight-explicit-payment');
  // Changing selection returns to real results, then a new non-renewal clears the old comparison.
  await page.getByRole('button',{name:'Change selection',exact:true}).click();await expect(page.locator('.flight-shopping-list')).toBeVisible();
+ await expect(page.locator('#booking-feedback')).not.toContainText('Price and rules updated.');
  await selectFare(page);await retainedTraveller(page);await expect(disclosure(page)).toHaveCount(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
@@ -84,7 +85,13 @@ test('same-price hotel room, meal and cancellation changes show explicit previou
  await expect(disclosure(page)).toContainText('Same price does not mean same terms.');
  await retainedTraveller(page);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'same-price-hotel-room-meal-cancellation');
  await expect(pay(page)).toBeEnabled();await expect(form(page).getByRole('checkbox')).toHaveCount(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await page.getByRole('button',{name:'Back to guests',exact:true}).click();await retainedTraveller(page);expect(provider.requests('/api/travel/review')).toHaveLength(2);
+ await expect(page.locator('#booking-feedback')).toContainText('Price and rules updated.');
+ await page.getByRole('button',{name:'Change selection',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toBeVisible();
+ await expect(page.locator('#booking-feedback')).not.toContainText('Price and rules updated.');
+ await page.getByRole('button',{name:'Continue with room',exact:true}).click();
+ await retainedTraveller(page);await expect(disclosure(page)).toHaveCount(0);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 for(const refundable of [true,false])test(`rolling current hotel ${refundable?'free':'paid'}-window start stays neutral while a later fee change is highlighted`,async({page,provider},testInfo)=>{
