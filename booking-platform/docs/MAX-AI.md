@@ -1,6 +1,6 @@
 # Max AI
 
-Max AI connects MaxTravel's existing travel services to the `apexv1` model through your OmniRoute gateway. The gateway is contacted only by the application server. Browser requests stay on MaxTravel's origin.
+Max AI connects MaxTravel's existing travel services to the configured model through your OmniRoute gateway. The deployed gateway accepted `APEXV1` in the 17 November 2026 diagnostic. The gateway is contacted only by the application server. Browser requests stay on MaxTravel's origin.
 
 ## What it can do
 
@@ -16,7 +16,7 @@ Flight prices can be per leg for return itineraries. Hotel prices are estimates 
 
 ## VPS configuration
 
-Create an application key in OmniRoute's endpoint/API-key settings and allow it to use the configured `apexv1` model or combo. Keep that key on the VPS; do not put it in a `NEXT_PUBLIC_` variable, browser settings, chat message or Git commit.
+Create an application key in OmniRoute's endpoint/API-key settings and allow it to use the configured model or combo (`APEXV1` on the deployed gateway). Keep that key on the VPS; do not put it in a `NEXT_PUBLIC_` variable, browser settings, chat message or Git commit.
 
 Add these values to `/opt/max-travel-booking/booking-platform/.env.production`:
 
@@ -24,7 +24,7 @@ Add these values to `/opt/max-travel-booking/booking-platform/.env.production`:
 MAX_AI_ENABLED=true
 MAX_AI_BASE_URL=http://host.docker.internal:8088/v1
 MAX_AI_API_KEY=your-private-omniroute-application-key
-MAX_AI_MODEL=apexv1
+MAX_AI_MODEL=APEXV1
 # Optional separate encryption secret, at least 32 characters.
 # If omitted, the existing BETTER_AUTH_SECRET is used with purpose-separated derivation.
 MAX_AI_CONVERSATION_SECRET=
@@ -34,7 +34,7 @@ The production Compose file already maps `host.docker.internal` to the host gate
 
 Use a private, local connection on this VPS, or an HTTPS gateway URL for a remote gateway. Do not send customer messages and the application key over the public `http://82.112.236.81:8088` address. There is no browser CSP or CORS change needed for OmniRoute.
 
-The base URL ends at `/v1`; the server appends `/chat/completions`. `apexv1` must support function tools. A model's ordinary text response alone does not prove that it can execute this integration's tool protocol. OmniRoute may route a combo to providers with different capabilities, so every fallback used by the combo should support tools.
+The base URL ends at `/v1`; the server appends `/chat/completions`. Preserve the exact model/combo identifier accepted by your gateway, including its case. That target must support function tools. A model's ordinary text response alone does not prove that it can execute this integration's tool protocol. OmniRoute may route a combo to providers with different capabilities, so every fallback used by the combo should support tools.
 
 Deploy after setting the private environment values:
 
@@ -65,7 +65,7 @@ docker exec max-travel-booking-app-1 node scripts/check-max-ai.mjs
 
 It checks model discovery and makes a few small synthetic inference requests: a function call with exact search arguments, a matching tool-result follow-up and an incomplete flight request. It prints configuration presence and outcome metadata, never the gateway key or customer data. It does not call Tripjack, create a booking or start payment. These inference requests use the gateway's normal model quota. Keep any copied diagnostic output limited to these status fields.
 
-If gateway access fails, check the container-to-gateway address, the OmniRoute application key, exact `apexv1` model/combo mapping and function-tool capability. An HTTP 200 from `/models` is only discovery; it is not proof that the search tool protocol works.
+If gateway access fails, check the container-to-gateway address, the OmniRoute application key, exact configured model/combo mapping and function-tool capability. An HTTP 200 from `/models` is only discovery; it is not proof that the search tool protocol works.
 
 ## Conversation and access boundaries
 
@@ -86,17 +86,42 @@ The app does not save a chat transcript to its database or browser local storage
 ## Validation checklist
 
 Local validation on 17 November 2026 passed: production build and TypeScript,
-ESLint, 692 unit tests, and 150 selected desktop/mobile browser cases. Browser
-cases use synthetic API/payment responses against the production UI. Screenshots
-were reviewed at 1440px, 390px and 320px. Coverage includes chat recovery and
-account changes, owned flight handoff, hotel browsing, checkout, and history.
+ESLint, and 696 unit tests. The selected desktop/mobile suite covered 188 cases:
+186 passed in the main run; two new mobile tests incorrectly targeted hidden
+desktop sort buttons. After correcting those selectors and the filter-button
+spacing, all 18 affected flight-handoff/reentry cases passed against the final
+build. No failing case remains in that selected coverage.
 
-These checks do not establish live `apexv1` tool-calling or supplier availability.
-The unauthenticated gateway discovery request returned HTTP 401; the private VPS
-key is still required for the diagnostic and live acceptance checks below.
+Browser cases use synthetic API/payment responses against the production UI.
+Screenshots were reviewed at 1440px and 390px; the suite also checks 320px flight
+layout. Coverage includes chat recovery and account changes, exact owned search
+handoff, preferences and refresh/reentry, hotel occupancy, checkout, and history.
+
+The deployed VPS diagnostic subsequently passed function calling with exact
+arguments, tool-result follow-up, and an incomplete flight request using `APEXV1`.
+`apexModelListed: null` means discovery could not establish the expected model
+list; successful inference confirms the configured identifier works. It does
+not justify changing the model's case.
+
+Live acceptance on maxtravel.in verified incomplete-detail questions, BOM–DEL
+flight results and an IndiGo/non-stop follow-up, Hyderabad hotel results with
+two rooms and a child, exact-price/occupancy handoffs, and hotel pagination.
+Desktop flight and mobile hotel screens were inspected. Synthetic credential
+input triggered the chat warning; payment guidance distinguished capture from
+supplier confirmation. No booking, payment, cancellation or refund was executed.
+
+That run exposed three follow-up fixes: preserve flight stop/carrier/sort
+preferences in the results handoff, retain the hotel destination label, and use
+the own-trips lookup without claiming a navigation button has already opened a
+page. Reopening an earlier result now restores that search instead of retaining
+a newer manual search under the old URL. These fixes require a new deployment and live acceptance; authenticated
+trip lookup has not yet been verified live. Flight budget preferences are still
+per-leg estimates in chat and are not carried to the booking screen's combined
+return-budget control.
+
 The existing Next.js dependency security advisory remains outside this change.
 
-1. Verify gateway authentication, the exact `apexv1` target and an actual function-tool response from inside the app container. Use the deployment diagnostic supplied with this change; a `/models` response alone is insufficient.
+1. Verify gateway authentication, the exact configured target and an actual function-tool response from inside the app container. Use the deployment diagnostic supplied with this change; a `/models` response alone is insufficient.
 2. Start a signed-out chat with “I want a flight ticket”. It should ask for missing route/date details instead of inventing a fare.
 3. Provide an exact future route and passenger count. Open a returned card and confirm the original route, dates, party and customer estimates appear in the results screen.
 4. Request a hotel stay with destination, dates, rooms, guests, child ages where needed, and nationality. Confirm full-stay price basis and room review handoff. Check a destination with no results and a supplier outage.

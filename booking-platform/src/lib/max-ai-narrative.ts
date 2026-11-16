@@ -28,6 +28,20 @@ function claimsCompletedAction(clause: string) {
   });
 }
 
+function claimsCompletedNavigation(clause: string) {
+  if (isQuestionOrExplanation(clause)) return false;
+  return /\b(?:i(?:'ve| have)?|we(?:'ve| have)?)\s+(?:(?:successfully|already|just|now)\s+)*(?:opened|navigated|redirected|taken you|brought you|switched|launched)\b/i.test(clause)
+    || /\byou(?:'ve| have)\s+been\s+(?:(?:successfully|already|just|now)\s+)*(?:redirected|taken|brought|navigated)\b/i.test(clause)
+    || /\b(?:page|screen|section|tab|window)\s+(?:has been|is|was)\s+(?:(?:successfully|already|just|now)\s+)*(?:opened|open|loaded)\b/i.test(clause)
+    || /^(?:(?:successfully|already|just|now)\s+)*(?:opened|navigated|redirected|taken you|brought you|switched)\b/i.test(clause);
+}
+
+function navigationInstruction(actions: readonly MaxAiAction[]) {
+  if (!actions.length) return 'Tell me which page you want to visit so I can provide the right navigation option.';
+  if (actions.length === 1) return `Choose “${actions[0].label}” below to continue.`;
+  return 'Choose one of the options below to continue.';
+}
+
 function amounts(text: string) {
   return [...text.matchAll(/(?:₹|\$|€|£|\b(?:INR|USD|EUR|GBP|Rs\.?))\s*(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s*(?:rupees?|INR|USD|EUR|GBP)\b/gi)]
     .map(match => Number((match[1] || match[2]).replaceAll(',', '')));
@@ -70,5 +84,11 @@ export function finalizeMaxAiNarrative(text: string, cards: readonly MaxAiCard[]
       : continuation;
   }
   if (claimsUnverifiedPrice(trimmed, userMessage)) return unverifiedPrice;
+  const sentences = clauses(trimmed);
+  if (sentences.some(claimsCompletedNavigation)) {
+    // Keep accurate guidance that accompanies the false navigation sentence.
+    const guidance = sentences.filter(sentence => !claimsCompletedNavigation(sentence)).join(' ').replace(/[,;]\s*$/, '.');
+    return [guidance, navigationInstruction(actions)].filter(Boolean).join('\n\n').slice(0, 4000);
+  }
   return trimmed || 'Tell me the journey or task you would like help with.';
 }

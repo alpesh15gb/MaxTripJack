@@ -1,4 +1,14 @@
-import {estimatedFare,type Flight} from './booking-presentation';
+import {estimatedFare,flightStops,type Flight} from './booking-presentation';
+/** AI carrier preferences apply to every included segment, including returns. */
+export function matchesFlightAirlineQuery(flight:Flight,query=''):boolean{
+ const normalize=(value:string)=>value.normalize('NFKD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+ const needle=normalize(query.trim());
+ return !needle||(flight.sI.length>0&&flight.sI.every(segment=>normalize(`${segment.fD.aI.name} ${segment.fD.aI.code??''}`).includes(needle)));
+}
+/** COMBO is several journeys; do not invent a single connection count. */
+export function matchesFlightStops(flight:Flight,group:string,stops:string):boolean{
+ return stops==='ALL'||group==='COMBO'||String(flightStops(flight,group))===stops;
+}
 /** Calendar dates are local to their airports. This is not an elapsed-time calculation. */
 export function arrivalDayLabel(departure:string,arrival:string):string|null{
  const day=(value:string)=>{const text=value.slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(text))return null;const time=Date.parse(text+'T00:00:00Z');return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===text?time:null;};

@@ -59,11 +59,14 @@ test('flight follow-up refinements filter actual customer prices/carriers and ke
   const {createMaxAiTools}=await compiled;
   const option=(airline:string,price:number|null,hour:string,duration:number)=>({...flight,sI:[{...flight.sI[0],dt:`2026-12-01T${hour}:00:00`,at:'2026-12-02T01:00:00',duration,fD:{...flight.sI[0].fD,aI:{name:airline,code:'6E'}}}],totalPriceList:[{...flight.totalPriceList[0],customerEstimateMinor:price}]});
   const tools=createMaxAiTools(request(),{now,dispatch:async()=>Response.json({searchId,results:{searchResult:{tripInfos:{ONWARD:[option('Synthetic Air',400000,'20',180),option('Synthetic Air',500000,'22',120),option('Other Air',100000,'19',100),option('Synthetic Air',null,'18',90)]}}}})});
-  const result=await tools.run('search_flights',{...searchArgs,airlineQuery:'Synthetic Air',maxTotalRupees:5000,sort:'duration'});
+  const result=await tools.run('search_flights',{...searchArgs,airlineQuery:'Synthetic Air',nonstopOnly:true,maxTotalRupees:5000,sort:'duration'});
   assert.deepEqual(result.cards.map(card=>card.priceMinor),[500000,400000]);
   assert.match(result.cards[0].details.join(' '),/Arrives 2 Dec 2026/);
   assert.deepEqual((result.model.criteria as Record<string,unknown>).sort,'duration');
   assert.doesNotMatch(JSON.stringify(result.cards),/Other Air/);
+  const params=new URL(result.cards[0].action.href,'https://maxtravel.test').searchParams;
+  assert.equal(params.get('flightStops'),'0');assert.equal(params.get('flightAirlineQuery'),'Synthetic Air');assert.equal(params.get('flightSort'),'duration');
+  assert.equal(params.has('flightBudget'),false);assert.equal(params.has('maxTotalRupees'),false);assert.equal(isMaxAiActionHref(result.cards[0].action.href),true);
 });
 
 test('multi-city search preserves all legs and clearly reports unavailable COMBO duration/stop filtering',async()=>{
@@ -92,7 +95,8 @@ test('hotel tool preserves exact rooms and nationality, filters foreign properti
   assert.deepEqual(calls[1].body,{regionId:'56'});
   assert.deepEqual((calls[2].body as Record<string,unknown>).rooms,[{adults:2,childAge:[7],children:1},{adults:1,childAge:[],children:0}]);
   assert.equal(result.cards.length,1);assert.equal(result.cards[0].priceMinor,808150);assert.match(result.cards[0].basis!,/2 rooms · 4 guests/);
-  assert.equal(result.cards[0].action.href,`/book?product=HOTEL&browseSearch=${searchId}&stay=10001`);
+  assert.equal(result.cards[0].action.href,`/book?product=HOTEL&browseSearch=${searchId}&stay=10001&city=Goa%2C+India`);
+  assert.equal(new URL(result.actions[0].href,'https://maxtravel.test').searchParams.get('city'),'Goa, India');
   assert.equal(result.model.moreDestinationPages,true);assert.match(String(result.model.notice),/not all hotels/);
   assert.equal(new URL(result.actions[1].href,'https://maxtravel.test').searchParams.get('destinationCursor'),'0:0');
   assert.doesNotMatch(JSON.stringify(result),/PRIVATE_PROPERTY|Out of scope/);

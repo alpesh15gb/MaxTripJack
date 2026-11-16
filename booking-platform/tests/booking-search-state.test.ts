@@ -52,3 +52,13 @@ test('AI flight pointers stay on booking links, while authentication returns pre
   assert.equal(bookingSearchPrefill({...criteria,...extra},today).searchInvalid,'1');
  }
 });
+
+test('AI result preferences are bounded display fields attached only to an owned flight search pointer',()=>{
+ const criteria={product:'FLIGHT',flightSearch:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',flightStops:'0',flightSort:'departure',flightAirlineQuery:'IndiGo'};
+ assert.deepEqual(bookingSearchPrefill(criteria,today),criteria);
+ assert.deepEqual(params(bookingSearchUrl(criteria,today)!),criteria);
+ for(const invalid of [{flightStops:'1'},{flightSort:'cheapest'},{flightAirlineQuery:'x'},{flightAirlineQuery:'A'.repeat(81)},{flightAirlineQuery:'6E\n'},{flightAirlineQuery:['IndiGo','Other']},{flightSearch:undefined},{product:'HOTEL'}]){
+  assert.equal(bookingSearchPrefill({...criteria,...invalid},today).searchInvalid,'1');
+ }
+ assert.deepEqual(params(safeAccountReturn(bookingSearchUrl(criteria,today)!)),{product:'FLIGHT'});
+});

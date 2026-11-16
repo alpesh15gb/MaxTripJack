@@ -282,11 +282,12 @@
 .booking-workflow.has-journey .flight-shopping-controls :is(select,input) { width:100%; min-width:0; min-height:44px; padding:10px; font-size:14px; background:#f9fbfd; }
 .flight-filter-intro { padding-top:16px; border-top:1px solid #e0e8ef; }
 .flight-filter-intro strong { font-size:14px; color:#183c50; }
-.flight-filter-intro p,.flight-filter-note { color:#5b7081; font-size:12px; line-height:1.6; margin:7px 0 0; }
+.flight-filter-intro p,.flight-filter-note { color:#5b7081; font-size:12px; line-height:1.6; margin:7px 0 0; overflow-wrap:anywhere; }
 .flight-shopping-controls .secondary { min-height:44px; }
 .flight-shopping-list { min-width:0; }
 .flight-applied-filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
-.flight-applied-filters>span { border:1px solid #d4e2ef; background:#eef5fc; color:#284b6e; border-radius:18px; padding:8px 12px; font-size:13px; overflow-wrap:anywhere; }
+.flight-applied-filters>span,.flight-applied-filters>button.secondary { min-width:0; max-width:100%; border:1px solid #d4e2ef; background:#eef5fc; color:#284b6e; border-radius:18px; padding:8px 12px; font-size:13px; line-height:1.4; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+.flight-applied-filters>button.secondary { min-height:44px; margin:0; }
 .booking-workflow .flight-shopping-list .live-flight-card { display:grid; grid-template-columns:minmax(0,1fr) 195px; border:1px solid #dce5ec; border-radius:18px; box-shadow:0 4px 14px #173a5c08; }
 .booking-workflow .flight-shopping-list .flight-result-top { grid-column:1; padding:18px 20px 12px; border-bottom:0; gap:12px; }
 .flight-shopping-list .airline-identity { min-width:0; }

@@ -4,6 +4,7 @@ import airports from '@/data/airports.json';
 import {searchSchema,day} from './providers/contracts';
 import {bookingSearchUrl} from './booking-search-state';
 import {indiaToday,estimatedFare,journeyMinutes,flightStops,groupLabel,orderedGroups,type Flight} from './booking-presentation';
+import {matchesFlightAirlineQuery,matchesFlightStops} from './flight-results';
 import {travelDateLabel,travelTimeLabel} from './travel-date';
 import {packageSlug} from './travel-packages';
 import {getPublicPage} from './public-pages';
@@ -147,12 +148,12 @@ export function createMaxAiTools(request:Request,dependencies:Dependencies={}){
           for(const [group,values] of Object.entries(rawGroups)){
             if(!['ONWARD','RETURN','COMBO'].includes(group)&&!/^\d{1,2}$/.test(group))continue;
             groups[group]=rows(values).slice(0,1000).flatMap(value=>{const valid=flightSchema.safeParse(value);return valid.success?[valid.data as Flight]:[];})
-              .filter(flight=>!nonstopOnly||group==='COMBO'||flightStops(flight,group)===0)
-              .filter(flight=>!airlineQuery||flight.sI.every(segment=>normalize(`${segment.fD.aI.name} ${segment.fD.aI.code??''}`).includes(normalize(airlineQuery))))
+              .filter(flight=>matchesFlightStops(flight,group,nonstopOnly?'0':'ALL'))
+              .filter(flight=>matchesFlightAirlineQuery(flight,airlineQuery))
               .filter(flight=>maxTotalRupees===undefined||estimatedFare(flight)<=Math.round(maxTotalRupees*100))
               .sort((a,b)=>sort==='duration'&&group!=='COMBO'?(journeyMinutes(a,group)??Infinity)-(journeyMinutes(b,group)??Infinity):sort==='departure'?a.sI[0].dt.localeCompare(b.sI[0].dt):estimatedFare(a)-estimatedFare(b));
           }
-          const href='/book?'+new URLSearchParams({product:'FLIGHT',flightSearch:searchId}),action={label:'Compare flights and fares',href};
+          const href='/book?'+new URLSearchParams({product:'FLIGHT',flightSearch:searchId,...(nonstopOnly?{flightStops:'0'}:{}),...(airlineQuery?{flightAirlineQuery:airlineQuery}:{}),...(sort!=='price'?{flightSort:sort}:{})}),action={label:'Compare flights and fares',href};
           const cards:MaxAiCard[]=[],summaries:Record<string,unknown>[]=[];
           const travellers=criteria.adults+criteria.children+criteria.infants;
           for(const group of orderedGroups(groups)){
@@ -178,7 +179,7 @@ export function createMaxAiTools(request:Request,dependencies:Dependencies={}){
           if(!rows(nationalityData.nationalities).some(value=>text(record(value).countryId,10)===input.nationality))return emptyResult({status:'needs_input',message:'Resolve the user’s stated nationality with lookup_nationalities.'});
           const mapping=await call('destinationHotels',{regionId:input.regionId,...(input.cursor?{cursor:input.cursor}:{})});
           const hotelIds=rows(mapping.hotelIds).map(value=>String(value)).filter(value=>/^\d{1,30}$/.test(value)).slice(0,100);
-          const label=text(mapping.label),nextCursor=typeof mapping.nextCursor==='string'&&/^\d{1,6}:\d{1,6}$/.test(mapping.nextCursor)?mapping.nextCursor:null;
+          const label=text(mapping.label,150),nextCursor=typeof mapping.nextCursor==='string'&&/^\d{1,6}:\d{1,6}$/.test(mapping.nextCursor)?mapping.nextCursor:null;
           // A fresh destination handoff starts at page zero. A region without IDs
           // needs this cursor for the normal search form's destination validity.
           const continuation=bookingSearchUrl({product:'HOTEL',regionId:input.regionId,city:label,destinationCursor:'0:0',date:input.checkIn,end:input.checkOut,adults:String(input.rooms[0].adults),rooms:JSON.stringify(input.rooms),nationality:input.nationality,autoSearch:'1'},indiaToday(now()));
@@ -193,11 +194,11 @@ export function createMaxAiTools(request:Request,dependencies:Dependencies={}){
             .sort((a,b)=>(safeMinor(a.customerEstimateMinor)??Infinity)-(safeMinor(b.customerEstimateMinor)??Infinity));
           const cards=results.slice(0,6).map((hotel,index)=>{
             const id=text(hotel.tjHotelId,30),price=safeMinor(hotel.customerEstimateMinor),property=record(hotel.property);
-            const action={label:'View rooms and rates',href:'/book?'+new URLSearchParams({product:'HOTEL',browseSearch:searchId,stay:id})};
+            const action={label:'View rooms and rates',href:'/book?'+new URLSearchParams({product:'HOTEL',browseSearch:searchId,stay:id,city:label})};
             return {id:`${searchId}:${index}`,type:'hotel' as const,title:text(hotel.name)||'Hotel',subtitle:label,details:[`${travelDateLabel(input.checkIn)}–${travelDateLabel(input.checkOut)}`,text(property.address,200),
               'Meals, cancellation conditions and current room prices are checked when you choose a rate.'].filter(Boolean),...(price!==undefined?{priceMinor:price,currency:'INR',basis}:{}),action};
           });
-          const browse={label:'Compare all checked stays',href:'/book?'+new URLSearchParams({product:'HOTEL',browseSearch:searchId})};
+          const browse={label:'Compare all checked stays',href:'/book?'+new URLSearchParams({product:'HOTEL',browseSearch:searchId,city:label})};
           return {model:{status:'ok',product:'HOTEL',checkedAt:now().toISOString(),criteria:{...input,destination:label},destination:label,checkedPropertyCount:hotelIds.length,availableCount:results.length,moreDestinationPages:mapping.hasMore===true,nextCursor,
             results:cards.map(card=>({name:card.title,priceMinor:card.priceMinor??null,currency:'INR',priceBasis:basis})),notice:'One bounded destination page was checked, not all hotels in the city. Prices are full-stay customer estimates; conditions and current prices require room review.'},cards,actions:[browse,...(mapping.hasMore===true&&continuation?[{label:'Explore more destination stays',href:continuation}]:[])]};
         }

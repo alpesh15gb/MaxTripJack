@@ -34,7 +34,7 @@ import HotelResults from './hotel-results';
 import SearchJourneyPending from './search-journey-pending';
 import {travelDateLabel,travelDateTimeLabel,travelTimeLabel} from '@/lib/travel-date';
 import SelectedJourneyReceipt from './selected-journey-receipt';
-import {matchesFlightRefinements,groupIdenticalFlights} from '@/lib/flight-results';
+import {matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops,groupIdenticalFlights} from '@/lib/flight-results';
 import {hotelContentUnavailable,type HotelStayContext} from '@/lib/hotel-results';
 import AirportPicker from './airport-picker';
 import HotelDestination from './hotel-destination';
@@ -54,7 +54,7 @@ import {TravelHeader,TravelFooter,TravelIcon} from './travel-shell';
 import {authClient} from '@/lib/auth-client';
 import useCheckoutRecovery from './use-checkout-recovery';
 import {clearCheckoutMarker,saveCheckoutMarker,isResumableCheckout,isResumableHostedCheckout,parseCheckoutRecoveryStatus,type CheckoutRecoveryStatus} from '@/lib/checkout-recovery';
-import { compatibleReturnPair,estimatedFare,flightStops,groupLabel,indiaToday,initialAdults,journeyMinutes,orderedGroups,parseHotelIds,paymentFailureAction,quoteRemaining,type Flight,type FlightFare } from '@/lib/booking-presentation';
+import { compatibleReturnPair,estimatedFare,groupLabel,indiaToday,initialAdults,journeyMinutes,orderedGroups,parseHotelIds,paymentFailureAction,quoteRemaining,type Flight,type FlightFare } from '@/lib/booking-presentation';
 
 type Product='FLIGHT'|'HOTEL';
 type HotelOption=AvailableHotelOption;
@@ -103,6 +103,7 @@ function currentRoutePrefill(){
   return bookingSearchPrefill(query);
 }
 function routeFingerprint(value:Record<string,string>){return JSON.stringify(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)));}
+function flightViewFingerprint(value:Record<string,string>){return JSON.stringify([value.flightSearch??'',value.flightStops??'',value.flightSort??'',value.flightAirlineQuery??'']);}
 function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfigured,billingRequired}:{prefill?:Record<string,string>;routePrefill:Record<string,string>;adoptRoute:(next:Record<string,string>)=>void;checkoutConfigured:boolean;billingRequired:boolean}){
   const router=useRouter();
   const routeSearch=useSearchParams().toString();
@@ -196,7 +197,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   },[signInRequired,signInWithoutSelection,message,busy]);
   function clearReviewSuccessFeedback(){setMessage(current=>current.startsWith('Price and rules updated.')?'':current);}
   function backToFlightResults(){if(!dismissSelectionGate())return;clearReviewSuccessFeedback();if(!hasFullSearchResults){recoverSearch();return;}restoreFlightResults.current=true;setQuote(null);if(!quote)requestAnimationFrame(()=>{restoreFlightResults.current=false;const target=document.getElementById('flight-results-title');target?.focus({preventScroll:true});target?.scrollIntoView({behavior:'auto',block:'start'});});}
-  function recoverSearch(){snapshotController.current?.abort();setSnapshotLoading(false);hotelRequest.current?.abort();++hotelGeneration.current;const recoveryUrl=new URL(window.location.href);for(const key of ['browseSearch','flightSearch','stay','gallery','stayStep'])recoveryUrl.searchParams.delete(key);window.history.replaceState(null,'',recoveryUrl.pathname+recoveryUrl.search);setGalleryOpen(false);clearSelectionHandoff();setHasFullSearchResults(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;roomReturn.current=null;flightReturn.current=null;flightSelectionFocus.current=null;setQuote(null);setResults(null);setRooms(null);setRoomView(false);setSelection(null);setSelectedFares({});setSelectedJourney([]);setSelectedRoom(null);setFreshSearchRequired(false);setSearchRecovery(true);setMessage('');}
+  function recoverSearch(){snapshotController.current?.abort();setSnapshotLoading(false);hotelRequest.current?.abort();++hotelGeneration.current;const recoveryUrl=new URL(window.location.href);for(const key of ['browseSearch','flightSearch','flightStops','flightSort','flightAirlineQuery','stay','gallery','stayStep'])recoveryUrl.searchParams.delete(key);window.history.replaceState(null,'',recoveryUrl.pathname+recoveryUrl.search);setGalleryOpen(false);clearSelectionHandoff();setHasFullSearchResults(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;roomReturn.current=null;flightReturn.current=null;flightSelectionFocus.current=null;setQuote(null);setResults(null);setRooms(null);setRoomView(false);setSelection(null);setSelectedFares({});setSelectedJourney([]);setSelectedRoom(null);setFreshSearchRequired(false);setSearchRecovery(true);setMessage('');}
   useEffect(()=>{
     if(!searchRecovery)return;
     const frame=requestAnimationFrame(()=>{document.getElementById('booking-search-recovery')?.focus({preventScroll:true});document.getElementById('booking-search-recovery')?.scrollIntoView({behavior:'auto',block:'start'});});
@@ -220,6 +221,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const [selectedFares,setSelectedFares]=useState<Record<string,string>>({}),[activeGroup,setActiveGroup]=useState('');
   const [departureWindow,setDepartureWindow]=useState('ALL'),[flightBudget,setFlightBudget]=useState('');
   const [sortBy,setSortBy]=useState('price'),[stopFilter,setStopFilter]=useState('ALL'),[airlineFilter,setAirlineFilter]=useState('ALL');
+  const [airlineQuery,setAirlineQuery]=useState('');
   const [guestErrors,setGuestErrors]=useState<GuestIssue[]>([]);
   const guestErrorFocus=useRef(false);
   const [travellerSummary,setTravellerSummary]=useState<{names:string[];email:string;phone:string}|null>(null);
@@ -244,6 +246,9 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;checkoutLaunch.current+=1;requestController.current?.abort();hotelRequest.current?.abort();snapshotController.current?.abort();hotelMoreRequest.current?.abort();if(searchFocusFrame.current!==null)cancelAnimationFrame(searchFocusFrame.current);};},[]);
   const ownedRoute=useRef<{url:string;state:unknown}>({url:'/book?'+new URLSearchParams(prefill).toString(),state:null});
+  // Local filter controls update this before replaceState. Only a different
+  // incoming view (for example reopening an AI card) reapplies its preferences.
+  const flightViewRoute=useRef(flightViewFingerprint(prefill));
   useEffect(()=>{
     const rememberRoute=()=>{
       const hotelEntry=window.history.state?.hotelEntry,bookingCheckout=window.history.state?.bookingCheckout;
@@ -254,8 +259,20 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(submittedSearchRoute.current===window.location.pathname+window.location.search){rememberRoute();return;}
     // Native property/list/gallery traversal belongs to this loaded snapshot,
     // including the initial restoration while its request is still pending.
-    if(currentRoute.flightSearch&&(currentRoute.flightSearch===results?.searchId||currentRoute.flightSearch===prefill.flightSearch)){rememberRoute();return;}
-    if(currentRoute.browseSearch&&(currentRoute.browseSearch===results?.searchId||results?.results.hotels?.some(hotel=>hotel.originSearchId===currentRoute.browseSearch)||currentRoute.browseSearch===prefill.browseSearch)){rememberRoute();return;}
+    if(currentRoute.flightSearch&&(currentRoute.flightSearch===results?.searchId||(!results&&currentRoute.flightSearch===prefill.flightSearch))){
+      rememberRoute();
+      const view=flightViewFingerprint(currentRoute);
+      if(currentRoute.flightSearch!==results?.searchId||view===flightViewRoute.current||busyRef.current||payment||paymentUncertain||recovery.blocked)return;
+      const timer=setTimeout(()=>{
+        if(flightViewFingerprint(currentRoutePrefill())!==view||busyRef.current)return;
+        flightViewRoute.current=view;
+        setStopFilter(currentRoute.flightStops??'ALL');setSortBy(currentRoute.flightSort??'price');setAirlineQuery(currentRoute.flightAirlineQuery??'');
+        setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');
+        setSubmittedSearch(current=>{const next={...current};for(const key of ['flightStops','flightSort','flightAirlineQuery']){delete next[key];if(currentRoute[key])next[key]=currentRoute[key];}return next;});
+      },0);
+      return()=>clearTimeout(timer);
+    }
+    if(currentRoute.browseSearch&&(currentRoute.browseSearch===results?.searchId||results?.results.hotels?.some(hotel=>hotel.originSearchId===currentRoute.browseSearch)||(!results&&currentRoute.browseSearch===prefill.browseSearch))){rememberRoute();return;}
     if(routeFingerprint(currentRoute)===routeFingerprint(submittedSearch)){rememberRoute();return;}
     if(currentRoute.selectionKey&&currentRoute.selectionKey===savedHandoff?.key){rememberRoute();return;}
     // A cached server tree is not authority for the current browser entry. Do
@@ -273,7 +290,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       adoptRoute(currentRoute);
     },0);
     return()=>clearTimeout(timer);
-  },[routeSearch,routePrefill,submittedSearch,results,prefill.browseSearch,prefill.flightSearch,savedHandoff?.key,payment,paymentUncertain,recovery.blocked,adoptRoute]);
+  },[routeSearch,routePrefill,submittedSearch,results,prefill.browseSearch,prefill.flightSearch,savedHandoff?.key,busy,payment,paymentUncertain,recovery.blocked,adoptRoute]);
   const propertyContentGeneration=useRef(0);
   const resultSearchId=results?.searchId;
   const propertyContentPending=results?.propertyContentPending===true;
@@ -456,12 +473,12 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(b===null)return -1;
     return a.localeCompare(b);
   };
-  const flightRows=groupFlights.filter(flight=>matchesFlightRefinements(comparableFlight(flight),shownGroup,departureWindow,flightBudget)).filter(flight=>airlineFilter==='ALL'||flight.sI.some(segment=>segment.fD.aI.name===airlineFilter)).filter(flight=>stopFilter==='ALL'||shownGroup==='COMBO'||String(flightStops(flight,shownGroup))===stopFilter).slice().sort((a,b)=>{
+  const flightRows=groupFlights.filter(flight=>matchesFlightRefinements(comparableFlight(flight),shownGroup,departureWindow,flightBudget)).filter(flight=>matchesFlightAirlineQuery(flight,airlineQuery)).filter(flight=>airlineFilter==='ALL'||flight.sI.some(segment=>segment.fD.aI.name===airlineFilter)).filter(flight=>matchesFlightStops(flight,shownGroup,stopFilter)).slice().sort((a,b)=>{
     const eligibility=Number(b.totalPriceList.some(compatibleFare))-Number(a.totalPriceList.some(compatibleFare));
     if(eligibility)return eligibility;
     return effectiveSort==='departure'?compareDeparture(a,b):effectiveSort==='duration'?(journeyMinutes(a,shownGroup)??Number.MAX_SAFE_INTEGER)-(journeyMinutes(b,shownGroup)??Number.MAX_SAFE_INTEGER):estimatedFare(comparableFlight(a))-estimatedFare(comparableFlight(b));
   });
-  const FLIGHT_PAGE=25,flightListKey=`${results?.searchId}|${shownGroup}|${effectiveSort}|${stopFilter}|${airlineFilter}|${departureWindow}|${flightBudget}`;
+  const FLIGHT_PAGE=25,flightListKey=`${results?.searchId}|${shownGroup}|${effectiveSort}|${stopFilter}|${airlineFilter}|${airlineQuery}|${departureWindow}|${flightBudget}`;
   const [flightLimit,setFlightLimit]=useState({key:'',count:FLIGHT_PAGE});
   const flightShown=flightLimit.key===flightListKey?flightLimit.count:FLIGHT_PAGE;
   const visibleFlightRows=flightRows.filter((flight,index)=>index<flightShown||flight.totalPriceList.some(fare=>fare.id===selectedFares[shownGroup]));
@@ -492,6 +509,16 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     :(selectedEstimates.length&&selectedEstimates.every(Number.isFinite)?selectedEstimates.reduce((total,value)=>total+value,0):null)):null;
   const summaryTitle=quote?.product==='HOTEL'?quote.hotelName||'Your selected stay':quote?.summary?.legs?quote.summary.legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · '):quote?`${quote.summary?.from} → ${quote.summary?.to}`:product==='HOTEL'?'A stay that suits you':'Your next journey';
 
+  function clearFlightViewFields(keys=['flightStops','flightSort','flightAirlineQuery']){
+    const url=new URL(window.location.href);for(const key of keys)url.searchParams.delete(key);
+    flightViewRoute.current=flightViewFingerprint(bookingSearchPrefill(Object.fromEntries(url.searchParams)));
+    window.history.replaceState(window.history.state,'',url.pathname+url.search);
+    setSubmittedSearch(current=>{const next={...current};for(const key of keys)delete next[key];return next;});
+  }
+  function changeFlightCarrier(value:string){setAirlineFilter(value);setAirlineQuery('');clearFlightViewFields(['flightAirlineQuery']);}
+  function changeFlightStops(value:string){setStopFilter(value);clearFlightViewFields(['flightStops']);}
+  function changeFlightSort(value:string){setSortBy(value);clearFlightViewFields(['flightSort']);}
+  function resetFlightGroupRefinements(){setStopFilter(submittedSearch.flightStops??'ALL');setAirlineFilter('ALL');setAirlineQuery(submittedSearch.flightAirlineQuery??'');setDepartureWindow('ALL');setFlightBudget('');}
   function begin(label:string){
     if(busyRef.current)return null;
     stoppedSearchFocus.current=false;busyRef.current=true;setBusy(true);setActivity(label);setMessage('');setSearchValidation(false);
@@ -577,11 +604,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     // bypasses an in-flight checkout or uncertain-payment guard above.
     ++operation.current;snapshotController.current?.abort();hotelRequest.current?.abort();++hotelGeneration.current;
     setSnapshotLoading(false);setGalleryOpen(false);setRoomsStatus('ready');setRoomsError('');
-    const url=new URL(window.location.href);for(const key of ['browseSearch','flightSearch','stay','gallery','stayStep'])url.searchParams.delete(key);url.searchParams.set('product',next);window.history.replaceState(null,'',url.pathname+url.search);
-    clearSelectionHandoff();checkoutHistory.current=null;setHasFullSearchResults(false);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;privateDraft.current=null;setProduct(next);setResults(null);setQuote(null);setRooms(null);setRoomView(false);setSelectedFares({});setMessage('');setSelection(null);setCheckoutStep('travellers');setExtrasPending(false);
+    const url=new URL(window.location.href);for(const key of ['browseSearch','flightSearch','flightStops','flightSort','flightAirlineQuery','stay','gallery','stayStep'])url.searchParams.delete(key);url.searchParams.set('product',next);window.history.replaceState(null,'',url.pathname+url.search);
+    clearSelectionHandoff();checkoutHistory.current=null;setHasFullSearchResults(false);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;privateDraft.current=null;setProduct(next);setAirlineQuery('');setResults(null);setQuote(null);setRooms(null);setRoomView(false);setSelectedFares({});setMessage('');setSelection(null);setCheckoutStep('travellers');setExtrasPending(false);
   }
   async function search(form:HTMLFormElement){
-    const task=begin('Finding available journeys');if(!task)return;snapshotController.current?.abort();setSnapshotLoading(false);hotelMoreRequest.current?.abort();setLoadingMoreHotels(false);setHotelMoreError('');privateDraft.current=null;checkoutHistory.current=null;setFreshSearchRequired(false);
+    const task=begin('Finding available journeys');if(!task)return;snapshotController.current?.abort();setSnapshotLoading(false);clearFlightViewFields();setAirlineQuery('');hotelMoreRequest.current?.abort();setLoadingMoreHotels(false);setHotelMoreError('');privateDraft.current=null;checkoutHistory.current=null;setFreshSearchRequired(false);
     const fields=new FormData(form);
     let validating=true;
     try{
@@ -803,9 +830,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       const criteria=bookingSearchPrefill(snapshot.criteria);
       if(criteria.searchInvalid||criteria.product!=='FLIGHT'||!criteria.from||!criteria.to||!criteria.date||!snapshot.results.searchResult)throw Error('This flight search could not be restored. Search again to continue.');
       const legs=searchLegs(criteria.legs);
-      setSubmittedSearch({...criteria,flightSearch:snapshot.searchId});setSearchPrefill(criteria);setProduct('FLIGHT');
+      setSubmittedSearch({...criteria,flightSearch:snapshot.searchId,...(prefill.flightStops?{flightStops:prefill.flightStops}:{}),...(prefill.flightSort?{flightSort:prefill.flightSort}:{}),...(prefill.flightAirlineQuery?{flightAirlineQuery:prefill.flightAirlineQuery}:{})});setSearchPrefill(criteria);setProduct('FLIGHT');
+      setStopFilter(prefill.flightStops??'ALL');setSortBy(prefill.flightSort??'price');setAirlineQuery(prefill.flightAirlineQuery??'');
       setAdults(initialAdults(criteria.adults));setChildren(Number(criteria.children)||0);setInfants(Number(criteria.infants)||0);setCabin(criteria.cabin||'ECONOMY');setMultiCity(Boolean(legs));setLegCount(legs?.length??2);
-      setSearchedSummary(`${criteria.from} → ${criteria.to} · ${travelDateLabel(criteria.date)}${criteria.returnDate?` – ${travelDateLabel(criteria.returnDate)}`:''} · ${Number(criteria.adults)+Number(criteria.children||0)+Number(criteria.infants||0)} travellers`);
+      const travellerCount=Number(criteria.adults)+Number(criteria.children||0)+Number(criteria.infants||0);
+      setSearchedSummary(`${criteria.from} → ${criteria.to} · ${travelDateLabel(criteria.date)}${criteria.returnDate?` – ${travelDateLabel(criteria.returnDate)}`:''} · ${travellerCount} traveller${travellerCount===1?'':'s'}`);
       restoreFlightResults.current=true;setResults(snapshot);setHasFullSearchResults(true);
     }).catch(error=>{if(active&&!controller.signal.aborted&&generation===operation.current){setFreshSearchRequired(true);setMessage(error instanceof Error?error.message:'This flight search could not be restored. Search again.');}}).finally(()=>{if(active&&generation===operation.current)setSnapshotLoading(false);});},0);
     return()=>{active=false;controller.abort();clearTimeout(timer);snapshotRead.current=false;};
@@ -844,7 +873,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       return next;
     });
     const nextGroup=fareGroups[fareGroups.indexOf(group)+1];
-    if(nextGroup){setActiveGroup(nextGroup);setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');}
+    if(nextGroup){setActiveGroup(nextGroup);resetFlightGroupRefinements();}
   }
   async function openCheckout(order:Payment){
     if(order.provider==='PAYGLOCAL'){
@@ -1006,19 +1035,19 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       {results&&!hasFullSearchResults&&!quote&&!signInRequired&&<section id="saved-selection-recovery" tabIndex={-1} className="white-card saved-selection-recovery" aria-label="Saved selection"><h2>Your saved selection</h2><p>This tab has your selected option, not the complete previous search results. No price or availability is confirmed; nothing is reserved. For privacy, traveller and contact details must be entered again after a reload.</p>{product==='FLIGHT'?selectedJourney.map((flight,index)=><div key={index}><h3>{flight.sI[0]?.da.code} → {flight.sI.at(-1)?.aa.code}</h3><p>{flight.sI[0]?.fD.aI.name} · {travelDateTimeLabel(flight.sI[0]?.dt)}</p><p>Selected fare: {flight.totalPriceList.map(fare=>fareDecisionName(fare)).join(' / ')}</p></div>):savedHandoff?.hotel&&<div><h3>{savedHandoff.hotel.name}</h3><p>{savedHandoff.hotel.roomLabel}</p>{savedHandoff.hotel.mealBasis&&<p>{savedHandoff.hotel.mealBasis.replaceAll('_',' ')}</p>}</div>}{busy&&checkingSelection?<p role="status">Checking the current price and conditions… Nothing is reserved yet.</p>:resumeSelection&&!hasVerifiedCustomerIdentity(checkoutSession?.user)?<><p>Continue with your email to check the latest price and availability.</p><CheckoutVerification initialEmail={checkoutSession?.user.email} onVerified={continueVerifiedSelection}/></>:<>{savedHandoff&&<button type="button" className="primary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>void review(savedHandoff.selection)}>Check current price and conditions</button>}<p>To compare other options, search again using your retained criteria.</p></>}<button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={recoverSearch}>Search again</button></section>}
 
       {results&&hasFullSearchResults&&<section id="booking-results" className="live-results" hidden={checkoutStarted||(product==='HOTEL'&&roomView)} aria-label="Available options" aria-busy={busy}>
-        {product==='FLIGHT'&&<div className="results-heading"><div><h2 id="flight-results-title" tabIndex={-1}>{pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:'Available flights'}</h2><p className="muted">Compare fares, baggage and flexibility.</p></div><div className="flight-sort-options" role="group" aria-label="Sort flights">{flightSortOptions.map(option=><button type="button" key={option.value} aria-pressed={effectiveSort===option.value} disabled={busy||option.disabled} title={option.description} onClick={()=>setSortBy(option.value)}>{option.label}</button>)}</div><span className="results-count" role="status" aria-live="polite">{flightRows.length} of {(groups[shownGroup]??[]).length} options · {groupLabel(shownGroup||'')}</span></div>}
+        {product==='FLIGHT'&&<div className="results-heading"><div><h2 id="flight-results-title" tabIndex={-1}>{pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:'Available flights'}</h2><p className="muted">Compare fares, baggage and flexibility.</p></div><div className="flight-sort-options" role="group" aria-label="Sort flights">{flightSortOptions.map(option=><button type="button" key={option.value} aria-pressed={effectiveSort===option.value} disabled={busy||option.disabled} title={option.description} onClick={()=>changeFlightSort(option.value)}>{option.label}</button>)}</div><span className="results-count" role="status" aria-live="polite">{flightRows.length} of {(groups[shownGroup]??[]).length} options · {groupLabel(shownGroup||'')}</span></div>}
         {product==='FLIGHT'&&<>
-          {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} disabled={busy} onClick={()=>{setActiveGroup(group);setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
-          {pairedFares&&<FlightSelectionSummary groups={fareGroups.map(group=>{const fare=selectedFare(group);return {group,fare,flight:groups[group]?.find(item=>item.totalPriceList.some(option=>option.id===fare?.id))};})} activeGroup={shownGroup} busy={busy} checking={Boolean(busy&&checkingSelection)} allSelected={allSelected} onChange={group=>{setActiveGroup(group);setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');}} onReview={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}/>}
+          {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} disabled={busy} onClick={()=>{setActiveGroup(group);resetFlightGroupRefinements();}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
+          {pairedFares&&<FlightSelectionSummary groups={fareGroups.map(group=>{const fare=selectedFare(group);return {group,fare,flight:groups[group]?.find(item=>item.totalPriceList.some(option=>option.id===fare?.id))};})} activeGroup={shownGroup} busy={busy} checking={Boolean(busy&&checkingSelection)} allSelected={allSelected} onChange={group=>{setActiveGroup(group);resetFlightGroupRefinements();}} onReview={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}/>}
           {!submittedSearch.legs&&<nav className="nearby-flight-dates" aria-label="Nearby departure dates"><button type="button" className="secondary" disabled={busy||!previousFlightDate||recovery.blocked} onClick={()=>{if(previousFlightDate)router.push(previousFlightDate.url);}}>← Previous day{previousFlightDate&&<small>{travelDateLabel(previousFlightDate.date)}</small>}</button><div><strong>{travelDateLabel(submittedSearch.date)}</strong><small>{submittedSearch.returnDate?`Return stays ${travelDateLabel(submittedSearch.returnDate)}`:'Search nearby dates for live fares'}</small></div><button type="button" className="secondary" disabled={busy||!nextFlightDate||recovery.blocked} onClick={()=>{if(nextFlightDate)router.push(nextFlightDate.url);}}>Next day →{nextFlightDate&&<small>{travelDateLabel(nextFlightDate.date)}</small>}</button></nav>}
           <div className="flight-shopping">
-          {!checkoutStarted&&<FlightResultsControls sort={effectiveSort} onSort={setSortBy} hasDuration={hasKnownDuration} hasDeparture={hasKnownDeparture} group={shownGroup} airlines={airlines} airline={airlineFilter} onAirline={setAirlineFilter} stops={stopFilter} onStops={setStopFilter} departure={departureWindow} onDeparture={setDepartureWindow} budget={flightBudget} onBudget={setFlightBudget} count={flightRows.length} disabled={busy}/>}
-          <div className="flight-shopping-list">{(stopFilter!=='ALL'||airlineFilter!=='ALL'||departureWindow!=='ALL'||flightBudget)&&<div className="flight-applied-filters" aria-label="Active flight filters">{airlineFilter!=='ALL'&&<span>{airlineFilter}</span>}{stopFilter!=='ALL'&&<span>{stopFilter==='0'?'Non-stop':`${stopFilter} stop${stopFilter==='1'?'':'s'}`}</span>}{departureWindow!=='ALL'&&<span>{({EARLY:'Before 06:00',MORNING:'06:00–11:59',AFTERNOON:'12:00–17:59',EVENING:'18:00–23:59'} as Record<string,string>)[departureWindow]}</span>}{flightBudget&&<span>Up to ₹{flightBudget} · all travellers</span>}</div>}
-          <FlightResultShortcuts flights={flightRows} group={shownGroup} isCompatible={compatibleFare} sortBy={effectiveSort} nonstop={stopFilter==='0'} onSort={setSortBy} onToggleNonstop={()=>{setStopFilter(stopFilter==='0'?'ALL':'0');setSortBy('price');}} disabled={busy}/>
+          {!checkoutStarted&&<FlightResultsControls sort={effectiveSort} onSort={changeFlightSort} hasDuration={hasKnownDuration} hasDeparture={hasKnownDeparture} group={shownGroup} airlines={airlines} airline={airlineFilter} airlineQuery={airlineQuery} onAirline={changeFlightCarrier} stops={stopFilter} onStops={changeFlightStops} departure={departureWindow} onDeparture={setDepartureWindow} budget={flightBudget} onBudget={setFlightBudget} count={flightRows.length} disabled={busy}/>}
+          <div className="flight-shopping-list">{(stopFilter!=='ALL'||airlineFilter!=='ALL'||airlineQuery||departureWindow!=='ALL'||flightBudget)&&<div className="flight-applied-filters" aria-label="Active flight filters">{airlineFilter!=='ALL'&&<span>{airlineFilter}</span>}{airlineQuery&&<button className="secondary" type="button" disabled={busy} aria-label={`Remove airline preference ${airlineQuery}`} onClick={()=>changeFlightCarrier('ALL')}>{airlineQuery} · all segments ×</button>}{stopFilter!=='ALL'&&<button className="secondary" type="button" disabled={busy} aria-label="Remove stops preference" onClick={()=>changeFlightStops('ALL')}>{shownGroup==='COMBO'?'Stops unavailable for complete itineraries':stopFilter==='0'?'Non-stop':`${stopFilter} stop${stopFilter==='1'?'':'s'}`} ×</button>}{departureWindow!=='ALL'&&<span>{({EARLY:'Before 06:00',MORNING:'06:00–11:59',AFTERNOON:'12:00–17:59',EVENING:'18:00–23:59'} as Record<string,string>)[departureWindow]}</span>}{flightBudget&&<span>Up to ₹{flightBudget} · all travellers</span>}</div>}
+          <FlightResultShortcuts flights={flightRows} group={shownGroup} isCompatible={compatibleFare} sortBy={effectiveSort} nonstop={stopFilter==='0'} onSort={changeFlightSort} onToggleNonstop={()=>{changeFlightStops(stopFilter==='0'?'ALL':'0');changeFlightSort('price');}} disabled={busy}/>
           {flightRows.length>0&&shownGroup!=='COMBO'&&<FlightResultColumns/>}
           {visibleFlightRows.map((flight,index)=><BookingFlightCard key={`${shownGroup}-${flight.totalPriceList[0]?.id??index}`} flight={flight} group={shownGroup} selectionMode={pairedFares?'leg':'review'} busy={busy} checkingFareId={checkingSelection?.priceIds?.find(id=>flight.totalPriceList.some(fare=>fare.id===id))} selectedFareId={selectedFares[shownGroup]} onSelect={(fare,trigger)=>chooseFare(shownGroup,fare,trigger)} isCompatible={compatibleFare}/>)}
           {flightRows.length>flightShown&&<div className="flight-load-more"><p className="muted" role="status">Showing {Math.min(flightShown,flightRows.length)} of {flightRows.length} flights</p><button type="button" className="secondary" onClick={()=>setFlightLimit({key:flightListKey,count:flightShown+FLIGHT_PAGE})}>Show {Math.min(FLIGHT_PAGE,flightRows.length-flightShown)} more flights</button></div>}
-          {!flightRows.length&&<div className="empty-results"><h3>{fareGroups.length?'No flights match these filters':'No flights found for these airports'}</h3><p>{fareGroups.length?'Try another airline or stop filter to see more journeys.':'Try a different date, route or cabin.'}</p>{fareGroups.length>0&&<button className="secondary" type="button" onClick={()=>{setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');}}>Reset filters</button>}</div>}
+          {!flightRows.length&&<div className="empty-results"><h3>{fareGroups.length?'No flights match these filters':'No flights found for these airports'}</h3><p>{fareGroups.length?'Try another airline or stop filter to see more journeys.':'Try a different date, route or cabin.'}</p>{fareGroups.length>0&&<button className="secondary" type="button" onClick={()=>{changeFlightStops('ALL');changeFlightCarrier('ALL');setDepartureWindow('ALL');setFlightBudget('');}}>Reset filters</button>}</div>}
           </div></div>
         </>}
         {product==='HOTEL'&&<HotelResults active={!checkoutStarted&&!roomView} key={results.searchId} hotels={results.results.hotels??[]} context={hotelStayContext} checkingHotelId={checkingHotelId} metadataStatus={results.propertyContentPending?'loading':results.propertyContentUnavailable||results.results.hotels?.some(hotel=>hotel.propertyContentStatus==='unavailable')?'unavailable':'ready'} busy={busy||loadingMoreHotels} searchId={results.searchId} hasMore={Boolean(submittedSearch.regionId&&hotelNextCursor)} loadingMore={loadingMoreHotels} loadMoreError={hotelMoreError} onLoadMore={()=>void loadMoreHotels()} onChoose={chooseHotel}/>}

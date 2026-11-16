@@ -63,3 +63,29 @@ test('preserves the visitor budget while blocking invented amounts or real quote
   assert.equal(finish('  '), 'Tell me the journey or task you would like help with.');
   assert.equal(finish('a'.repeat(5000)).length, 4000);
 });
+
+test('completed navigation claims become truthful action instructions without pretending to open a page', () => {
+  const actions = [{label: 'Open My trips', href: '/my-trips'}];
+  for (const value of [
+    'I have opened the My Trips section for you.', 'I\'ve just opened My Trips.',
+    'We redirected you to your account.', 'I have taken you to My Trips.',
+    'You have been redirected to the booking page.', 'The account page is now open.',
+    'Opened My Trips for you.',
+  ]) {
+    assert.equal(finalizeMaxAiNarrative(value, [], actions, 'Show my bookings'), 'Choose “Open My trips” below to continue.', value);
+  }
+  assert.match(finish('I have opened My Trips.'), /provide the right navigation option/);
+  assert.doesNotMatch(finish('I have opened My Trips.'), /below|already open/i);
+  assert.equal(finalizeMaxAiNarrative('I opened your account.', [], [...actions, {label: 'Open account', href: '/account'}], 'Help'), 'Choose one of the options below to continue.');
+});
+
+test('navigation safeguard preserves real guidance, payment boundaries and requests', () => {
+  const actions = [{label: 'Open My trips', href: '/my-trips'}];
+  const guidance = 'Payment received does not mean booking confirmed. Open a trip to check the separate payment, booking and refund updates.';
+  assert.equal(finalizeMaxAiNarrative(guidance, [], actions, 'My payment was captured'), guidance);
+  assert.equal(finalizeMaxAiNarrative(guidance + ' I have opened My Trips.', [], actions, 'My payment was captured'), guidance + '\n\nChoose “Open My trips” below to continue.');
+  for (const value of ['Please open My Trips.', 'Have you opened My Trips?', "I haven't opened a page.", 'If the page is open, check the booking status.', 'Choose Open My trips below to continue.']) {
+    assert.equal(finalizeMaxAiNarrative(value, [], actions, 'Help'), value);
+  }
+  assert.match(finalizeMaxAiNarrative('I opened your trips.', [card('trip')], actions, 'Show bookings'), /Your booking records are shown below/);
+});

@@ -11,7 +11,7 @@ export function nearbyFlightSearch(criteria:Record<string,string>, offset:number
   const date=parsed.toISOString().slice(0,10);
   if(date<today||(criteria.returnDate&&date>criteria.returnDate))return null;
   const search={...criteria};
-  for(const key of ['browseSearch','flightSearch','stay','gallery','stayStep','selectionKey','resumeSelection','resumeReview'])delete search[key];
+  for(const key of ['browseSearch','flightSearch','flightStops','flightSort','flightAirlineQuery','stay','gallery','stayStep','selectionKey','resumeSelection','resumeReview'])delete search[key];
   const url=bookingSearchUrl({...search,date,autoSearch:'1'});
   return url?{date,url}:null;
 }

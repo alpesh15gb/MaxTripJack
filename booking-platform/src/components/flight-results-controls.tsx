@@ -19,6 +19,7 @@ type Props = {
   group: string;
   airlines: string[];
   airline: string;
+  airlineQuery?: string;
   onAirline: (value: string) => void;
   stops: string;
   onStops: (value: string) => void;
@@ -37,7 +38,7 @@ export default function FlightResultsControls(props: Props) {
   const trigger = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
-  const activeCount = Number(props.airline !== 'ALL') + Number(props.stops !== 'ALL') +
+  const activeCount = Number(props.airline !== 'ALL') + Number(Boolean(props.airlineQuery)) + Number(props.stops !== 'ALL') +
     Number(props.departure !== 'ALL') + Number(Boolean(props.budget));
 
   function close() {
@@ -77,6 +78,7 @@ export default function FlightResultsControls(props: Props) {
 
   const fields = <div id={`${id}-fields`} className="flight-extra-filters is-expanded">
     <div className="flight-filter-intro"><strong>Refine your flights</strong><p>Filter loaded options. Times are local to the departure airport.</p></div>
+    {props.airlineQuery&&<p className="flight-filter-note">Matching carrier: <strong>{props.airlineQuery}</strong> on every segment. Choose an airline below to replace this preference.</p>}
     <label>Airline (any segment)<select aria-label="Airline (any segment)" value={props.airline} onChange={event => props.onAirline(event.target.value)} disabled={props.disabled}>
       <option value="ALL">All airlines</option>{props.airlines.map(name => <option key={name} value={name}>{name}</option>)}
     </select></label>

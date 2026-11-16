@@ -1,7 +1,60 @@
-import {test,expect,departure,searchId,flightResults,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
+import {test,expect,departure,searchId,flight,flightResults,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
 
 const criteria=()=>({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'2',children:'0',infants:'0',cabin:'ECONOMY'});
 const snapshot=()=>({...flightResults(),criteria:criteria(),expiresAt:new Date(Date.now()+600_000).toISOString()});
+
+test('AI non-stop and IndiGo preferences filter the owned results and can be removed without another search',async({page,provider},info)=>{
+  const direct=flight('ONWARD','indigo-direct'),other=flight('ONWARD','other-direct'),connecting=flight('ONWARD','indigo-connecting');
+  other.sI[0].fD.aI={name:'Other Air',code:'ZZ'};other.sI[0].dt=`${departure}T08:00:00`;other.totalPriceList[0].customerEstimateMinor=500000;
+  connecting.sI=[{...connecting.sI[0],aa:{code:'HYD',city:'Hyderabad'}},{...connecting.sI[0],da:{code:'HYD',city:'Hyderabad'},dt:`${departure}T12:00:00`,at:`${departure}T14:00:00`}];connecting.totalPriceList[0].customerEstimateMinor=400000;
+  provider.overrides['POST /api/travel/flight-search-snapshot']={body:{...snapshot(),criteria:{...criteria(),adults:'1'},results:{searchResult:{tripInfos:{ONWARD:[connecting,other,direct]}}}}};
+  await page.goto(`/book?product=FLIGHT&flightSearch=${searchId}&flightStops=0&flightAirlineQuery=IndiGo&flightSort=departure`);
+  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
+  await expect(page.locator('.results-count')).toContainText('1 of 3 options');
+  await expect(page.locator('#booking-search>summary')).toContainText('1 traveller');
+  await expect(page.locator('#booking-search>summary')).not.toContainText('1 travellers');
+  await expect(page.locator('.flight-sort-select select')).toHaveValue('departure');
+  await expectNoHorizontalOverflow(page);await capture(page,info,'max-ai-flight-preferences-applied');
+  await page.reload();
+  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
+  await expect(page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Remove stops preference',exact:true})).toBeVisible();
+  await expect(page.locator('.flight-sort-select select')).toHaveValue('departure');
+  await page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true}).click();
+  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(2);
+  await expect(page).not.toHaveURL(/flightAirlineQuery=/);
+  await page.getByRole('button',{name:'Remove stops preference',exact:true}).click();
+  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(3);
+  await expect(page).not.toHaveURL(/flightStops=/);
+  await page.reload();
+  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(3);
+  await expect(page.locator('.flight-applied-filters')).toHaveCount(0);
+  await expect(page).not.toHaveURL(/flightStops=|flightAirlineQuery=/);
+  await expect(page.locator('.flight-sort-select select')).toHaveValue('departure');
+  expect(provider.requests('/api/travel/flight-search-snapshot')).toHaveLength(3);
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);
+  expect(provider.requests('/api/travel/review')).toHaveLength(0);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('long AI carrier preference wraps within the results and keeps its remove button usable',async({page,provider},info)=>{
+  const carrier=`Synthetic${'International'.repeat(5)}`,direct=flight();
+  direct.sI[0].fD.aI={name:carrier,code:'ZZ'};
+  provider.overrides['POST /api/travel/flight-search-snapshot']={body:{...snapshot(),results:{searchResult:{tripInfos:{ONWARD:[direct]}}}}};
+  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',flightSearch:searchId,flightAirlineQuery:carrier,flightStops:'0'}));
+  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
+  const remove=page.getByRole('button',{name:`Remove airline preference ${carrier}`,exact:true});
+  await expect(remove).toBeVisible();
+  const bounds=await remove.boundingBox(),container=await page.locator('.flight-applied-filters').boundingBox();
+  expect(bounds).not.toBeNull();expect(container).not.toBeNull();
+  expect(bounds!.width).toBeLessThanOrEqual(container!.width+1);expect(bounds!.height).toBeGreaterThanOrEqual(44);
+  await expectNoHorizontalOverflow(page);await capture(page,info,'max-ai-flight-long-carrier-preference');
+  await remove.click();await expect(remove).toHaveCount(0);
+  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);
+  expect(provider.requests('/api/travel/review')).toHaveLength(0);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
 
 test('an AI flight result restores the same owned search and exact criteria before normal fare review',async({page,provider},info)=>{
   provider.overrides['POST /api/travel/flight-search-snapshot']={body:snapshot()};

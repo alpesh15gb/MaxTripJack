@@ -26,7 +26,7 @@ const pages = new Set([
   '/passport-renewal-guide', '/travel-insurance-guide', '/holiday-packages-guide', '/cruise-holidays-guide',
   '/operations', '/operations/settings', '/operations/promos', '/operations/reports', '/operations/visibility',
 ]);
-const bookingKeys = new Set(['product','from','to','date','end','returnDate','adults','children','infants','cabin','city','nationality','hotelIds','regionId','rooms','legs','autoSearch','browseSearch','stay','flightSearch','destinationCursor']);
+const bookingKeys = new Set(['product','from','to','date','end','returnDate','adults','children','infants','cabin','city','nationality','hotelIds','regionId','rooms','legs','autoSearch','browseSearch','stay','flightSearch','flightStops','flightSort','flightAirlineQuery','destinationCursor']);
 /** Defence in depth for rendering trusted cards. Never turn free-form assistant text into links. */
 export function isMaxAiActionHref(href: unknown): href is string {
   if (typeof href !== 'string' || href.length > 2200 || !href.startsWith('/') || href.startsWith('//') || /[\\\u0000-\u0020\u007f#]/.test(href)) return false;
@@ -41,6 +41,13 @@ export function isMaxAiActionHref(href: unknown): href is string {
       for (const [key, value] of url.searchParams) {
         if (!bookingKeys.has(key) || seen.has(key) || value.length > 2000 || /[\u0000-\u001f\u007f]/.test(value)) return false;
         seen.add(key);
+      }
+      if (['flightStops','flightSort','flightAirlineQuery'].some(key => seen.has(key))) {
+        if (url.searchParams.get('product') !== 'FLIGHT' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url.searchParams.get('flightSearch') ?? '')) return false;
+        if (seen.has('flightStops') && url.searchParams.get('flightStops') !== '0') return false;
+        if (seen.has('flightSort') && !['price','duration','departure'].includes(url.searchParams.get('flightSort') ?? '')) return false;
+        const carrier = url.searchParams.get('flightAirlineQuery');
+        if (carrier !== null && (carrier.trim().length < 2 || carrier.length > 80)) return false;
       }
       return true;
     }

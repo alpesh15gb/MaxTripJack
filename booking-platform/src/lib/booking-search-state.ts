@@ -14,7 +14,7 @@ export function searchLegs(value?:string):SearchLeg[]|undefined {try{return legs
 /** Only bounded, public search criteria survive refresh/authentication. Never copy form data wholesale. */
 export function bookingSearchPrefill(query:Record<string,string|string[]|undefined>,today=indiaToday()):Record<string,string>{
   const result:Record<string,string>={};
-  const limits:Record<string,number>={product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,regionId:30,destinationCursor:13,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36,browseSearch:36,flightSearch:36,stay:30,gallery:1,stayStep:8};
+  const limits:Record<string,number>={product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,regionId:30,destinationCursor:13,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36,browseSearch:36,flightSearch:36,flightStops:1,flightSort:9,flightAirlineQuery:80,stay:30,gallery:1,stayStep:8};
   let invalid=false;
   for(const [key,max] of Object.entries(limits)){
     const value=query[key];if(value===undefined)continue;
@@ -28,6 +28,10 @@ export function bookingSearchPrefill(query:Record<string,string|string[]|undefin
   if(result.selectionKey&&!z.string().uuid().safeParse(result.selectionKey).success)invalid=true;
   if(result.browseSearch&&!z.string().uuid().safeParse(result.browseSearch).success)invalid=true;
   if(result.flightSearch&&(!z.string().uuid().safeParse(result.flightSearch).success||result.product==='HOTEL'||result.browseSearch||result.stay))invalid=true;
+  if(['flightStops','flightSort','flightAirlineQuery'].some(key=>result[key]!==undefined)&&(!result.flightSearch||result.product!=='FLIGHT'))invalid=true;
+  if(result.flightStops!==undefined&&result.flightStops!=='0')invalid=true;
+  if(result.flightSort!==undefined&&!['price','duration','departure'].includes(result.flightSort))invalid=true;
+  if(result.flightAirlineQuery!==undefined){result.flightAirlineQuery=result.flightAirlineQuery.trim();if(result.flightAirlineQuery.length<2)invalid=true;}
   if(result.stay&&!/^\d{1,30}$/.test(result.stay))invalid=true;
   if(result.gallery&&result.gallery!=='1')invalid=true;
   if(result.stayStep&&result.stayStep!=='review')invalid=true;

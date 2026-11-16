@@ -1,8 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {groupIdenticalFlights,arrivalDayLabel,matchesFlightRefinements} from '../src/lib/flight-results';
+import {groupIdenticalFlights,arrivalDayLabel,matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops} from '../src/lib/flight-results';
 import type {Flight} from '../src/lib/booking-presentation';
 const flight:Flight={sI:[{dt:'2026-11-04T23:25:00',at:'2026-11-05T01:50:00',fD:{aI:{name:'Example'},fN:'1'},da:{code:'DEL'},aa:{code:'NMI'}}],totalPriceList:[{id:'fare',fareIdentifier:'STANDARD',customerEstimateMinor:1200000,fD:{}}]};
+test('AI carrier preference matches all outbound, return and COMBO segments; COMBO has no invented stop count',()=>{
+ const segment={...flight.sI[0],fD:{...flight.sI[0].fD,aI:{name:'IndiGo',code:'6E'}}};
+ const direct={...flight,sI:[segment]},combined={...flight,sI:[segment,{...segment,isRs:true}]};
+ assert.equal(matchesFlightAirlineQuery(direct,'indigo'),true);assert.equal(matchesFlightAirlineQuery(combined,'6E'),true);
+ assert.equal(matchesFlightAirlineQuery({...combined,sI:[segment,{...segment,fD:{...segment.fD,aI:{name:'Other Air',code:'ZZ'}}}]},'IndiGo'),false);
+ assert.equal(matchesFlightStops(direct,'ONWARD','0'),true);assert.equal(matchesFlightStops(direct,'RETURN','0'),true);
+ assert.equal(matchesFlightStops(combined,'RETURN','0'),false);assert.equal(matchesFlightStops(combined,'COMBO','0'),true);
+ assert.equal(matchesFlightAirlineQuery({...flight,sI:[]},'6E'),false);
+});
 test('arrival day badge uses valid local calendar dates, not inferred elapsed duration',()=>{
  assert.equal(arrivalDayLabel(flight.sI[0].dt,flight.sI[0].at),'+1 calendar day');
  assert.equal(arrivalDayLabel('2026-11-05T01:00:00+14:00','2026-11-04T23:00:00-10:00'),'-1 calendar day');
