@@ -202,7 +202,7 @@ test(`hotel real supplier metadata and photos render with a truthful broken-phot
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('loading','lazy');
  await expect(page.getByRole('img',{name:'Fixture stay · Supplier room view'})).toHaveAttribute('referrerpolicy','no-referrer');
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
- await expect(page.locator('.room-option-card').getByRole('heading',{name:'Deluxe room',exact:true})).toBeVisible();
+ await expect(page.locator('.stay-room-group-heading').getByRole('heading',{name:'Deluxe room',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'View all 1 photo',exact:true}).click();
  await expect(page.getByRole('dialog')).toBeVisible();
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-real-metadata-gallery');

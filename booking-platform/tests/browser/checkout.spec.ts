@@ -212,6 +212,8 @@ test('unknown local-time duration is not guessed and COMBO journeys are not conn
   const filters=page.getByRole('button',{name:/^Filters/});
   if(await filters.isVisible())await filters.click();
   await expect(page.getByRole('combobox', { name: 'Stops', exact: true })).toBeDisabled();
+  const comboFilters=page.getByRole('dialog',{name:'Filter flights',exact:true});
+  if(await comboFilters.isVisible())await comboFilters.getByRole('button',{name:'Close filters',exact:true}).click();
   await expect(page.locator('.combo-itinerary')).toContainText('BOM → DEL');
   await expect(page.locator('.combo-itinerary')).toContainText('DEL → BOM');
   await expect(page.locator('.flight-route-track')).toHaveCount(0);
@@ -480,12 +482,14 @@ test('mobile filters expand accessibly without replacing the visible sort or tri
  if(await filters.isVisible()){
   await expect(filters).toHaveAttribute('aria-expanded','false');
   await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveCount(0);
-  await filters.focus();await filters.press('Enter');await expect(filters).toHaveAttribute('aria-expanded','true');
+  await filters.focus();await filters.press('Enter');await expect(page.locator('.mobile-filter-toggle')).toHaveAttribute('aria-expanded','true');await expect(page.getByRole('dialog',{name:'Filter flights',exact:true})).toBeVisible();
   await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');
   await expect(page.getByRole('combobox',{name:'Stops',exact:true})).toBeVisible();
-  await filters.click();await expect(filters).toHaveAttribute('aria-expanded','false');
+  const dialog=page.getByRole('dialog',{name:'Filter flights',exact:true});
+  await dialog.getByRole('button',{name:'Close filters',exact:true}).click();await expect(filters).toHaveAttribute('aria-expanded','false');await expect(filters).toBeFocused();
   await filters.focus();await filters.press('Enter');
   await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveValue('IndiGo');
+  await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(filters).toBeFocused();
   await expectFlightToolbarValuesFit(page);
  }
  if (page.viewportSize()!.width <= 1100) await expect(page.getByRole('combobox',{name:'Sort by',exact:true})).toBeVisible();
@@ -610,7 +614,7 @@ test('hotel sign-in gate dismisses on room and results returns, then only the ne
  await page.getByRole('article',{name:'First synthetic stay',exact:true}).getByRole('button',{name:'Choose room',exact:true}).click();
  await page.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Back to room options',exact:true}).click();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);
- await expect(page.locator('.room-option-card')).toContainText('First twin room');await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toBeVisible();
+ await expect(page.locator('.stay-room-group-heading').getByRole('heading',{name:'First twin room',exact:true})).toBeVisible();await expect(page.getByRole('article',{name:'Rate 1: First twin room',exact:true})).toHaveAttribute('data-room-option-id','first-room-id');await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
  await page.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('#booking-signin-title')).toBeVisible();
  await page.getByRole('button',{name:'Back to room options',exact:true}).click();

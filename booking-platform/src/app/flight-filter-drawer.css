@@ -1,0 +1,32 @@
+/* Results-only mobile filter surface; native dialog provides focus trapping. */
+body .booking-workflow .flight-filter-dialog:not([open]) { display: none; }
+body .booking-workflow .flight-filter-dialog {
+  box-sizing: border-box;
+  margin: auto 0 0 auto;
+  width: min(100%, 440px);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 0;
+  border: 0;
+  border-radius: 20px 0 0 20px;
+  background: #fff;
+  color: #102b31;
+  box-shadow: -12px 0 48px #102b3130;
+}
+body .booking-workflow .flight-filter-dialog::backdrop { background: #102b3180; }
+body .booking-workflow .flight-filter-sheet { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+body .booking-workflow .flight-filter-sheet > header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 18px; border-bottom: 1px solid #dce7e1; }
+body .booking-workflow .flight-filter-sheet h2 { margin: 0; font-size: 21px; letter-spacing: -.03em; }
+body .booking-workflow .flight-filter-sheet header p { margin: 5px 0 0; font-size: 13px; color: #536963; }
+body .booking-workflow .flight-filter-sheet header button { flex-shrink: 0; min-height: 44px; padding: 8px 10px; font-size: 13px; }
+body .booking-workflow .flight-filter-sheet-body { padding: 18px; overflow-y: auto; overscroll-behavior: contain; flex: 1; }
+body .booking-workflow .flight-filter-sheet-body .flight-extra-filters { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; border: 0; padding: 0; }
+body .booking-workflow .flight-filter-sheet-body .flight-filter-intro { display: none; }
+body .booking-workflow .flight-filter-sheet-body label { display: grid; gap: 8px; font-size: 14px; font-weight: 600; }
+body .booking-workflow .flight-filter-sheet-body :is(select,input) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 46px; padding: 10px; border: 1px solid #cbdcd3; border-radius: 9px; background: #f8faf8; color: #102b31; font-size: 16px; }
+body .booking-workflow .flight-filter-sheet-body .flight-filter-note { font-size: 13px; line-height: 1.5; color: #536963; margin: 0; }
+body .booking-workflow .flight-filter-sheet > footer { padding: 14px 18px max(14px,env(safe-area-inset-bottom)); border-top: 1px solid #dce7e1; background: #fff; }
+body .booking-workflow .flight-filter-sheet footer button { width: 100%; min-height: 48px; }
+body .booking-workflow .flight-filter-dialog :is(button,input,select):focus-visible { outline: 3px solid #087f8c; outline-offset: 2px; }
+@media(max-width: 440px) { body .booking-workflow .flight-filter-dialog { border-radius: 0; } }

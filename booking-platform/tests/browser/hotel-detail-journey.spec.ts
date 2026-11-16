@@ -25,8 +25,11 @@ async function filters(page:Page,open:boolean){
  // Results remain mounted while detail is visible. Wait for popstate to reveal
  // them before deciding whether this viewport has a visible filter toggle.
  await expect(page.locator('#booking-results')).toBeVisible();
- const toggle=page.getByRole('button',{name:/^Filters/});
- if(await page.evaluate(()=>matchMedia('(max-width: 900px)').matches)){await expect(toggle).toBeVisible();if((await toggle.getAttribute('aria-expanded')==='true')!==open)await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded',String(open));}
+ if(await page.evaluate(()=>matchMedia('(max-width: 900px)').matches)){
+  const dialog=page.getByRole('dialog',{name:'Filter stays',exact:true});
+  if(open){if(!await dialog.isVisible())await page.getByRole('button',{name:/^Filters/}).click();await expect(dialog).toBeVisible();}
+  else {if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();await expect(dialog).toBeHidden();await expect(page.getByRole('button',{name:/^Filters/})).toHaveAttribute('aria-expanded','false');}
+ }
 }
 const card=(page:Page)=>page.getByRole('article',{name,exact:true});
 const title=(page:Page)=>card(page).locator('h3').getByRole('link');
@@ -83,14 +86,14 @@ test('Back, Forward and refresh retain filtered search, submitted dates and occu
   new MutationObserver(record).observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','aria-expanded']});window.addEventListener('popstate',record);record();
  });
  await page.goto(searchUrl());await expect(card(page)).toBeVisible();await filters(page,true);
- await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Palm');await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');await filters(page,false);
+ await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Palm');await filters(page,false);await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');
  await title(page).click();await expect(page.locator('#hotel-detail-title')).toBeVisible();await page.goBack();
  await expect(title(page)).toBeFocused();await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');
  await page.goForward();await expect(page.locator('#hotel-detail-title')).toBeVisible();await page.reload();await expect(page.locator('#hotel-detail-title')).toHaveText(name);
  expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(1);expect(provider.requests('/api/travel/search')).toHaveLength(1);
  await expect(page.locator('#booking-rooms')).toContainText('2 guests');await expect(page.locator('#booking-rooms')).toContainText(travelDateLabel(departure));
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
- await filters(page,true);await expect(page.getByRole('searchbox',{name:'Property name',exact:true})).toHaveValue('Palm');await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');
+ await filters(page,true);await expect(page.getByRole('searchbox',{name:'Property name',exact:true})).toHaveValue('Palm');await filters(page,false);await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');
  await capture(page,testInfo,'hotel-search-restored-after-refresh');expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
@@ -109,7 +112,9 @@ test('multi-room bundled rate preserves exact option and total through sign-in r
  provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  const params={...criteria(),rooms:JSON.stringify([{adults:2,childAge:[]},{adults:1,childAge:[7]}]),autoSearch:'1'};
  await page.goto('/book?'+new URLSearchParams(params));await title(page).click();
- const rate=page.locator('.room-option-card');await expect(rate).toContainText('Twin room + Family room');await expect(rate).toContainText('₹12,000');await expect(rate).not.toContainText('₹24,000');
+ const combination=page.getByRole('region',{name:'Room combination 1: Twin room + Family room',exact:true});
+ await expect(combination.getByRole('heading',{name:'Twin room + Family room',exact:true})).toBeVisible();
+ const rate=combination.getByRole('article',{name:'Rate 1: Twin room + Family room',exact:true});await expect(rate).toHaveAttribute('data-room-option-id','exact-two-room-bundle');await expect(rate).toContainText('₹12,000');await expect(rate).not.toContainText('₹24,000');
  await expect(page.locator('#booking-rooms')).toContainText('2 rooms');await expect(page.locator('#booking-rooms')).toContainText('4 guests');
  await rate.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('.checkout-verification')).toBeVisible();
  await expect(page.locator('.signin-selection-context')).toContainText('Twin room + Family room');
@@ -234,7 +239,7 @@ test('pointer-only reload followed by Back to stays uses exactly one new snapsho
  expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(1);
  await page.reload();await expect(page.locator('#hotel-detail-title')).toHaveText(name);expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(2);
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(page.locator('#booking-results')).toBeVisible();await filters(page,true);
- await expect(page.getByRole('searchbox',{name:'Property name',exact:true})).toBeVisible();await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Palm');await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
+ await expect(page.getByRole('searchbox',{name:'Property name',exact:true})).toBeVisible();await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Palm');await filters(page,false);await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
  await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(departure));await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(returning));
  expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(2);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });

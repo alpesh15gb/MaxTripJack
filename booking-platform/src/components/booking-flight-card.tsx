@@ -69,8 +69,19 @@ export default function BookingFlightCard({
   const offers = orderFareOffers(flight.totalPriceList, 'INR');
   const eligible = offers.filter(isCompatible);
   const noCompatibleFare = offers.length > 0 && eligible.length === 0;
+  const disclosureLocked = busy && !readOnly;
   const prices = eligible.map(fare => comparableFareEstimate(fare, 'INR')).filter(price => price !== null);
   const estimate = prices.length ? Math.min(...prices) : null;
+  const headlineAdult = !readOnly && group !== 'COMBO' && estimate !== null
+    ? eligible.find(fare => comparableFareEstimate(fare, 'INR') === estimate)?.fD.ADULT
+    : undefined;
+  const cabinBaggage = baggageDecisionLabel(headlineAdult?.bI?.cB);
+  const checkedBaggage = baggageDecisionLabel(headlineAdult?.bI?.iB);
+  const headlineFacts = [
+    cabinBaggage !== 'Not supplied' && !cabinBaggage.endsWith('(unit not supplied)') ? `Cabin ${cabinBaggage}` : null,
+    checkedBaggage !== 'Not supplied' && !checkedBaggage.endsWith('(unit not supplied)') ? `Checked ${checkedBaggage}` : null,
+    headlineAdult?.rT === 0 || headlineAdult?.rT === 1 || headlineAdult?.rT === 2 ? refundLabel(headlineAdult.rT) : null,
+  ].filter((fact): fact is string => fact !== null);
   const comparableCurrency = haveComparableCurrency(offers, 'INR');
   const showFares = expanded || selected;
   const baseline = !readOnly && showFares && eligible.length > 1 ? lowestComparableFare(offers, isCompatible) : undefined;
@@ -90,7 +101,7 @@ export default function BookingFlightCard({
   const actionLabel = selectionMode === 'leg' ? `Choose this ${groupName.toLowerCase()} fare` : 'Check fare & continue';
   const visibleAction = expanded ? 'Hide fares' : 'View fares';
 
-  return <article className={`white-card booking-record live-flight-card${readOnly ? ' is-readonly' : ''}${expanded && !readOnly ? ' is-choosing-fare' : ''}${selected ? ' is-selected' : ''}`}>
+  return <article className={`white-card booking-record live-flight-card${readOnly ? ' is-readonly' : ''}${expanded && !readOnly ? ' is-choosing-fare' : ''}${selected ? ' is-selected' : ''}${noCompatibleFare ? ' has-no-compatible-fare' : ''}`}>
     <div className="flight-result-top">
       <div className="airline-identity">
         <AirlineLogo code={first?.fD.aI.code} name={first?.fD.aI.name} />
@@ -131,17 +142,23 @@ export default function BookingFlightCard({
           {dayChange && <span className="flight-day-change">{dayChange}</span>}
         </div>
       </div>
-      <details className="flight-segment-details">
-        <summary>Flight details</summary>
-        {flight.sI.map((segment, index) => <div className="flight-segment" key={index}>
-          <strong>{segment.fD.aI.name} · {[segment.fD.aI.code, segment.fD.fN].filter(Boolean).join(' ')}</strong>
-          <p>{airportDecisionLabel(segment.da)} → {airportDecisionLabel(segment.aa)}</p>
-          <p>{travelDateTimeLabel(segment.dt)} → {travelDateTimeLabel(segment.at)}</p>
-          <p>Segment duration: {segmentDurationLabel(segment.duration)}</p>
-          {index < flight.sI.length - 1 && <p className="muted">{connectionLabel(segment, flight.sI[index + 1], group)}</p>}
-        </div>)}
-        <p className="muted">All times are local to each airport.</p>
-      </details>
+      <div className="flight-result-details">
+        <details className="flight-segment-details">
+          <summary>Flight details</summary>
+          {flight.sI.map((segment, index) => <div className="flight-segment" key={index}>
+            <strong>{segment.fD.aI.name} · {[segment.fD.aI.code, segment.fD.fN].filter(Boolean).join(' ')}</strong>
+            <p>{airportDecisionLabel(segment.da)} → {airportDecisionLabel(segment.aa)}</p>
+            <p>{travelDateTimeLabel(segment.dt)} → {travelDateTimeLabel(segment.at)}</p>
+            <p>Segment duration: {segmentDurationLabel(segment.duration)}</p>
+            {index < flight.sI.length - 1 && <p className="muted">{connectionLabel(segment, flight.sI[index + 1], group)}</p>}
+          </div>)}
+          <p className="muted">All times are local to each airport.</p>
+        </details>
+        {headlineFacts.length > 0 && <div className="flight-headline-facts">
+          <span>Adult fare shown</span>
+          <ul aria-label="Known details for the displayed adult fare">{headlineFacts.map(fact => <li key={fact}>{fact}</li>)}</ul>
+        </div>}
+      </div>
     </>}
     <details
       ref={farePanel}
@@ -159,9 +176,16 @@ export default function BookingFlightCard({
     >
       <summary
         ref={fareTrigger}
+        aria-disabled={disclosureLocked || undefined}
         aria-label={readOnly ? undefined : `${visibleAction} for ${airlineName}, ${travelTimeLabel(first?.dt)}`}
         aria-describedby={readOnly ? undefined : priceId}
-        onClick={() => { focusOpenedFares.current = !farePanel.current?.open && !readOnly; }}
+        onClick={event => {
+          if (disclosureLocked) {
+            event.preventDefault();
+            return;
+          }
+          focusOpenedFares.current = !farePanel.current?.open && !readOnly;
+        }}
       >
         <span>{readOnly ? 'Selected fare' : <>
           <span className="choose-fare-label">{visibleAction} <span aria-hidden="true">{expanded ? '↑' : '→'}</span></span>
@@ -244,10 +268,12 @@ export default function BookingFlightCard({
                 <dd>{value}{differs && <small>Differs from lowest shown fare</small>}</dd>
               </div>)}
             </dl>
-            {passengerBaggage}
-            {eligibility && <p className={compatible ? 'muted' : 'fare-ineligible'}>{eligibility}</p>}
-            {checking && <p ref={checkingStatus} className="booking-selection-status" role="status">Checking current fare… Price and availability are not confirmed yet.</p>}
+            {(passengerBaggage.length > 0 || eligibility) && <div className="fare-option-notes">
+              {passengerBaggage}
+              {eligibility && <p className={compatible ? 'muted' : 'fare-ineligible'}>{eligibility}</p>}
+            </div>}
             <div className="fare-option-action">
+              {checking && <p ref={checkingStatus} className="booking-selection-status" role="status">Checking current fare… Price and availability are not confirmed yet.</p>}
               <small>{price !== null ? 'All travellers · estimated total' : 'Total for all travellers'}</small>
               <button
                 type="button"

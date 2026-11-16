@@ -1,5 +1,12 @@
 import {travelDateLabel} from '../../src/lib/travel-date';
 import {test,expect,capture,departure,returning,searchId,expectNoHorizontalOverflow} from './fixtures';
+import type {Page} from '@playwright/test';
+async function filters(page:Page,open:boolean){
+ const dialog=page.getByRole('dialog',{name:'Filter stays',exact:true});
+ if(!open){if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();return;}
+ const toggle=page.getByRole('button',{name:/^Filters/});
+ if(await toggle.isVisible()){await toggle.focus();await page.keyboard.press('Enter');await expect(dialog).toBeVisible();}
+}
 const photo='https://i.travelapi.com/lodging/123/property.jpg';
 const hotels=[
  {tjHotelId:'10001',name:'Palm House',customerEstimateMinor:800000,property:{address:'Example Road, Goa',starRating:4,propertyType:'Hotel',amenities:['Parking','parking','Wi-Fi','Restaurant'],photos:[{url:photo,isHero:true}]}},
@@ -62,7 +69,7 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002,10003',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
  const cards=page.locator('.hotel-shopping-card');
  await expect(cards).toHaveCount(3);await expect(cards.first()).toHaveAttribute('aria-label','Bay Stay');
- await expect(page.getByRole('status').filter({hasText:'3 of 3 stays in this search'})).toBeVisible();
+ await expect(page.getByRole('status').filter({hasText:'3 of 3 loaded stays'})).toBeVisible();
  await expect(cards.first()).toContainText('Estimated stay total');await expect(cards.first()).toContainText('1 room · 2 guests');
  await expect(cards.first()).toContainText('From ₹4,000');await expect(cards.first()).not.toContainText('per night');
  await expect(page.getByRole('article',{name:'Unknown Stay',exact:true})).toContainText('Price available with rooms');
@@ -87,21 +94,20 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await page.locator('#booking-search>summary').click();await expect(page.getByLabel('Destination',{exact:true})).toBeFocused();
  await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
  await expect(cards).toHaveCount(3);await page.locator('#booking-search>summary').click();
- const toggle=page.getByRole('button',{name:/^Filters/});
- if(await toggle.isVisible()){await toggle.focus();await page.keyboard.press('Enter');await expect(toggle).toHaveAttribute('aria-expanded','true');}
+ await filters(page,true);
  await page.getByLabel('Maximum stay total (₹)',{exact:true}).fill('5000');await expect(cards).toHaveCount(1);await expect(cards.first()).toHaveAttribute('aria-label','Bay Stay');
- await page.getByRole('button',{name:'Remove budget filter'}).click();await expect(cards).toHaveCount(3);
+ await filters(page,false);await page.getByRole('button',{name:'Remove budget filter'}).click();await expect(cards).toHaveCount(3);await filters(page,true);
  await page.getByLabel('Property category',{exact:true}).selectOption('4');await expect(cards).toHaveCount(1);
- await page.getByLabel('Property name',{exact:true}).fill('not present');await expect(page.getByRole('heading',{name:'No stays match your filters'})).toBeVisible();
+ await page.getByLabel('Property name',{exact:true}).fill('not present');await filters(page,false);await expect(page.getByRole('heading',{name:'No stays match your filters'})).toBeVisible();await filters(page,true);
  await page.getByRole('button',{name:'Reset filters',exact:true}).click();await expect(cards).toHaveCount(3);
  await page.getByLabel('Property type',{exact:true}).selectOption('Resort');await expect(cards).toHaveCount(1);
- if(await toggle.isVisible()){await toggle.click();await toggle.click();await expect(page.getByLabel('Property type',{exact:true})).toHaveValue('Resort');}
+ await filters(page,false);await filters(page,true);await expect(page.getByLabel('Property type',{exact:true})).toHaveValue('Resort');
  await page.getByRole('button',{name:'Reset filters',exact:true}).click();
- if(await toggle.isVisible())await toggle.click();
+ await filters(page,false);
  await page.getByLabel('Sort stays',{exact:true}).selectOption('price-desc');await expect(cards.first()).toHaveAttribute('aria-label','Palm House');
  await expect(cards.last()).toHaveAttribute('aria-label','Unknown Stay');
  await cards.first().getByRole('button',{name:'Choose room'}).click();
- await expect(page.locator('.room-option-card').getByRole('heading',{name:'Deluxe twin room',exact:true})).toBeVisible();
+ await expect(page.locator('.stay-room-group-heading').getByRole('heading',{name:'Deluxe twin room',exact:true})).toBeVisible();
  await expect(page.locator('#hotel-detail-title')).toHaveRole('heading');
  await expect(page.locator('#hotel-detail-title')).toHaveText('Palm House');
  await expect(page.getByRole('heading',{level:1,name:'Choose your room',exact:true})).toBeVisible();
@@ -134,12 +140,12 @@ test('unsubmitted hotel date edits preserve searched totals; a fresh search rese
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();
  await expect(cards.first().getByRole('button',{name:'Choose room'})).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
- const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
+ await filters(page,true);
  await page.getByLabel('Property name',{exact:true}).fill('Palm');await expect(cards).toHaveCount(1);
  provider.search={searchId:'11111111-1111-4111-8111-111111111119',results:{hotels}};
- await page.locator('#booking-search>summary').click();await page.getByRole('button',{name:'Search stays',exact:true}).click();
+ await filters(page,false);await page.locator('#booking-search>summary').click();await page.getByRole('button',{name:'Search stays',exact:true}).click();
  await expect(cards).toHaveCount(3);await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(changed.toISOString().slice(0,10)));
- if(await toggle.isVisible())await toggle.click();await expect(page.getByLabel('Property name',{exact:true})).toHaveValue('');
+ await filters(page,true);await expect(page.getByLabel('Property name',{exact:true})).toHaveValue('');await filters(page,false);
  expect(provider.requests('/api/travel/search')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

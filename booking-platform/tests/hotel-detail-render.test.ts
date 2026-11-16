@@ -4,11 +4,31 @@ import {createElement,type ComponentType} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {createRequire} from 'node:module';
 import {build} from 'esbuild';
-import type {HotelDetailViewProps} from '../src/components/hotel-detail-view';
+import type {HotelDetailViewProps,hotelRoomRateSummary} from '../src/components/hotel-detail-view';
 const require=createRequire(import.meta.url);
-const component=build({entryPoints:['src/components/hotel-detail-view.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'},jsx:'automatic'}).then(result=>{const compiled={exports:{} as {default:ComponentType<HotelDetailViewProps>}};new Function('module','exports','require',result.outputFiles[0].text)(compiled,compiled.exports,require);return compiled.exports.default;});
+const moduleExports=build({entryPoints:['src/components/hotel-detail-view.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'},jsx:'automatic'}).then(result=>{const compiled={exports:{} as {default:ComponentType<HotelDetailViewProps>;hotelRoomRateSummary:typeof hotelRoomRateSummary}};new Function('module','exports','require',result.outputFiles[0].text)(compiled,compiled.exports,require);return compiled.exports;});
+const component=moduleExports.then(exports=>exports.default);
 const defaults:HotelDetailViewProps={name:'Synthetic coastal stay',context:{checkIn:'2026-11-01',checkOut:'2026-11-03',rooms:2,guests:4},options:[],roomsStatus:'ready',busy:false,now:0,onBack:()=>{},onRetry:()=>{},onReview:()=>{}};
 async function render(props:Partial<HotelDetailViewProps>={}){return renderToStaticMarkup(createElement(await component,{...defaults,...props}));}
+
+test('room comparison summary derives its count, lowest price and facts only from eligible rates',async()=>{
+ const {hotelRoomRateSummary}=await moduleExports;
+ const cancellation={isRefundable:true,penalties:[{from:'2026-11-01T00:00:00+05:30',to:'2026-11-21T00:00:00+05:30',amount:0}]};
+ const options=[{optionId:'room-only',mealBasis:'ROOM_ONLY',pricing:{totalPrice:2805.89},cancellation},{optionId:'breakfast',mealBasis:'BREAKFAST',pricing:{totalPrice:2982.57},cancellation},{optionId:'another-breakfast',mealBasis:'BREAKFAST',pricing:{totalPrice:3500},cancellation}];
+ const now=Date.parse('2026-11-17T12:00:00+05:30');
+ const all=hotelRoomRateSummary(options,{breakfast:false,freeCancellation:false},now);
+ assert.equal(all.filteredOptions.length,3);assert.equal(all.lowest?.total,280589);
+ const filtered=hotelRoomRateSummary(options,{breakfast:true,freeCancellation:true},now);
+ assert.deepEqual(filtered.filteredOptions.map(option=>option.optionId),['breakfast','another-breakfast']);
+ assert.equal(filtered.lowest?.total,298257);assert.equal(filtered.lowest?.option,options[1]);
+ assert.deepEqual(options.map(option=>option.optionId),['room-only','breakfast','another-breakfast']);
+ const expired=hotelRoomRateSummary(options,{breakfast:true,freeCancellation:true},Date.parse('2026-11-22T12:00:00+05:30'));
+ assert.equal(expired.filteredOptions.length,0);assert.equal(expired.lowest,undefined);
+ const noTrustedClock=hotelRoomRateSummary(options,{breakfast:true,freeCancellation:true},null);
+ assert.equal(noTrustedClock.lowest,undefined);
+ const invalidPrice=hotelRoomRateSummary([{optionId:'unknown',mealBasis:'BREAKFAST',pricing:{totalPrice:NaN}}],{breakfast:true,freeCancellation:false},now);
+ assert.equal(invalidPrice.filteredOptions.length,1);assert.equal(invalidPrice.lowest,undefined);
+});
 
 test('property overview is available while rates load and retains the exact stay context',async()=>{
  const html=await render({roomsStatus:'loading',property:{starRating:4,address:'A supplied address',amenities:['Parking']}});

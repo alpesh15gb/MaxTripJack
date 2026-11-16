@@ -90,7 +90,8 @@ test('room workspace and back preserve the exact filtered search without another
  const toggle=page.getByRole('button',{name:/^Filters/});await expect(page.locator('.hotel-shopping-card')).toHaveCount(2);
  await reference(page,testInfo,'journey-stay-results');
  if(await toggle.isVisible())await toggle.click();await page.getByRole('searchbox',{name:'Property name',exact:true}).fill('Goa');
- await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');if(await toggle.isVisible())await toggle.click();
+ const filters=page.getByRole('dialog',{name:'Filter stays',exact:true});if(await filters.isVisible())await filters.getByRole('button',{name:'Close filters',exact:true}).click();
+ await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');
  const choose=page.getByRole('button',{name:'Choose room',exact:true});await choose.click();
  await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#hotel-detail-title')).toBeFocused();
  await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toBeVisible();
@@ -101,6 +102,7 @@ test('room workspace and back preserve the exact filtered search without another
  await expect(page.getByRole('combobox',{name:'Sort stays',exact:true})).toHaveValue('price-desc');await expect(page.locator('.hotel-shopping-card')).toHaveCount(1);
  await reference(page,testInfo,'journey-stays-restored');
  if(await toggle.isVisible())await toggle.click();await expect(page.getByRole('searchbox',{name:'Property name',exact:true})).toHaveValue('Goa');
+ if(await filters.isVisible())await filters.getByRole('button',{name:'Close filters',exact:true}).click();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

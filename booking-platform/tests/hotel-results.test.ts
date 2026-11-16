@@ -1,7 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createElement} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import HotelResults,{hotelComparisonAmenities} from '../src/components/hotel-results';
 import {hotelContentUnavailable,emptyHotelFilters,filterHotelResults,hotelAmenities,knownHotelTotal,stayNights,type HotelResult} from '../src/lib/hotel-results';
 const hotels:HotelResult[]=[{tjHotelId:'1',name:'Palm House',customerEstimateMinor:800000,property:{starRating:4,propertyType:'Hotel',amenities:[]}},{tjHotelId:'2',name:'Bay Stay',customerEstimateMinor:400000,property:{starRating:3,propertyType:'Resort',amenities:[]}},{tjHotelId:'3',name:'Unpriced stay',property:{amenities:[]}}];
+test('compact hotel amenities preserve supplied wording, practical facts and three distinct positive items',()=>{
+ const supplied=['Lobby',' Wi-Fi ','wifi','Parking','No swimming pool','Restaurant','Gym'];
+ assert.deepEqual(hotelComparisonAmenities(supplied),['Wi-Fi','Parking','Restaurant']);
+ assert.equal(supplied.length,7);assert.deepEqual(hotelComparisonAmenities(),[]);
+ assert.deepEqual(hotelComparisonAmenities(['Front desk']),['Front desk']);
+});
+test('result cards retain originating search navigation, complete stay totals and accessible filter entry',()=>{
+ const searchId='11111111-1111-4111-8111-111111111111',originSearchId='22222222-2222-4222-8222-222222222222';
+ const html=renderToStaticMarkup(createElement(HotelResults,{searchId,hotels:[{...hotels[0],originSearchId,property:{amenities:['Wi-Fi','Parking','Restaurant','Gym'],city:'Delhi',address:'Supplied locality'}}],context:{checkIn:'2026-11-24',checkOut:'2026-11-26',rooms:2,guests:4},busy:false,onChoose:()=>{},hasMore:true,onLoadMore:()=>{}}));
+ assert.match(html,new RegExp(`browseSearch=${originSearchId}`));assert.doesNotMatch(html,new RegExp(`browseSearch=${searchId}`));
+ assert.match(html,/1 of 1 loaded stays/);assert.match(html,/2 nights · 2 rooms · 4 guests/);assert.match(html,/₹8,000\.00/);
+ assert.match(html,/Supplied locality/);assert.match(html,/Load more stays/);assert.match(html,/Choose room/);
+ assert.equal((html.match(/<li>/g)??[]).length,3);assert.doesNotMatch(html,/>Gym</);
+ assert.match(html,/aria-haspopup="dialog" aria-expanded="false" aria-controls="hotel-filter-dialog"/);
+ assert.match(html,/<dialog[^>]+aria-labelledby="hotel-filter-dialog-title"/);assert.doesNotMatch(html,/<dialog[^>]+\bopen=/);
+ assert.equal((html.match(/placeholder="Find a property"/g)??[]).length,1);
+ assert.doesNotMatch(html,/Free cancellation|Breakfast included|Guest rating/);
+});
 test('hotel filters use loaded full-stay estimates and exclude unknown prices under budget',()=>{
  assert.deepEqual(filterHotelResults(hotels,{...emptyHotelFilters,budget:'5000'},'price').map(h=>h.tjHotelId),['2']);
  assert.deepEqual(filterHotelResults(hotels,{...emptyHotelFilters,name:' PALM ',category:'4',type:'Hotel'},'price').map(h=>h.tjHotelId),['1']);

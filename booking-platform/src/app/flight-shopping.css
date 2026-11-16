@@ -1,0 +1,192 @@
+.flight-results-page .flight-shopping-list {
+  --flight-carrier-width: 152px;
+  --flight-price-width: 172px;
+  --flight-schedule-columns: minmax(0, 1fr) minmax(94px, 1.12fr) minmax(0, 1fr);
+}
+
+.flight-results-page .flight-result-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.flight-results-page .flight-result-shortcuts button {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 1px solid #d5e3dd;
+  border-radius: 9px;
+  background: white;
+  color: #163b36;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.flight-results-page .flight-result-shortcuts button[aria-pressed="true"] {
+  background: #e8f4ee;
+  border-color: #27836f;
+  box-shadow: inset 0 0 0 1px #27836f;
+}
+.flight-results-page .flight-result-shortcuts button:disabled { opacity: .57; }
+.flight-results-page .flight-result-shortcuts button:focus-visible { outline: 2px solid #087d6a; outline-offset: 2px; }
+.flight-shortcut-label { font-size: 13px; font-weight: 650; line-height: 1.25; }
+.flight-shortcut-metrics { display: flex; align-items: baseline; flex-wrap: wrap; gap: 1px 8px; font-size: 15px; line-height: 1.3; }
+.flight-shortcut-metrics small, .flight-shortcut-unavailable { color: #506761; font-size: 12px; }
+.flight-shortcut-metrics strong { font-variant-numeric: tabular-nums; }
+.flight-result-columns { display: none; }
+
+.flight-results-page .flight-result-details {
+  grid-area: 3 / 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+  min-width: 0;
+  padding: 2px 14px 6px;
+}
+.flight-results-page .flight-result-details:has(.flight-segment-details[open]) { align-items: start; }
+body .booking-workflow.journey-flow.flight-results-page .flight-result-details .flight-segment-details { padding: 0; }
+.flight-results-page .flight-result-details .flight-segment-details[open] { width: 100%; }
+.flight-results-page .flight-headline-facts {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+  color: #4b625d;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.flight-headline-facts ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.flight-headline-facts li { padding: 3px 7px; border-radius: 6px; color: #164d42; background: #edf5f1; overflow-wrap: anywhere; }
+.flight-results-page .fare-option-notes { min-width: 0; }
+.flight-results-page .fare-option-notes p { margin: 0; }
+.flight-results-page .booking-selection-status { margin: 0; }
+
+@media (min-width: 1101px) {
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping:has(.is-choosing-fare) {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping:has(.is-choosing-fare) > .flight-shopping-controls { display: grid; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list:has(.is-choosing-fare) > .live-flight-card { display: grid; }
+
+  .flight-results-page .flight-result-columns {
+    display: grid;
+    grid-template-columns: var(--flight-carrier-width) minmax(0, 1fr) var(--flight-price-width);
+    align-items: center;
+    padding: 2px 0;
+    color: #49635c;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .flight-result-columns > span:first-child { padding-left: 14px; }
+  .flight-result-columns > div { display: grid; grid-template-columns: var(--flight-schedule-columns); gap: 8px; padding-inline: 12px; text-align: center; }
+  .flight-result-columns > span:last-child { padding-inline: 12px; text-align: center; }
+
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list :is(.live-flight-card, .live-flight-card.is-choosing-fare):not(:has(.combo-itinerary)) {
+    position: relative;
+    grid-template-columns: var(--flight-carrier-width) minmax(0, 1fr) var(--flight-price-width);
+    grid-template-rows: minmax(84px, auto) minmax(48px, auto) auto;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .flight-result-top { padding: 12px 0 0 14px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .flight-route-line {
+    grid-template-columns: var(--flight-schedule-columns);
+    padding: 12px 12px 0;
+    gap: 8px;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-route-line > div { gap: 2px; }
+  .flight-results-page .flight-result-details { grid-area: 2 / 1 / 3 / 3; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison[open] { grid-area: 3 / 1 / 4 / -1; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(.has-no-compatible-fare, :has(.combo-itinerary)) .fare-comparison[open] > summary {
+    position: absolute;
+    top: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    width: var(--flight-price-width);
+    min-height: 132px;
+    border-left: 1px solid #e0e9e3;
+    border-radius: 0 11px 0 0;
+    background: #f6f9f5;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison > summary {
+    gap: 5px;
+    padding: 8px 10px;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison > summary > span { flex: none; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > strong { font-size: 21px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary small { margin-top: 2px; line-height: 1.3; }
+
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .fare-decision-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .fare-option-compact {
+    display: grid;
+    grid-template-columns: minmax(116px, .85fr) minmax(0, 2fr) minmax(136px, .95fr);
+    gap: 4px 12px;
+    align-items: start;
+    padding: 10px 12px;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .fare-option-heading { display: grid; gap: 2px; grid-area: 1 / 1; }
+  .flight-results-page .fare-price-comparison { grid-area: 2 / 1; }
+  .flight-results-page .fare-decision-dimensions { grid-area: 1 / 2 / 3 / 3; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .fare-decision-dimensions > div { display: block; min-width: 0; min-height: 0; padding-block: 2px; border-bottom: 0; }
+  .flight-results-page .fare-decision-dimensions dt { font-size: 12px; }
+  .flight-results-page .fare-option-notes { grid-column: 1 / 3; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .fare-option-compact .fare-option-action {
+    display: grid;
+    grid-area: 1 / 3 / 3 / 4;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    align-self: end;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .fare-option-compact .fare-option-action .primary {
+    min-width: 0;
+    min-height: 44px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 600px) {
+  body .booking-workflow.journey-flow.flight-results-page .booking-search-panel:not([open]) { margin-bottom: 8px; }
+  body .booking-workflow.journey-flow.flight-results-page .booking-search-panel:not([open]) > summary { padding-block: 10px; }
+  body .booking-workflow.journey-flow.flight-results-page .results-heading { padding-bottom: 4px; }
+  body .booking-workflow.journey-flow.flight-results-page .nearby-flight-dates { margin: 4px 0 6px; padding: 4px; }
+  body .booking-workflow.journey-flow.flight-results-page .nearby-flight-dates .secondary { padding-block: 4px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping { gap: 6px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls { padding-block: 5px; }
+  /* The native select carries its own accessible name and visible selected value. */
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls .flight-sort-select {
+    display: block;
+    font-size: 0;
+    line-height: 0;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls .flight-sort-select select {
+    min-height: 44px;
+    margin-top: 0;
+    font-size: 16px;
+    line-height: 1.25;
+  }
+  .flight-results-page .flight-result-shortcuts { gap: 4px; }
+  .flight-results-page .flight-result-shortcuts button { min-height: 54px; padding: 5px 6px; gap: 2px; }
+  .flight-shortcut-label, .flight-shortcut-metrics small { font-size: 11px; }
+  .flight-shortcut-metrics { font-size: 13px; line-height: 1.2; gap: 0 4px; }
+  .flight-results-page .flight-result-details { padding: 7px 12px 0; }
+  .flight-results-page .flight-headline-facts { order: -1; width: 100%; font-size: 11px; }
+  .flight-results-page .flight-result-details .flight-segment-details { width: 100%; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-route-line > div { gap: 3px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card :is(.fare-comparison, .fare-comparison[open]) > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > span { display: contents; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > span > small {
+    grid-area: 1 / 2;
+    align-self: start;
+    text-align: right;
+  }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .choose-fare-label { grid-area: 2 / 1 / 3 / -1; }
+}

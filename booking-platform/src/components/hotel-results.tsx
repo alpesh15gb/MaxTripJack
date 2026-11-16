@@ -1,34 +1,43 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {readHotelBrowse,writeHotelBrowse,hotelJourneyUrl} from '@/lib/hotel-journey-state';
 import {emptyHotelFilters,filterHotelResults,hotelAmenities,knownHotelTotal,stayNights,type HotelResult,type HotelStayContext} from '@/lib/hotel-results';
 import {travelDateLabel} from '@/lib/travel-date';
 import HotelPropertyMedia,{type HotelMetadataStatus} from './hotel-property-media';
 import {money} from './booking-flight-card';
 
-export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore}:{hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement)=>void}){
+/** Keep supplier wording; prefer practical comparison facts and collapse formatting duplicates. */
+export function hotelComparisonAmenities(values?:string[]){
+ const seen=new Set<string>();
+ const amenities=hotelAmenities(values).filter(value=>{const key=value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu,'');if(seen.has(key))return false;seen.add(key);return true;});
+ const usefulness=(value:string)=>/wi[ -]?fi|internet|parking|pool|restaurant|fitness|gym|air.condition/i.test(value)?0:1;
+ return amenities.sort((a,b)=>usefulness(a)-usefulness(b)).slice(0,3);
+}
+
+export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore,active=true}:{active?:boolean;hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement)=>void}){
  const [filters,setFilters]=useState(()=>readHotelBrowse(searchId).filters??{...emptyHotelFilters}),[sort,setSort]=useState(()=>readHotelBrowse(searchId).sort??'price'),[expanded,setExpanded]=useState(false);
+ const drawer=useRef<HTMLDialogElement>(null),filterTrigger=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{if(!active&&drawer.current?.open)drawer.current.close();},[active]);
+ useEffect(()=>{
+  if(!expanded||!active)return;
+  const dialog=drawer.current;if(!dialog)return;
+  const previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';
+  if(!dialog.open)dialog.showModal();
+  const desktop=window.matchMedia('(min-width: 901px)');
+  const closeOnDesktop=()=>{if(desktop.matches)dialog.close();};
+  desktop.addEventListener('change',closeOnDesktop);
+  return()=>{document.body.style.overflow=previousOverflow;desktop.removeEventListener('change',closeOnDesktop);if(dialog.open)dialog.close();};
+ },[expanded,active]);
  useEffect(()=>{writeHotelBrowse(searchId,{filters,sort});},[searchId,filters,sort]);
  const shown=filterHotelResults(hotels,filters,sort),nights=stayNights(context);
  const categories=[...new Set(hotels.flatMap(h=>h.property?.starRating?[h.property.starRating]:[]))].sort((a,b)=>b-a);
  const types=[...new Set(hotels.flatMap(h=>h.property?.propertyType?[h.property.propertyType]:[]))].sort();
- const active=Object.entries(filters).filter(([,value])=>value.trim());
+ const activeFilters=Object.entries(filters).filter(([,value])=>value.trim());
  const stayLabel=context?`${nights?`${nights} night${nights===1?'':'s'} · `:''}${context.rooms} room${context.rooms===1?'':'s'} · ${context.guests} guest${context.guests===1?'':'s'}`:'All selected rooms and guests';
  const update=(key:keyof typeof filters,value:string)=>setFilters(current=>({...current,[key]:value}));
  const focusResults=()=>requestAnimationFrame(()=>document.getElementById('hotel-results-title')?.focus({preventScroll:true}));
- return <div className="hotel-shopping">
-  <div className="hotel-shopping-toolbar">
-   <div className="hotel-results-heading">
-    <h2 id="hotel-results-title" tabIndex={-1}>Available stays</h2>
-    <p role="status" aria-live="polite">{shown.length} of {hotels.length} stays in this search{hotels.length>0&&metadataStatus!=='ready'&&<span className="hotel-content-status">{metadataStatus==='loading'?'Adding property details…':'Some details unavailable.'}</span>}</p>
-    {context&&<p className="hotel-search-dates" aria-label="Selected check-in and check-out dates">{travelDateLabel(context.checkIn)} – {travelDateLabel(context.checkOut)}</p>}
-    <p className="hotel-search-scope">{stayLabel}</p>
-   </div>
-   <label>Sort stays<select aria-label="Sort stays" value={sort} onChange={e=>setSort(e.target.value)}><option value="price">Lowest stay total</option><option value="price-desc">Highest stay total</option><option value="name">Property name</option><option value="supplier">Supplier order</option></select></label>
-   <button className="secondary hotel-filter-toggle" type="button" aria-expanded={expanded} aria-controls="hotel-search-filters" onClick={()=>setExpanded(value=>!value)}>Filters{active.length?` (${active.length})`:''}</button>
-  </div>
-  <aside id="hotel-search-filters" className={`hotel-search-filters${expanded?' is-expanded':''}`} aria-label="Filter stays">
-   <div className="hotel-filter-heading"><h3>Refine your stay</h3><button type="button" className="hotel-reset" disabled={!active.length} onClick={()=>setFilters({...emptyHotelFilters})}>Reset filters</button></div>
+ const filterFields=()=><>
+   <div className="hotel-filter-heading"><h3>Refine your stay</h3><button type="button" className="hotel-reset" disabled={!activeFilters.length} onClick={()=>setFilters({...emptyHotelFilters})}>Reset filters</button></div>
    <p>Filters apply to stays loaded so far. Load more stays to explore the rest of this destination.</p>
    <label>Property name<input type="search" value={filters.name} onChange={e=>update('name',e.target.value)} placeholder="Find a property"/></label>
    <label>Maximum stay total (₹)<input type="number" min="0" step="1" inputMode="numeric" value={filters.budget} onChange={e=>update('budget',e.target.value)} placeholder="No limit"/></label>
@@ -36,12 +45,30 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
    <label>Property category<select aria-label="Property category" value={filters.category} onChange={e=>update('category',e.target.value)}><option value="">All categories</option>{categories.map(rating=><option key={rating} value={rating}>{rating} star{rating===1?'':'s'}</option>)}</select></label>
    <label>Property type<select aria-label="Property type" value={filters.type} onChange={e=>update('type',e.target.value)}><option value="">All property types</option>{types.map(type=><option key={type}>{type}</option>)}</select></label>
    <small>Star categories are supplied by the property provider. Guest review scores are unavailable.</small>
-  </aside>
+ </>;
+ return <div className="hotel-shopping hotel-comparison">
+  <div className="hotel-shopping-toolbar">
+   <div className="hotel-results-heading">
+    <h2 id="hotel-results-title" tabIndex={-1}>Available stays</h2>
+    <p role="status" aria-live="polite">{shown.length} of {hotels.length} loaded stays{hotels.length>0&&metadataStatus!=='ready'&&<span className="hotel-content-status">{metadataStatus==='loading'?'Adding property details…':'Some details unavailable.'}</span>}</p>
+    {context&&<p className="hotel-search-dates" aria-label="Selected check-in and check-out dates">{travelDateLabel(context.checkIn)} – {travelDateLabel(context.checkOut)}</p>}
+    <p className="hotel-search-scope">{stayLabel}</p>
+   </div>
+   <label>Sort stays<select aria-label="Sort stays" value={sort} onChange={e=>setSort(e.target.value)}><option value="price">Lowest stay total</option><option value="price-desc">Highest stay total</option><option value="name">Property name</option><option value="supplier">Supplier order</option></select></label>
+   <button ref={filterTrigger} className="secondary hotel-filter-toggle" type="button" aria-haspopup="dialog" aria-expanded={expanded} aria-controls="hotel-filter-dialog" onClick={()=>setExpanded(true)}>Filters{activeFilters.length?` (${activeFilters.length})`:''}</button>
+  </div>
+  <aside id="hotel-search-filters" className="hotel-search-filters hotel-filter-sidebar" aria-label="Filter stays">{!expanded&&filterFields()}</aside>
+  <dialog ref={drawer} id="hotel-filter-dialog" className="hotel-filter-drawer" aria-labelledby="hotel-filter-dialog-title" onClose={()=>{setExpanded(false);if(active)filterTrigger.current?.focus({preventScroll:true});}} onClick={event=>{if(event.target===event.currentTarget){const rect=event.currentTarget.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)event.currentTarget.close();}}}>
+   <header><h2 id="hotel-filter-dialog-title">Filter stays</h2><button type="button" className="secondary" onClick={()=>drawer.current?.close()} aria-label="Close filters">Close <span aria-hidden="true">×</span></button></header>
+   <div className="hotel-search-filters">{expanded&&filterFields()}</div>
+   <footer><p role="status">{shown.length} of {hotels.length} loaded stays match</p><button type="button" className="primary" onClick={()=>drawer.current?.close()}>Show {shown.length} stay{shown.length===1?'':'s'}</button></footer>
+  </dialog>
   <div className="hotel-shopping-results">
-   {active.length>0&&<div className="hotel-active-filters" aria-label="Active hotel filters">{active.map(([key,value])=><button className="hotel-filter-chip" key={key} type="button" aria-label={`Remove ${key} filter`} onClick={()=>{update(key as keyof typeof filters,'');focusResults();}}>{key==='budget'?`Up to ₹${value} / stay`:key==='category'?`${value} stars`:value}<span aria-hidden="true"> ×</span></button>)}</div>}
+   <p className="hotel-comparison-guidance">Compare full-stay estimates. Room meals, cancellation terms and final prices are checked after choosing a property.</p>
+   {activeFilters.length>0&&<div className="hotel-active-filters" aria-label="Active hotel filters">{activeFilters.map(([key,value])=><button className="hotel-filter-chip" key={key} type="button" aria-label={`Remove ${key} filter`} onClick={()=>{update(key as keyof typeof filters,'');focusResults();}}>{key==='budget'?`Up to ₹${value} / stay`:key==='category'?`${value} stars`:value}<span aria-hidden="true"> ×</span></button>)}</div>}
    <div className="booking-hotel-list">{shown.map(hotel=>{
     const contentState=hotel.propertyContentStatus==='resolved'?'ready':hotel.propertyContentStatus==='unavailable'?'unavailable':hotel.propertyContentStatus==='pending'?'loading':metadataStatus;
-    const total=knownHotelTotal(hotel),amenities=hotelAmenities(hotel.property?.amenities);
+    const total=knownHotelTotal(hotel),amenities=hotelComparisonAmenities(hotel.property?.amenities);
     const propertyHref=hotelJourneyUrl(hotel.originSearchId??searchId,hotel.tjHotelId);
     return <article className="white-card booking-record booking-hotel-card hotel-shopping-card" key={hotel.tjHotelId} aria-label={hotel.name}>
      <div className="hotel-card-photo">
@@ -55,8 +82,7 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
       {hotel.property?.starRating ? <p className="hotel-property-category"><span aria-hidden="true">★</span> {hotel.property.starRating}-star property category</p> : null}
       {hotel.property?.city&&<p className="hotel-property-locality">{hotel.property.city}</p>}
       <p className="hotel-property-address">{hotel.property?.address||(contentState==='loading'?'Property details loading…':contentState==='unavailable'?'Property details unavailable right now':'Address details not supplied')}</p>
-      {amenities.length>0&&<ul className="hotel-amenity-list" aria-label="Property amenities">{amenities.slice(0,4).map(item=><li key={item.toLocaleLowerCase()}>{item}</li>)}</ul>}
-      <p className="hotel-room-note">Room types, meals & cancellation terms on the next step.</p>
+      {amenities.length>0&&<ul className="hotel-amenity-list" aria-label="Property amenities">{amenities.slice(0,3).map(item=><li key={item.toLocaleLowerCase()}>{item}</li>)}</ul>}
      </div>
      <div className="hotel-result-action">
       <div className="hotel-stay-price">
@@ -69,7 +95,7 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
      </div>
     </article>;
    })}</div>
-   {!shown.length&&<div className="empty-results"><h3>{hotels.length?'No stays match your filters':'No stays found'}</h3><p>{hotels.length?'Try a different name, category or stay budget.':'Try a different destination or date range, or load more stays if available.'}</p>{active.length>0&&<button className="secondary" type="button" onClick={()=>{setFilters({...emptyHotelFilters});focusResults();}}>Clear hotel filters</button>}</div>}
+   {!shown.length&&<div className="empty-results"><h3>{hotels.length?'No stays match your filters':'No stays found'}</h3><p>{hotels.length?'Try a different name, category or stay budget.':'Try a different destination or date range, or load more stays if available.'}</p>{activeFilters.length>0&&<button className="secondary" type="button" onClick={()=>{setFilters({...emptyHotelFilters});focusResults();}}>Clear hotel filters</button>}</div>}
    {(hasMore||loadingMore||loadMoreError)&&<div className="hotel-load-more"><p>{hasMore||loadingMore?'Showing stays checked so far. More properties in this destination can be checked for your dates.':'All destination pages have been checked for your dates.'}</p>{loadMoreError&&<p role="alert">{loadMoreError}</p>}{(hasMore||loadingMore)&&<button type="button" className="secondary" disabled={busy||loadingMore} onClick={onLoadMore}>{loadingMore?'Checking more stays…':loadMoreError?'Retry loading stays':'Load more stays'}</button>}</div>}
   </div>
  </div>;
