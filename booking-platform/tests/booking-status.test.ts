@@ -40,6 +40,13 @@ test("failure, manual review and unknown outcomes keep checking without offering
   }
 });
 
+test('pre-submission failure does not claim a supplier rejection or completed refund',()=>{
+ const view=bookingStatusView({...flight,status:'BOOKING_FAILED',paymentStatus:'CAPTURED'});
+ assert.match(view.description,/could not complete your booking/);
+ assert.doesNotMatch(view.description,/supplier did not|refund completed|refunded/i);
+ assert.equal(view.paymentReceived,true);assert.equal(view.confirmed,false);
+});
+
 test("cancellation does not erase receipt or imply a refund", () => {
   const view = bookingStatusView({ ...flight, status: "CANCELLED", paymentStatus: "CAPTURED" });
   assert.equal(view.confirmed, false);

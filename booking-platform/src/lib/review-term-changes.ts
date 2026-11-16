@@ -20,7 +20,7 @@ function comparableCurrentFreeWindow(term:ReviewTerm|undefined):HotelCancellatio
  if(first.amount!==0||first.from>data.observedAt||data.observedAt>=first.to||hotelCancellationValue(data.windows)!==term.value)return null;
  return data;
 }
-function sameCurrentHotelTerms(before:ReviewTerm|undefined,after:ReviewTerm|undefined):boolean {
+export function sameCurrentHotelTerms(before:ReviewTerm|undefined,after:ReviewTerm|undefined):boolean {
  const old=comparableCurrentFreeWindow(before),next=comparableCurrentFreeWindow(after);
  if(!old||!next||old.observedAt>next.observedAt||old.windows.length!==next.windows.length)return false;
  // Only a forward-moving origin in the first, still-active free window may be
