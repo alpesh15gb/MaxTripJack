@@ -1,5 +1,8 @@
 import {getCompanyProfile} from '@/lib/company-settings';
 import {CompanyProfileProvider} from '@/components/company-profile-context';
+import MaxAiAssistant from '@/components/max-ai-assistant';
+import {maxAiGatewayConfiguration} from '@/lib/max-ai-provider';
+import {conversationConfigured} from '@/lib/max-ai-conversation';
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -48,7 +51,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col"><CompanyProfileProvider value={company}>{children}</CompanyProfileProvider></body>
+      <body className="min-h-full flex flex-col"><CompanyProfileProvider value={company}>{children}<MaxAiAssistant enabled={Boolean(maxAiGatewayConfiguration())&&conversationConfigured()}/></CompanyProfileProvider></body>
     </html>
   );
 }

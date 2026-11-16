@@ -20,3 +20,12 @@ test('starting a nearby search drops stale selection recovery keys',()=>{
   const next=nearbyFlightSearch({...criteria,selectionKey:'old-key',resumeSelection:'1',resumeReview:'1'},1,'2027-01-01');
   assert.ok(next);assert.equal(new URL(next.url,'https://example.test').searchParams.has('selectionKey'),false);
 });
+
+test('changing an AI search date drops its saved-result pointer and searches the requested date',()=>{
+  const next=nearbyFlightSearch({...criteria,flightSearch:'11111111-1111-4111-8111-111111111111'},1,'2027-01-01');
+  assert.ok(next);
+  const params=new URL(next.url,'https://example.test').searchParams;
+  assert.equal(params.has('flightSearch'),false);
+  assert.equal(params.get('date'),'2027-02-01');
+  assert.equal(params.get('autoSearch'),'1');
+});

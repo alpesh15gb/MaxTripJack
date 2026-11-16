@@ -35,6 +35,6 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { NEXT_TELEMETRY_DISABLED: '1', PAYMENT_PROVIDER:'RAZORPAY', RAZORPAY_KEY_ID:'rzp_test_SYNTHETICONLY', RAZORPAY_KEY_SECRET:'synthetic-browser-fixture-not-a-credential' },
+    env: { NEXT_TELEMETRY_DISABLED: '1', PAYMENT_PROVIDER:'RAZORPAY', RAZORPAY_KEY_ID:'rzp_test_SYNTHETICONLY', RAZORPAY_KEY_SECRET:'synthetic-browser-fixture-not-a-credential', MAX_AI_ENABLED:'true', MAX_AI_BASE_URL:'http://127.0.0.1:1/v1', MAX_AI_API_KEY:'synthetic-max-ai-browser-key', MAX_AI_CONVERSATION_SECRET:'synthetic-max-ai-conversation-secret-for-browser-tests' },
   },
 });

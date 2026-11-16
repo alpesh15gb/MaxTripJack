@@ -39,3 +39,16 @@ test('selection history intent and opaque key are bounded and survive a safe ret
  assert.ok(url?.includes(`selectionKey=${selectionKey}`));
  for(const extra of [{selectionKey:'not-a-key'},{resumeReview:'yes'}])assert.equal(bookingSearchPrefill({...criteria,...extra}).searchInvalid,'1');
 });
+
+test('AI flight pointers stay on booking links, while authentication returns preserve only public criteria',()=>{
+ const flightSearch='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ const criteria={product:'FLIGHT',flightSearch,from:'BOM',to:'DEL',date:'2030-02-01'};
+ const url=bookingSearchUrl(criteria,today)!;
+ assert.deepEqual(params(url),criteria);
+ // Guest searches are claimed only during authenticated review, through the
+ // existing selected-fare handoff; a generic sign-in return cannot claim one.
+ assert.deepEqual(params(safeAccountReturn(url)),{product:'FLIGHT',from:'BOM',to:'DEL',date:'2030-02-01'});
+ for(const extra of [{flightSearch:'invalid'},{flightSearch:[flightSearch,flightSearch]},{product:'HOTEL'},{browseSearch:flightSearch},{stay:'10001'}]){
+  assert.equal(bookingSearchPrefill({...criteria,...extra},today).searchInvalid,'1');
+ }
+});
