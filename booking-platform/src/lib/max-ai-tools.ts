@@ -11,6 +11,7 @@ import {getPublicPage} from './public-pages';
 import type {PublicBusinessProfile} from './business-profile';
 import {bookingStatusView} from './booking-status';
 import {isMaxAiActionHref,type MaxAiAction,type MaxAiCard} from './max-ai-contract';
+import {enquiryDraftSchema,enquiryDateError,type EnquiryDraft} from './travel-enquiry-contract';
 
 const query=z.string().trim().min(2).max(80);
 const empty=z.object({}).strict();
@@ -39,6 +40,7 @@ const schemas={
   search_hotels:z.object({regionId:z.string().regex(/^\d{1,30}$/),cursor:z.string().regex(/^\d{1,6}:\d{1,6}$/).optional(),checkIn:day,checkOut:day,
     rooms:z.array(room).min(1).max(4),nationality:z.string().regex(/^\d{1,10}$/),maxStayRupees:z.number().min(1).max(10000000).optional(),nameQuery:query.optional()}).strict(),
   find_packages:z.object({query:query.optional()}).strict(),
+  prepare_enquiry:enquiryDraftSchema,
   my_trips:empty,
   company_info:empty,
   travel_help:z.object({topic:z.enum(['flights','hotels','booking_confirmation','cancellation','refund','pricing','visa','passport','insurance','cruise','packages'])}).strict(),
@@ -52,6 +54,7 @@ const descriptions:Record<MaxAiToolName,string>={
   search_flights:'Search live flight availability with MaxTravel customer prices. Use confirmed airport codes, dates, traveller counts and cabin. Ask for missing facts before calling. One-way, return or multi-city supported. Multi-city requires legs and from/to/date matching the first leg; no returnDate with legs. Prices in separate return groups and maxTotalRupees are per-leg party estimates, not a combined return fare. Sort only known data. airlineQuery applies to all segments. COMBO nonstop/duration filters cannot be established; disclose this limitation.',
   search_hotels:'Search live hotel availability for a destination ID returned by lookup_destinations, confirmed check-in/out, per-room adult counts and child ages, and nationality ID returned by lookup_nationalities. Searches one bounded destination page; never claim exhaustive city inventory. For more results use only the nextCursor returned by the preceding search, retaining region/dates/rooms/nationality.',
   find_packages:'Read the currently published holiday-package catalogue. Optional query filters destination/title. Package indicative prices and availability are not a confirmed reservation.',
+  prepare_enquiry:'Prepare an editable review draft for a VISA, INSURANCE, HOLIDAY or CRUISE enquiry after asking essential missing questions. No enquiry is saved, sent or booked by this tool. Use only details the visitor supplied, retain date flexibility, do not invent budgets or preferences. Contact name/email/phone and submission consent are collected in a separate app form, never in this tool. Adults are 18+ and childAges are 0–17 for these enquiries. INSURANCE requires an age for every traveller. Do not include passport numbers, payment credentials, medical history or other private documents in notes.',
   my_trips:'Read the currently signed-in customer’s latest trips. Private references and itinerary details are displayed only in application cards, not sent to the model. Cannot retrieve other users or execute payments, cancellations or refunds.',
   company_info:'Read MaxTravel’s current public company settings: trading name, customer-support contact, office address and hours. Never invent contact details or opening hours.',
   travel_help:'Read concise guidance authored on MaxTravel for booking, prices, payment versus supplier confirmation, visas, passports, insurance and packages. Not a live visa/legal eligibility decision; exact booking cancellation/refund rules require the authenticated booking screen.',
@@ -59,7 +62,7 @@ const descriptions:Record<MaxAiToolName,string>={
 };
 export const MAX_AI_TOOL_DEFINITIONS=Object.entries(schemas).map(([name,schema])=>({type:'function' as const,function:{name,description:descriptions[name as MaxAiToolName],parameters:z.toJSONSchema(schema)}}));
 
-export type MaxAiToolResult={model:Record<string,unknown>;cards:MaxAiCard[];actions:MaxAiAction[]};
+export type MaxAiToolResult={model:Record<string,unknown>;cards:MaxAiCard[];actions:MaxAiAction[];enquiryDraft?:EnquiryDraft};
 type Endpoint='airports'|'destinations'|'nationalities'|'destinationHotels'|'search'|'packages'|'bookings';
 export type MaxAiToolDispatch=(endpoint:Endpoint,request:Request)=>Promise<Response>;
 type Dependencies={dispatch?:MaxAiToolDispatch;now?:()=>Date;companyProfile?:()=>Promise<PublicBusinessProfile>};
@@ -201,6 +204,11 @@ export function createMaxAiTools(request:Request,dependencies:Dependencies={}){
           const browse={label:'Compare all checked stays',href:'/book?'+new URLSearchParams({product:'HOTEL',browseSearch:searchId,city:label})};
           return {model:{status:'ok',product:'HOTEL',checkedAt:now().toISOString(),criteria:{...input,destination:label},destination:label,checkedPropertyCount:hotelIds.length,availableCount:results.length,moreDestinationPages:mapping.hasMore===true,nextCursor,
             results:cards.map(card=>({name:card.title,priceMinor:card.priceMinor??null,currency:'INR',priceBasis:basis})),notice:'One bounded destination page was checked, not all hotels in the city. Prices are full-stay customer estimates; conditions and current prices require room review.'},cards,actions:[browse,...(mapping.hasMore===true&&continuation?[{label:'Explore more destination stays',href:continuation}]:[])]};
+        }
+        case 'prepare_enquiry':{
+          const draft=schemas.prepare_enquiry.parse(args),dateError=enquiryDateError(draft,indiaToday(now()));
+          if(dateError)return emptyResult({status:'needs_input',message:dateError,fields:['travelStart']});
+          return {model:{status:'draft_ready',service:draft.service,notice:'The app shows an editable review form. Nothing has been submitted or saved. Ask the visitor to review the draft, enter contact details in that form and explicitly submit if they want MaxTravel to follow up.'},cards:[],actions:[],enquiryDraft:draft};
         }
         case 'find_packages':{
           const input=schemas.find_packages.parse(args),data=await call('packages'),needle=normalize(input.query??'');

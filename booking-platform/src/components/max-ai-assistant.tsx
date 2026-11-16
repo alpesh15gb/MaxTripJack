@@ -6,6 +6,8 @@ import {useCallback, useEffect, useId, useRef, useState, type MutableRefObject} 
 import {authClient} from '@/lib/auth-client';
 import {displayMoney} from '@/lib/display-money';
 import {isMaxAiActionHref, type MaxAiAction, type MaxAiCard, type MaxAiResponse} from '@/lib/max-ai-contract';
+import {enquiryDraftSchema, type EnquiryDraft} from '@/lib/travel-enquiry-contract';
+import MaxAiEnquiry from './max-ai-enquiry';
 import '@/app/max-ai.css';
 
 const REQUEST_TIMEOUT_MS = 90_000;
@@ -13,11 +15,15 @@ const MAX_MESSAGE_LENGTH = 2_000;
 const starters = [
   {icon: 'flight', label: 'Find a flight', message: 'I want to book a flight ticket.'},
   {icon: 'hotel', label: 'Find a hotel', message: 'Help me find a hotel.'},
+  {icon: 'spark', label: 'Holiday packages', message: 'Help me plan a holiday package.'},
+  {icon: 'cruise', label: 'Cruise holidays', message: 'Help me plan a cruise holiday.'},
+  {icon: 'passport', label: 'Visa assistance', message: 'I want a visa.'},
+  {icon: 'shield', label: 'Travel insurance', message: 'Help me find travel insurance.'},
   {icon: 'trip', label: 'My bookings', message: 'Show me my bookings and their current status.'},
   {icon: 'spark', label: 'Plan a trip', message: 'Help me plan my next trip.'},
 ] as const;
-type IconName = 'spark' | 'flight' | 'hotel' | 'trip' | 'send' | 'close' | 'plus' | 'arrow' | 'stop';
-type ChatMessage = {id: number; role: 'user' | 'assistant'; text: string; cards?: MaxAiCard[]; actions?: MaxAiAction[]; notice?: string};
+type IconName = 'spark' | 'flight' | 'hotel' | 'trip' | 'passport' | 'shield' | 'cruise' | 'send' | 'close' | 'plus' | 'arrow' | 'stop';
+type ChatMessage = {id: number; role: 'user' | 'assistant'; text: string; cards?: MaxAiCard[]; actions?: MaxAiAction[]; notice?: string; enquiryDraft?: EnquiryDraft};
 type FailedRequest = {message: string; token?: string};
 type CancelRef = MutableRefObject<(() => void) | null>;
 
@@ -27,6 +33,9 @@ function AiIcon({name, size = 20}: {name: IconName; size?: number}) {
     flight: 'm22 2-7 20-4-9-9-4L22 2ZM11 13l6-6',
     hotel: 'M4 21V3h12v18M16 10h4v11M8 7h4M8 11h4M8 15h4M8 21v-3h4v3',
     trip: 'M4 7h16v14H4V7Zm4 0V3h8v4M8 11v5m8-5v5',
+    passport: 'M5 2h14v20H5V2Zm3 16h8M8 9a4 4 0 1 0 8 0 4 4 0 0 0-8 0Zm4-4v8M8 9h8',
+    shield: 'm12 2 8 3v6c0 5-8 11-8 11S4 16 4 11V5l8-3Zm-4 9 3 3 5-6',
+    cruise: 'M3 12 12 8l9 4-3 7H6l-3-7Zm4-2V5h10v5M10 5V2h4v3M2 22c2 0 3-2 5-2s3 2 5 2 3-2 5-2 3 2 5 2',
     send: 'M12 20V4M5 11l7-7 7 7',
     close: 'm6 6 12 12M6 18 18 6',
     plus: 'M12 5v14M5 12h14',
@@ -55,10 +64,12 @@ function responsePayload(value: unknown): MaxAiResponse | null {
       (card.priceMinor === undefined || (Number.isSafeInteger(card.priceMinor) && card.priceMinor >= 0)) &&
       (card.currency === undefined || typeof card.currency === 'string') && (card.basis === undefined || typeof card.basis === 'string'));
   });
+  const enquiry = enquiryDraftSchema.safeParse(payload.enquiryDraft);
   return {
     reply: payload.reply, cards, actions: payload.actions.slice(0, 8).filter(action),
     conversationToken: typeof payload.conversationToken === 'string' && payload.conversationToken.length <= 50 * 1024 ? payload.conversationToken : undefined,
     notice: typeof payload.notice === 'string' ? payload.notice.slice(0, 1_000) : undefined,
+    ...(enquiry.success ? {enquiryDraft: enquiry.data} : {}),
   };
 }
 
@@ -160,7 +171,7 @@ function Conversation({open, pathname, cancelRef, onNavigate}: {open: boolean; p
       if (!result) throw new Error('Max AI returned an incomplete response. Please try again.');
       if (generation.current !== current || controller.signal.aborted) return;
       token.current = result.conversationToken;
-      setMessages(previous => [...previous.slice(-23), {id: ++sequence.current, role: 'assistant', text: result.reply, cards: result.cards, actions: result.actions, notice: result.notice}]);
+      setMessages(previous => [...previous.slice(-23), {id: ++sequence.current, role: 'assistant', text: result.reply, cards: result.cards, actions: result.actions, notice: result.notice, enquiryDraft: result.enquiryDraft}]);
     } catch (cause) {
       if (generation.current !== current) return;
       setError(timedOut ? 'Max AI is taking longer than expected. You can retry or use the booking screens below.' : cause instanceof Error && cause.name !== 'AbortError' ? cause.message : 'The response was stopped. Please try again when you are ready.');
@@ -179,7 +190,7 @@ function Conversation({open, pathname, cancelRef, onNavigate}: {open: boolean; p
         <div className="max-ai-welcome-mark"><AiIcon name="spark" size={31}/><span aria-hidden="true">✦</span></div>
         <p className="max-ai-eyebrow">YOUR NEXT JOURNEY STARTS HERE</p>
         <h3 id={`${id}-welcome`}>Where to next?</h3>
-        <p>Tell me what you have in mind. I can find flight and hotel options, help with your bookings, or point you in the right direction.</p>
+        <p>Find flights and stays, explore holidays and cruises, or ask our team about visas and travel insurance. I can also help with your existing bookings.</p>
         <div className="max-ai-starters">{starters.map(starter => <button key={starter.label} type="button" onClick={() => void send(starter.message)}><AiIcon name={starter.icon}/><span>{starter.label}</span><AiIcon name="arrow" size={15}/></button>)}</div>
         <p className="max-ai-privacy">Your travel request is processed by Max AI. Enter passwords, verification codes and payment details only in the secure account or checkout screens.</p>
       </section>}
@@ -187,6 +198,7 @@ function Conversation({open, pathname, cancelRef, onNavigate}: {open: boolean; p
         <div className="max-ai-message-label">{message.role === 'assistant' && <AiIcon name="spark" size={14}/>}<span>{message.role === 'assistant' ? 'Max AI' : 'You'}</span></div>
         {message.text && <p className="max-ai-message-text">{message.text}</p>}
         {Boolean(message.cards?.length) && <div className="max-ai-results">{message.cards?.map((card, cardIndex) => <ResultCard key={`${card.id}-${cardIndex}`} card={card} onNavigate={onNavigate}/>)}</div>}
+        {message.enquiryDraft && <MaxAiEnquiry draft={message.enquiryDraft} superseded={messages.slice(index + 1).some(later => later.enquiryDraft?.service === message.enquiryDraft?.service)}/>}
         {Boolean(message.actions?.length) && <div className="max-ai-actions">{message.actions?.map((item, actionIndex) => <Link href={item.href} prefetch={false} onClick={onNavigate} key={`${item.href}-${actionIndex}`}>{item.label}<AiIcon name="arrow" size={15}/></Link>)}</div>}
         {message.notice && <p className="max-ai-result-notice">{message.notice}</p>}
       </div>)}

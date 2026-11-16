@@ -44,6 +44,7 @@ export async function POST(request:Request){
     runner=createMaxAiTools(new Request(request.url,{headers,signal}));
     const result=await runMaxAiTurn({message:input.message,history,page:input.pageContext?.pathname},{runner,definitions:MAX_AI_TOOL_DEFINITIONS,signal});
     signal.throwIfAborted();
+    console.info('Max AI timing',result.metrics);
     let conversationToken:string|undefined,notice=result.notice;
     try{conversationToken=sealMaxAiConversation(result.history,access.actor);}
     catch(error){
@@ -51,7 +52,9 @@ export async function POST(request:Request){
       // Results remain usable even if a very large turn cannot fit encrypted history.
       notice='These results are ready. Start a new chat for your next request because this conversation reached its size limit.';
     }
-    return respond(json({reply:result.reply,cards:result.cards,actions:result.actions,...(conversationToken?{conversationToken}:{}),...(notice?{notice}:{})}));
+    const response=json({reply:result.reply,cards:result.cards,actions:result.actions,...(result.enquiryDraft?{enquiryDraft:result.enquiryDraft}:{}),...(conversationToken?{conversationToken}:{}),...(notice?{notice}:{})});
+    if(result.metrics)response.headers.set('Server-Timing',`maxai;dur=${result.metrics.durationMs}, model;dur=${result.metrics.providerMs}, tools;dur=${result.metrics.toolMs}`);
+    return respond(response);
   }catch(error){
     if(error instanceof MaxAiProviderError){
       console.error('Max AI gateway',{reason:error.reason,httpStatus:error.status??null});

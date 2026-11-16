@@ -9,6 +9,10 @@ Max AI connects MaxTravel's existing travel services to the configured model thr
 - Show structured result cards with customer estimates and links into the exact owned search. A new supplier review checks the current fare or room price before checkout.
 - Find published packages and open relevant guides, support, account, saved-traveller and operations pages.
 - Show the signed-in customer's permitted trip cards. Private booking references and itinerary details stay out of model tool results.
+- Prepare editable visa, travel-insurance, holiday-package and cruise enquiries. The visitor reviews travel details, enters contact information outside chat and explicitly submits before anything is saved. Confirmed enquiries appear in Operations → Enquiries and are queued for the integrated CRM.
+- Distinguish new enquiries from existing visa applications, insurance claims, booking changes and urgent travel problems. Broader travel questions use authored guidance or the appropriate provider/team process, without inventing current eligibility, prices or guarantees.
+
+The research and intent checklist are in [Max AI travel research](MAX-AI-TRAVEL-RESEARCH.md). These are enquiry workflows, not visa application, insurance issuance or cruise booking APIs. Contact information in the review form is not sent to the model. Customer contact preferences do not automatically send an email or WhatsApp message.
 
 Payment, reservation, cancellation, refund, account and operations changes remain in their existing authenticated review/confirmation screens. Max AI has no tools to execute those changes. Opening a result is not a reservation, and a payment is not supplier confirmation.
 
@@ -36,7 +40,7 @@ Use a private, local connection on this VPS, or an HTTPS gateway URL for a remot
 
 The base URL ends at `/v1`; the server appends `/chat/completions`. Preserve the exact model/combo identifier accepted by your gateway, including its case. That target must support function tools. A model's ordinary text response alone does not prove that it can execute this integration's tool protocol. OmniRoute may route a combo to providers with different capabilities, so every fallback used by the combo should support tools.
 
-Deploy after setting the private environment values:
+For the enquiry release, follow [the enquiry migration and CRM deployment guide](MAX-AI-ENQUIRIES.md) first. It includes an additive booking migration and a CRM receiver/schema update; deploy the CRM before the booking application and CRM worker. The following app-only command is for subsequent configuration changes after those migrations:
 
 ```bash
 (
@@ -55,7 +59,7 @@ Deploy after setting the private environment values:
 
 Compose validates the required `POSTGRES_PASSWORD` interpolation even for an app-only deployment. This block reads the existing database container's configured value into a temporary subshell without printing it. It does not change the database password, recreate Postgres or write owner credentials into `.env.production`. Keep the assignment and `export` separate so a failed lookup stops deployment. Shell environment values take precedence for [Compose interpolation](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/).
 
-These changes require no new database schema or worker configuration. Disabling `MAX_AI_ENABLED` and recreating the app container disables the integration. If deployment fails, the diagnostic must wait: `Cannot find module '/app/scripts/check-max-ai.mjs'` can mean the old container is still running.
+The original search integration required no migration; the enquiry release does. Disabling `MAX_AI_ENABLED` and recreating the app container hides the assistant; existing saved enquiries and queued CRM events remain available for follow-up. If deployment fails, the diagnostic must wait: `Cannot find module '/app/scripts/check-max-ai.mjs'` can mean the old container is still running.
 
 To repeat the gateway diagnostic after successful deployment:
 
@@ -83,41 +87,48 @@ Same-origin checks, shared request limits, bounded tool loops, response sizes an
 
 The app does not save a chat transcript to its database or browser local storage. Messages are still processed by OmniRoute and its selected upstream provider; review their logging and retention configuration. Users should keep passwords, OTPs, authenticator codes, card details, passports and PAN information out of chat.
 
+Explicitly submitted enquiries are separate persisted records containing the reviewed travel details, contact details and consent time. Guest contact details remain unverified. The signed CRM delivery creates a provisional sales lead and service case; it does not merge a customer merely because an unverified email or phone matches. Submission retries use the original request ID and payload, including after an uncertain response. Admin follow-up changes require operations permissions; CRM retries require integration permissions.
+
+## Response speed
+
+A live first-turn “I want a visa” request took approximately 13.8 seconds before this update. Narrow generic opening requests now return an application-authored qualification question without a model call. Exact own-trip requests use the existing permission-checked tool directly. Complete flight/hotel tool results and valid enquiry drafts can render without a second model request just to paraphrase the result. Lookups, missing details and sequential planning still use the model when needed.
+
+The API emits `Server-Timing` and sanitized `Max AI timing` logs with model/tool call counts and elapsed durations. It does not log chat text, contact values or model responses. The local tests verify removed network round trips; they are not a promise of a particular live latency. Supplier searches and detailed model requests still depend on Tripjack and OmniRoute response times. Measure these paths again after deployment before adjusting gateway routing or timeouts.
+
 ## Validation checklist
 
-Local validation on 17 November 2026 passed: production build and TypeScript,
-ESLint, and 696 unit tests. The selected desktop/mobile suite covered 188 cases:
-186 passed in the main run; two new mobile tests incorrectly targeted hidden
-desktop sort buttons. After correcting those selectors and the filter-button
-spacing, all 18 affected flight-handoff/reentry cases passed against the final
-build. No failing case remains in that selected coverage.
+Local enquiry-release validation on 17 November 2026 passed: production build
+and TypeScript, ESLint, worker bundling, and **724 unit tests**. Selected browser
+coverage passed **214 desktop/mobile cases**: 40 enquiry/admin cases and 174
+existing assistant, flight/hotel handoff, checkout, promo, operations and public
+page cases. The new cases include 320px layout, child-only enquiries, consent,
+contact isolation, uncertain retries, corrected drafts and account changes.
 
-Browser cases use synthetic API/payment responses against the production UI.
-Screenshots were reviewed at 1440px and 390px; the suite also checks 320px flight
-layout. Coverage includes chat recovery and account changes, exact owned search
-handoff, preferences and refresh/reentry, hotel occupancy, checkout, and history.
+Browser tests use synthetic API/payment responses against the production UI;
+they do not create live enquiries or bookings. Desktop/mobile screenshots were
+inspected. Initial runs exposed ambiguous control labels and a delayed focus
+callback that could redirect typing to the destination field. Both were fixed;
+the final affected suite includes a deterministic delayed-frame regression and
+passes against the rebuilt application.
 
-The deployed VPS diagnostic subsequently passed function calling with exact
-arguments, tool-result follow-up, and an incomplete flight request using `APEXV1`.
-`apexModelListed: null` means discovery could not establish the expected model
-list; successful inference confirms the configured identifier works. It does
-not justify changing the model's case.
+The actual MaxTravel CRM receiver passed its production build, TypeScript,
+focused lint and a real signed-route integration test using a freshly migrated
+isolated SQLite database. All four services, replay/conflict handling, unverified
+contact isolation and budget permissions were exercised. Booking persistence
+tests use a database adapter; no local PostgreSQL server was available to execute
+its migration. See [the enquiry deployment guide](MAX-AI-ENQUIRIES.md).
 
-Live acceptance on maxtravel.in verified incomplete-detail questions, BOM–DEL
-flight results and an IndiGo/non-stop follow-up, Hyderabad hotel results with
-two rooms and a child, exact-price/occupancy handoffs, and hotel pagination.
-Desktop flight and mobile hotel screens were inspected. Synthetic credential
-input triggered the chat warning; payment guidance distinguished capture from
-supplier confirmation. No booking, payment, cancellation or refund was executed.
+Earlier live acceptance verified flight/hotel search and handoffs, and the VPS
+diagnostic accepted `APEXV1` function calling and tool-result follow-up.
+`apexModelListed: null` only means discovery could not establish the model list;
+it does not justify changing the model's case. The current enquiry release and
+latency improvements still require deployment and live acceptance. The measured
+pre-update visa opening request took about 13.8 seconds; no post-deployment
+latency or live enquiry-to-CRM delivery is claimed by the local tests.
 
-That run exposed three follow-up fixes: preserve flight stop/carrier/sort
-preferences in the results handoff, retain the hotel destination label, and use
-the own-trips lookup without claiming a navigation button has already opened a
-page. Reopening an earlier result now restores that search instead of retaining
-a newer manual search under the old URL. These fixes require a new deployment and live acceptance; authenticated
-trip lookup has not yet been verified live. Flight budget preferences are still
-per-leg estimates in chat and are not carried to the booking screen's combined
-return-budget control.
+Authenticated own-trip lookup has not yet been verified live. Flight budget
+preferences remain per-leg estimates in chat and are not carried to the booking
+screen's combined return-budget control.
 
 The existing Next.js dependency security advisory remains outside this change.
 
@@ -129,6 +140,8 @@ The existing Next.js dependency security advisory remains outside this change.
 6. Ask for your trips signed out, then signed in. Switch accounts and sign out again. Old private cards and conversation state must be cleared and unavailable to the new session.
 7. Ask it to book, pay, cancel, refund or change pricing. It should open the correct app screen and never claim it performed the change.
 8. Test stop, close/reopen, new chat, network failure and expired conversation recovery on desktop and mobile. Complete a normal flight/hotel checkout separately to verify the assistant does not obstruct those controls.
+9. Review each service enquiry, edit its details, explicitly submit and confirm one matching reference in Operations and the CRM. Verify pending and delivered statuses separately. Use identified test details, not a real customer's information.
+10. Compare generic starters with detailed searches using `Max AI timing` logs. Generic first-turn questions should report zero model calls; complete search/draft tools should omit an unnecessary summary call. Confirm sequential package planning and hotel pagination still work.
 
 Use test supplier/payment environments for checkout validation. Do not test a live payment or supplier reservation merely to check whether the assistant renders results.
 

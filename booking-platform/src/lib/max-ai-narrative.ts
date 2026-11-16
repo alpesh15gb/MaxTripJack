@@ -61,6 +61,20 @@ function claimsUnverifiedPrice(text: string, userMessage: string) {
   return false;
 }
 
+/** Keep only short planning questions alongside trusted results. A question mark
+ * must not smuggle a price, policy, completed action or request for private data. */
+export function maxAiClarificationQuestions(text: string, userMessage: string): string[] {
+  const questions = text.trim().slice(0, 4000).split(/(?<=[.!?])\s+|[\r\n]+/).map(value => value.trim());
+  return [...new Set(questions.filter(question => {
+    if (question.length > 280 || !question.endsWith('?')) return false;
+    if (!/^(?:for [^,?!]{1,80},\s*)?(?:which|what|when|where|how many|how old|do you (?:mean|prefer|want|need)|would you (?:prefer|like)|is (?:your|the) budget)\b/i.test(question)) return false;
+    if (!/\b(?:airport|route|journey|trip|date|dates|month|year|city|country|destination|departure|depart|return|adult|adults|child|children|age|ages|traveller|travellers|guest|guests|room|rooms|night|nights|duration|nationality|purpose|cabin|budget|person|people|timing|flexib\w*|BOM|NMI)\b/i.test(question)) return false;
+    if (/\b(?:fare|fares|price|prices|rate|rates|cost|costs|available|availability|refundable|refund|free|included|guarantee\w*|booked|reserved|confirmed|approved|accepted|activated|successful|successfully|received|processed|issued|paid|cancelled|canceled|refunded|updated|changed|succeeded|submitted|saved|sent|opened|redirected|launched|book|pay|cancel|submit|password|otp|authenticator|payment|card|upi|phone|email|contact|aadhaar|pan|api\s+key|passport\s+(?:number|no|details|copy|photo))\b/i.test(question)) return false;
+    if (/https?:|www\.|@|[<>]|\+[1-9][\d ()-]{7,}\d/i.test(question) || amounts(question).length || claimsUnverifiedPrice(question, userMessage)) return false;
+    return !claimsCompletedAction(question) && !claimsCompletedNavigation(question);
+  }))].slice(0, 2);
+}
+
 /**
  * Result summaries derive from server cards, never free-form model claims. The
  * no-result checks are conservative presentation safeguards, not a proof that
@@ -75,7 +89,7 @@ export function finalizeMaxAiNarrative(text: string, cards: readonly MaxAiCard[]
     if (types.has('hotel')) summaries.push('Here are hotel options returned by the app. Open a stay to choose a room and check its current price, inclusions and cancellation conditions.');
     if (types.has('package')) summaries.push('Here are published holiday packages. Prices are indicative; open a package to check its details and request current availability and a final quote.');
     if (types.has('trip')) summaries.push('Your booking records are shown below. Open a trip to check its current booking, payment and refund status.');
-    return summaries.join('\n\n');
+    return [...summaries, ...maxAiClarificationQuestions(text, userMessage)].join('\n\n');
   }
   const trimmed = text.trim().slice(0, 4000);
   if (clauses(trimmed).some(claimsCompletedAction)) {

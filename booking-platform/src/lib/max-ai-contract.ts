@@ -1,3 +1,4 @@
+import type {EnquiryDraft} from './travel-enquiry-contract';
 /** Public, browser-safe contract. Card actions are constructed by application tools, never the model. */
 export type MaxAiAction = {label: string; href: string};
 export type MaxAiCard = {
@@ -17,6 +18,7 @@ export type MaxAiResponse = {
   actions: MaxAiAction[];
   conversationToken?: string;
   notice?: string;
+  enquiryDraft?: EnquiryDraft;
 };
 
 const pages = new Set([

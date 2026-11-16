@@ -34,7 +34,7 @@ body .max-ai-dialog[open] { display:flex; flex-direction:column; }
 .max-ai-starters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:25px 0 22px; }
 .max-ai-starters button { display:flex; align-items:center; flex-wrap:wrap; gap:9px; min-width:0; min-height:67px; padding:13px 11px; border:1px solid #dce7df; border-radius:12px; background:#fbfcf9; color:#1a5947; text-align:left; cursor:pointer; }
 .max-ai-starters button:hover { background:#eff6e9; border-color:#98b89d; }
-.max-ai-starters button > span { flex:1; font-size:12px; font-weight:600; white-space:nowrap; }
+.max-ai-starters button > span { flex:1; min-width:0; font-size:12px; font-weight:600; line-height:1.45; white-space:normal; }
 .max-ai-starters button > svg:first-child { flex-shrink:0; }
 .max-ai-starters button > svg:last-child { color:#81a28f; }
 .max-ai-privacy { margin:0; color:#7b857e; font-size:11px; line-height:1.65; }

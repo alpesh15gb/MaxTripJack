@@ -47,7 +47,7 @@ export function parseMaxAiCompletion(value:unknown):MaxAiAssistantMessage{
   const seen=new Set<string>();
   const tool_calls=(calls as unknown[]|undefined)?.map(item=>{
     const call=item as {id?:unknown;type?:unknown;function?:{name?:unknown;arguments?:unknown}};
-    if(call?.type!=='function'||typeof call.id!=='string'||!/^[-A-Za-z0-9_]{1,128}$/.test(call.id)||seen.has(call.id)||typeof call.function?.name!=='string'||!/^[a-z][a-z0-9_]{0,63}$/.test(call.function.name)||typeof call.function.arguments!=='string'||call.function.arguments.length>2000)throw new MaxAiProviderError('response');
+    if(call?.type!=='function'||typeof call.id!=='string'||!/^[-A-Za-z0-9_]{1,128}$/.test(call.id)||seen.has(call.id)||typeof call.function?.name!=='string'||!/^[a-z][a-z0-9_]{0,63}$/.test(call.function.name)||typeof call.function.arguments!=='string'||call.function.arguments.length>4096)throw new MaxAiProviderError('response');
     seen.add(call.id);
     return {id:call.id,type:'function' as const,function:{name:call.function.name,arguments:call.function.arguments}};
   });

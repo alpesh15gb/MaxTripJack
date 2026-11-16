@@ -19,6 +19,37 @@ const now=()=>new Date('2026-11-17T12:00:00Z');
 const flight={sI:[{dt:'2026-12-01T09:15:00',at:'2026-12-01T11:25:00',duration:130,da:{code:'BOM',city:'Mumbai'},aa:{code:'DEL',city:'Delhi'},fD:{fN:'201',aI:{name:'Synthetic Air',code:'6E'}}}],totalPriceList:[{id:'fare-exact',fareIdentifier:'PUBLISHED',customerEstimateMinor:765432,fD:{ADULT:{bI:{cB:'7 Kg'},rT:1}},supplierMinor:123,secret:'PRIVATE_COST'}],privateSupplierToken:'PRIVATE_SUPPLIER_TOKEN'};
 const searchArgs={from:'BOM',to:'DEL',date:'2026-12-01',adults:2};
 
+test('enquiry preparation validates all four services without submitting contact, calling APIs or claiming persistence',async()=>{
+  const {createMaxAiTools,MAX_AI_TOOL_DEFINITIONS}=await compiled;let requests=0;
+  const tools=createMaxAiTools(request(),{now,dispatch:async()=>{requests++;throw Error('No application writes are allowed');}});
+  const base={destination:'Singapore',travelWindow:'March 2027',adults:2,childAges:[6]};
+  const drafts=[{...base,service:'VISA',nationality:'Indian',purpose:'Tourism'}, {...base,service:'INSURANCE',travellerAges:[30,35,6]}, {...base,service:'HOLIDAY',departureCity:'Hyderabad'}, {...base,service:'CRUISE'}];
+  for(const draft of drafts){const result=await tools.run('prepare_enquiry',draft);assert.equal(result.model.status,'draft_ready');assert.deepEqual(result.enquiryDraft,draft);assert.match(String(result.model.notice),/Nothing has been submitted or saved/);assert.equal(result.cards.length,0);}
+  for(const args of [{...drafts[0],contact:{email:'traveller@example.test'}},{...drafts[0],notes:'Email me at traveller@example.test'},{...drafts[0],travelStart:'2020-01-01'}, {...base,service:'INSURANCE'}])assert.equal((await tools.run('prepare_enquiry',args)).model.status,'needs_input');
+  assert.equal(requests,0);assert.ok(MAX_AI_TOOL_DEFINITIONS.some(tool=>tool.function.name==='prepare_enquiry'));
+  assert.equal((await tools.run('submit_enquiry',drafts[0])).model.status,'unsupported');
+});
+
+test('enquiry input failures identify safe fields rather than reporting a supplier outage or echoing contact',async()=>{
+  const {createMaxAiTools}=await compiled;let dispatchCalls=0;
+  const tools=createMaxAiTools(request(),{now,dispatch:async()=>{dispatchCalls++;throw Error('PRIVATE_RUNTIME_FAILURE');}});
+  const base={destination:'Singapore',travelWindow:'March 2027',adults:2,childAges:[]};
+  for(const [draft,fields] of [
+    [{...base,service:'VISA'},['nationality','purpose']],
+    [{...base,service:'HOLIDAY'},['departureCity']],
+    [{...base,service:'INSURANCE'},['travellerAges']],
+    [{...base,service:'CRUISE',notes:'Email me at PRIVATE_CONTACT@example.test'},['notes']],
+  ] as const){
+    const result=await tools.run('prepare_enquiry',draft);assert.equal(result.model.status,'needs_input');
+    assert.deepEqual(result.model.fields,fields);assert.equal(result.enquiryDraft,undefined);
+    assert.doesNotMatch(JSON.stringify(result),/PRIVATE_CONTACT|@example|supplier outage/);
+  }
+  assert.equal(dispatchCalls,0);
+  const unavailable=await tools.run('find_packages',{query:'Singapore'});
+  assert.equal(unavailable.model.status,'unavailable');assert.equal(dispatchCalls,1);
+  assert.doesNotMatch(JSON.stringify(unavailable),/PRIVATE_RUNTIME_FAILURE/);
+});
+
 test('Max AI tools reject unsupported calls, injected fields, invalid dates and guessed airport codes before dispatch',async()=>{
   const {createMaxAiTools}=await compiled;let calls=0;
   const tools=createMaxAiTools(request(),{now,dispatch:async()=>{calls++;throw Error('must not call');}});

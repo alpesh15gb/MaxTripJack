@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {finalizeMaxAiNarrative} from '../src/lib/max-ai-narrative';
+import {finalizeMaxAiNarrative,maxAiClarificationQuestions} from '../src/lib/max-ai-narrative';
 import type {MaxAiCard} from '../src/lib/max-ai-contract';
 
 const card = (type: MaxAiCard['type']): MaxAiCard => ({id: type, type, title: 'Supplier title', subtitle: '', details: [], action: {label: 'Open', href: type === 'trip' ? '/my-trips' : '/book'}});
@@ -17,6 +17,25 @@ test('server result types determine summaries without repeating model claims or 
   assert.match(result, /Open a trip to check/);
   assert.doesNotMatch(result, /₹1|refundable|successful|Private traveller/);
   assert.equal(result, finalizeMaxAiNarrative('Different invented price and policy', cards, [], 'Other request'));
+});
+
+test('real result cards retain narrow planning clarification without reintroducing model claims', () => {
+  const question='For the other journey, do you mean BOM or NMI?';
+  const result=finalizeMaxAiNarrative('I booked your flight for ₹1. '+question,[card('flight')],[],'Check both journeys');
+  assert.match(result,/flight options returned by the app/);
+  assert.ok(result.endsWith(question));
+  assert.doesNotMatch(result,/booked|₹1/);
+  for(const hostile of [
+    'Which airport do you prefer for the flight I booked?',
+    'Which city would you like at the confirmed price of ₹1?',
+    'Which dates work for your approved visa?',
+    'Which destination for the trip at 5000 rupees?',
+    'What is your passport number for the trip?',
+    'What is your email for this journey?',
+    'Which dates should I use after your payment succeeded?',
+  ])assert.deepEqual(maxAiClarificationQuestions(hostile,'Plan my trip'),[],hostile);
+  assert.deepEqual(maxAiClarificationQuestions('Which dates work? How many adults will travel? Which cabin do you prefer?','Plan my trip'),['Which dates work?','How many adults will travel?']);
+  assert.deepEqual(maxAiClarificationQuestions('Is your budget total or per person?','Plan my trip'),['Is your budget total or per person?']);
 });
 
 test('blocks direct and implied successful mutations without authenticated status evidence', () => {

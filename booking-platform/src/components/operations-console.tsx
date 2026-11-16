@@ -535,6 +535,7 @@ export default function OperationsConsole() {
           )}
           {context.permissions.includes("companies:manage")&&<Link href="/operations/settings">Company settings ↗</Link>}
           {context.permissions.includes("pricing:manage")&&<Link href="/operations/promos">Promo codes ↗</Link>}
+          {context.permissions.includes("bookings:read")&&<Link href="/operations/enquiries">Travel enquiries ↗</Link>}
           <Link href="/account">Account & security ↗</Link>
           <div className="ops-staff">
             <strong>{context.name}</strong>
