@@ -1,0 +1,878 @@
+{
+  "2K": [
+    {
+      "name": "Avianca Ecuador",
+      "file": "2K.png"
+    }
+  ],
+  "3L": [
+    {
+      "name": "Air Arabia Abu Dhabi",
+      "file": "3L.png"
+    }
+  ],
+  "3O": [
+    {
+      "name": "Air Arabia Maroc",
+      "file": "3O.png"
+    }
+  ],
+  "3U": [
+    {
+      "name": "Sichuan Airlines",
+      "file": "3U.png"
+    }
+  ],
+  "4C": [
+    {
+      "name": "LATAM Airlines Colombia",
+      "file": "4C.png"
+    }
+  ],
+  "5J": [
+    {
+      "name": "Cebu Pacific",
+      "file": "5J.png"
+    }
+  ],
+  "6E": [
+    {
+      "name": "IndiGo",
+      "file": "6E.png"
+    }
+  ],
+  "9G": [
+    {
+      "name": "Sun PhuQuoc Airways",
+      "file": "9G.png"
+    }
+  ],
+  "A3": [
+    {
+      "name": "Aegean Airlines",
+      "file": "A3.png"
+    }
+  ],
+  "AA": [
+    {
+      "name": "American Airlines",
+      "file": "AA.png"
+    }
+  ],
+  "AC": [
+    {
+      "name": "Air Canada",
+      "file": "AC.png"
+    }
+  ],
+  "AD": [
+    {
+      "name": "Azul",
+      "file": "AD.png"
+    }
+  ],
+  "AF": [
+    {
+      "name": "Air France",
+      "file": "AF.png"
+    }
+  ],
+  "AH": [
+    {
+      "name": "Air Algérie",
+      "file": "AH.png"
+    }
+  ],
+  "AI": [
+    {
+      "name": "Air India",
+      "file": "AI.png"
+    }
+  ],
+  "AK": [
+    {
+      "name": "AirAsia",
+      "file": "AK.png"
+    }
+  ],
+  "AM": [
+    {
+      "name": "Aeroméxico",
+      "file": "AM.png"
+    }
+  ],
+  "AR": [
+    {
+      "name": "Aerolíneas Argentinas",
+      "file": "AR.png"
+    }
+  ],
+  "AS": [
+    {
+      "name": "Alaska Airlines",
+      "file": "AS-alaska-airlines.png"
+    },
+    {
+      "name": "Hawaiian Airlines",
+      "file": "AS-hawaiian-airlines.png"
+    }
+  ],
+  "AT": [
+    {
+      "name": "Royal Air Maroc",
+      "file": "AT.png"
+    }
+  ],
+  "AV": [
+    {
+      "name": "avianca",
+      "file": "AV-avianca.png"
+    },
+    {
+      "name": "Avianca El Salvador",
+      "file": "AV-avianca-el-salvador.png"
+    }
+  ],
+  "AY": [
+    {
+      "name": "Finnair",
+      "file": "AY.png"
+    }
+  ],
+  "AZ": [
+    {
+      "name": "ITA Airways",
+      "file": "AZ.png"
+    }
+  ],
+  "B6": [
+    {
+      "name": "JetBlue Airways",
+      "file": "B6.png"
+    }
+  ],
+  "BA": [
+    {
+      "name": "British Airways",
+      "file": "BA.png"
+    }
+  ],
+  "BI": [
+    {
+      "name": "Royal Brunei Airlines",
+      "file": "BI.png"
+    }
+  ],
+  "BL": [
+    {
+      "name": "Pacific Airlines",
+      "file": "BL.png"
+    }
+  ],
+  "BR": [
+    {
+      "name": "EVA Air",
+      "file": "BR.png"
+    }
+  ],
+  "BT": [
+    {
+      "name": "airBaltic",
+      "file": "BT.png"
+    }
+  ],
+  "CA": [
+    {
+      "name": "Air China",
+      "file": "CA.png"
+    }
+  ],
+  "CI": [
+    {
+      "name": "China Airlines",
+      "file": "CI.png"
+    }
+  ],
+  "CM": [
+    {
+      "name": "Copa Airlines",
+      "file": "CM.png"
+    }
+  ],
+  "CX": [
+    {
+      "name": "Cathay Pacific",
+      "file": "CX.png"
+    }
+  ],
+  "CZ": [
+    {
+      "name": "China Southern Airlines",
+      "file": "CZ.png"
+    }
+  ],
+  "DE": [
+    {
+      "name": "Condor",
+      "file": "DE.png"
+    }
+  ],
+  "DL": [
+    {
+      "name": "Delta Air Lines",
+      "file": "DL.png"
+    }
+  ],
+  "DY": [
+    {
+      "name": "Norwegian Air Shuttle",
+      "file": "DY.png"
+    }
+  ],
+  "E5": [
+    {
+      "name": "Air Arabia Egypt",
+      "file": "E5.png"
+    }
+  ],
+  "EI": [
+    {
+      "name": "Aer Lingus",
+      "file": "EI.png"
+    }
+  ],
+  "EK": [
+    {
+      "name": "Emirates",
+      "file": "EK.png"
+    }
+  ],
+  "EN": [
+    {
+      "name": "Air Dolomiti",
+      "file": "EN.png"
+    }
+  ],
+  "ET": [
+    {
+      "name": "Ethiopian Airlines",
+      "file": "ET.png"
+    }
+  ],
+  "EW": [
+    {
+      "name": "Eurowings",
+      "file": "EW.png"
+    }
+  ],
+  "EY": [
+    {
+      "name": "Etihad Airways",
+      "file": "EY.png"
+    }
+  ],
+  "F9": [
+    {
+      "name": "Frontier Airlines",
+      "file": "F9.png"
+    }
+  ],
+  "FD": [
+    {
+      "name": "Thai AirAsia",
+      "file": "FD.png"
+    }
+  ],
+  "FI": [
+    {
+      "name": "Icelandair",
+      "file": "FI.png"
+    }
+  ],
+  "FJ": [
+    {
+      "name": "Fiji Airways",
+      "file": "FJ.png"
+    }
+  ],
+  "FR": [
+    {
+      "name": "Ryanair",
+      "file": "FR.png"
+    }
+  ],
+  "FY": [
+    {
+      "name": "Firefly",
+      "file": "FY.png"
+    }
+  ],
+  "FZ": [
+    {
+      "name": "flydubai",
+      "file": "FZ.png"
+    }
+  ],
+  "G3": [
+    {
+      "name": "GOL",
+      "file": "G3.png"
+    }
+  ],
+  "G9": [
+    {
+      "name": "Air Arabia",
+      "file": "G9.png"
+    }
+  ],
+  "GA": [
+    {
+      "name": "Garuda Indonesia",
+      "file": "GA.png"
+    }
+  ],
+  "GK": [
+    {
+      "name": "Jetstar Japan",
+      "file": "GK.png"
+    }
+  ],
+  "HO": [
+    {
+      "name": "Juneyao Air",
+      "file": "HO.png"
+    }
+  ],
+  "HU": [
+    {
+      "name": "Hainan Airlines",
+      "file": "HU.png"
+    }
+  ],
+  "HV": [
+    {
+      "name": "Transavia",
+      "file": "HV.png"
+    }
+  ],
+  "IB": [
+    {
+      "name": "Iberia",
+      "file": "IB.png"
+    }
+  ],
+  "IX": [
+    {
+      "name": "Air India Express",
+      "file": "IX.png"
+    }
+  ],
+  "J2": [
+    {
+      "name": "Azerbaijan Airlines",
+      "file": "J2.png"
+    }
+  ],
+  "JJ": [
+    {
+      "name": "LATAM Airlines Brasil",
+      "file": "JJ.png"
+    }
+  ],
+  "JL": [
+    {
+      "name": "Japan Airlines",
+      "file": "JL.png"
+    }
+  ],
+  "JQ": [
+    {
+      "name": "Jetstar",
+      "file": "JQ.png"
+    }
+  ],
+  "JT": [
+    {
+      "name": "Lion Air",
+      "file": "JT.png"
+    }
+  ],
+  "JU": [
+    {
+      "name": "Air Serbia",
+      "file": "JU.png"
+    }
+  ],
+  "JX": [
+    {
+      "name": "Starlux Airlines",
+      "file": "JX.png"
+    }
+  ],
+  "KC": [
+    {
+      "name": "Air Astana",
+      "file": "KC.png"
+    }
+  ],
+  "KE": [
+    {
+      "name": "Korean Air",
+      "file": "KE.png"
+    }
+  ],
+  "KL": [
+    {
+      "name": "KLM",
+      "file": "KL.png"
+    }
+  ],
+  "KQ": [
+    {
+      "name": "Kenya Airways",
+      "file": "KQ.png"
+    }
+  ],
+  "KT": [
+    {
+      "name": "AirAsia Cambodia",
+      "file": "KT.png"
+    }
+  ],
+  "KU": [
+    {
+      "name": "Kuwait Airways",
+      "file": "KU.png"
+    }
+  ],
+  "LA": [
+    {
+      "name": "LATAM Airlines Chile",
+      "file": "LA.png"
+    }
+  ],
+  "LH": [
+    {
+      "name": "Lufthansa",
+      "file": "LH.png"
+    }
+  ],
+  "LJ": [
+    {
+      "name": "Jin Air",
+      "file": "LJ.png"
+    }
+  ],
+  "LL": [
+    {
+      "name": "Level",
+      "file": "LL.png"
+    }
+  ],
+  "LO": [
+    {
+      "name": "LOT Polish Airlines",
+      "file": "LO.png"
+    }
+  ],
+  "LP": [
+    {
+      "name": "LATAM Airlines Perú",
+      "file": "LP.png"
+    }
+  ],
+  "LR": [
+    {
+      "name": "Avianca Costa Rica",
+      "file": "LR.png"
+    }
+  ],
+  "LS": [
+    {
+      "name": "Jet2.com",
+      "file": "LS.png"
+    }
+  ],
+  "LX": [
+    {
+      "name": "SWISS",
+      "file": "LX.png"
+    }
+  ],
+  "MF": [
+    {
+      "name": "XiamenAir",
+      "file": "MF.png"
+    }
+  ],
+  "MH": [
+    {
+      "name": "Malaysia Airlines",
+      "file": "MH.png"
+    }
+  ],
+  "MK": [
+    {
+      "name": "Air Mauritius",
+      "file": "MK.png"
+    }
+  ],
+  "MM": [
+    {
+      "name": "Peach Aviation",
+      "file": "MM.png"
+    }
+  ],
+  "MS": [
+    {
+      "name": "EgyptAir",
+      "file": "MS.png"
+    }
+  ],
+  "MU": [
+    {
+      "name": "China Eastern Airlines",
+      "file": "MU.png"
+    }
+  ],
+  "NH": [
+    {
+      "name": "All Nippon Airways",
+      "file": "NH.png"
+    }
+  ],
+  "NT": [
+    {
+      "name": "Binter Canarias",
+      "file": "NT.png"
+    }
+  ],
+  "NZ": [
+    {
+      "name": "Air New Zealand",
+      "file": "NZ.png"
+    }
+  ],
+  "OS": [
+    {
+      "name": "Austrian Airlines",
+      "file": "OS.png"
+    }
+  ],
+  "OZ": [
+    {
+      "name": "Asiana Airlines",
+      "file": "OZ.png"
+    }
+  ],
+  "PC": [
+    {
+      "name": "Pegasus Airlines",
+      "file": "PC.png"
+    }
+  ],
+  "PG": [
+    {
+      "name": "Bangkok Airways",
+      "file": "PG.png"
+    }
+  ],
+  "PR": [
+    {
+      "name": "Philippine Airlines",
+      "file": "PR.png"
+    }
+  ],
+  "PZ": [
+    {
+      "name": "LATAM Airlines Paraguay",
+      "file": "PZ.png"
+    }
+  ],
+  "QF": [
+    {
+      "name": "Qantas",
+      "file": "QF.png"
+    }
+  ],
+  "QH": [
+    {
+      "name": "Bamboo Airways",
+      "file": "QH.png"
+    }
+  ],
+  "QP": [
+    {
+      "name": "Akasa Air",
+      "file": "QP.png"
+    }
+  ],
+  "QR": [
+    {
+      "name": "Qatar Airways",
+      "file": "QR.png"
+    }
+  ],
+  "QZ": [
+    {
+      "name": "Indonesia AirAsia",
+      "file": "QZ.png"
+    }
+  ],
+  "RC": [
+    {
+      "name": "Atlantic Airways",
+      "file": "RC.png"
+    }
+  ],
+  "RO": [
+    {
+      "name": "TAROM",
+      "file": "RO.png"
+    }
+  ],
+  "RX": [
+    {
+      "name": "Riyadh Air",
+      "file": "RX.png"
+    }
+  ],
+  "SC": [
+    {
+      "name": "Shandong Airlines",
+      "file": "SC.png"
+    }
+  ],
+  "SG": [
+    {
+      "name": "SpiceJet",
+      "file": "SG.png"
+    }
+  ],
+  "SK": [
+    {
+      "name": "Scandinavian Airlines",
+      "file": "SK.png"
+    }
+  ],
+  "SL": [
+    {
+      "name": "SAS Connect",
+      "file": "SL-sas-connect.png"
+    },
+    {
+      "name": "Thai Lion Air",
+      "file": "SL-thai-lion-air.png"
+    }
+  ],
+  "SN": [
+    {
+      "name": "Brussels Airlines",
+      "file": "SN.png"
+    }
+  ],
+  "SQ": [
+    {
+      "name": "Singapore Airlines",
+      "file": "SQ.png"
+    }
+  ],
+  "SV": [
+    {
+      "name": "Saudia",
+      "file": "SV.png"
+    }
+  ],
+  "TG": [
+    {
+      "name": "Thai Airways",
+      "file": "TG.png"
+    }
+  ],
+  "TK": [
+    {
+      "name": "Turkish Airlines",
+      "file": "TK.png"
+    }
+  ],
+  "TP": [
+    {
+      "name": "TAP Air Portugal",
+      "file": "TP.png"
+    }
+  ],
+  "TR": [
+    {
+      "name": "Scoot",
+      "file": "TR.png"
+    }
+  ],
+  "TS": [
+    {
+      "name": "Air Transat",
+      "file": "TS.png"
+    }
+  ],
+  "TW": [
+    {
+      "name": "Trinity Airways",
+      "file": "TW.png"
+    }
+  ],
+  "U2": [
+    {
+      "name": "easyJet",
+      "file": "U2.png"
+    }
+  ],
+  "UA": [
+    {
+      "name": "United Airlines",
+      "file": "UA.png"
+    }
+  ],
+  "UB": [
+    {
+      "name": "Myanmar National Airlines",
+      "file": "UB.png"
+    }
+  ],
+  "UO": [
+    {
+      "name": "HK Express",
+      "file": "UO.png"
+    }
+  ],
+  "UX": [
+    {
+      "name": "Air Europa",
+      "file": "UX.png"
+    }
+  ],
+  "V7": [
+    {
+      "name": "Volotea",
+      "file": "V7.png"
+    }
+  ],
+  "VA": [
+    {
+      "name": "Virgin Australia",
+      "file": "VA.png"
+    }
+  ],
+  "VB": [
+    {
+      "name": "Viva",
+      "file": "VB.png"
+    }
+  ],
+  "VJ": [
+    {
+      "name": "VietJet Air",
+      "file": "VJ.png"
+    }
+  ],
+  "VN": [
+    {
+      "name": "Vietnam Airlines",
+      "file": "VN.png"
+    }
+  ],
+  "VS": [
+    {
+      "name": "Virgin Atlantic",
+      "file": "VS.png"
+    }
+  ],
+  "VU": [
+    {
+      "name": "Vietravel Airlines",
+      "file": "VU.png"
+    }
+  ],
+  "VY": [
+    {
+      "name": "Vueling",
+      "file": "VY.png"
+    }
+  ],
+  "W6": [
+    {
+      "name": "Wizz Air",
+      "file": "W6.png"
+    }
+  ],
+  "W9": [
+    {
+      "name": "Wizz Air UK",
+      "file": "W9.png"
+    }
+  ],
+  "WM": [
+    {
+      "name": "Winair",
+      "file": "WM.png"
+    }
+  ],
+  "WN": [
+    {
+      "name": "Southwest Airlines",
+      "file": "WN.png"
+    }
+  ],
+  "WS": [
+    {
+      "name": "WestJet",
+      "file": "WS.png"
+    }
+  ],
+  "WY": [
+    {
+      "name": "Oman Air",
+      "file": "WY.png"
+    }
+  ],
+  "XL": [
+    {
+      "name": "LATAM Airlines Ecuador",
+      "file": "XL.png"
+    }
+  ],
+  "XY": [
+    {
+      "name": "flynas",
+      "file": "XY.png"
+    }
+  ],
+  "Y4": [
+    {
+      "name": "Volaris",
+      "file": "Y4.png"
+    }
+  ],
+  "Z2": [
+    {
+      "name": "Philippines AirAsia",
+      "file": "Z2.png"
+    }
+  ],
+  "ZD": [
+    {
+      "name": "Ewa Air",
+      "file": "ZD.png"
+    }
+  ],
+  "ZH": [
+    {
+      "name": "Shenzhen Airlines",
+      "file": "ZH.png"
+    }
+  ],
+  "ZP": [
+    {
+      "name": "Paranair",
+      "file": "ZP.png"
+    }
+  ]
+}
