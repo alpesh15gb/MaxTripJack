@@ -123,11 +123,13 @@ export async function POST(request: Request, context: Context) {
             .object({
               id: z.string().uuid(),
               companyId: z.string().uuid().nullable(),
+              replacesId:z.string().uuid().optional(),
               product: z.enum(["FLIGHT", "HOTEL"]),
               markupMinor: z.number().int().min(0).max(100000000),
               basisPoints: z.number().int().min(0).max(10000),
               marginBasisPoints:z.number().int().min(0).max(9500).default(0),
               serviceFeeMinor: z.number().int().min(0).max(100000000),
+              serviceFeeBasisPoints:z.number().int().min(0).max(10000).default(0),
             })
             .strict(),
         );
@@ -141,12 +143,13 @@ export async function POST(request: Request, context: Context) {
           [input.id],
         );
         if (duplicate.rowCount) return { id: input.id };
+        if(input.replacesId){const previous=await tx.query("SELECT id FROM pricing_rules WHERE id=$1 AND active=true AND product=$2 AND company_id IS NOT DISTINCT FROM $3::uuid",[input.replacesId,input.product,input.companyId]);if(!previous.rowCount)throw new HttpError(409,"This rule changed. Refresh the register before editing.");}
         await tx.query(
           "UPDATE pricing_rules SET active=false WHERE product=$1 AND company_id IS NOT DISTINCT FROM $2::uuid",
           [input.product, input.companyId],
         );
         await tx.query(
-          "INSERT INTO pricing_rules(id,company_id,product,markup_minor,markup_basis_points,service_fee_minor,margin_basis_points) VALUES($1,$2,$3,$4,$5,$6,$7)",
+          "INSERT INTO pricing_rules(id,company_id,product,markup_minor,markup_basis_points,service_fee_minor,margin_basis_points,service_fee_basis_points) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
           [
             input.id,
             input.companyId,
@@ -155,6 +158,7 @@ export async function POST(request: Request, context: Context) {
             input.basisPoints,
             input.serviceFeeMinor,
             input.marginBasisPoints,
+            input.serviceFeeBasisPoints,
           ],
         );
         id = input.id;
@@ -165,6 +169,8 @@ export async function POST(request: Request, context: Context) {
           basisPoints: input.basisPoints,
           marginBasisPoints:input.marginBasisPoints,
           serviceFeeMinor: input.serviceFeeMinor,
+          serviceFeeBasisPoints:input.serviceFeeBasisPoints,
+          replacesId:input.replacesId??null,
         };
       } else if (name === "cancellations") {
         const input = await body(

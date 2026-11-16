@@ -90,7 +90,8 @@ export function quoteRemaining(expiresAt: string, now: number) {
 
 /** Unknown intent/provider conflicts must never unlock a second payment path.
  * Only these known pre-intent validation failures can safely return to review. */
-export function paymentFailureAction(status: number | undefined, message: string, code?: string): 'unavailable' | 'edit' | 'refresh' | 'status' {
+export function paymentFailureAction(status: number | undefined, message: string, code?: string): 'unavailable' | 'edit' | 'refresh' | 'status' | 'promo' {
+  if (status === 409 && code === 'PROMO_REVIEW_REQUIRED') return 'promo';
   if (status === 503 && code === 'PAYMENT_PROVIDER_UNAVAILABLE') return 'unavailable';
   if (status !== undefined && [400,401,403,422].includes(status)) return 'edit';
   if (status === 409 && (

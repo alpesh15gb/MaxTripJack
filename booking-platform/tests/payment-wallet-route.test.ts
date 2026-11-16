@@ -9,8 +9,8 @@ let serial = 0;
 async function harness() {
   const quoteId = '30cf55a8-7c40-42e2-a7b9-0499667a556a';
   const guests = { travellers: [{ ti: 'Mr', pt: 'ADULT', fN: 'Synthetic', lN: 'Guest' }], email: 'synthetic@example.test', phone: '9000000000' };
-  const state = { account: {} as unknown, product: 'HOTEL', walletCalls: 0, gatewayCalls: 0, orderWrites: 0, existing: false, guests,
-    quote: { id: quoteId, search_id: 'synthetic-search', product: 'HOTEL', total_minor: 200620, supplier_minor: '200620' as unknown, selection: {}, review: {}, expires_at: new Date(Date.now() + 60000).toISOString() } };
+  const state = { account: {} as unknown, product: 'HOTEL', walletCalls: 0, gatewayCalls: 0, orderWrites: 0, existing: false, guests, promo: null as Record<string,unknown>|null, snapshots:[] as unknown[],
+    quote: { id: quoteId, search_id: 'synthetic-search', product: 'HOTEL', total_minor: 200620, supplier_minor: '200620' as unknown, selection: {}, review: {}, promo_code_id:null as string|null,undiscounted_minor:null as number|null,discount_minor:0, expires_at: new Date(Date.now() + 60000).toISOString() } };
   const key = `__wallet_route_test_${++serial}`, globals = globalThis as unknown as Record<string, unknown>;
   globals[key] = state;
   const scope = `const state=globalThis[${JSON.stringify(key)}];`;
@@ -32,9 +32,11 @@ async function harness() {
     '@/lib/providers/razorpay': `${scope} export const razorpayKey=()=>({id:'rzp_test_synthetic'});export async function razorpay(path,payload){if(path!=='/orders'||payload.amount!==state.quote.total_minor)throw Error('Unexpected gateway request');state.gatewayCalls++;return {id:'order_synthetic',amount:payload.amount,currency:'INR'};}`,
     '@/lib/payment-intent': 'export async function persistGatewayOrder(){} export async function markGatewayIntentUnknown(){throw Error("Unexpected uncertainty");}',
     '@/lib/db': `${scope}
-      async function query(sql){
-        if(sql.includes('SELECT total_minor,selection,review,service_kind'))return {rows:[state.quote],rowCount:1};
+      async function query(sql,values){
+        if(sql.includes('SELECT * FROM supplier_quotes'))return {rows:[state.quote],rowCount:1};
         if(sql.includes('JOIN gateway_intents'))return {rows:state.existing?[{id:'existing-booking',provider:'RAZORPAY',guests_encrypted:'synthetic-ciphertext',gateway_order_id:'order_existing'}]:[],rowCount:state.existing?1:0};
+        if(sql.startsWith('SELECT * FROM promo_codes'))return {rows:state.promo?[state.promo]:[]};
+        if(sql.startsWith('UPDATE orders SET promo_snapshot')){state.snapshots.push(values[1]);return {rowCount:1};}
         if(sql.startsWith('INSERT INTO orders')){state.orderWrites++;return {rows:[],rowCount:1};}
         if(sql.startsWith('INSERT INTO gateway_intents'))return {rows:[],rowCount:1};
         throw Error('Unexpected database query');
@@ -87,4 +89,22 @@ test('real payment route resumes existing checkout without another wallet probe 
     const response=await send();assert.equal(response.status,200);assert.equal((await response.json()).orderId,'order_existing');
     assert.equal(state.walletCalls,0);assert.equal(state.gatewayCalls,0);assert.equal(state.orderWrites,0);
   } finally { cleanup(); }
+});
+
+
+test('payment rechecks promo eligibility and records the exact discount without reducing supplier funds',async()=>{
+ const {state,send,cleanup}=await harness();
+ try{
+  state.quote.supplier_minor='190000';state.quote.undiscounted_minor=210620;state.quote.promo_code_id='promo';state.quote.discount_minor=10000;
+  state.promo={code:'SAVE100',product:'ALL',active:true,expires_at:new Date(Date.now()+60000),discount_minor:10000,discount_basis_points:0,minimum_minor:0,maximum_discount_minor:null};
+  state.account={user:{bs:{walletBalance:1900}}};
+  let response=await send();assert.equal(response.status,200);assert.equal(state.orderWrites,1);assert.equal(state.gatewayCalls,1);
+  assert.deepEqual(state.snapshots,[{code:'SAVE100',discountMinor:10000,originalTotalMinor:210620}]);
+  state.orderWrites=0;state.gatewayCalls=0;state.promo.active=false;
+  response=await send();assert.equal(response.status,409);assert.equal((await response.json()).code,'PROMO_REVIEW_REQUIRED');assert.equal(state.orderWrites,0);assert.equal(state.gatewayCalls,0);
+  state.promo.active=true;state.promo.discount_minor=9000;
+  response=await send();assert.equal(response.status,409);assert.equal(state.orderWrites,0);
+  state.promo.discount_minor=10000;state.promo.expires_at=new Date(Date.now()-1000);
+  response=await send();assert.equal(response.status,409);assert.equal(state.gatewayCalls,0);
+ }finally{cleanup();}
 });

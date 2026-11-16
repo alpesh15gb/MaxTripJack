@@ -41,11 +41,12 @@ export const resources = {
       "markup_basis_points",
       "margin_basis_points",
       "service_fee_minor",
+      "service_fee_basis_points",
       "active",
       "created_at",
     ],
     permission: "pricing:manage",
-    sql: "SELECT p.id,p.product,p.company_id,c.name AS company_name,p.markup_minor::text,p.markup_basis_points,p.margin_basis_points,p.service_fee_minor::text,p.active,p.created_at FROM pricing_rules p LEFT JOIN companies c ON c.id=p.company_id ORDER BY p.created_at DESC",
+    sql: "SELECT p.id,p.product,p.company_id,c.name AS company_name,p.markup_minor::text,p.markup_basis_points,p.margin_basis_points,p.service_fee_minor::text,p.service_fee_basis_points,p.active,p.created_at FROM pricing_rules p LEFT JOIN companies c ON c.id=p.company_id ORDER BY p.created_at DESC",
   },
   cancellations: {
     columns: [
