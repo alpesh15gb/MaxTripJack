@@ -33,7 +33,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
-  icons: {icon:"/brand/favicon.png",apple:"/brand/favicon.png"},
+  icons: {icon:{url:"/brand/plane-favicon.png",type:"image/png",sizes:"48x48"},apple:{url:"/brand/apple-touch-icon.png",sizes:"180x180",type:"image/png"}},
   title: { default: `${SITE_NAME} | Flight and hotel booking`, template: `%s | ${SITE_NAME}` },
   description: "Explore flights and hotels with MaxTravel. Review total prices and supplier rules before payment, and follow your booking confirmation in My trips.",
   robots: siteRobots(),
