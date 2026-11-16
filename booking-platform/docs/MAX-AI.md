@@ -39,15 +39,25 @@ The base URL ends at `/v1`; the server appends `/chat/completions`. `apexv1` mus
 Deploy after setting the private environment values:
 
 ```bash
-cd /opt/max-travel-booking/booking-platform
-git pull --ff-only origin main
-docker compose --env-file .env.production -f compose.production.yaml up -d --build --no-deps --force-recreate --wait app
-docker compose --env-file .env.production -f compose.production.yaml ps app
+(
+  set +x
+  set -e
+  cd /opt/max-travel-booking/booking-platform
+  git pull --ff-only origin main
+  POSTGRES_PASSWORD="$(docker exec max-travel-booking-postgres-1 printenv POSTGRES_PASSWORD)"
+  test -n "$POSTGRES_PASSWORD"
+  export POSTGRES_PASSWORD
+  docker compose --env-file .env.production -f compose.production.yaml up -d --build --no-deps --force-recreate --wait app
+  docker compose --env-file .env.production -f compose.production.yaml ps app
+  docker exec max-travel-booking-app-1 node scripts/check-max-ai.mjs
+)
 ```
 
-These changes require no new database schema or worker configuration. Disabling `MAX_AI_ENABLED` and recreating the app container disables the integration.
+Compose validates the required `POSTGRES_PASSWORD` interpolation even for an app-only deployment. This block reads the existing database container's configured value into a temporary subshell without printing it. It does not change the database password, recreate Postgres or write owner credentials into `.env.production`. Keep the assignment and `export` separate so a failed lookup stops deployment. Shell environment values take precedence for [Compose interpolation](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/).
 
-Run the gateway diagnostic from the deployed app container:
+These changes require no new database schema or worker configuration. Disabling `MAX_AI_ENABLED` and recreating the app container disables the integration. If deployment fails, the diagnostic must wait: `Cannot find module '/app/scripts/check-max-ai.mjs'` can mean the old container is still running.
+
+To repeat the gateway diagnostic after successful deployment:
 
 ```bash
 docker exec max-travel-booking-app-1 node scripts/check-max-ai.mjs
