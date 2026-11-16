@@ -1,4 +1,5 @@
 "use client";
+import {customerTotal} from "@/lib/pricing-calculation";
 import { useEffect, useRef, useState } from "react";
 import AdminRecordPicker, { PricingAudience } from "./admin-record-picker";
 export type OpsRow = Record<string, unknown>;
@@ -167,9 +168,10 @@ function fields(action: OpsAction, row?: OpsRow): Field[] {
           value: "0",
           min: 0,
         },
+        {name:"mode",label:"Percentage calculation",options:[["MARKUP","Markup on supplier price"],["MARGIN","Target margin before other costs"]]},
         {
           name: "percentage",
-          label: "Percentage markup (%)",
+          label: "Percentage (%)",
           type: "number",
           value: "0",
           min: 0,
@@ -270,6 +272,7 @@ function command(
         },
       };
     case "pricing-create":
+      if(value("mode")==="MARGIN"&&minor(f.get("percentage"))>9500)throw Error("Target margin must be between 0% and 95%.");
       if (value("audience") === "COMPANY" && !value("company"))
         throw Error(
           "Choose an approved company before publishing corporate pricing.",
@@ -281,7 +284,8 @@ function command(
           product: value("product"),
           companyId: value("company") || null,
           markupMinor: minor(f.get("markup")),
-          basisPoints: minor(f.get("percentage")),
+          basisPoints: value("mode")==="MARGIN"?0:minor(f.get("percentage")),
+          marginBasisPoints:value("mode")==="MARGIN"?minor(f.get("percentage")):0,
           serviceFeeMinor: minor(f.get("fee")),
         },
       };
@@ -367,6 +371,7 @@ export default function OperationsAction({
     [requestId] = useState(() => restore?.requestId ?? crypto.randomUUID()),
     [busy, setBusy] = useState(false),
     [pending, setPending] = useState<Command | null>(restore?.command ?? null),
+    [pricePreview,setPricePreview]=useState("Customer total: INR 10000.00 | Uplift before other costs: INR 0.00"),
     [message, setMessage] = useState(""),
     [result, setResult] = useState<OpsRow | null>(null);
   useEffect(() => {
@@ -460,6 +465,7 @@ export default function OperationsAction({
         </div>
       )}
       <form
+        onChange={e=>{if(action!=="pricing-create")return;const f=new FormData(e.currentTarget);try{const base=minor(f.get('sampleCost'));const total=customerTotal(base,{markup_minor:minor(f.get('markup')),service_fee_minor:minor(f.get('fee')),markup_basis_points:f.get('mode')==='MARGIN'?0:minor(f.get('percentage')),margin_basis_points:f.get('mode')==='MARGIN'?minor(f.get('percentage')):0});setPricePreview(`Customer total: INR ${(total/100).toFixed(2)} | Uplift before other costs: INR ${((total-base)/100).toFixed(2)}`);}catch{setPricePreview('Enter valid amounts. Target margin must be between 0% and 95%.');}}}
         onSubmit={(e) => {
           e.preventDefault();
           try {
@@ -515,6 +521,7 @@ export default function OperationsAction({
               </label>
             ),
           )}
+          {action==='pricing-create'&&<div className="ops-price-preview"><label>Sample supplier price (INR)<input name="sampleCost" type="number" min="0.01" step="0.01" defaultValue="10000"/></label><p role="status">{pricePreview}</p><small>Percentage is applied to supplier cost first; fixed markup and service fee are then added once per quote. Target margin is before payment fees and other costs, not net profit. A corporate rule replaces the public rule. Saving replaces the active rule for this audience and service; existing bookings keep their recorded totals. Use all zeros for no uplift.</small></div>}
           {[
             "cancellation-execute",
             "refund-execute",

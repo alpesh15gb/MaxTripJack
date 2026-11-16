@@ -30,9 +30,12 @@ test("account mail keeps configuration guard, recipient, subject and reset/verif
     process.env.SMTP_PORT = "465"; process.env.SMTP_SECURE = "true";
     process.env.SMTP_USER = "synthetic"; process.env.SMTP_PASSWORD = "synthetic";
     await compiled.exports.sendAccountMail("recipient@example.test", "Reset password", "https://example.test/reset");
-    assert.deepEqual(calls[0], [{ host: "smtp.example.test", port: 465, secure: true, auth: { user: "synthetic", pass: "synthetic" } }, {
-      from: "sender@example.test", to: "recipient@example.test", subject: "Reset password",
-      text: "Reset password\n\nhttps://example.test/reset\n\nIf you did not request this, you can ignore this email.\nMax Travel",
-    }]);
+    assert.deepEqual(calls[0][0],{host:"smtp.example.test",port:465,secure:true,auth:{user:"synthetic",pass:"synthetic"}});
+    const message=calls[0][1] as Record<string,string>;
+    assert.equal(message.from,"sender@example.test");assert.equal(message.to,"recipient@example.test");assert.equal(message.subject,"Reset password");
+    assert.equal(message.replyTo,"max@maxtravel.us");
+    assert.ok(message.text.startsWith("Reset password\n\nhttps://example.test/reset\n\nIf you did not request this, you can ignore this email."));
+    assert.match(message.text,/MaxTravel/);assert.match(message.text,/max@maxtravel.us/);
+
   } finally { process.env = env; delete globals.__accountMailTest; }
 });

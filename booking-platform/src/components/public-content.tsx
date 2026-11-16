@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
 import SeoJsonLd from "@/components/seo-json-ld";
-import { businessProfile, officeDirectionsHref } from "@/lib/business-profile";
+import {getCompanyProfile} from "@/lib/company-settings";
+import {getPublicPage} from "@/lib/public-pages";
 import { flightGuides, flightGuideSearchHref, type FlightGuide } from "@/lib/flight-guides";
 import type { ContentSection, PublicLink, PublicPage } from "@/lib/public-pages";
 import { editorialDiscoveryGraph, homeDiscoveryGraph, type Breadcrumb } from "@/lib/discovery-graph";
@@ -40,7 +41,8 @@ function ContentLink({ link }: { link: PublicLink }) {
   return link.href.startsWith("/") ? <Link href={link.href}>{link.label}<span aria-hidden="true"> →</span></Link> : <a href={link.href}>{link.label}<span aria-hidden="true"> ↗</span></a>;
 }
 
-export function OfficeContactCard({ compact = false, id }: { compact?: boolean; id?: string }) {
+export async function OfficeContactCard({ compact = false, id }: { compact?: boolean; id?: string }) {
+  const businessProfile=await getCompanyProfile();
   return <section id={id} tabIndex={id ? -1 : undefined} className={`public-office-card${compact ? " is-compact" : ""}`} aria-label="MaxTravel office and contact details">
     <span className="public-icon"><TravelIcon name="pin" size={23} /></span>
     <p className="public-eyebrow">A REAL OFFICE. A DIRECT CONTACT.</p>
@@ -51,7 +53,7 @@ export function OfficeContactCard({ compact = false, id }: { compact?: boolean; 
       <a href={businessProfile.phoneHref}><TravelIcon name="user" size={16} />Call {businessProfile.phone}</a>
       <a href={businessProfile.emailHref}>{businessProfile.email}</a>
     </div>
-    {!compact && <><a className="public-directions" href={officeDirectionsHref}>View our office on Google Maps <span aria-hidden="true">↗</span></a><p className="public-fineprint">Call before your visit if you need specific assistance.</p></>}
+    {!compact && <><a className="public-directions" href={businessProfile.mapsHref}>View our office on Google Maps <span aria-hidden="true">↗</span></a><p className="public-fineprint">Call before your visit if you need specific assistance.</p></>}
     {compact ? <Link className="public-office-link" href="/office">Office address & visit information →</Link> : <div className="public-social">{businessProfile.socialProfiles.map(profile => <a key={profile.href} href={profile.href}>{profile.label} <span aria-hidden="true">↗</span></a>)}</div>}
   </section>;
 }
@@ -75,16 +77,18 @@ export function RouteGuideCards({ exclude }: { exclude?: string }) {
   </Link>)}</div>;
 }
 
-export function PublicPageView({ page }: { page: PublicPage }) {
+export async function PublicPageView({ page }: { page: PublicPage }) {
+  const businessProfile=await getCompanyProfile();
+  page=getPublicPage(page.slug,businessProfile)??page;
   const path = `/${page.slug}`;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: page.slug === "flights" ? "Flights" : page.title.split(" | ")[0], href: path }];
-  const schema = editorialDiscoveryGraph({ ...page, path }, breadcrumbs, { fullBusinessProfile: page.businessSchema });
+  const schema = editorialDiscoveryGraph({ ...page, path }, breadcrumbs, { businessProfile, fullBusinessProfile: page.businessSchema });
   return <div className="public-site">
     <TravelHeader active={page.slug === "flights" ? "flights" : undefined} />
     <main id="main-content" className="public-main">
       <Breadcrumbs items={breadcrumbs} />
       <header className="public-hero public-hero--editorial">
-        <div className="public-hero-copy"><p className="public-eyebrow">{page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{page.slug === "contact" && <a className="public-button" href="#contact-options">See contact options<TravelIcon name="arrow" size={18} /></a>}{page.cta && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={officeDirectionsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}</div>
+        <div className="public-hero-copy"><p className="public-eyebrow">{page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{page.slug === "contact" && <a className="public-button" href="#contact-options">See contact options<TravelIcon name="arrow" size={18} /></a>}{page.cta && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}</div>
         <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />
       </header>
       <div className="public-layout"><article className="public-article"><PlanningNotice /><ContentSections sections={page.sections} />
@@ -96,7 +100,8 @@ export function PublicPageView({ page }: { page: PublicPage }) {
   </div>;
 }
 
-export function FlightGuideView({ guide }: { guide: FlightGuide }) {
+export async function FlightGuideView({ guide }: { guide: FlightGuide }) {
+  const businessProfile=await getCompanyProfile();
   const path = `/flights/${guide.slug}`;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Flights", href: "/flights" }, { label: `${guide.origin.city} to ${guide.destination.city}`, href: path }];
   const related = flightGuides.filter(route => guide.relatedSlugs.includes(route.slug)).map(route => ({ label: `${route.origin.city} to ${route.destination.city} guide`, href: `/flights/${route.slug}` }));
@@ -111,16 +116,17 @@ export function FlightGuideView({ guide }: { guide: FlightGuide }) {
       <section className="public-sources" aria-labelledby="sources-heading"><h2 id="sources-heading">Official planning references</h2><p>Use the current airport, airline and government guidance before travelling. External references are not endorsements or evidence of a MaxTravel partnership.</p><ul>{guide.sources.map(source => <li key={source.href}><a href={source.href}>{source.label} <span aria-hidden="true">↗</span></a></li>)}</ul><ReviewDate value={guide.reviewedAt} /></section>
     </article><aside className="public-rail"><OfficeContactCard compact /><section className="public-rail-note"><h2>Compare the same journey</h2><p>Use the same passengers, dates, airports and baggage needs when comparing the full price.</p><Link href="/flight-booking-guide">Follow the booking checklist →</Link></section></aside></div>
     <RelatedLinks links={[...related, { label: "All flight planning guides", href: "/flights" }, { label: "Pricing transparency", href: "/pricing-transparency" }]} />
-  </main><TravelFooter /><SeoJsonLd id="route-guide-schema" data={editorialDiscoveryGraph({ ...guide, path }, breadcrumbs, { sources: guide.sources })} /></div>;
+  </main><TravelFooter /><SeoJsonLd id="route-guide-schema" data={editorialDiscoveryGraph({ ...guide, path }, breadcrumbs, {businessProfile, sources: guide.sources })} /></div>;
 }
 
 /** Rendered by the server and passed through the interactive homepage as children. */
-export function HomePublicIntro() {
+export async function HomePublicIntro() {
+  const businessProfile=await getCompanyProfile();
   return <section className="home-public-intro studio-concierge" aria-labelledby="home-public-heading">
-    <div className="studio-concierge-band"><div><h2 id="home-public-heading">Visit MaxTravel in Secunderabad</h2><p>Speak with our team about flights, hotels, holiday packages, visas and travel insurance.</p><div className="studio-concierge-actions"><a href={businessProfile.phoneHref}><TravelIcon name="user" size={18}/>Call our team</a><Link href="/customer-support">Find the right help <TravelIcon name="arrow" size={18}/></Link></div></div>
+    <div className="studio-concierge-band"><div><h2 id="home-public-heading">Visit {businessProfile.locationName}</h2><p>Speak with our team about flights, hotels, holiday packages, visas and travel insurance.</p><div className="studio-concierge-actions"><a href={businessProfile.phoneHref}><TravelIcon name="user" size={18}/>Call our team</a><Link href="/customer-support">Find the right help <TravelIcon name="arrow" size={18}/></Link></div></div>
     <div className="studio-office-note"><TravelIcon name="pin" size={25}/><h3>Office address and hours</h3><p>{businessProfile.address.display}</p><p><strong>{businessProfile.hours.display}</strong></p><Link href="/office">Office details & directions →</Link><a href={businessProfile.emailHref}>{businessProfile.email}</a></div></div>
     <p className="studio-uat-note">The online platform is currently In Testing. Test searches and checkout are not live travel bookings.</p>
     <nav className="home-public-links" aria-label="Travel planning and agency information"><Link href="/flights">Flight planning</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/flight-booking-guide">Booking guide</Link><Link href="/passport-renewal-guide">Passport help</Link><Link href="/visa-guide">Visa planning</Link><Link href="/travel-insurance-guide">Travel insurance</Link><Link href="/cruise-holidays-guide">Cruises</Link><Link href="/holiday-packages-guide">Holiday packages</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/about">About MaxTravel</Link></nav>
-    <h3 className="home-public-routes-heading">Start with the right airport pair</h3><RouteGuideCards/><SeoJsonLd id="maxtravel-business-schema" data={homeDiscoveryGraph()}/>
+    <h3 className="home-public-routes-heading">Start with the right airport pair</h3><RouteGuideCards/><SeoJsonLd id="maxtravel-business-schema" data={homeDiscoveryGraph(businessProfile)}/>
   </section>;
 }

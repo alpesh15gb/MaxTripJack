@@ -8,3 +8,6 @@ body .travel-header .travel-brand--official{flex-shrink:0;min-height:44px;line-h
 @media(max-width:360px){.travel-brand--official .maxtravel-logo--header{width:156px}}
 
 .operations-brand .maxtravel-logo--operations{width:175px;filter:invert(1);mix-blend-mode:screen}
+
+body .maxtravel-logo.maxtravel-logo--custom{max-height:56px;object-fit:contain;mix-blend-mode:normal;filter:none}
+body .travel-footer-brand .maxtravel-logo--custom,body .operations-brand .maxtravel-logo--custom{background:#fff;border-radius:5px;padding:4px}

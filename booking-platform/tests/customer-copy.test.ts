@@ -37,7 +37,7 @@ test("public header and footer show In Testing with an explicit no-live warning"
 
 test("public support and cancellation copy keep booking limitations without provider names", async () => {
   const support = await load("src/components/support-experience.tsx");
-  const html = renderToStaticMarkup(createElement(support.default as ComponentType));
+  const html = renderToStaticMarkup(await (support.default as ()=>Promise<ReturnType<typeof createElement>>)());
   assert.match(html,/In Testing/);
   assert.match(html,/do not create live travel bookings or payments/);
   assert.doesNotMatch(html,internalWording);

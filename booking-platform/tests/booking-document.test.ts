@@ -12,6 +12,7 @@ for (const status of ["CANCELLED", "TICKETED", "CONFIRMED", "PAID"]) test(`docum
   (globalThis as unknown as Record<string, unknown>)[key] = state;
   const prefix = `const state=globalThis[${JSON.stringify(key)}];`;
   const mocks: Record<string,string> = {
+    "./company-settings": `import {defaultCompanySettings,profileFromSettings} from "./src/lib/company-settings-schema"; export async function getCompanyProfile(){return profileFromSettings({...defaultCompanySettings,tradingName:"Voucher Test Travel",email:"support@example.com"});}`,
     "@/lib/db": `${prefix} export function database(){return {async query(sql){
       if(sql.includes('SELECT * FROM orders'))return {rows:[{id:'synthetic',reference:'SYNTHETIC',status:state.status,product:state.status==='CONFIRMED'?'HOTEL':'FLIGHT',total_minor:'9007199254740993',created_at:'2026-10-01',updated_at:'2026-10-25',itinerary_summary:{from:'BOM',to:'DEL',date:'2026-11-01'}}]};
       if(sql.includes('supplier_quotes'))return {rows:[{review:{option:{mealBasis:'Breakfast included',roomInfo:[{name:'Deluxe room'}],inclusions:['Wi-Fi'],bookingNotes:'Photo ID required.',cancellation:{isRefundable:false},privateSecret:'NEVER_EXPOSE'}}}]};
@@ -31,6 +32,7 @@ for (const status of ["CANCELLED", "TICKETED", "CONFIRMED", "PAID"]) test(`docum
     const response = await compiled.exports.bookingDocument('synthetic');
     assert.equal(response.headers.get('Cache-Control'),'private, no-store');
     assert.equal(response.headers.get('Content-Type'),'application/pdf');
+    assert.ok(state.text.some(t=>t.includes('Voucher Test Travel')));assert.ok(state.text.some(t=>t.includes('support@example.com')));
     assert.equal(Buffer.from(await response.arrayBuffer()).subarray(0,5).toString(),'%PDF-');
     assert.ok(state.text.includes('Booking amount: INR 90071992547409.93'));
     assert.ok(state.text.some(t=>t.includes('Agreed refund: INR 90071992547409.91')));

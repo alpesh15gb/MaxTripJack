@@ -1,12 +1,12 @@
-import { businessProfile, officeServices } from "./business-profile";
+import { businessProfile, officeServices, type PublicBusinessProfile } from "./business-profile";
 import { flightGuides } from "./flight-guides";
-import { publicPages } from "./public-pages";
+import { publicPages, getPublicPage } from "./public-pages";
 import { indexingEnabled, SITE_ORIGIN, type SeoEnvironment } from "./seo";
 
 /** Plain-language site summary for AI assistants. Built only from authored, owner-confirmed content. */
-export function buildLlmsTxt(environment: SeoEnvironment = process.env): string | null {
+export function buildLlmsTxt(environment: SeoEnvironment = process.env,profile:PublicBusinessProfile=businessProfile): string | null {
   if (!indexingEnabled(environment)) return null;
-  const b = businessProfile;
+  const b = profile;
   const lines = [
     `# ${b.name}`,
     "",
@@ -19,7 +19,7 @@ export function buildLlmsTxt(environment: SeoEnvironment = process.env): string 
     `- Email: ${b.email}`,
     "",
     "## Pages",
-    ...publicPages.map(page => `- [${page.title}](${SITE_ORIGIN}/${page.slug}): ${page.description}`),
+    ...publicPages.map(item=>getPublicPage(item.slug,profile)!).map(page => `- [${page.title}](${SITE_ORIGIN}/${page.slug}): ${page.description}`),
     "",
     "## Route guides",
     ...flightGuides.map(guide => `- [${guide.title}](${SITE_ORIGIN}/flights/${guide.slug}): ${guide.description}`),

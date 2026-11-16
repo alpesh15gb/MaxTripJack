@@ -45,7 +45,10 @@ export const businessProfile = {
 export const officeDirectionsHref = businessProfile.mapsHref;
 
 /** One visible business identity, not fictitious parent/subsidiary entities. */
-export function businessStructuredData(): Record<string, unknown> {
+type Widen<T> = T extends string ? string : T extends readonly (infer U)[] ? readonly Widen<U>[] : T extends object ? {[K in keyof T]:Widen<T[K]>} : T;
+export type PublicBusinessProfile=Widen<typeof businessProfile>;
+export function businessStructuredData(profile:PublicBusinessProfile=businessProfile): Record<string, unknown> {
+  const businessProfile=profile;
   return {
     "@context": "https://schema.org",
     "@type": ["Organization", "TravelAgency"],

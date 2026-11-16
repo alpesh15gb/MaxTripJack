@@ -1,3 +1,4 @@
+import {getCompanyProfile} from './company-settings';
 import { reportInrDecimal } from './booking-report-csv';
 import { database } from '@/lib/db';
 import { unseal } from '@/lib/vault';
@@ -22,7 +23,7 @@ export async function bookingDocument(id:string){
  const option=hotelObject(hotelObject(quote?.review).option);
  const hotel=order.product==='HOTEL',cancelled=order.status==='CANCELLED';
  const title=cancelled?'Cancelled booking record':order.service_kind==='ANCILLARY'?'Flight extras confirmation':order.service_kind==='REISSUE'?'Replacement flight confirmation':hotel?'Hotel confirmation voucher':'Booking confirmation';
- const {doc,paragraph:p,section,facts,row,finish}=voucherLayout(order.reference,title,order.created_at);
+ const {doc,paragraph:p,section,facts,row,finish}=voucherLayout(order.reference,title,order.created_at,await getCompanyProfile());
  const chunks:Buffer[]=[];
  const done=new Promise<Buffer>((resolve,reject)=>{doc.on('data',chunk=>chunks.push(Buffer.from(chunk)));doc.on('end',()=>resolve(Buffer.concat(chunks)));doc.on('error',reject);});
  p(cancelled?'BOOKING CANCELLED':order.status==='TICKETED'?'FLIGHT TICKETED':'BOOKING CONFIRMED',{bold:true,size:10,color:cancelled?'#a33232':'#006756'});

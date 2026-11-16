@@ -6,7 +6,7 @@ import "./package-navigation.css";
 import "./workflow-footer.css";
 import {FooterSocialIcon} from "./footer-social-icon";
 import {footerPolicyLinks,footerSocialLinks} from "@/lib/footer-links";
-import { businessProfile } from "@/lib/business-profile";
+import {useCompanyProfile} from "./company-profile-context";
 
 type IconName = "plane" | "airplane" | "hotel" | "bed" | "bus" | "holiday" | "passport" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
 
@@ -64,10 +64,11 @@ function FooterPolicyLinks(){
 
 function AirportDataCredit(){return <p className="travel-footer-data-credit">Airport timezone data © <a href="https://openflights.org/data.php">OpenFlights contributors</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL 1.0</a></p>;}
 export function TravelFooter({compact=false}:{compact?:boolean}={}) {
- if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><FooterPolicyLinks/><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} Max Travel</span><span>In Testing · No live bookings or payments</span></div><AirportDataCredit/></footer>;
+ const businessProfile=useCompanyProfile();
+ if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><FooterPolicyLinks/><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} {businessProfile.legalName||businessProfile.name}</span><span>In Testing · No live bookings or payments</span></div><AirportDataCredit/></footer>;
  return <footer className="travel-footer travel-footer--reference">
   <div className="travel-footer-inner"><div className="travel-footer-grid">
-   <div className="travel-footer-identity"><Link href="/" className="travel-footer-brand" aria-label="MaxTravel home"><BrandLogo variant="footer"/></Link><nav className="travel-footer-socials" aria-label="Follow MaxTravel">{footerSocialLinks.map(item=><a key={item.name} href={item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}</nav></div>
+   <div className="travel-footer-identity"><Link href="/" className="travel-footer-brand" aria-label="MaxTravel home"><BrandLogo variant="footer"/></Link><nav className="travel-footer-socials" aria-label="Follow MaxTravel">{footerSocialLinks.map(item=><a key={item.name} href={item.name==='google'?businessProfile.mapsHref:item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}</nav></div>
    <nav className="travel-footer-group" aria-labelledby="footer-tourism"><h2 id="footer-tourism">Travel & Tourism</h2><ul><li><Link href="/flight-booking-guide">Flight booking guide</Link></li><li><Link href="/holiday-packages-guide">Holiday planning</Link></li><li><Link href="/cruise-holidays-guide">Cruise guide</Link></li></ul></nav>
    <nav className="travel-footer-group travel-footer-services" aria-labelledby="footer-services"><h2 id="footer-services">Services</h2><ul><li><Link href="/book?product=FLIGHT"><TravelIcon name="airplane"/>Flight</Link></li><li><Link href="/book?product=HOTEL"><TravelIcon name="bed"/>Hotel</Link></li><li><a href="https://maxtravel.us/bus"><TravelIcon name="bus"/>Bus</a></li><li><Link href="/packages"><TravelIcon name="holiday"/>Holiday</Link></li><li><a href="https://maxtravel.us/visa"><TravelIcon name="passport"/>Visa</a></li><li><a href={businessProfile.emailHref+'?subject=Travel%20insurance%20enquiry'}><TravelIcon name="shield"/>Insurance</a></li></ul></nav>
    <nav className="travel-footer-group" aria-labelledby="footer-support"><h2 id="footer-support">Help & Support</h2><ul><li><a href={businessProfile.emailHref+'?subject=Partnership%20enquiry'}>Become a Partner</a></li><li><a href="https://maxtravel.us/web-check-in">Web Check In</a></li><li><Link href="/contact">Contact Us</Link></li><li><Link href="/about">About Us</Link></li></ul></nav>
@@ -75,6 +76,6 @@ export function TravelFooter({compact=false}:{compact?:boolean}={}) {
    {/* eslint-disable-next-line @next/next/no-img-element -- Original local SVG brand artwork, served without an image proxy. */}
    <img className="travel-footer-iata" src="/brand/iata.svg" width="76" height="48" loading="lazy" alt="IATA"/>
   </div><p className="travel-footer-testing">In Testing · No live bookings or payments</p></div>
-  <div className="travel-footer-copyright">© Copyright {new Date().getFullYear()} MaxTravel</div><AirportDataCredit/>
+  <div className="travel-footer-copyright">© Copyright {new Date().getFullYear()} {businessProfile.legalName||businessProfile.name}{businessProfile.gstNumber&&` · GSTIN: ${businessProfile.gstNumber}`}</div><AirportDataCredit/>
  </footer>;
 }

@@ -1,4 +1,4 @@
-import { businessProfile, businessStructuredData } from "./business-profile";
+import { businessProfile as defaultBusinessProfile, businessStructuredData, type PublicBusinessProfile } from "./business-profile";
 import { canonicalUrl, SITE_NAME } from "./seo";
 import { isPublicSeoPath } from "./seo-registry";
 
@@ -32,15 +32,16 @@ export function breadcrumbStructuredData(items: readonly Breadcrumb[], path: str
 
 /** Rendered from the same title, review date, breadcrumbs and references as the article. */
 export function editorialDiscoveryGraph(page: EditorialPage, breadcrumbs: readonly Breadcrumb[], options: {
-  fullBusinessProfile?: boolean; sources?: readonly { label: string; href: string }[];
+  businessProfile?:PublicBusinessProfile; fullBusinessProfile?: boolean; sources?: readonly { label: string; href: string }[];
 } = {}) {
+  const businessProfile=options.businessProfile??defaultBusinessProfile;
   const url = publicUrl(page.path);
   const references = options.sources?.map(source => {
     const href = new URL(source.href);
     if (href.protocol !== "https:" || href.username || href.password) throw new Error("Editorial references require public HTTPS URLs.");
     return { "@type": "CreativeWork", name: source.label, url: href.href };
   });
-  const publisher = options.fullBusinessProfile ? businessStructuredData() : {
+  const publisher = options.fullBusinessProfile ? businessStructuredData(businessProfile) : {
     "@context": "https://schema.org", "@type": "Organization", "@id": `${canonicalUrl("/")}#organization`,
     name: businessProfile.name, url: businessProfile.website,
     telephone: businessProfile.phoneE164, email: businessProfile.email,
@@ -58,6 +59,6 @@ export function editorialDiscoveryGraph(page: EditorialPage, breadcrumbs: readon
   ] as const;
 }
 
-export function homeDiscoveryGraph() {
-  return [websiteStructuredData(), businessStructuredData()] as const;
+export function homeDiscoveryGraph(profile:PublicBusinessProfile=defaultBusinessProfile) {
+  return [websiteStructuredData(), businessStructuredData(profile)] as const;
 }

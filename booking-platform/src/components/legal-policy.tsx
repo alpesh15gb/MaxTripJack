@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {TravelHeader,TravelFooter} from './travel-shell';
-import {businessProfile} from '@/lib/business-profile';
+import {getCompanyProfile} from '@/lib/company-settings';
 import {getLegalPolicy,legalPolicies} from '@/lib/legal-policies';
 import SeoJsonLd from './seo-json-ld';
 import {editorialDiscoveryGraph} from '@/lib/discovery-graph';
@@ -13,10 +13,11 @@ export function legalPolicyMetadata(slug:string){
  return pageMetadata(`/${slug}`,policy.title,`Read MaxTravel’s ${policy.title.toLowerCase()} and find our contact details for any questions.`);
 }
 
-export function LegalPolicyPage({slug}:{slug:string}){
+export async function LegalPolicyPage({slug}:{slug:string}){
+ const businessProfile=await getCompanyProfile();
  const policy=getLegalPolicy(slug);if(!policy)notFound();
  const description=`Read MaxTravel’s ${policy.title.toLowerCase()} and find our contact details for any questions.`;
- const graph=editorialDiscoveryGraph({path:`/${slug}`,title:policy.title,description},[{label:'Home',href:'/'},{label:policy.title,href:`/${slug}`}],{sources:[{label:'View this policy on maxtravel.us',href:policy.sourceUrl}]});
+ const graph=editorialDiscoveryGraph({path:`/${slug}`,title:policy.title,description},[{label:'Home',href:'/'},{label:policy.title,href:`/${slug}`}],{businessProfile,sources:[{label:'View this policy on maxtravel.us',href:policy.sourceUrl}]});
  return <div className="legal-site"><TravelHeader/><main id="main-content" className="legal-main">
   <nav className="legal-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><span aria-current="page">{policy.title}</span></nav>
   <header className="legal-header"><div><p>POLICIES & INFORMATION</p><h1>{policy.title}</h1></div><Link className="legal-header-contact" href="/contact">Questions about this policy? <span>Contact our team →</span></Link></header>

@@ -1,3 +1,5 @@
+import {getCompanyProfile} from '@/lib/company-settings';
+import {CompanyProfileProvider} from '@/components/company-profile-context';
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -40,12 +42,13 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Every rendered document gets a fresh CSP nonce, including framework scripts.
   await connection();
+  const company=await getCompanyProfile();
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><CompanyProfileProvider value={company}>{children}</CompanyProfileProvider></body>
     </html>
   );
 }

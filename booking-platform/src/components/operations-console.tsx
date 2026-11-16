@@ -150,6 +150,7 @@ function columns(tab: Resource): [string, string][] {
         ["company_name", "Audience"],
         ["markup_minor", "Fixed markup"],
         ["markup_basis_points", "Markup %"],
+        ["margin_basis_points", "Target margin %"],
         ["service_fee_minor", "Service fee"],
         ["active", "Enabled"],
       ];
@@ -213,7 +214,7 @@ function display(key: string, row: OpsRow) {
   if (key === "is_partial")
     return row.is_partial ? "Selected travellers / items" : "Whole booking";
   if (key === "active") return row.active ? "Enabled" : "Disabled";
-  if (key === "markup_basis_points")
+  if (key === "markup_basis_points" || key === "margin_basis_points")
     return String(Number(row[key] ?? 0) / 100) + "%";
   if (key === "company_name")
     return row.company_name ? text(row.company_name) : "Public customers";
@@ -529,6 +530,7 @@ export default function OperationsConsole() {
               </Link>
             </>
           )}
+          {context.permissions.includes("companies:manage")&&<Link href="/operations/settings">Company settings ↗</Link>}
           <Link href="/account">Account & security ↗</Link>
           <div className="ops-staff">
             <strong>{context.name}</strong>

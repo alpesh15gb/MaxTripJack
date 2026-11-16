@@ -126,10 +126,13 @@ export async function POST(request: Request, context: Context) {
               product: z.enum(["FLIGHT", "HOTEL"]),
               markupMinor: z.number().int().min(0).max(100000000),
               basisPoints: z.number().int().min(0).max(10000),
+              marginBasisPoints:z.number().int().min(0).max(9500).default(0),
               serviceFeeMinor: z.number().int().min(0).max(100000000),
             })
             .strict(),
         );
+        if(input.basisPoints>0&&input.marginBasisPoints>0)throw new HttpError(400,"Choose markup or target margin, not both.");
+        if(input.companyId){const company=await tx.query("SELECT id FROM companies WHERE id=$1 AND status='APPROVED'",[input.companyId]);if(!company.rowCount)throw new HttpError(400,"Choose an approved corporate account.");}
         await tx.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
           `${input.product}:${input.companyId ?? "PUBLIC"}`,
         ]);
@@ -143,7 +146,7 @@ export async function POST(request: Request, context: Context) {
           [input.product, input.companyId],
         );
         await tx.query(
-          "INSERT INTO pricing_rules(id,company_id,product,markup_minor,markup_basis_points,service_fee_minor) VALUES($1,$2,$3,$4,$5,$6)",
+          "INSERT INTO pricing_rules(id,company_id,product,markup_minor,markup_basis_points,service_fee_minor,margin_basis_points) VALUES($1,$2,$3,$4,$5,$6,$7)",
           [
             input.id,
             input.companyId,
@@ -151,6 +154,7 @@ export async function POST(request: Request, context: Context) {
             input.markupMinor,
             input.basisPoints,
             input.serviceFeeMinor,
+            input.marginBasisPoints,
           ],
         );
         id = input.id;
@@ -159,6 +163,7 @@ export async function POST(request: Request, context: Context) {
           companyId: input.companyId,
           markupMinor: input.markupMinor,
           basisPoints: input.basisPoints,
+          marginBasisPoints:input.marginBasisPoints,
           serviceFeeMinor: input.serviceFeeMinor,
         };
       } else if (name === "cancellations") {

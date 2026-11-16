@@ -1,16 +1,18 @@
+import {join} from 'node:path';
 import PDFDocument from 'pdfkit';
-import {businessProfile} from './business-profile';
+import {defaultCompanySettings,profileFromSettings,type CompanyProfile} from './company-settings-schema';
 
 const ink='#17383e', muted='#577076', teal='#006756', line='#dce6e5';
 /** A shared, measured print layout. Keep every content block inside the footer boundary. */
-export function voucherLayout(reference:string, title:string, createdAt:string|Date){
- const doc=new PDFDocument({size:'A4',margin:42,bufferPages:true,info:{Title:`MaxTravel ${reference}`,Author:'MaxTravel',CreationDate:new Date(createdAt)}});
+export function voucherLayout(reference:string, title:string, createdAt:string|Date,businessProfile:CompanyProfile=profileFromSettings(defaultCompanySettings)){
+ const doc=new PDFDocument({size:'A4',margin:42,bufferPages:true,info:{Title:`${businessProfile.name} ${reference}`,Author:businessProfile.name,CreationDate:new Date(createdAt)}});
  const left=42,width=doc.page.width-84,bottom=752;
  let y=112;
  function header(){
   doc.rect(0,0,doc.page.width,7).fill(teal);
-  doc.font('Helvetica-Bold').fontSize(25).fillColor(ink).text('MAX TRAVEL',left,31);
-  doc.font('Helvetica').fontSize(9).fillColor(muted).text('Your journey. Our care.',left,62);
+  if(businessProfile.logoDataUrl)doc.image(Buffer.from(businessProfile.logoDataUrl.split(',')[1],'base64'),left,28,{fit:[230,48]});
+  else doc.image(join(process.cwd(),'public','brand','maxtravel-logo.jpg'),left,28,{fit:[230,48]});
+
   doc.font('Helvetica-Bold').fontSize(10).fillColor(teal).text(title,left+270,37,{width:width-270,align:'right'});
   doc.font('Helvetica').fontSize(9).fillColor(muted).text(reference,left+270,57,{width:width-270,align:'right'});
   doc.moveTo(left,89).lineTo(left+width,89).strokeColor(line).stroke();
@@ -49,10 +51,16 @@ export function voucherLayout(reference:string, title:string, createdAt:string|D
   y+=h;doc.moveTo(left,y-7).lineTo(left+width,y-7).strokeColor(line).stroke();
  }
  function finish(){
+  const contact=[
+   {text:`${businessProfile.phone}  |  ${businessProfile.email}`,size:10,bold:true},
+   {text:`${businessProfile.hours.display}. Manage your booking at ${businessProfile.website}/my-trips.`,size:9,bold:false},
+   {text:`${businessProfile.legalName||businessProfile.name} | ${businessProfile.address.display}${businessProfile.gstNumber?` | GSTIN: ${businessProfile.gstNumber}`:''}`,size:8,bold:false},
+   {text:'This document records booking status, not payment settlement or a GST tax invoice. Supplier ticket numbers are shown only when returned by the supplier.',size:8,bold:false},
+  ];
+  const contactHeight=37+contact.reduce((sum,item)=>sum+doc.font(item.bold?'Helvetica-Bold':'Helvetica').fontSize(item.size).heightOfString(item.text,{width,lineGap:3})+9,0);
+  ensure(contactHeight);
   section('We are here to help');
-  paragraph(`${businessProfile.phone}  |  ${businessProfile.email}`,{bold:true});
-  paragraph('Every day, 9:00 am - 9:00 pm (India time). Manage your booking at maxtravel.in/my-trips.',{size:9,color:muted});
-  paragraph('This document records booking status, not payment settlement or a GST tax invoice. Supplier ticket numbers are shown only when returned by the supplier.',{size:8,color:muted});
+  for(const item of contact)paragraph(item.text,{size:item.size,bold:item.bold,color:item.bold?ink:muted});
   const pages=doc.bufferedPageRange();
   for(let i=0;i<pages.count;i++){
    doc.switchToPage(i);doc.moveTo(left,777).lineTo(left+width,777).strokeColor(line).stroke();
