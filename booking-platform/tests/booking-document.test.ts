@@ -1,25 +1,26 @@
 import test from "node:test";
+import PDFDocument from "pdfkit";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 // Exercise the actual renderer with synthetic DB/vault/PDF boundaries. No travel or mail actions.
-for (const status of ["CANCELLED", "TICKETED", "PAID"]) test(`document truthful state and exact amounts: ${status}`, async () => {
-  const state = { text: [] as string[], status };
+for (const status of ["CANCELLED", "TICKETED", "CONFIRMED", "PAID"]) test(`document truthful state and exact amounts: ${status}`, async () => {
+  const state = { text: [] as string[], status, PDFDocument };
   const key = `__document_test_${status}`;
   (globalThis as unknown as Record<string, unknown>)[key] = state;
   const prefix = `const state=globalThis[${JSON.stringify(key)}];`;
   const mocks: Record<string,string> = {
     "@/lib/db": `${prefix} export function database(){return {async query(sql){
-      if(sql.includes('SELECT * FROM orders'))return {rows:[{id:'synthetic',reference:'SYNTHETIC',status:state.status,product:'FLIGHT',total_minor:'9007199254740993',created_at:'2026-10-01',updated_at:'2026-10-25',itinerary_summary:{from:'BOM',to:'DEL',date:'2026-11-01'}}]};
+      if(sql.includes('SELECT * FROM orders'))return {rows:[{id:'synthetic',reference:'SYNTHETIC',status:state.status,product:state.status==='CONFIRMED'?'HOTEL':'FLIGHT',total_minor:'9007199254740993',created_at:'2026-10-01',updated_at:'2026-10-25',itinerary_summary:{from:'BOM',to:'DEL',date:'2026-11-01'}}]};
+      if(sql.includes('supplier_quotes'))return {rows:[{review:{option:{mealBasis:'Breakfast included',roomInfo:[{name:'Deluxe room'}],inclusions:['Wi-Fi'],bookingNotes:'Photo ID required.',cancellation:{isRefundable:false},privateSecret:'NEVER_EXPOSE'}}}]};
       if(sql.includes('cancellation_requests'))return {rowCount:1,rows:[{is_partial:false,refund_offer_minor:'9007199254740991',scope:{trips:[]}},{is_partial:true,refund_offer_minor:null,scope:{trips:[]}}]};
       return {rows:[]};
     }}}`,
     "@/lib/vault": `export function unseal(){return {travellers:[]};}`,
-    "pdfkit": `${prefix} import {EventEmitter} from 'node:events'; export default class PDF extends EventEmitter {
-      fillColor(){return this} fontSize(){return this} moveDown(){return this}
-      text(value){state.text.push(value);return this} end(){this.emit('data',Buffer.from('synthetic-pdf'));this.emit('end')}
+    "pdfkit": `${prefix} const RealPDF=state.PDFDocument; export default class PDF extends RealPDF {
+      text(value,...args){state.text.push(value);return super.text(value,...args)}
     }`,
   };
   try {
@@ -29,12 +30,14 @@ for (const status of ["CANCELLED", "TICKETED", "PAID"]) test(`document truthful 
     if(status==='PAID'){await assert.rejects(compiled.exports.bookingDocument('synthetic'),/after the supplier confirms/);assert.deepEqual(state.text,[]);return;}
     const response = await compiled.exports.bookingDocument('synthetic');
     assert.equal(response.headers.get('Cache-Control'),'private, no-store');
+    assert.equal(response.headers.get('Content-Type'),'application/pdf');
+    assert.equal(Buffer.from(await response.arrayBuffer()).subarray(0,5).toString(),'%PDF-');
     assert.ok(state.text.includes('Booking amount: INR 90071992547409.93'));
     assert.ok(state.text.some(t=>t.includes('Agreed refund: INR 90071992547409.91')));
     assert.ok(state.text.some(t=>t.includes('Agreed refund amount unavailable')));
     assert.ok(state.text.includes('Partial cancellation confirmed for the travellers and segments below.'));
     assert.ok(!state.text.some(t=>t.includes('remaining travel stays active')));
     if(status==='CANCELLED'){assert.ok(state.text.includes('Cancelled booking record'));assert.ok(state.text.some(t=>t.includes('not valid for travel')&&t.includes('does not confirm that a refund has completed')));}
-    else assert.ok(state.text.includes('Booking confirmation'));
+    else if(status==='CONFIRMED'){assert.ok(state.text.includes('Hotel confirmation voucher'));assert.ok(state.text.includes('Breakfast included'));assert.ok(state.text.includes('Deluxe room'));assert.ok(state.text.includes('Photo ID required.'));assert.ok(state.text.some(t=>t.includes('non-refundable')));assert.ok(!state.text.some(t=>t.includes('NEVER_EXPOSE')));}else assert.ok(state.text.includes('Booking confirmation'));
   } finally {delete (globalThis as unknown as Record<string,unknown>)[key];}
 });

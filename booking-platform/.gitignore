@@ -53,3 +53,6 @@ next-env.d.ts
 /test-results-webkit/
 
 /.artifacts/
+
+/output/pdf/
+/tmp/pdfs/
