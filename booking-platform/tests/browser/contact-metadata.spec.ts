@@ -15,7 +15,7 @@ for(const narrow of [false,true]){
   await expect(contacts).toBeFocused();
   await expect(contacts.locator('a[href="tel:+917095018018"]')).toBeInViewport();
   await expect(contacts.locator('a[href="mailto:max@maxtravel.us"]')).toBeVisible();
-  await expect(contacts).toContainText('Every day, 9:00 am–9:00 pm (India time)');
+  await expect(contacts).toContainText('Every day, 09:00 - 21:00 (India time)');
   await expect(page).toHaveURL(/\/contact#contact-options$/);
   await testInfo.attach(`contact-options${narrow?'-320':''}-viewport`,{body:await page.screenshot({fullPage:false}),contentType:'image/png'});
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
@@ -37,7 +37,7 @@ test('pending hotel details are distinct from absence and never replace rates or
   const card=page.getByRole('article',{name:'Goa layout sample'});
   await expect(page.locator('.hotel-content-status')).toHaveText('Adding property details…');
   await expect(card).toContainText('Property photos loading…');
-  await expect(card).toContainText('Address details loading…');
+  await expect(card).toContainText('Property details loading…');
   await expect(card).not.toContainText('not supplied');
   await expect(card).toContainText('₹8,000.00');
   await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
@@ -50,7 +50,7 @@ test('pending hotel details are distinct from absence and never replace rates or
  }finally{release();}
  const card=page.getByRole('article',{name:'Goa layout sample'});
  await expect(card).toContainText('Fixture address, Goa');
- await expect(page.locator('.hotel-content-status')).toHaveText('Compare room options.');
+ await expect(page.locator('.hotel-content-status')).toHaveCount(0);
  await expect.poll(()=>card.locator('img').evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
  expect(Math.abs((await card.locator('.hotel-card-photo').boundingBox())!.height-photoHeight)).toBeLessThanOrEqual(1);
  await expect(card).toContainText('₹8,000.00');
@@ -68,9 +68,9 @@ for(const outcome of ['absent','failure','supplier failure','missing status','mi
   provider.search={searchId,propertyContentPending:true,results:{hotels:[{tjHotelId:'10001',name:'Fixture Stay',customerEstimateMinor:800000,propertyContentStatus:'pending',property:{amenities:[]}}]}};
   await page.goto(hotelQuery);
   const card=page.getByRole('article',{name:'Fixture Stay'});
-  await expect(page.locator('.hotel-content-status')).toHaveText(outcome==='absent'?'Compare room options.':'Some details unavailable.');
+  if(outcome==='absent')await expect(page.locator('.hotel-content-status')).toHaveCount(0);else await expect(page.locator('.hotel-content-status')).toHaveText('Some details unavailable.');
   await expect(card).toContainText(outcome==='absent'?'Property photos not available':'Property photos unavailable right now');
-  await expect(card).toContainText(outcome==='absent'?'Address details not supplied':'Address unavailable right now');
+  await expect(card).toContainText(outcome==='absent'?'Address details not supplied':'Property details unavailable right now');
   await expect(card).not.toContainText('loading…');
   await expect(card).toContainText('₹8,000.00');
   await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
@@ -97,17 +97,17 @@ test('cached values and known missing fields stay truthful while another propert
   await expect(cachedEmpty).toContainText('Property photos not available');
   await expect(cachedEmpty).toContainText('Address details not supplied');
   await expect(cachedEmpty).not.toContainText('loading…');
-  await expect(page.getByRole('article',{name:'Uncached Stay'})).toContainText('Address details loading…');
+  await expect(page.getByRole('article',{name:'Uncached Stay'})).toContainText('Property details loading…');
   await expect(cached).toContainText('Cached fixture address');
  }finally{release();}
  await expect(page.locator('.hotel-content-status')).toHaveText('Some details unavailable.');
  await expect(cached).toContainText('Cached fixture address');
- await expect(cached).toContainText('Property category: 4 stars');
+ await expect(cached).toContainText('4-star property category');
  await expect(cached).not.toContainText('unavailable right now');
  await expect.poll(()=>cached.locator('img').evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
  await expect(cachedEmpty).toContainText('Property photos not available');
  await expect(cachedEmpty).toContainText('Address details not supplied');
- await expect(page.getByRole('article',{name:'Uncached Stay'})).toContainText('Address unavailable right now');
+ await expect(page.getByRole('article',{name:'Uncached Stay'})).toContainText('Property details unavailable right now');
  await expect(cached.getByRole('button',{name:/Choose room/})).toBeEnabled();
 });
 
@@ -118,7 +118,7 @@ test('a cached unavailable outcome stays distinct from genuine absence without a
  await page.goto(hotelQuery);
  await expect(page.locator('.hotel-content-status')).toHaveText('Some details unavailable.');
  const card=page.getByRole('article',{name:'Unavailable details Stay'});
- await expect(card).toContainText('Address unavailable right now');
+ await expect(card).toContainText('Property details unavailable right now');
  await expect(card).not.toContainText('not supplied');
  await expect(card).toContainText('₹8,000.00');
  await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
@@ -142,7 +142,7 @@ for(const narrow of [false,true]){
    expect(geometry.text).toBeLessThanOrEqual(geometry.available);
    if(mobile){expect(geometry.height).toBeGreaterThanOrEqual(44);expect(geometry.buttonHeight).toBeGreaterThanOrEqual(44);expect(Math.abs(geometry.bottom-geometry.buttonBottom)).toBeLessThan(1);expect(geometry.right).toBeLessThanOrEqual(geometry.buttonLeft);expect(geometry.left).toBeGreaterThanOrEqual(0);expect(geometry.buttonRight).toBeLessThanOrEqual(geometry.viewport);}
   }
-  await expect(page.locator('.hotel-content-status')).toHaveText('Compare room options.');await expectNoHorizontalOverflow(page);
+  await expect(page.locator('.hotel-content-status')).toHaveCount(0);await expectNoHorizontalOverflow(page);
   await testInfo.attach(`hotel-compact-toolbar${narrow?'-320':''}-viewport`,{body:await page.screenshot({fullPage:false}),contentType:'image/png'});
   expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  });

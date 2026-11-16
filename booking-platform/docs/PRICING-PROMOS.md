@@ -15,9 +15,15 @@ Staff require verified email, enabled authenticator and `pricing:manage`.
   expiry and an optional maximum discount. The expiry input uses the browser's
   local timezone and is stored in UTC. Code names are unique and cannot be renamed.
   Codes are reusable; this version has no usage-count or per-customer limits.
+  Existing and new codes are private by default. Enable **Show in checkout offers**
+  to share a code with checkout customers whose current booking qualifies. Leave
+  it unchecked for codes you distribute directly.
 - Review & pay accepts one code per new booking. Discounts are capped at the
   available difference between selling price and supplier cost. The customer sees
-  the actual discount. The supplier amount is never discounted.
+  the actual discount. **Available offers** shows eligible public codes, the saving
+  calculated for the current quote, the minimum booking value where applicable,
+  and expiry. Customers can also enter a code manually. The supplier amount is
+  never discounted.
 - Applying/removing is server-calculated against an owned, unexpired quote, under
   a row lock. Reapplication does not stack. Changing extras clears the discount;
   reviewing a new quote requires applying the code again. A payment already
@@ -28,7 +34,8 @@ Staff require verified email, enabled authenticator and `pricing:manage`.
 
 ## Deployment
 
-Migration 022 is additive and required before starting the new app image.
+Migrations 022 and 023 are additive and required before starting the new app image.
+Migration 023 adds checkout visibility with a private default for all existing codes.
 The existing owner-credential migration wrapper runs all pending migrations.
 No SMTP, payment or pricing environment changes are needed.
 
@@ -53,6 +60,8 @@ No SMTP, payment or pricing environment changes are needed.
 ```
 
 After deployment, test an edited rule using a fresh flight and hotel search.
-Create an appropriate promotion and apply/remove it at Review & pay. Check the
-discounted amount before opening payment. Local automated UI tests use synthetic
-inventory and payment stubs; they do not book travel or prove a VPS migration.
+Create a private promotion and a promotion with **Show in checkout offers** enabled.
+At Review & pay, verify that only the eligible public code appears in **Available
+offers**. Apply and remove it, then enter the private code manually and verify
+the discounted amount before opening payment. Local automated UI tests use synthetic
+inventory and payment stubs. They do not book travel or prove a VPS migration.

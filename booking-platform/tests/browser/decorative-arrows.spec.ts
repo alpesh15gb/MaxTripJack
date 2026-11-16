@@ -20,7 +20,9 @@ test('office navigation and booking companion use font-independent decorative ar
   await page.addStyleTag({content:'.travel-business-nav span,.summary-compass{font-family:monospace!important}'});
   await expect(compass).toHaveCSS('width','48px');
   await expect(compass).toHaveCSS('height','48px');
-  await expect(compass.locator('svg')).toBeVisible();
+  // The planning photo replaces this redundant decoration; retained SVG markup
+  // stays font-independent without introducing another visible compass.
+  await expect(compass.locator('svg')).toBeHidden();
   if(testInfo.project.name==='desktop-1440'){
     await expect(officeIcon).toBeVisible();
     await expect(office).toHaveAccessibleName('Our office');

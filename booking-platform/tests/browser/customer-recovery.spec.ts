@@ -228,6 +228,7 @@ test('MFA enrollment secrets and pending completion are scoped to the authentica
  provider.overrides['POST /api/auth/two-factor/enable']={body:{totpURI:'otpauth://totp/SYNTHETIC-A?secret=NOTAREALSECRET',backupCodes:['SYNTHETIC-A-BACKUP']}};
  await page.goto('/account');await page.locator('.account-card').getByLabel('Current password',{exact:true}).first().fill('SyntheticPassword123');
  await page.getByRole('button',{name:'Set up authenticator',exact:true}).click();
+ await page.getByText('Can’t scan? Enter a setup key manually',{exact:true}).click();
  await expect(page.getByRole('textbox',{name:'Authenticator setup URI',exact:true})).toHaveValue('otpauth://totp/SYNTHETIC-A?secret=NOTAREALSECRET');
  provider.session=syntheticSession('account-b');await refreshSession(page);
  await expect(page.getByRole('button',{name:'Set up authenticator',exact:true})).toBeVisible();

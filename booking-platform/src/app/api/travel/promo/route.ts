@@ -1,10 +1,37 @@
 import { z } from 'zod';
 import { principal } from '@/lib/access';
-import { transaction } from '@/lib/db';
+import { database, transaction } from '@/lib/db';
 import { body, failure, HttpError, json, sameOrigin } from '@/lib/http';
 import { assertFresh } from '@/lib/supplier-flow';
 import { promoDiscount } from '@/lib/promo-calculation';
 import { requestLimit } from '@/lib/request-limit';
+import { checkoutPromoOffers, type DiscoverablePromoRule } from '@/lib/promo-offers';
+
+export async function GET(request: Request) {
+ try {
+  const actor = await principal(request);
+  const quoteId = z.string().uuid().parse(new URL(request.url).searchParams.get('quoteId'));
+  await requestLimit(actor.userId, 'promo-offers', 20);
+  const db = database();
+  const {rows: [quote]} = await db.query(`
+   SELECT q.product, q.expires_at, q.service_kind, q.total_minor, q.undiscounted_minor, q.supplier_minor,
+    EXISTS(SELECT 1 FROM orders WHERE quote_id=q.id) AS payment_started
+   FROM supplier_quotes q WHERE q.id=$1 AND q.user_id=$2 AND q.company_id IS NOT DISTINCT FROM $3::uuid
+  `, [quoteId, actor.userId, actor.companyId]);
+  if (!quote) throw new HttpError(404, 'Quote not found.');
+  assertFresh(quote.expires_at);
+  if (quote.payment_started) throw new HttpError(409, 'Payment has already started.');
+  if (quote.service_kind || !['FLIGHT', 'HOTEL'].includes(quote.product)) return json({offers: []});
+  const original = Number(quote.undiscounted_minor ?? quote.total_minor);
+  const result = await db.query<DiscoverablePromoRule>(`
+   SELECT code, discoverable, product, active, expires_at, discount_minor, discount_basis_points, minimum_minor, maximum_discount_minor
+   FROM promo_codes WHERE discoverable=true AND active=true AND expires_at>now()
+    AND (product='ALL' OR product=$1) AND minimum_minor<=$2
+  `, [quote.product, original]);
+  return json({offers: checkoutPromoOffers(result.rows, quote.product, original, Number(quote.supplier_minor))});
+ } catch (error) { return failure(error); }
+}
+
 export async function POST(request:Request){try{
  sameOrigin(request);const actor=await principal(request);
  await requestLimit(actor.userId,'promo-apply',20);

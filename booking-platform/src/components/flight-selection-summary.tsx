@@ -3,7 +3,7 @@ import { displayMoney } from '@/lib/display-money';
 import { comparableFareEstimate } from '@/lib/fare-display';
 import { segmentDurationLabel } from '@/lib/flight-duration';
 import { arrivalDayLabel } from '@/lib/flight-results';
-import { airportDecisionLabel as selectionAirportLabel } from '@/lib/flight-decision';
+import { airportDecisionLabel as selectionAirportLabel, fareDecisionName } from '@/lib/flight-decision';
 import { selectedJourneyEstimate, type FlightSelectionGroup } from '@/lib/flight-selection-summary';
 import { travelDateTimeLabel, travelTimeLabel } from '@/lib/travel-date';
 
@@ -44,7 +44,7 @@ export default function FlightSelectionSummary({ groups, activeGroup, busy, chec
             {dayChange && <span className="flight-day-change">{dayChange}</span>}
             <small className="selection-leg-duration">{durationLabel(journeyMinutes(flight, group))} · {stops === null ? 'Stop details unavailable' : stops === 0 ? 'Non-stop' : `${stops} stop${stops === 1 ? '' : 's'}`}</small>
           </>}
-          <small className="selection-leg-fare">{fare.fareIdentifier.replaceAll('_', ' ')} · {price === null ? 'Price at review' : `${displayMoney(price)} estimated`} · all travellers</small>
+          <small className="selection-leg-fare">{fareDecisionName(fare)} · {price === null ? 'Price at review' : `${displayMoney(price)} estimated`} · all travellers</small>
           <button type="button" className="secondary" disabled={busy} onClick={() => onChange(group)}>Change {groupLabel(group).toLowerCase()}</button>
         </> : <strong>{activeGroup === group ? 'Choose this flight next' : 'Not selected yet'}</strong>}
       </li>;

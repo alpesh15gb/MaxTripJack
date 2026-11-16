@@ -6,7 +6,7 @@ import {travelDateLabel} from '@/lib/travel-date';
 import HotelPropertyMedia,{type HotelMetadataStatus} from './hotel-property-media';
 import {money} from './booking-flight-card';
 
-export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready'}:{hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement)=>void}){
+export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore}:{hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement)=>void}){
  const [filters,setFilters]=useState(()=>readHotelBrowse(searchId).filters??{...emptyHotelFilters}),[sort,setSort]=useState(()=>readHotelBrowse(searchId).sort??'price'),[expanded,setExpanded]=useState(false);
  useEffect(()=>{writeHotelBrowse(searchId,{filters,sort});},[searchId,filters,sort]);
  const shown=filterHotelResults(hotels,filters,sort),nights=stayNights(context);
@@ -29,7 +29,7 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
   </div>
   <aside id="hotel-search-filters" className={`hotel-search-filters${expanded?' is-expanded':''}`} aria-label="Filter stays">
    <div className="hotel-filter-heading"><h3>Refine your stay</h3><button type="button" className="hotel-reset" disabled={!active.length} onClick={()=>setFilters({...emptyHotelFilters})}>Reset filters</button></div>
-   <p>Only filters the loaded properties. Other hotel groups may have more stays.</p>
+   <p>Filters apply to stays loaded so far. Load more stays to explore the rest of this destination.</p>
    <label>Property name<input type="search" value={filters.name} onChange={e=>update('name',e.target.value)} placeholder="Find a property"/></label>
    <label>Maximum stay total (₹)<input type="number" min="0" step="1" inputMode="numeric" value={filters.budget} onChange={e=>update('budget',e.target.value)} placeholder="No limit"/></label>
    <small>Estimated total for all selected rooms. Unpriced stays are excluded when a limit is set.</small>
@@ -40,9 +40,9 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
   <div className="hotel-shopping-results">
    {active.length>0&&<div className="hotel-active-filters" aria-label="Active hotel filters">{active.map(([key,value])=><button className="hotel-filter-chip" key={key} type="button" aria-label={`Remove ${key} filter`} onClick={()=>{update(key as keyof typeof filters,'');focusResults();}}>{key==='budget'?`Up to ₹${value} / stay`:key==='category'?`${value} stars`:value}<span aria-hidden="true"> ×</span></button>)}</div>}
    <div className="booking-hotel-list">{shown.map(hotel=>{
-    const contentState=hotel.propertyContentStatus==='resolved'?'ready':hotel.propertyContentStatus==='unavailable'?'unavailable':metadataStatus;
+    const contentState=hotel.propertyContentStatus==='resolved'?'ready':hotel.propertyContentStatus==='unavailable'?'unavailable':hotel.propertyContentStatus==='pending'?'loading':metadataStatus;
     const total=knownHotelTotal(hotel),amenities=hotelAmenities(hotel.property?.amenities);
-    const propertyHref=hotelJourneyUrl(searchId,hotel.tjHotelId);
+    const propertyHref=hotelJourneyUrl(hotel.originSearchId??searchId,hotel.tjHotelId);
     return <article className="white-card booking-record booking-hotel-card hotel-shopping-card" key={hotel.tjHotelId} aria-label={hotel.name}>
      <div className="hotel-card-photo">
       <a href={propertyHref} aria-label={`View ${hotel.name} photos and details`} onClick={event=>{if(event.button===0&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onChoose(hotel,event.currentTarget);}}}>
@@ -53,6 +53,7 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
       <div className="hotel-property-kind">{hotel.property?.propertyType||'Stay'}</div>
       <h3 id={`hotel-name-${hotel.tjHotelId}`}><a href={propertyHref} onClick={event=>{if(event.button===0&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onChoose(hotel,event.currentTarget);}}}>{hotel.name}</a></h3>
       {hotel.property?.starRating ? <p className="hotel-property-category"><span aria-hidden="true">★</span> {hotel.property.starRating}-star property category</p> : null}
+      {hotel.property?.city&&<p className="hotel-property-locality">{hotel.property.city}</p>}
       <p className="hotel-property-address">{hotel.property?.address||(contentState==='loading'?'Property details loading…':contentState==='unavailable'?'Property details unavailable right now':'Address details not supplied')}</p>
       {amenities.length>0&&<ul className="hotel-amenity-list" aria-label="Property amenities">{amenities.slice(0,4).map(item=><li key={item.toLocaleLowerCase()}>{item}</li>)}</ul>}
       <p className="hotel-room-note">Room types, meals & cancellation terms on the next step.</p>
@@ -68,7 +69,8 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
      </div>
     </article>;
    })}</div>
-   {!shown.length&&<div className="empty-results"><h3>{hotels.length?'No stays match your filters':'No stays found'}</h3><p>{hotels.length?'Try a different name, category or stay budget.':'Try another hotel group, destination or date range.'}</p>{active.length>0&&<button className="secondary" type="button" onClick={()=>{setFilters({...emptyHotelFilters});focusResults();}}>Clear hotel filters</button>}</div>}
+   {!shown.length&&<div className="empty-results"><h3>{hotels.length?'No stays match your filters':'No stays found'}</h3><p>{hotels.length?'Try a different name, category or stay budget.':'Try a different destination or date range, or load more stays if available.'}</p>{active.length>0&&<button className="secondary" type="button" onClick={()=>{setFilters({...emptyHotelFilters});focusResults();}}>Clear hotel filters</button>}</div>}
+   {(hasMore||loadingMore||loadMoreError)&&<div className="hotel-load-more"><p>{hasMore||loadingMore?'Showing stays checked so far. More properties in this destination can be checked for your dates.':'All destination pages have been checked for your dates.'}</p>{loadMoreError&&<p role="alert">{loadMoreError}</p>}{(hasMore||loadingMore)&&<button type="button" className="secondary" disabled={busy||loadingMore} onClick={onLoadMore}>{loadingMore?'Checking more stays…':loadMoreError?'Retry loading stays':'Load more stays'}</button>}</div>}
   </div>
  </div>;
 }

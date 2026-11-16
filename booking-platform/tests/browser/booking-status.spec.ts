@@ -20,7 +20,7 @@ function details(product: "FLIGHT" | "HOTEL" = "FLIGHT", status = "BOOKING_PENDI
       : { from: "BOM", to: "DEL", date: departure, adults: 1 },
     supplierBookingId: "SUPPLIER-SYNTHETIC-STATUS",
     hotelName: product === "HOTEL" ? "Synthetic Goa Stay" : null,
-    passengers: product === "FLIGHT" ? [{ name: "Synthetic Traveller", pnrs: ["TESTPNR"], tickets: ["TEST-TICKET"] }] : [],
+    passengers: product === "FLIGHT" ? [{ name: "Synthetic Traveller", pnrs: ["TESTPNR"], tickets: ["TEST-TICKET"] }] : [{ name: "Synthetic Guest", pnrs: [], tickets: [] }],
     refunds: [],
   };
 }
@@ -54,6 +54,11 @@ for (const product of ["FLIGHT", "HOTEL"] as const) {
     if (product === "FLIGHT") {
       await expect(confirmation).toContainText("TESTPNR");
       await expect(confirmation).toContainText("TEST-TICKET");
+    }
+    if (product === "HOTEL") {
+      await expect(confirmation).toContainText("Synthetic Guest");
+      await expect(confirmation).toContainText("2 rooms · 5 guests");
+      await expect(confirmation).not.toContainText(/PNR:|Ticket:|Awaiting supplier reference/);
     }
     await expect(confirmation.getByRole("link", { name: "Download confirmation PDF" })).toHaveAttribute("href", `/api/bookings/${bookingId}/document`);
     await expect(summary).toContainText("MT-SYNTHETIC-STATUS");

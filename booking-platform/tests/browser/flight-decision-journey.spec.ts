@@ -15,10 +15,10 @@ for(const width of [null,320])test(`aligned fare decisions expose duplicate labe
  await card.locator('.flight-segment-details>summary').click();await expect(card.locator('.flight-segment-details')).toContainText('Supplied Mumbai Airport');
  await card.locator('.fare-comparison>summary').click();
  const offers=card.locator('.fare-option');await expect(offers).toHaveCount(3);
- await expect(offers.nth(0).getByRole('heading')).toHaveText('CORPORATE · Option 1');await expect(offers.nth(1).getByRole('heading')).toHaveText('CORPORATE · Option 2');
+ await expect(offers.nth(0).getByRole('heading')).toHaveText('Corporate fare · Option 1');await expect(offers.nth(1).getByRole('heading')).toHaveText('Corporate fare · Option 2');
+ await expect(card.locator('.fare-shared-terms')).toContainText('seat inclusions and eligibility at review');
  for(const offer of await offers.all()){
   const rows=offer.locator('.fare-decision-dimensions>div');await expect(rows).toHaveCount(4);
-  await expect(offer.locator('.fare-unknown-conditions')).toHaveText('Seat inclusion, change terms and eligibility: Not supplied.');
  }
  await expect(offers.first()).toContainText('child: cabin baggage 5 Kg · checked baggage 10 Kg');await expect(offers.last()).toContainText('Price at review');await expect(offers.nth(1).locator('.fare-decision-dimensions')).toContainText('5 (unit not supplied)');await expect(offers.nth(1).locator('.fare-decision-dimensions')).not.toContainText('5 Kg');
  await expect(card.locator('.fare-itinerary-dates')).toContainText(travelDateTimeLabel(journey.sI[0].dt));

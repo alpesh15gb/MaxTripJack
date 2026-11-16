@@ -36,14 +36,17 @@ async function openSyntheticPayment(page: Page) {
 test('fare comparison selects a server fare id and shows a reviewed party total', async ({ page, provider }, testInfo) => {
   await openFlightSearch(page);
   await page.locator('.fare-comparison > summary').first().click();
-  await expect(page.getByText('Cabin baggage: 7 Kg', { exact: true })).toBeVisible();
-  await expect(page.getByText('Checked baggage: 15 Kg', { exact: true })).toBeVisible();
+  const details = page.locator('.fare-decision-dimensions > div');
+  await expect(details.filter({ has: page.getByText('Cabin baggage', { exact: true }) }).getByText('7 Kg', { exact: true })).toBeVisible();
+  await expect(details.filter({ has: page.getByText('Checked baggage', { exact: true }) }).getByText('15 Kg', { exact: true })).toBeVisible();
   await capture(page, testInfo, 'fare-comparison');
   await page.getByRole('button', { name: 'Check fare & continue', exact: true }).click();
   await expect(page.getByRole('form', { name: 'Review and travellers' })).toBeVisible();
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
   expect(provider.requests('/api/travel/review')[0].body).toEqual({ searchId, priceIds: ['onward-standard'] });
-  await expect(page.getByRole('complementary', { name: 'Your journey summary' })).toContainText('₹6,540');
+  const summary = page.getByRole('complementary', { name: 'Your journey summary' });
+  await summary.getByText('Price breakdown', { exact: true }).click();
+  await expect(summary.locator('.booking-total').getByText('₹6,540.00', { exact: true })).toBeVisible();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'traveller-review');
@@ -205,7 +208,7 @@ test('unknown local-time duration is not guessed and COMBO journeys are not conn
   const combo = { ...flight(), sI: [...flight().sI, ...flight('RETURN').sI] };
   provider.search = { searchId, results: { searchResult: { tripInfos: { COMBO: [combo] } } } };
   await openFlightSearch(page, { roundTrip: true });
-  await expect(page.getByText('Complete itinerary · Review every flight', { exact: true })).toBeVisible();
+  await expect(page.locator('.combo-itinerary').getByText('Complete itinerary', { exact: true })).toBeVisible();
   const filters=page.getByRole('button',{name:/^Filters/});
   if(await filters.isVisible())await filters.click();
   await expect(page.getByRole('combobox', { name: 'Stops', exact: true })).toBeDisabled();
@@ -627,11 +630,11 @@ test('flight verification dismisses on Back to flights and only the new fare rea
  provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  const itinerary=flight();itinerary.totalPriceList.push({...itinerary.totalPriceList[0],id:'replacement-flexible-id',fareIdentifier:'FLEXIBLE',customerEstimateMinor:720000});
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[itinerary]}}}};
- await openFlightSearch(page);await selectVisibleFare(page);await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: STANDARD');
+ await openFlightSearch(page);await selectVisibleFare(page);await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: Standard fare');
  await page.getByRole('button',{name:'Back to flights',exact:true}).click();await expect(page.locator('#flight-results-title')).toBeFocused();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
  const comparison=page.locator('.flight-shopping-list .fare-comparison').first();if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
- await page.locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
- await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: FLEXIBLE');await expect(page.locator('.signin-selection-context')).not.toContainText('STANDARD');
+ await page.locator('.fare-option').filter({has:page.getByRole('heading',{name:'Flexible fare',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: Flexible fare');await expect(page.locator('.signin-selection-context')).not.toContainText('Standard fare');
  const before=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!));expect(before.selection).toEqual({priceIds:['replacement-flexible-id']});
  await expect(page.getByRole('textbox',{name:'Email address',exact:true})).toBeVisible();expect(new URL(page.url()).pathname).toBe('/book');expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!))).toEqual(before);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,priceIds:['onward-standard']},{searchId,priceIds:['replacement-flexible-id']}]);expect(provider.requests('/api/payments/create')).toHaveLength(0);

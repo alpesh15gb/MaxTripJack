@@ -1,6 +1,6 @@
 import {hotelStringList,type HotelPropertyDetails} from './hotel-presentation';
 import type {HotelContentStatus} from './hotel-content-cache';
-export type HotelResult={tjHotelId:string;name:string;customerEstimateMinor?:number|null;property?:HotelPropertyDetails;propertyContentStatus?:HotelContentStatus};
+export type HotelResult={tjHotelId:string;originSearchId?:string;name:string;customerEstimateMinor?:number|null;property?:HotelPropertyDetails;propertyContentStatus?:HotelContentStatus};
 export type HotelStayContext={checkIn:string;checkOut:string;rooms:number;guests:number};
 export type HotelFilters={name:string;category:string;type:string;budget:string};
 export const emptyHotelFilters:HotelFilters={name:'',category:'',type:'',budget:''};
@@ -30,4 +30,10 @@ export function filterHotelResults<T extends HotelResult>(hotels:T[],filters:Hot
   const x=knownHotelTotal(a),y=knownHotelTotal(b);if(x===null)return y===null?0:1;if(y===null)return -1;
   return sort==='price-desc'?y-x:x-y;
  });
+}
+
+/** Settle only the failed metadata source, retaining successful cached content and
+ * independent pending lookups from other city-search batches. */
+export function hotelContentUnavailable<T extends HotelResult>(hotels:T[],baseSearchId:string,sourceSearchId=baseSearchId):T[]{
+ return hotels.map(hotel=>(hotel.originSearchId??baseSearchId)===sourceSearchId&&hotel.propertyContentStatus==='pending'?{...hotel,propertyContentStatus:'unavailable'}:hotel);
 }

@@ -70,7 +70,7 @@ test('invalid email code preserves the selected flight and cannot expose checkou
   await verification.getByLabel('Verification code', { exact: true }).fill('999999');
   await verification.getByRole('button', { name: 'Verify & continue', exact: true }).click();
   await expect(verification.getByRole('alert')).toBeVisible();
-  await expect(page.locator('.booking-verification-summary')).toContainText('STANDARD');
+  await expect(page.locator('.booking-verification-summary')).toContainText('Standard fare');
   await expect(page.getByRole('form', { name: 'Review and travellers' })).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);

@@ -80,7 +80,7 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
  if(product==='FLIGHT'){
   provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'extra-segment',tripIndex:0,label:'BOM to DEL',options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:10000}]}],travellerTypes:['ADULT'],choices:[]}};
   provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:664000}};
-  await form.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+  await form.locator('.checkout-optional-extras > summary').click();await form.getByRole('button',{name:'Choose flight extras',exact:true}).click();
   await form.getByRole('combobox',{name:'Meal',exact:true}).selectOption('MEAL1');
   await form.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
   await expect(form.getByRole('button',{name:'Extras applied',exact:true})).toBeVisible();
@@ -136,14 +136,14 @@ test('hotel rejected room review offers room refresh and return to stays',async(
 });
 
 
-test('duplicate destination names remain distinguishable without losing supplier regions',async({page,provider},info)=>{
+test('duplicate supplier destinations present one city choice',async({page,provider},info)=>{
  provider.overrides['GET /api/travel/destinations']={body:{destinations:[{region_id:'1001',label:'Hyderabad, India'},{region_id:'1002',label:'Hyderabad, India'}]}};
  await page.goto('/book?product=HOTEL');
  await page.getByLabel('Destination',{exact:true}).fill('Hyderabad');
  const choices=page.getByRole('group',{name:'Destination suggestions',exact:true});
- await expect(choices.getByRole('button')).toHaveCount(2);
- await expect(choices).toContainText('Hotel collection 1');await expect(choices).toContainText('Hotel collection 2');
- await expectNoHorizontalOverflow(page);await capture(page,info,'distinct-hotel-collections');
- await choices.getByRole('button',{name:'Hyderabad, India · Hotel collection 2',exact:true}).click();
- expect(provider.requests('/api/travel/destination-hotels')[0].body).toMatchObject({regionId:'1002'});
+ await expect(choices.getByRole('button')).toHaveCount(1);
+ await expect(choices).not.toContainText(/Hotel collection|Hotel group/);
+ await expectNoHorizontalOverflow(page);await capture(page,info,'one-city-destination');
+ await choices.getByRole('button',{name:'Hyderabad, India',exact:true}).click();
+ expect(provider.requests('/api/travel/destination-hotels')[0].body).toMatchObject({regionId:'1001'});
 });

@@ -1,11 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {airportDecisionLabel,fareDecisionLabel,baggageDecisionLabel} from '../src/lib/flight-decision';
+import {airportDecisionLabel,fareDecisionLabel,fareDecisionName,baggageDecisionLabel,fareDecisionDetails,lowestComparableFare} from '../src/lib/flight-decision';
 import {parseBookingHandoff} from '../src/lib/booking-handoff';
 const fare={id:'one',fareIdentifier:'CORPORATE',customerEstimateMinor:100,fD:{}};
-test('fare labels preserve opaque offers and disambiguate duplicate supplier names without invented benefits',()=>{
- const offers=[fare,{...fare,id:'two'},{...fare,id:'three',fareIdentifier:'PUBLISHED'}];
- assert.equal(fareDecisionLabel(fare,offers),'CORPORATE · Option 1');assert.equal(fareDecisionLabel(offers[1],offers),'CORPORATE · Option 2');assert.equal(fareDecisionLabel(offers[2],offers),'PUBLISHED');assert.deepEqual(offers.map(row=>row.id),['one','two','three']);
+test('fare labels preserve recognizable brands and disambiguate each otherwise identical display name',()=>{
+ const offers=[fare,{...fare,id:'two'},{...fare,id:'three',fareIdentifier:'PUBLISHED'},
+  {...fare,id:'four',fareIdentifier:'STANDARD'},{...fare,id:'five',fareIdentifier:'SPICEFLEX'},
+  {...fare,id:'six',fareIdentifier:'ECONOMY_LITE'},{...fare,id:'seven',fareIdentifier:'ZX_412_B'},{...fare,id:'eight',fareIdentifier:'ZY_15_Q'}];
+ assert.deepEqual(offers.map(offer=>fareDecisionLabel(offer,offers)),[
+  'Corporate fare · Option 1','Corporate fare · Option 2','Standard fare · Option 1','Standard fare · Option 2',
+  'SpiceFlex','Economy Lite','Fare option 1','Fare option 2',
+ ]);
+ assert.equal(fareDecisionName({...fare,fareIdentifier:'PUBLISHED'}),'Standard fare');
+ assert.equal(offers[6].fareIdentifier,'ZX_412_B');
+});
+
+test('fare comparison anchors to a selectable known estimate and declines to compare a mixed currency list',()=>{
+ const cheaper={...fare,id:'ineligible',customerEstimateMinor:50};
+ const unknown={...fare,id:'unknown',customerEstimateMinor:null};
+ assert.equal(lowestComparableFare([unknown,cheaper,fare],offer=>offer.id!=='ineligible'),fare);
+ assert.equal(lowestComparableFare([fare,{...cheaper,currency:'USD'}],()=>true),undefined);
+ assert.equal(lowestComparableFare([unknown],()=>true),undefined);
+});
+
+test('only known differences in baggage and cancellation are marked for comparison',()=>{
+ const standard={...fare,fD:{ADULT:{cc:'ECONOMY',rT:0,bI:{cB:'7 Kg',iB:'15 Kg'}}}};
+ const flexible={...fare,fD:{ADULT:{cc:'ECONOMY',rT:1,bI:{cB:'5',iB:'25 Kg'}}}};
+ assert.deepEqual(fareDecisionDetails(flexible,standard).filter(row=>row.differs),[
+  {label:'Checked baggage',value:'25 Kg',differs:true},
+  {label:'Cancellation',value:'Refundable · charges may apply',differs:true},
+ ]);
+ assert.equal(fareDecisionDetails(fare,standard).some(row=>row.differs),false);
 });
 test('airport labels use optional supplied public fields and code fallback, never inferred nearby airports',()=>{
  assert.equal(airportDecisionLabel({code:'BOM'}),'BOM');assert.equal(airportDecisionLabel({code:'BOM',city:'Mumbai',name:'Supplied Airport',country:'India'}),'BOM · Supplied Airport · Mumbai · India');assert.equal(airportDecisionLabel(undefined),'Airport not supplied');

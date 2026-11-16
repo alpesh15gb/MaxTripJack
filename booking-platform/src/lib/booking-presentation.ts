@@ -8,7 +8,7 @@ export type FlightSegment = {
   da: { code: string; name?: string; city?: string; country?: string }; aa: { code: string; name?: string; city?: string; country?: string };
 };
 export type FlightFare = {
-  id: string; fareIdentifier: string; customerEstimateMinor?: number | null;
+  id: string; fareIdentifier: string; customerEstimateMinor?: number | null; currency?: string;
   sri?: string; msri?: string | string[];
   fD: Record<string, { cc?: string; rT?: number; bI?: { iB?: string; cB?: string } }>;
 };

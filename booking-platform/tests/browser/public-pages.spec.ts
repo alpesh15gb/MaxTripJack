@@ -24,7 +24,7 @@ test('office details are consistent and contact actions are explicit', async ({ 
   const card = page.getByRole('region', { name: 'MaxTravel office and contact details' });
   await expect(card).toContainText('G-10, Golden Hawk');
   await expect(card).toContainText('500003');
-  await expect(card).toContainText('Every day, 9:00 am–9:00 pm (India time)');
+  await expect(card).toContainText('Every day, 09:00 - 21:00 (India time)');
   await expect(card.locator('a[href="tel:+917095018018"]')).toBeVisible();
   await expect(card.locator('a[href="mailto:max@maxtravel.us"]')).toBeVisible();
   await expect(page.locator('a[href*="wa.me"],a[href*="whatsapp.com"]')).toHaveCount(0);
@@ -42,7 +42,7 @@ test.describe('public content without client JavaScript', () => {
   test('homepage identity and route guidance are server-rendered', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Find your next escape.');
-    await expect(page.getByRole('heading', { name: 'Visit MaxTravel in Secunderabad' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Visit MaxTravel Secunderabad' })).toBeVisible();
     await expect(page.locator('main a[href="/flights/hyderabad-to-delhi"]')).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });

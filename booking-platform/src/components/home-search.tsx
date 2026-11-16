@@ -32,6 +32,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   const [product, setProduct] = useState<Product>("FLIGHT");
   const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
   const [airportRevision, setAirportRevision] = useState(0);
+  const [hotelDestination,setHotelDestination] = useState({city:"",hotelIds:"",regionId:"",destinationCursor:""});
   const [date, setDate] = useState(() => dateAfter(7));
   const [end, setEnd] = useState(() => dateAfter(10));
   const [adults, setAdults] = useState(1);
@@ -49,6 +50,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       setAirports({ from: String(data.get("from") || ""), to: String(data.get("to") || "") });
       setAirportRevision(value => value + 1);
     }
+    if(product === "HOTEL" && form.current){const data=new FormData(form.current);setHotelDestination({city:String(data.get("city")||""),hotelIds:String(data.get("hotelIds")||""),regionId:String(data.get("regionId")||""),destinationCursor:String(data.get("destinationCursor")||"")});}
     setProduct(next);
     setAdults(current => next === "HOTEL" ? Math.min(4, current) : current);
     setNotice("");
@@ -72,6 +74,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     } else {
       params.set("end", end); params.set("city", String(data.get("city") || ""));
       params.set("hotelIds", String(data.get("hotelIds") || ""));
+      params.set("regionId",String(data.get("regionId")||"")); params.set("destinationCursor",String(data.get("destinationCursor")||""));
     }
     router.push(`/book?${params}`);
   }
@@ -90,13 +93,14 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     if (product === "FLIGHT" && adults + childCount > 9) { setNotice("Choose up to 9 adults and children in one search."); return; }
     if (product === "FLIGHT" && infants > adults) { setNotice("Each infant must travel with an adult."); return; }
     const hotelIds = String(data.get("hotelIds") || "");
-    if (product === "HOTEL" && !hotelIds) { setNotice("Choose a destination from the available suggestions before searching."); return; }
+    if (product === "HOTEL" && !hotelIds && !(data.get("regionId") && data.get("destinationCursor"))) { setNotice("Choose a destination from the available suggestions before searching."); return; }
     const params = new URLSearchParams({ product, autoSearch: "1", date, adults: String(adults) });
     if (product === "FLIGHT") {
       params.set("from", from); params.set("to", to); params.set("cabin", cabin); params.set("children", String(childCount)); params.set("infants", String(infants));
       if (roundTrip) params.set("returnDate", end);
     } else {
       params.set("end", end); params.set("hotelIds", hotelIds);
+      params.set("regionId",String(data.get("regionId")||"")); params.set("destinationCursor",String(data.get("destinationCursor")||""));
       params.set("city", String(data.get("city") || "")); params.set("nationality", "106");
     }
     setNotice("");
@@ -131,7 +135,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><span className="home-economy">{cabin.replaceAll("_", " ").toLowerCase()}</span></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
           {product === "FLIGHT" && <details className="home-party-options"><summary>Children, infants & cabin <span>{childCount||infants||cabin!=="ECONOMY"?`${childCount} children · ${infants} infants · ${cabin.replaceAll("_", " ").toLowerCase()}`:""}</span></summary><div><label>Children · age 2–11<select aria-label="Children · age 2–11" value={childCount} onChange={event => setChildCount(Number(event.target.value))}>{Array.from({length: 10 - adults}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Infants · under 2<select aria-label="Infants · under 2" value={infants} onChange={event => setInfants(Number(event.target.value))}>{Array.from({length: adults + 1}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Cabin<select aria-label="Cabin" value={cabin} onChange={event => setCabin(event.target.value)}><option value="ECONOMY">Economy</option><option value="PREMIUM_ECONOMY">Premium economy</option><option value="BUSINESS">Business</option><option value="FIRST">First</option></select></label></div><p>Up to 9 adults and children. Each infant travels with an adult. Ages apply on the travel date.</p></details>}
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
-            {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery="" /><small>Select an available destination</small></div>}
+            {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
             <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Departure" : "Check-in"}</span><input aria-label={product === "FLIGHT" ? "Departure" : "Check-in"} type="date" name="date" value={date} required min={dateAfter(0)} onChange={event => setDate(event.target.value)} /><small>{product === "FLIGHT" ? "Your journey begins" : "Time to check in"}</small></label>
             {(product === "HOTEL" || roundTrip) && <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Return" : "Check-out"}</span><input aria-label={product === "FLIGHT" ? "Return" : "Check-out"} type="date" name="end" value={end} required min={date} onChange={event => setEnd(event.target.value)} /><small>{product === "HOTEL" && nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : "Your journey home"}</small></label>}
             <label className="home-search-input home-guests"><span>{product === "FLIGHT" ? "Travellers" : "Guests"}</span><select aria-label={product === "FLIGHT" ? "Travellers" : "Guests"} value={adults} onChange={event => { const count = Number(event.target.value); setAdults(count); setChildCount(value => Math.min(value, 9 - count)); setInfants(value => Math.min(value, count)); }}>{Array.from({ length: product === "FLIGHT" ? 9 : 4 }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value} adult{value === 1 ? "" : "s"}</option>)}</select><small>{product === "FLIGHT" ? "12 years & above" : "1 room"}</small></label>

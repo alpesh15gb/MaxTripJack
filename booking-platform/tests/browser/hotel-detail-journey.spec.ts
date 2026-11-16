@@ -238,3 +238,21 @@ test('pointer-only reload followed by Back to stays uses exactly one new snapsho
  await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(departure));await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(returning));
  expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(2);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });
+
+test('room preferences narrow exact rate plans and can be cleared before continuing',async({page,provider})=>{
+ const free={isRefundable:true,penalties:[{from:new Date(Date.now()-86400000).toISOString(),to:new Date(Date.now()+86400000).toISOString(),amount:0}]};
+ provider.overrides['POST /api/travel/hotel-detail']={body:{property,options:[options[0],options[1],{...options[1],optionId:'exact-breakfast-free',cancellation:free,pricing:{totalPrice:9800,currency:'INR'}}]}};
+ await page.goto(searchUrl());await title(page).click();
+ await expect(page.locator('[data-room-option-id]')).toHaveCount(3);
+ await page.getByRole('checkbox',{name:'Breakfast included',exact:true}).check();
+ await expect(page.locator('[data-room-option-id]')).toHaveCount(2);
+ await page.getByRole('checkbox',{name:'Free cancellation available now',exact:true}).check();
+ await expect(page.locator('[data-room-option-id]')).toHaveCount(1);
+ await expect(page.locator('[data-room-option-id="exact-breakfast-free"]')).toBeVisible();
+ await page.getByRole('button',{name:'Clear rate filters',exact:true}).click();
+ await expect(page.locator('[data-room-option-id]')).toHaveCount(3);
+ await expectNoHorizontalOverflow(page);
+ await page.locator('[data-room-option-id="exact-breakfast"]').getByRole('button',{name:'Continue with room',exact:true}).click();
+ await expect(page.locator('#booking-review-title')).toBeVisible();
+ expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'exact-breakfast'}]);
+});

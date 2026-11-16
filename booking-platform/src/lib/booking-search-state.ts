@@ -14,7 +14,7 @@ export function searchLegs(value?:string):SearchLeg[]|undefined {try{return legs
 /** Only bounded, public search criteria survive refresh/authentication. Never copy form data wholesale. */
 export function bookingSearchPrefill(query:Record<string,string|string[]|undefined>,today=indiaToday()):Record<string,string>{
   const result:Record<string,string>={};
-  const limits:Record<string,number>={product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36,browseSearch:36,stay:30,gallery:1,stayStep:8};
+  const limits:Record<string,number>={product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,regionId:30,destinationCursor:13,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36,browseSearch:36,stay:30,gallery:1,stayStep:8};
   let invalid=false;
   for(const [key,max] of Object.entries(limits)){
     const value=query[key];if(value===undefined)continue;
@@ -33,6 +33,8 @@ export function bookingSearchPrefill(query:Record<string,string|string[]|undefin
   if(result.resumeReview&&!['0','1'].includes(result.resumeReview))invalid=true;
   if(result.cabin&&!['ECONOMY','PREMIUM_ECONOMY','BUSINESS','FIRST'].includes(result.cabin))invalid=true;
   if(result.hotelIds&&!/^\d+(,\d+){0,99}$/.test(result.hotelIds))invalid=true;
+  if(result.regionId&&!/^\d{1,30}$/.test(result.regionId))invalid=true;
+  if(result.destinationCursor&&(!/^\d{1,6}:\d{1,6}$/.test(result.destinationCursor)||!result.regionId||Number(result.destinationCursor.split(':')[0])%20!==0))invalid=true;
   if(result.nationality&&!/^\d+$/.test(result.nationality))invalid=true;
   if(result.rooms){const rooms=searchRooms(result.rooms);if(!rooms)invalid=true;else result.rooms=JSON.stringify(rooms);}
   if(result.legs){const legs=searchLegs(result.legs);if(!legs||legs.some((leg,index)=>leg.date<today||(index>0&&leg.date<legs[index-1].date)))invalid=true;else{result.legs=JSON.stringify(legs);result.from=legs[0].from;result.to=legs[0].to;result.date=legs[0].date;delete result.returnDate;}}

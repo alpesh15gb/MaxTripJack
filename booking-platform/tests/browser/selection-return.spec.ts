@@ -59,7 +59,7 @@ test('legacy flight account return preserves visible choice through Back, Forwar
  provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await openFlightSearch(page);await chooseFlight(page);
  await expect(page.locator('#booking-signin-title')).toBeVisible();
- await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: STANDARD');
+ await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: Standard fare');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(1);
  const historyUrl=page.url();
@@ -69,14 +69,14 @@ test('legacy flight account return preserves visible choice through Back, Forwar
  await expect(page).toHaveURL(/\/account\?/);
  await page.goBack();
  await expect(page).toHaveURL(historyUrl);
- await expect(page.getByRole('main')).toContainText('Selected fare: STANDARD');
+ await expect(page.getByRole('main')).toContainText('Selected fare: Standard fare');
  await page.goForward();await expect(page).toHaveURL(/\/account\?/);
  await page.goBack();await expect(page).toHaveURL(historyUrl);
  await page.reload();
  const saved=await savedSelection(page);
- await expect(saved).toContainText('BOM → DEL');await expect(saved).toContainText('Selected fare: STANDARD');
+ await expect(saved).toContainText('BOM → DEL');await expect(saved).toContainText('Selected fare: Standard fare');
  await expect(saved).toBeFocused();
- await naturalViewportEvidence(page,info,'saved-flight-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'BOM → DEL',exact:true}),saved.getByText('Selected fare: STANDARD',{exact:true}),saved.getByRole('heading',{name:'Continue with your email',exact:true})]);
+ await naturalViewportEvidence(page,info,'saved-flight-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'BOM → DEL',exact:true}),saved.getByText('Selected fare: Standard fare',{exact:true}),saved.getByRole('heading',{name:'Continue with your email',exact:true})]);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(1);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -178,6 +178,9 @@ test('same return URL in a separate tab cannot invent a saved selection or call 
   const url=new URL(route.request().url());
   if(url.origin!==new URL(page.url()).origin){await route.abort();return;}
   if(url.pathname==='/api/auth/get-session'){await route.fulfill({json:null});return;}
+  // Restored search controls may resolve public airport names; these are not
+  // availability, review or payment requests and cannot recover a selection.
+  if(url.pathname==='/api/travel/airports'&&route.request().method()==='GET'){await route.fulfill({json:{airports:[]}});return;}
   if(url.pathname.startsWith('/api/')){unexpected.push(url.pathname);await route.fulfill({status:501,json:{error:'Unmocked separate-tab request'}});return;}
   await route.continue();
  });

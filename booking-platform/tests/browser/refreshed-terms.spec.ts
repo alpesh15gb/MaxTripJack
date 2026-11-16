@@ -221,7 +221,7 @@ for(const applied of [false,true])test(`expired checkout resets ${applied?'appli
  provider.quote=flightQuote([fare()]);provider.quote.expiresAt=new Date(started+60_000).toISOString();
  provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'extra-segment',tripIndex:0,label:'BOM → DEL',options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:50000}]}],travellerTypes:['ADULT'],choices:[]}};
  provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:704000}};
- await openFlight(page);await fillTraveller(page);await page.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+ await openFlight(page);await fillTraveller(page);await page.locator('.checkout-optional-extras > summary').click();await page.getByRole('button',{name:'Choose flight extras',exact:true}).click();
  await form(page).getByRole('combobox',{name:'Meal',exact:true}).selectOption('MEAL1');
  if(applied){await page.getByRole('button',{name:'Apply extras and update total',exact:true}).click();await expect(page.getByRole('button',{name:'Extras applied',exact:true})).toBeVisible();await reviewPayment(page);}
  provider.quote=flightQuote([fare()],renewedId);await page.clock.fastForward(120_000);

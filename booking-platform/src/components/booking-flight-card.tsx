@@ -1,57 +1,269 @@
-import AirlineLogo from "./airline-logo";
-import {segmentDurationLabel,connectionLabel} from '@/lib/flight-duration';
-import {useEffect,useLayoutEffect,useId,useRef,useState} from 'react';
-import {travelDateLabel,travelDateTimeLabel,travelTimeLabel} from '@/lib/travel-date';
-import {airportDecisionLabel,fareDecisionLabel,baggageDecisionLabel} from '@/lib/flight-decision';
-import {arrivalDayLabel} from '@/lib/flight-results';
-import { durationLabel,flightStops,groupLabel,journeyMinutes,refundLabel,type Flight,type FlightFare } from '@/lib/booking-presentation';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import AirlineLogo from './airline-logo';
+import { durationLabel, flightStops, groupLabel, journeyMinutes, refundLabel, type Flight, type FlightFare } from '@/lib/booking-presentation';
+import { displayMoney } from '@/lib/display-money';
+import { comparableFareEstimate, haveComparableCurrency, orderFareOffers } from '@/lib/fare-display';
+import { airportDecisionLabel, baggageDecisionLabel, fareDecisionDetails, fareDecisionLabel, lowestComparableFare } from '@/lib/flight-decision';
+import { connectionLabel, segmentDurationLabel } from '@/lib/flight-duration';
+import { arrivalDayLabel } from '@/lib/flight-results';
+import { travelDateLabel, travelDateTimeLabel, travelTimeLabel } from '@/lib/travel-date';
 
-import {displayMoney} from '@/lib/display-money';
-import {comparableFareEstimate,haveComparableCurrency,orderFareOffers} from '@/lib/fare-display';
-
-// Preserve existing imports for transaction surfaces; package marketing prices
-// keep their separate major-unit formatter. Customer flight estimates are INR.
 export const money = displayMoney;
-export default function BookingFlightCard({flight,group,selectedFareId,checkingFareId,busy,onSelect,isCompatible,readOnly=false,selectionMode='review'}:{flight:Flight;group:string;selectedFareId?:string;checkingFareId?:string;busy:boolean;readOnly?:boolean;selectionMode?:'review'|'leg';onSelect:(fare:FlightFare,trigger:HTMLButtonElement)=>void;isCompatible?:(fare:FlightFare)=>boolean}) {
-  const [expanded,setExpanded]=useState(false);
-  const termsId=useId();
-  const checkingStatus=useRef<HTMLParagraphElement>(null);
-  useLayoutEffect(()=>{
-    if(!busy||!checkingFareId)return;
-    const status=checkingStatus.current;
-    if(!status)return;
-    const bounds=status.getBoundingClientRect();
-    // Progress grows the selected card. Keep message and disabled action
-    // together on screen without moving keyboard focus.
-    if(bounds.top<16||bounds.bottom>window.innerHeight-120)status.scrollIntoView({behavior:'auto',block:'center'});
-  },[busy,checkingFareId]);
-  const farePanel=useRef<HTMLDetailsElement>(null);
-  const fareHeading=useRef<HTMLHeadingElement>(null);
-  const focusOpenedFares=useRef(false);
-  const selected=flight.totalPriceList.some(f=>f.id===selectedFareId);
-  useEffect(()=>{
-    if(busy||selected||readOnly){focusOpenedFares.current=false;return;}
-    if(!expanded||!focusOpenedFares.current)return;
-    const frame=requestAnimationFrame(()=>{focusOpenedFares.current=false;fareHeading.current?.focus({preventScroll:true});fareHeading.current?.scrollIntoView({behavior:'auto',block:'start'});});
-    return()=>cancelAnimationFrame(frame);
-  },[expanded,readOnly,busy,selected]);
-  const actionLabel=selectionMode==='leg'?`Choose this ${groupLabel(group).toLowerCase()} fare`:'Check fare & continue';
-  const closeFares=()=>{if(farePanel.current){farePanel.current.open=false;farePanel.current.querySelector('summary')?.focus();}};
-  const offers=orderFareOffers(flight.totalPriceList,'INR');
-  const compatibleOffers=offers.filter(fare=>isCompatible?.(fare)??true);
-  const noCompatibleFare=offers.length>0&&compatibleOffers.length===0;
-  const prices=compatibleOffers.map(fare=>comparableFareEstimate(fare,'INR')).filter((price):price is number=>price!==null);
-  const estimate=prices.length?Math.min(...prices):Infinity, first=flight.sI[0],last=flight.sI.at(-1),stops=flightStops(flight,group),dayChange=first&&last?arrivalDayLabel(first.dt,last.at):null,minutes=journeyMinutes(flight,group);
-  const airlines=[...new Set(flight.sI.map(segment=>segment.fD.aI.name).filter(Boolean))];
-  const connections=group==='COMBO'?[]:flight.sI.slice(0,-1).map((segment,index)=>connectionLabel(segment,flight.sI[index+1],group)).filter(label=>label.startsWith('Transfer between')||!label.includes('not supplied'));
-  return <article className={`white-card booking-record live-flight-card${readOnly?' is-readonly':''}${expanded&&!readOnly?' is-choosing-fare':''}${flight.totalPriceList.some(f=>f.id===selectedFareId)?' is-selected':''}`}>
-    <div className="flight-result-top"><div className="airline-identity"><AirlineLogo code={first?.fD.aI.code} name={first?.fD.aI.name}/><div><strong>{first?.fD.aI.name||'Airline'}{airlines.length>1&&<span className="flight-multiple-airlines"> + {airlines.length-1} airline{airlines.length===2?'':'s'}</span>}</strong><small>{flight.sI.map(segment=>[segment.fD.aI.code,segment.fD.fN].filter(Boolean).join(' ')).join(' · ')} · {groupLabel(group)}</small></div></div><span className="flight-cabin">{flight.totalPriceList.length} fare option{flight.totalPriceList.length===1?'':'s'}</span></div>
-    {group==='COMBO'?<div className="combo-itinerary"><strong>Complete itinerary · Review every flight</strong>{flight.sI.map((segment,index)=><div key={`${segment.fD.fN}-${index}`}><span>{segment.da.code} → {segment.aa.code}</span><small>{airportDecisionLabel(segment.da)} → {airportDecisionLabel(segment.aa)}</small><span>{travelDateTimeLabel(segment.dt)} — {travelDateTimeLabel(segment.at)}</span><small>{segment.fD.aI.name} · {segment.fD.fN} · Segment duration: {segmentDurationLabel(segment.duration)}</small></div>)}<p className="muted">All times are local. Each journey may have its own baggage and fare conditions.</p></div>:<div className="flight-route-line"><div><strong>{travelTimeLabel(first?.dt)}</strong><span>{first?.da.code}</span>{first?.da.city&&<span className="flight-airport-city">{first.da.city}</span>}<small>{travelDateLabel(first?.dt)}</small></div><div className="flight-route-track"><small className="flight-total-duration">{minutes===null?durationLabel(null):`Total journey ${durationLabel(minutes)}`}</small><span aria-hidden="true">────── ✈ ──────</span><small>{stops===null?'Stop details unavailable':stops===0?'Non-stop':`${stops} stop${stops===1?'':'s'}`}{stops?` · ${flight.sI.slice(0,-1).map(segment=>segment.aa.code).join(', ')}`:''}</small>{connections.map((label,index)=><small className="flight-connection-note" key={index}>{label}</small>)}</div><div><strong>{travelTimeLabel(last?.at)}</strong><span>{last?.aa.code}</span>{last?.aa.city&&<span className="flight-airport-city">{last.aa.city}</span>}<small>{travelDateLabel(last?.at)}</small>{dayChange&&<span className="flight-day-change">{dayChange}</span>}</div></div>}
-    {group!=='COMBO'&&<details className="flight-segment-details"><summary>Flight details · airports and connections</summary>{flight.sI.map((segment,index)=><div className="flight-segment" key={index}><strong>{segment.fD.aI.name} · {[segment.fD.aI.code,segment.fD.fN].filter(Boolean).join(' ')}</strong><p>{airportDecisionLabel(segment.da)} → {airportDecisionLabel(segment.aa)}</p><p>{travelDateTimeLabel(segment.dt)} → {travelDateTimeLabel(segment.at)}</p><p>Segment duration: {segmentDurationLabel(segment.duration)}</p>{index<flight.sI.length-1&&<p className="muted">{connectionLabel(segment,flight.sI[index+1],group)}</p>}</div>)}<p className="muted">All times are local to each airport. Connection duration uses airport timezones when available; unknown or ambiguous times are left uncalculated.</p></details>}
-    <details ref={farePanel} className="fare-comparison" onToggle={event=>{if(!event.currentTarget.open)focusOpenedFares.current=false;setExpanded(event.currentTarget.open);}} open={flight.totalPriceList.some(f=>f.id===selectedFareId)||undefined}><summary onClick={()=>{focusOpenedFares.current=!farePanel.current?.open&&!readOnly;}}><span>{readOnly?'Selected fare':<><span className="choose-fare-label">Choose fare <span aria-hidden="true">→</span></span><small>{flight.totalPriceList.length} option{flight.totalPriceList.length===1?'':'s'} · compare bags & flexibility</small></>}</span><strong>{noCompatibleFare?'No compatible fare':Number.isFinite(estimate)?<><span className="flight-price-from">From </span><span className="flight-price-amount">{money(estimate)}</span></>:'Price at review'}{!noCompatibleFare?<><small>Estimated total · all travellers</small><small>{group==='COMBO'?'Complete itinerary':`${groupLabel(group)} journey`} · final price at review</small></>:<small>These fares do not match your outbound selection. Compare fares or change your outbound flight.</small>}</strong></summary>{(expanded||selected)&&<div className="fare-comparison-options">{!readOnly&&<div className="fare-choice-heading"><div><h3 ref={fareHeading} tabIndex={-1}>Choose your fare</h3><p>{groupLabel(group)} · {first?.da.code} → {last?.aa.code}</p><p className="fare-itinerary-dates">{travelDateTimeLabel(first?.dt)} → {travelDateTimeLabel(last?.at)}{dayChange?` · ${dayChange}`:''}</p><small>Local airport times · {group==='COMBO'?'Inspect every flight in the complete itinerary above':minutes===null?'Total duration not supplied':durationLabel(minutes)}</small></div><button type="button" className="secondary" disabled={busy} onClick={closeFares}>Back to flights</button></div>}{!readOnly&&<p id={termsId} className="fare-details-unavailable fare-shared-terms">Compare the supplied details below. Full fare conditions are checked at review.</p>}{readOnly&&<p className="fare-comparison-guidance">{haveComparableCurrency(offers,'INR')?'Lowest INR estimates first; unpriced offers last.':'Supplier order shown; these prices cannot be compared in one currency.'} Similar fare names can differ; do not assume eligibility.</p>}<div className={!readOnly?'fare-decision-grid':undefined}>{offers.map(fare=>{
-      const compatible=isCompatible?.(fare)??true, price=comparableFareEstimate(fare,'INR');
-      if(!readOnly)return <div className={`live-fare fare-option fare-option-compact${selectedFareId===fare.id?' is-selected':''}`} key={fare.id} aria-describedby={termsId}><div className="fare-option-heading"><h3>{fareDecisionLabel(fare,offers)}</h3><strong>{price!==null?money(price):'Price at review'}</strong></div><dl className="fare-decision-dimensions"><div><dt>Cabin</dt><dd>{fare.fD.ADULT?.cc?.replaceAll('_',' ')||'Not supplied'}</dd></div><div><dt>Cabin baggage:</dt>{' '}<dd>{baggageDecisionLabel(fare.fD.ADULT?.bI?.cB)}</dd></div><div><dt>Checked baggage:</dt>{' '}<dd>{baggageDecisionLabel(fare.fD.ADULT?.bI?.iB)}</dd></div><div><dt>Refund indicator</dt><dd>{refundLabel(fare.fD.ADULT?.rT)}</dd></div></dl><p className="fare-unknown-conditions muted">Seat inclusion, change terms and eligibility: Not supplied.</p>{Object.entries(fare.fD).filter(([kind])=>kind!=='ADULT').map(([kind,detail])=><p className="fare-passenger-baggage muted" key={kind}>{kind.toLowerCase()}: cabin baggage {detail.bI?.cB?baggageDecisionLabel(detail.bI.cB):'not supplied'} · checked baggage {detail.bI?.iB?baggageDecisionLabel(detail.bI.iB):'not supplied'}</p>)}{fare.fareIdentifier==='SPECIAL_RETURN'&&<p className="muted">Requires a matching special-return fare.</p>}{!compatible&&<p className="muted">Does not match your selected outbound fare.</p>}{busy&&checkingFareId===fare.id&&<p ref={checkingStatus} className="booking-selection-status" role="status">Checking current fare… Price and availability are not confirmed yet.</p>}<div className="fare-option-action"><small>All travellers · estimated total</small><button type="button" className="primary" disabled={busy||!compatible} aria-describedby={termsId} aria-pressed={selectionMode==='leg'?selectedFareId===fare.id:undefined} onClick={event=>onSelect(fare,event.currentTarget)}>{busy&&checkingFareId===fare.id?'Checking fare…':selectionMode==='leg'&&selectedFareId===fare.id?'Selected':actionLabel}</button></div></div>;
-      return <div className={`live-fare fare-option${selectedFareId===fare.id?' is-selected':''}`} key={fare.id}><div><h3>{fareDecisionLabel(fare,offers)}</h3><p className="fare-details-unavailable">Change fees and eligibility: not supplied. Check full conditions at review.</p><ul className="fare-features"><li>Cabin baggage: {baggageDecisionLabel(fare.fD.ADULT?.bI?.cB)}</li><li>Checked baggage: {baggageDecisionLabel(fare.fD.ADULT?.bI?.iB)}</li><li>{refundLabel(fare.fD.ADULT?.rT)}</li></ul>{Object.entries(fare.fD).filter(([kind])=>kind!=='ADULT').map(([kind,detail])=><p className="muted" key={kind}>{kind.toLowerCase()}: cabin baggage {detail.bI?.cB?baggageDecisionLabel(detail.bI.cB):'not supplied'} · checked baggage {detail.bI?.iB?baggageDecisionLabel(detail.bI.iB):'not supplied'}</p>)}{fare.fD.ADULT?.cc&&<p className="muted">Cabin: {fare.fD.ADULT.cc.replaceAll('_',' ')}</p>}{fare.fareIdentifier==='SPECIAL_RETURN'&&<p className="muted">Requires a matching special-return fare.</p>}{!compatible&&<p className="muted">Does not match your selected outbound fare.</p>}</div><div className="fare-option-action"><strong>{price!==null?money(price):'Price at review'}</strong><small>All travellers · estimated total</small>{!readOnly&&<button type="button" className="primary" disabled={busy||!compatible} aria-pressed={selectionMode==='leg'?selectedFareId===fare.id:undefined} onClick={event=>onSelect(fare,event.currentTarget)}>{selectionMode==='leg'&&selectedFareId===fare.id?'Selected':actionLabel}</button>}</div></div>;
-    })}</div>{!readOnly&&<p className="fare-comparison-guidance">{haveComparableCurrency(offers,'INR')?'Lowest INR estimates first; unpriced offers last.':'Supplier order shown; these prices cannot be compared in one currency.'} Similar fare names can differ; do not assume eligibility.</p>}</div>}</details>
+
+type BookingFlightCardProps = {
+  flight: Flight;
+  group: string;
+  selectedFareId?: string;
+  checkingFareId?: string;
+  busy: boolean;
+  readOnly?: boolean;
+  selectionMode?: 'review' | 'leg';
+  onSelect: (fare: FlightFare, trigger: HTMLButtonElement) => void;
+  isCompatible?: (fare: FlightFare) => boolean;
+};
+
+const anyFare = () => true;
+
+export default function BookingFlightCard({
+  flight, group, selectedFareId, checkingFareId, busy, onSelect, isCompatible = anyFare,
+  readOnly = false, selectionMode = 'review',
+}: BookingFlightCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const id = useId();
+  const termsId = `${id}-terms`;
+  const priceId = `${id}-price`;
+  const headingId = `${id}-heading`;
+  const farePanel = useRef<HTMLDetailsElement>(null);
+  const fareTrigger = useRef<HTMLElement>(null);
+  const fareHeading = useRef<HTMLHeadingElement>(null);
+  const focusOpenedFares = useRef(false);
+  const checkingStatus = useRef<HTMLParagraphElement>(null);
+  const selected = flight.totalPriceList.some(fare => fare.id === selectedFareId);
+
+  useLayoutEffect(() => {
+    if (!busy || !checkingFareId) return;
+    const status = checkingStatus.current;
+    if (!status) return;
+    const bounds = status.getBoundingClientRect();
+    // Keep progress and the disabled action in view without moving keyboard focus.
+    if (bounds.top < 16 || bounds.bottom > window.innerHeight - 120) {
+      status.scrollIntoView({ behavior: 'auto', block: 'center' });
+    }
+  }, [busy, checkingFareId]);
+
+  useEffect(() => {
+    if (busy || readOnly || !expanded || !focusOpenedFares.current) return;
+    const frame = requestAnimationFrame(() => {
+      focusOpenedFares.current = false;
+      fareHeading.current?.focus({ preventScroll: true });
+      fareHeading.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [expanded, readOnly, busy]);
+
+  function closeFares() {
+    if (farePanel.current) farePanel.current.open = false;
+    fareTrigger.current?.focus();
+  }
+
+  const offers = orderFareOffers(flight.totalPriceList, 'INR');
+  const eligible = offers.filter(isCompatible);
+  const noCompatibleFare = offers.length > 0 && eligible.length === 0;
+  const prices = eligible.map(fare => comparableFareEstimate(fare, 'INR')).filter(price => price !== null);
+  const estimate = prices.length ? Math.min(...prices) : null;
+  const comparableCurrency = haveComparableCurrency(offers, 'INR');
+  const showFares = expanded || selected;
+  const baseline = !readOnly && showFares && eligible.length > 1 ? lowestComparableFare(offers, isCompatible) : undefined;
+  const baselinePrice = baseline ? comparableFareEstimate(baseline, 'INR') : null;
+  const showBaseline = baselinePrice !== null && prices.length > 1;
+  const first = flight.sI[0], last = flight.sI.at(-1);
+  const dayChange = first && last ? arrivalDayLabel(first.dt, last.at) : null;
+  const combo = group === 'COMBO';
+  const groupName = groupLabel(group);
+  const stops = flightStops(flight, group);
+  const minutes = journeyMinutes(flight, group);
+  const airlines = new Set(flight.sI.map(segment => segment.fD.aI.name).filter(Boolean));
+  const airlineName = first?.fD.aI.name || 'Airline';
+  const connections = combo ? [] : flight.sI.slice(0, -1).map((segment, index) => {
+    return connectionLabel(segment, flight.sI[index + 1], group);
+  }).filter(label => label.startsWith('Transfer between') || !label.includes('not supplied'));
+  const actionLabel = selectionMode === 'leg' ? `Choose this ${groupName.toLowerCase()} fare` : 'Check fare & continue';
+  const visibleAction = expanded ? 'Hide fares' : 'View fares';
+
+  return <article className={`white-card booking-record live-flight-card${readOnly ? ' is-readonly' : ''}${expanded && !readOnly ? ' is-choosing-fare' : ''}${selected ? ' is-selected' : ''}`}>
+    <div className="flight-result-top">
+      <div className="airline-identity">
+        <AirlineLogo code={first?.fD.aI.code} name={first?.fD.aI.name} />
+        <div>
+          <strong>{airlineName}{airlines.size > 1 && <span className="flight-multiple-airlines"> + {airlines.size - 1} airline{airlines.size === 2 ? '' : 's'}</span>}</strong>
+          <small>{flight.sI.map(segment => [segment.fD.aI.code, segment.fD.fN].filter(Boolean).join(' ')).filter(Boolean).join(' · ') || groupName}</small>
+        </div>
+      </div>
+    </div>
+    {combo ? <div className="combo-itinerary">
+      <strong>Complete itinerary</strong>
+      {flight.sI.map((segment, index) => <div key={`${segment.fD.fN}-${index}`}>
+        <span>{segment.da.code} → {segment.aa.code}</span>
+        <small>{airportDecisionLabel(segment.da)} → {airportDecisionLabel(segment.aa)}</small>
+        <span>{travelDateTimeLabel(segment.dt)} — {travelDateTimeLabel(segment.at)}</span>
+        <small>{segment.fD.aI.name} · {segment.fD.fN} · Segment duration: {segmentDurationLabel(segment.duration)}</small>
+      </div>)}
+      <p className="muted">All times are local. Each journey may have its own baggage and fare conditions.</p>
+    </div> : <>
+      <div className="flight-route-line">
+        <div>
+          <strong>{travelTimeLabel(first?.dt)}</strong>
+          <span>{first?.da.code}</span>
+          {first?.da.city && <span className="flight-airport-city">{first.da.city}</span>}
+          <small>{travelDateLabel(first?.dt)}</small>
+        </div>
+        <div className="flight-route-track">
+          <small className="flight-total-duration">{minutes === null ? durationLabel(null) : `Total journey ${durationLabel(minutes)}`}</small>
+          <span aria-hidden="true" />
+          <small>{stops === null ? 'Stop details unavailable' : stops === 0 ? 'Non-stop' : `${stops} stop${stops === 1 ? '' : 's'} · ${flight.sI.slice(0, -1).map(segment => segment.aa.code).join(', ')}`}</small>
+          {connections.map((label, index) => <small className="flight-connection-note" key={index}>{label}</small>)}
+        </div>
+        <div>
+          <strong>{travelTimeLabel(last?.at)}</strong>
+          <span>{last?.aa.code}</span>
+          {last?.aa.city && <span className="flight-airport-city">{last.aa.city}</span>}
+          <small>{travelDateLabel(last?.at)}</small>
+          {dayChange && <span className="flight-day-change">{dayChange}</span>}
+        </div>
+      </div>
+      <details className="flight-segment-details">
+        <summary>Flight details</summary>
+        {flight.sI.map((segment, index) => <div className="flight-segment" key={index}>
+          <strong>{segment.fD.aI.name} · {[segment.fD.aI.code, segment.fD.fN].filter(Boolean).join(' ')}</strong>
+          <p>{airportDecisionLabel(segment.da)} → {airportDecisionLabel(segment.aa)}</p>
+          <p>{travelDateTimeLabel(segment.dt)} → {travelDateTimeLabel(segment.at)}</p>
+          <p>Segment duration: {segmentDurationLabel(segment.duration)}</p>
+          {index < flight.sI.length - 1 && <p className="muted">{connectionLabel(segment, flight.sI[index + 1], group)}</p>}
+        </div>)}
+        <p className="muted">All times are local to each airport.</p>
+      </details>
+    </>}
+    <details
+      ref={farePanel}
+      className="fare-comparison"
+      open={selected || undefined}
+      onToggle={event => {
+        if (!event.currentTarget.open) focusOpenedFares.current = false;
+        setExpanded(event.currentTarget.open);
+      }}
+      onKeyDown={event => {
+        if (event.key !== 'Escape' || !expanded || busy || readOnly) return;
+        event.stopPropagation();
+        closeFares();
+      }}
+    >
+      <summary
+        ref={fareTrigger}
+        aria-label={readOnly ? undefined : `${visibleAction} for ${airlineName}, ${travelTimeLabel(first?.dt)}`}
+        aria-describedby={readOnly ? undefined : priceId}
+        onClick={() => { focusOpenedFares.current = !farePanel.current?.open && !readOnly; }}
+      >
+        <span>{readOnly ? 'Selected fare' : <>
+          <span className="choose-fare-label">{visibleAction} <span aria-hidden="true">{expanded ? '↑' : '→'}</span></span>
+          <small>{offers.length} fare option{offers.length === 1 ? '' : 's'}</small>
+        </>}</span>
+        <strong id={priceId}>{noCompatibleFare ? 'No compatible fare' : estimate === null ? 'Price at review' : <>
+          {!readOnly && <span className="flight-price-from">From </span>}<span className="flight-price-amount">{money(estimate)}</span>
+        </>}
+          {noCompatibleFare ? <small>These fares do not match your outbound selection.</small> : <>
+            <small>{estimate === null ? 'Total for all travellers' : 'Estimated total · all travellers'}</small>
+            <small>{combo ? 'Complete itinerary' : `${groupName} journey`}</small>
+          </>}
+        </strong>
+      </summary>
+      {showFares && <div className="fare-comparison-options" role={readOnly ? undefined : 'region'} aria-labelledby={readOnly ? undefined : headingId}>
+        {!readOnly && <>
+          <div className="fare-choice-heading">
+            <div>
+              <h3 ref={fareHeading} id={headingId} tabIndex={-1}>{offers.length > 1 ? 'Compare fares' : 'Your fare option'}</h3>
+              <p>{combo ? 'Complete itinerary' : `${groupName} · ${first?.da.code} → ${last?.aa.code}`}</p>
+              {!combo && <p className="fare-itinerary-dates">{travelDateTimeLabel(first?.dt)} → {travelDateTimeLabel(last?.at)}{dayChange ? ` · ${dayChange}` : ''}</p>}
+              {combo && <small>Inspect every flight in the complete itinerary above.</small>}
+            </div>
+            <button type="button" className="secondary" disabled={busy} onClick={closeFares}>Back to flights</button>
+          </div>
+          <p id={termsId} className="fare-details-unavailable fare-shared-terms">Check the final price, cancellation and change fees, seat inclusions and eligibility at review.</p>
+        </>}
+        {offers.length === 0 && <p className="muted">No fare options were supplied for this flight.</p>}
+        <div className={readOnly ? undefined : 'fare-decision-grid'}>{offers.map((fare, index) => {
+          const compatible = isCompatible(fare);
+          const price = comparableFareEstimate(fare, 'INR');
+          const difference = compatible && price !== null && baselinePrice !== null ? price - baselinePrice : 0;
+          const isSelected = selectedFareId === fare.id;
+          const checking = busy && checkingFareId === fare.id;
+          const fareHeadingId = `${id}-offer-${index}`;
+          const fareName = fareDecisionLabel(fare, offers);
+          const rows = fareDecisionDetails(fare, compatible && price !== null ? baseline : undefined);
+          const passengerBaggage = Object.entries(fare.fD).filter(([kind]) => kind !== 'ADULT').map(([kind, detail]) =>
+            <p className="fare-passenger-baggage muted" key={kind}>{kind.toLowerCase()}: cabin baggage {baggageDecisionLabel(detail.bI?.cB).replace(/^Not supplied$/, 'not supplied')} · checked baggage {baggageDecisionLabel(detail.bI?.iB).replace(/^Not supplied$/, 'not supplied')}</p>
+          );
+          const eligibility = !compatible ? 'Does not match your selected outbound fare.' :
+            fare.fareIdentifier === 'SPECIAL_RETURN' ? 'Requires a matching special-return fare.' : null;
+
+          if (readOnly) return <div className={`live-fare fare-option${isSelected ? ' is-selected' : ''}`} key={fare.id}>
+            <div>
+              <h3>{fareName}</h3>
+              <p className="fare-details-unavailable">Check the reviewed fare conditions for the latest fees and eligibility.</p>
+              <ul className="fare-features">
+                <li>Cabin baggage: {baggageDecisionLabel(fare.fD.ADULT?.bI?.cB)}</li>
+                <li>Checked baggage: {baggageDecisionLabel(fare.fD.ADULT?.bI?.iB)}</li>
+                <li>{refundLabel(fare.fD.ADULT?.rT)}</li>
+              </ul>
+              {passengerBaggage}
+              {fare.fD.ADULT?.cc && <p className="muted">Cabin: {fare.fD.ADULT.cc.replaceAll('_', ' ')}</p>}
+              {eligibility && <p className="muted">{eligibility}</p>}
+            </div>
+            <div className="fare-option-action">
+              <strong>{price !== null ? money(price) : 'Price at review'}</strong>
+              <small>{price !== null ? 'All travellers · estimated total' : 'Total for all travellers'}</small>
+            </div>
+          </div>;
+
+          return <div
+            className={`live-fare fare-option fare-option-compact${isSelected ? ' is-selected' : ''}`}
+            key={fare.id}
+            role="group"
+            aria-labelledby={fareHeadingId}
+            aria-describedby={termsId}
+          >
+            <div className="fare-option-heading">
+              <h4 id={fareHeadingId}>{fareName}</h4>
+              <strong>{price === null ? 'Price at review' : money(price)}</strong>
+            </div>
+            {showBaseline && (fare.id === baseline?.id || difference > 0) && <p className="fare-price-comparison">
+              {difference > 0 ? `+${money(difference)} vs lowest shown fare` : 'Lowest shown estimate'}
+            </p>}
+            <dl className="fare-decision-dimensions">
+              {rows.map(({ label, value, differs }) => <div key={label} className={differs ? 'fare-difference' : undefined}>
+                <dt>{label}</dt>
+                <dd>{value}{differs && <small>Differs from lowest shown fare</small>}</dd>
+              </div>)}
+            </dl>
+            {passengerBaggage}
+            {eligibility && <p className={compatible ? 'muted' : 'fare-ineligible'}>{eligibility}</p>}
+            {checking && <p ref={checkingStatus} className="booking-selection-status" role="status">Checking current fare… Price and availability are not confirmed yet.</p>}
+            <div className="fare-option-action">
+              <small>{price !== null ? 'All travellers · estimated total' : 'Total for all travellers'}</small>
+              <button
+                type="button"
+                className="primary"
+                disabled={busy || !compatible}
+                aria-describedby={termsId}
+                aria-pressed={selectionMode === 'leg' ? isSelected : undefined}
+                onClick={event => onSelect(fare, event.currentTarget)}
+              >{checking ? 'Checking fare…' : selectionMode === 'leg' && isSelected ? 'Selected' : actionLabel}</button>
+            </div>
+          </div>;
+        })}</div>
+        {offers.length > 1 && <p className="fare-comparison-guidance">{comparableCurrency ?
+          'Lowest INR estimates first; unpriced offers last.' :
+          'Supplier order shown. Price differences are unavailable across currencies.'}</p>}
+      </div>}
+    </details>
   </article>;
 }

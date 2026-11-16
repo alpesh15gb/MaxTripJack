@@ -175,3 +175,10 @@ body .booking-workflow.journey-flow .stay-detail .stay-room-rate .primary { back
   body .booking-workflow.journey-flow .stay-detail .stay-room-rate-action > small { font-size: 11px; line-height: 1.5; }
   body .booking-workflow.journey-flow .stay-detail .stay-room-conditions > summary { padding-inline: 20px; }
 }
+
+.stay-room-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 18px 20px; margin: 18px 0 24px; border: 1px solid #dce7e1; border-radius: 12px; background: #fff; }
+.stay-room-filters legend { padding: 0 6px; font-weight: 650; font-size: 14px; color: #173d30; }
+.stay-room-filters label { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; cursor: pointer; }
+.stay-room-filters input[type=checkbox] { width: 18px; height: 18px; min-height: 18px; margin: 0; accent-color: #006756; }
+.stay-room-filters small { flex-basis: 100%; font-size: 12px; color: #63766b; }
+@media (max-width: 520px) { .stay-room-filters { align-items: flex-start; flex-direction: column; gap: 16px; } }

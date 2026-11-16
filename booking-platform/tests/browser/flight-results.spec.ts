@@ -5,6 +5,7 @@ test('320px flight results keep the fare label and arrow inside their tap target
  await page.setViewportSize({width:320,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});
  const ordinary=flight('ONWARD','ordinary-mobile-fare'),higher=flight('ONWARD','higher-mobile-fare');
+ higher.sI[0]={...higher.sI[0],dt:`${departure}T12:15:00`,at:`${departure}T14:25:00`,fD:{...higher.sI[0].fD,fN:'401'}};
  higher.totalPriceList[0].customerEstimateMinor=12345678;
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[ordinary,higher]}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
@@ -71,7 +72,7 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await cards.first().locator('.fare-comparison>summary').click();await expect(cards.first()).toContainText('child: cabin baggage 5 Kg');await expect(cards.first()).toContainText('infant: cabin baggage not supplied');
  await expect(cards.first()).toContainText('₹14,500');await expect(cards.first()).toContainText('All travellers · estimated total');
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-fare-families');
- await cards.first().locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await cards.first().locator('.fare-option').filter({has:page.getByRole('heading',{name:'Flexible fare',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['night-flex']});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/search')[0].body).toMatchObject({date:departure});expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -162,9 +163,9 @@ test('return headlines, ordering and budget use fares compatible with the select
  await page.getByRole('button', {name: 'Reset flight filters', exact: true}).click();
  if (await toggle.isVisible()) await toggle.click();
  await mixedCard.locator('.fare-comparison > summary').click();
- const unavailable = mixedCard.locator('.fare-option').filter({has: page.getByRole('heading', {name: 'SPECIAL RETURN', exact: true})});
+ const unavailable = mixedCard.locator('.fare-option').filter({has: page.getByRole('heading', {name: 'Special return fare', exact: true})});
  await expect(unavailable.getByRole('button', {name: 'Choose this return fare', exact: true})).toBeDisabled();
- await expect(mixedCard.locator('.fare-option').filter({has: page.getByRole('heading', {name: 'STANDARD', exact: true})}).getByRole('button', {name: 'Choose this return fare', exact: true})).toBeEnabled();
+ await expect(mixedCard.locator('.fare-option').filter({has: page.getByRole('heading', {name: 'Standard fare', exact: true})}).getByRole('button', {name: 'Choose this return fare', exact: true})).toBeEnabled();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);

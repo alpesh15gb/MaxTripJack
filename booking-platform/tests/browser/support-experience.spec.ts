@@ -10,9 +10,9 @@ test('support starts with four actionable customer tasks and verified contact ch
    await expect(main.getByRole('link',{name,exact:true})).toHaveAttribute('href',href);
  }
  const contact=page.getByRole('complementary',{name:'Talk to MaxTravel'});
- await expect(contact.getByRole('link',{name:'Call +91 7095-018-018',exact:true})).toHaveAttribute('href','tel:+917095018018');
+ await expect(contact.getByRole('link',{name:'Call +917095018018',exact:true})).toHaveAttribute('href','tel:+917095018018');
  await expect(contact.getByRole('link',{name:'Email max@maxtravel.us',exact:true})).toHaveAttribute('href','mailto:max@maxtravel.us');
- await expect(contact).toContainText('Every day, 9:00 am–9:00 pm (India time)');
+ await expect(contact).toContainText('Every day, 09:00 - 21:00 (India time)');
  await expect(contact).toContainText('Nothing is sent from this page.');
  await expect(page.locator('a[href*="wa.me"],a[href*="whatsapp.com"]')).toHaveCount(0);
  await expectNoHorizontalOverflow(page);

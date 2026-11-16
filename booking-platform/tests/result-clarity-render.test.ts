@@ -48,7 +48,7 @@ test('continuing with a flight is an action while choosing a journey leg retains
 test('room cards retain full-stay scope, known selection and safe missing-data fallback',()=>{
  const html=renderToStaticMarkup(createElement(HotelRoomView,{...roomProps,busy:true,checkingOptionId:'room-1',selectedOptionId:'room-1'}));
  assert.match(html,/31 Oct 2026 – 2 Nov 2026/);assert.match(html,/2 nights · 2 rooms · 3 guests/);
- assert.match(html,/All selected rooms and guests/);assert.match(html,/aria-pressed="true"/);
+ assert.match(html,/All selected rooms and guests/);assert.doesNotMatch(html,/<button[^>]*aria-pressed=/);
  assert.match(html,/Selected room rate/);assert.match(html,/Meal plan not supplied/);
  assert.ok(html.indexOf('Checking current room price')<html.indexOf('Checking room…'));
  assert.doesNotMatch(renderToStaticMarkup(createElement(HotelRoomView,{...roomProps,busy:true,checkingOptionId:'other'})),/Checking current room price/);

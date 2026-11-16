@@ -98,7 +98,7 @@ test('WhatsApp delivery failure offers email without losing the fare or leaking 
   await verification.getByLabel('Email address', { exact: true }).fill('email-fallback@example.test');
   await verification.getByRole('button', { name: 'Send verification code', exact: true }).click();
   await expect(verification.getByLabel('Verification code', { exact: true })).toHaveValue('');
-  await expect(page.locator('.booking-verification-summary')).toContainText('STANDARD');
+  await expect(page.locator('.booking-verification-summary')).toContainText('Standard fare');
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

@@ -70,6 +70,18 @@
 .account-whatsapp p { font-size: 14px; line-height: 1.6; }
 .account-whatsapp .checkout-verification { margin-top: 24px; }
 
+/* One real submit control remains in the form at every viewport size. */
+.booking-workflow .checkout-submit-action.mobile-booking-action { display:block; }
+.booking-workflow .checkout-submit-action .mobile-action-total { display:none; }
+.booking-workflow .checkout-price-breakdown > summary { cursor:pointer; color:#183b2c; font-size:19px; font-weight:700; }
+.booking-workflow .checkout-price-breakdown[open] > summary { margin-bottom:18px; }
+@media (max-width:700px) {
+  .booking-workflow .checkout-submit-action.mobile-booking-action { display:flex; }
+  .booking-workflow .checkout-submit-action.mobile-booking-action .mobile-action-total { display:block; }
+  body .booking-workflow.journey-flow .checkout-submit-action.mobile-booking-action .booking-continue { width:auto; margin:0; flex:0 1 60%; min-height:48px; }
+  .booking-workflow .checkout-pay-amount { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+}
+
 .booking-status-page { width: 100%; max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; color: #233c30; }
 .booking-status-back { display: inline-flex; margin-bottom: 28px; color: #1f5940; text-decoration: none; font-weight: 600; }
 .booking-status-header { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 28px; }

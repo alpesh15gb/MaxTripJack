@@ -35,7 +35,7 @@ test('flight decision has an explicit next action and reversible fare choice',as
  await expect(page.getByRole('heading',{name:'Choose your flight',exact:true})).toHaveCount(1);
  await expect(page.getByRole('region',{name:'Available options',exact:true})).toBeVisible();
  const card=page.locator('.flight-shopping-list .live-flight-card').first();
- const action=card.locator('.choose-fare-label');await expect(action).toHaveText('Choose fare →');
+ const action=card.locator('.choose-fare-label');await expect(action).toHaveText('View fares →');
  await expect.poll(()=>action.evaluate(node=>{const r=node.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})).toBe(true);
  await reference(page,testInfo,'journey-flight-results');
  const summary=card.locator('.fare-comparison>summary');await summary.focus();await page.keyboard.press('Enter');
@@ -49,12 +49,13 @@ test('flight decision has an explicit next action and reversible fare choice',as
  await card.getByRole('button',{name:'Back to flights',exact:true}).click();await expect(summary).toBeFocused();
  await expect(card.locator('.fare-option')).toHaveCount(0);
  await summary.press('Space');
- await card.locator('.fare-option').filter({has:page.getByRole('heading',{name:'FLEXIBLE',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await card.locator('.fare-option').filter({has:page.getByRole('heading',{name:'Flexible fare',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();
  await expect(page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true})).toBeVisible();
  await expect(page.locator('#booking-review')).toContainText(travelDateLabel(departure));
  await expect(page.locator('.selected-journey-recap')).toContainText(travelDateLabel(departure));
- await expect(page.locator('#booking-summary')).toContainText(travelDateLabel(departure));
+ await expect(page.locator('.selected-journey-recap')).toContainText('BOM → DEL');
+ await expect(page.locator('#booking-review').getByRole('button',{name:'Change selection',exact:true})).toBeVisible();
  await expect(page.locator('.selected-journey-recap')).not.toContainText(departure);
  await reference(page,testInfo,'journey-traveller-review');
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,priceIds:['flex-exact-id']}]);
