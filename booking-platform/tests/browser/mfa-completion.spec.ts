@@ -14,11 +14,16 @@ test('MFA enrollment verifies protection then backup-code sign-in preserves the 
  await page.goto('/account');
  await page.locator('.account-card').getByLabel('Current password',{exact:true}).first().fill(setupPassword);
  await page.getByRole('button',{name:'Set up authenticator',exact:true}).click();
+ await expect(page.getByRole('img',{name:'Authenticator setup QR code'})).toBeVisible();
+ await expectNoHorizontalOverflow(page);
+ await page.getByText('Can’t scan? Enter a setup key manually',{exact:true}).click();
+ await expect(page.getByLabel('Manual setup key',{exact:true})).toHaveValue('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ');
  await expect(page.getByRole('textbox',{name:'Authenticator setup URI',exact:true})).toHaveValue(uri);
  await expect(page.getByRole('textbox',{name:'Backup codes',exact:true})).toHaveValue('00000-00000');
  await page.getByLabel('Authenticator code',{exact:true}).fill('123456');
  await page.getByRole('button',{name:'Verify and enable',exact:true}).click();
  await expect(page.getByText('Authenticator protection enabled.')).toBeVisible();
+ await expect(page.getByRole('img',{name:'Authenticator setup QR code'})).toHaveCount(0);
  await expect(page.getByRole('textbox',{name:'Authenticator setup URI',exact:true})).toHaveCount(0);
  await expect(page.getByRole('textbox',{name:'Backup codes',exact:true})).toHaveCount(0);
  await page.route('**/api/auth/sign-out',async route=>{provider.session=null;await route.fulfill({json:{success:true}});});

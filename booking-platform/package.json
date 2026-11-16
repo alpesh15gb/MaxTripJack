@@ -42,6 +42,7 @@
     "payglocal-js-client": "https://codeload.github.com/PayGlocal-Technologies/payglocal-js-client/tar.gz/5f6a93d61007b831e4d78555a15414e3f5c2e4c0",
     "pdfkit": "^0.20.2",
     "pg": "^8.23.1",
+    "qrcode.react": "4.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
