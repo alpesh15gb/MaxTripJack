@@ -43,6 +43,34 @@ function contentRows(response:unknown, requested:string[]) {
   return rows;
 }
 
+/** Reorder only at a page boundary. A loaded page belongs to its original country
+ * until every pending content batch is committed. The completed prefix is never
+ * moved; one deferred cursor preserves the remaining pages while India runs. */
+function indiaFirstCheckpoint(state:HotelCatalogueSyncState):HotelCatalogueSyncState {
+  if (state.completedAt || state.pageLoaded) return state;
+  const country = state.countries[state.countryIndex];
+  if (!country) throw new Error('Catalogue country checkpoint is invalid.');
+  if (state.pendingIds.length || state.contentOffset) throw new Error('Catalogue page boundary is invalid.');
+  if (state.deferredCountry) {
+    const deferred = state.deferredCountry;
+    if (country === deferred.countryName) {
+      // India has finished. Restore the exact next page and repeated-page guard
+      // in the same transaction that advances the country checkpoint.
+      if (state.mappingPage !== 0) throw new Error('Deferred country checkpoint is invalid.');
+      return {...state,mappingPage:deferred.mappingPage,lastMappingHash:deferred.lastMappingHash,deferredCountry:undefined};
+    }
+    if (country.toUpperCase() !== 'INDIA' || state.countries[state.countryIndex+1] !== deferred.countryName) throw new Error('Deferred country checkpoint is invalid.');
+    return state;
+  }
+  const indiaIndex = state.countries.findIndex(value=>value.toUpperCase() === 'INDIA');
+  // Missing/already-completed/current India needs no intervention.
+  if (indiaIndex <= state.countryIndex) return state;
+  const countries = [...state.countries.slice(0,state.countryIndex),state.countries[indiaIndex],
+    ...state.countries.slice(state.countryIndex,indiaIndex),...state.countries.slice(indiaIndex+1)];
+  return {...state,countries,mappingPage:0,lastMappingHash:undefined,
+    ...(state.mappingPage>0 ? {deferredCountry:{countryName:country,mappingPage:state.mappingPage,...(state.lastMappingHash ? {lastMappingHash:state.lastMappingHash} : {})}} : {})};
+}
+
 /** All country pages are traversed; progress survives a process restart after every content batch.
  * The caller owns a single-worker lock and transaction boundary. No CRM or booking calls exist here. */
 export async function syncHotelCatalogue(options: {
@@ -63,10 +91,15 @@ export async function syncHotelCatalogue(options: {
   if (options.refresh && state && !state.completedAt) throw new Error('Finish the current catalogue generation before refreshing.');
   if (!state || options.refresh) {
     const countries = catalogueCountries(await client.countries());
-    state = {environment,countries,countryIndex:0,mappingPage:0,pendingIds:[],contentOffset:0,mappingHasMore:false,pageLoaded:false,
-      generation:(state?.generation ?? 0)+1,mappedCount:0,contentCount:0,missingCount:0};
+    state = indiaFirstCheckpoint({environment,countries,countryIndex:0,mappingPage:0,pendingIds:[],contentOffset:0,mappingHasMore:false,pageLoaded:false,
+      generation:(state?.generation ?? 0)+1,mappedCount:0,contentCount:0,missingCount:0});
     const initial = state;
     await atomic(()=>repo.writeSync(initial));
+  }
+  const prioritised = indiaFirstCheckpoint(state);
+  if (prioritised !== state) {
+    await atomic(()=>repo.writeSync(prioritised));
+    state = prioritised;
   }
   let pages = 0, retries = 0;
   async function persistContent(ids:string[],country:string,checkpoint:HotelCatalogueSyncState) {
@@ -106,10 +139,11 @@ export async function syncHotelCatalogue(options: {
       state = await persistContent(ids,country,{...state,contentOffset:state.contentOffset+ids.length});
       options.progress?.({kind:'content',pages,countryIndex:state.countryIndex,countries:state.countries.length,hotelCount:ids.length});
     }
-    const next:HotelCatalogueSyncState = {...state,pendingIds:[],contentOffset:0,pageLoaded:false,mappingHasMore:false,
+    let next:HotelCatalogueSyncState = {...state,pendingIds:[],contentOffset:0,pageLoaded:false,mappingHasMore:false,
       countryIndex:state.mappingHasMore ? state.countryIndex : state.countryIndex+1,
       mappingPage:state.mappingHasMore ? state.mappingPage+1 : 0,lastMappingHash:state.mappingHasMore ? state.lastMappingHash : undefined};
     if (next.countryIndex === next.countries.length) next.completedAt = now().toISOString();
+    next = indiaFirstCheckpoint(next);
     await atomic(()=>repo.writeSync(next));
     state = next;
     pages++;

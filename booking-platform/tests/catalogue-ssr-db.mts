@@ -14,24 +14,34 @@ Object.assign(process.env,{
   DATABASE_URL:'postgresql://fixture:fixture@127.0.0.1:1/catalogue_test',
   SEO_INDEXING_ENABLED:'true',SEO_SITE_ORIGIN:'https://maxtravel.in',
   HOTEL_CATALOGUE_ENVIRONMENT:'production',HOTEL_CATALOGUE_PRODUCTION_APPROVED:'true',
-  MAX_AI_ENABLED:'false',TRIPJACK_FLIGHT_API_KEY:'',TRIPJACK_HOTEL_API_KEY:'',
+  MAX_AI_ENABLED:'true',MAX_AI_BASE_URL:'http://127.0.0.1:1/v1',MAX_AI_API_KEY:'isolated-ui-fixture-only',
+  MAX_AI_CONVERSATION_SECRET:'isolated-ui-fixture-secret-never-used-for-real-accounts',
+  BETTER_AUTH_URL:'http://127.0.0.1:3112',BETTER_AUTH_SECRET:'isolated-ui-fixture-auth-secret-never-used-for-real-accounts',
+  TRIPJACK_FLIGHT_API_KEY:'',TRIPJACK_HOTEL_API_KEY:'',
   CRM_EVENTS_URL:'',SAFAR_ENQUIRY_URL:'',SMTP_HOST:'',MAIL_FROM:'',
 });
 const db=new PGlite();
 await db.exec('CREATE TABLE supplier_searches(id uuid PRIMARY KEY,created_at timestamptz DEFAULT now(),product text,criteria jsonb,results jsonb);');
-for(const name of ['026-hotel-catalogue','027-flight-route-catalogue'])await db.exec(await readFile(new URL(`../db/${name}.sql`,import.meta.url),'utf8'));
+for(const name of ['026-hotel-catalogue','027-flight-route-catalogue','028-hotel-catalogue-priority','029-hotel-catalogue-search'])await db.exec(await readFile(new URL(`../db/${name}.sql`,import.meta.url),'utf8'));
 const query=async(sql:string,values?:unknown[])=>{
   const result=await db.query(sql,values);
   return {rows:result.rows as Record<string,unknown>[],rowCount:result.affectedRows??result.rows.length,command:'SELECT',fields:[]};
 };
 const repository=createHotelCatalogueRepository(query,'production');
 for(let index=1;index<=26;index++) {
+  // Explicitly synthetic search scenarios; these do not identify real inventory.
+  const name=index===2?'Seasons Example Hotel':index===3?'Hotel Mira Mare':`Catalogue Test Hotel ${String(index).padStart(2,'0')}`;
+  const city=index===2?'Mumbai':index===3?'Ksamil':'Hyderabad';
+  const country=index===3?'ALBANIA':'INDIA';
+  const address=index===2?'Synthetic Test Lane, Mira Road, Mumbai, India':index===3?'Road Kol Jakova, Ksamil, Albania':'Synthetic Test Road, Hyderabad, Telangana, India';
+  // Public supplier images already displayed on MaxTravel, used only for gallery UI checks.
+  const photos=index===1?['b5295d0b_z.jpg','fd6948e1_z.jpg','47de16b8_z.jpg'].map((file,i)=>({is_hero_image:i===0,links:{Standard:{href:`https://i.travelapi.com/lodging/43000000/42560000/42559900/42559900/${file}`}}})):[];
   const hotel=normaliseCatalogueHotel({
-    tjHotelId:String(900000000+index),name:`Catalogue Test Hotel ${String(index).padStart(2,'0')}`,is_active:true,star_rating:3,
-    locale:{address:{city:'Hyderabad',countrycode:'IN',fulladdr:'Synthetic Test Road, Hyderabad, Telangana, India'}},
+    tjHotelId:String(900000000+index),name,is_active:true,star_rating:3,
+    locale:{address:{city,countrycode:index===3?'AL':'IN',fulladdr:address}},
     descriptions:{default:JSON.stringify({Overview:'Synthetic property content for isolated website testing. This fixture represents no actual hotel and cannot be booked. The page checks clear location details, accessible content and a straightforward path to requesting availability.'})},
-    amenities:{a:{name:'Wi-Fi'},b:{name:'Reception'},c:{name:'Lift'},d:{name:'Parking'}},images:[],
-  },'INDIA','production');
+    amenities:{a:{name:'Wi-Fi'},b:{name:'Reception'},c:{name:'Lift'},d:{name:'Parking'}},images:photos,
+  },country,'production');
   if(!hotel)throw Error('Fixture hotel identity invalid');
   await repository.upsert(hotel);
 }

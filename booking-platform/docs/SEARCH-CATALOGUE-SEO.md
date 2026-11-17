@@ -25,6 +25,8 @@ Property slugs are saved with the hotel record. A different name slug containing
 
 For a query such as “Seasons Hotel Mira Road”, the matching property must first arrive in the supplier catalogue with enough useful content. Its real name, location, address, canonical URL and structured data then give search engines a relevant page to evaluate. Duplicate supplier content alone is not a promise of a higher position.
 
+Directory searches keep words in context: a coherent hotel name, city/locality/address phrase, or a hotel-name plus location combination. “Mira Road” will not match an unrelated hotel with “Mira” in its name and “Road” elsewhere in its address. Exact name/location matches rank first. Search ignores case, common punctuation and Latin accents while preserving non-Latin text. Counts and pagination use the same matching rules; searches do not trigger supplier API requests.
+
 ## Automatic collection and refresh
 
 The opt-in Compose `catalogue` profile starts `catalogue-worker` using the same booking image. Each cycle:
@@ -34,6 +36,8 @@ The opt-in Compose `catalogue` profile starts `catalogue-worker` using the same 
 3. Waits five minutes after success, or fifteen minutes after a failed cycle. Once a complete hotel mapping run is older than seven days, it starts a refresh.
 
 Hotel catalogue import uses the existing `TRIPJACK_HOTEL_API_KEY`. No route feed is required: route coverage grows from successful searches that the booking app actually sees. The discovery scan considers recent stored searches, not an unlimited historical archive. An optional local JSONL route-manifest importer exists for a future verified supplier feed; it is not part of the deployment below and is not permission to label test routes as production.
+
+India is imported first when it is present in the supplier's country list. For an import already in progress, the worker finishes the loaded mapping page, saves the interrupted country's next-page cursor, then switches to India. Once India completes, it resumes that saved country before continuing the remaining list. Completed countries and previously imported hotel records are retained. If India is already complete, the worker continues normally; future refresh runs start with India again. This prioritises collection without promising that a particular hotel exists in the supplier feed.
 
 The worker writes only booking-owned catalogue/checkpoint tables. It does not process bookings, payments, notifications, CRM events or enquiries. It does not connect to Safar CRM.
 
@@ -77,6 +81,9 @@ Run the following in Bash on the existing VPS. It uses the existing booking data
 
   docker compose --env-file .env.production -f compose.production.yaml build app
 
+  docker compose --env-file .env.production -f compose.production.yaml --profile catalogue \
+    stop catalogue-worker
+
   docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps \
     -e POSTGRES_PASSWORD -e POSTGRES_USER \
     app node scripts/migrate-search-catalogues.mjs
@@ -92,7 +99,7 @@ Run the following in Bash on the existing VPS. It uses the existing booking data
 )
 ```
 
-Capturing the existing password also satisfies Compose's required `POSTGRES_PASSWORD` interpolation without adding it to `.env.production`. The migration helper retains the configured booking database target and uses the owner credentials only for the migration process. It runs pending booking migrations, including `026-hotel-catalogue.sql` and `027-flight-route-catalogue.sql`, before the app restarts. It does not alter the application's runtime database credentials.
+Capturing the existing password also satisfies Compose's required `POSTGRES_PASSWORD` interpolation without adding it to `.env.production`. The migration helper retains the configured booking database target and uses the owner credentials only for the migration process. It runs pending booking migrations before the app restarts, including `028-hotel-catalogue-priority.sql` (saved import cursor) and `029-hotel-catalogue-search.sql` (normalised search projections and index). Migration 029 backfills existing records and may take longer for a large catalogue. It does not alter the application's runtime database credentials. Keep the catalogue worker stopped between migration and recreation so the old binary cannot overwrite the new resume state. If migration fails, resolve it before restarting the new app or worker.
 
 These commands recreate only the booking `app` and `catalogue-worker`. They do not deploy Safar CRM, start the CRM/enquiry profiles, restart transaction workers, or recreate Postgres. Do not use a bare `docker compose up` for this release.
 

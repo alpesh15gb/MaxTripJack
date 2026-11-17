@@ -8,6 +8,7 @@ import {displayMoney} from '@/lib/display-money';
 import {isMaxAiActionHref, type MaxAiAction, type MaxAiCard, type MaxAiResponse} from '@/lib/max-ai-contract';
 import {enquiryDraftSchema, type EnquiryDraft} from '@/lib/travel-enquiry-contract';
 import MaxAiEnquiry from './max-ai-enquiry';
+import {observeMobileLauncher} from './max-ai-launcher-placement';
 import '@/app/max-ai.css';
 
 const REQUEST_TIMEOUT_MS = 90_000;
@@ -259,9 +260,11 @@ function MaxAiWidget() {
   const [hasOpened, setHasOpened] = useState(false);
   const launcher = useRef<HTMLButtonElement>(null);
   const onClosed = useCallback(() => setOpen(false), []);
+  useEffect(() => { if (launcher.current) return observeMobileLauncher(launcher.current); }, []);
   return <>
     <button ref={launcher} className="max-ai-launcher" type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}><span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></button>
     {hasOpened && <AssistantDialog open={open} onClosed={onClosed} launcher={launcher}/>}
+    <div className="max-ai-mobile-clearance" aria-hidden="true"/>
   </>;
 }
 

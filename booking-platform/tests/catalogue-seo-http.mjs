@@ -139,6 +139,19 @@ test('hotel canonical redirects, unavailable properties and thin/query exclusion
   assertHtml(propertyQuery, HOTEL_PATH); assertNoindex(propertyQuery);
 });
 
+test('locality search keeps the real phrase together instead of mixing unrelated name and address words', async () => {
+  for (const query of ['Mira Road', 'Seasons Example Hotel Mira Road', 'Seasons Example Mumbai', 'Seasons Example Hotel Mira Road India']) {
+    const page = await request('/hotels?' + new URLSearchParams({q:query}));
+    assertHtml(page, '/hotels'); assertNoindex(page);
+    const entries=jsonLd(page.body).find(node=>hasType(node,'ItemList'))?.itemListElement;
+    assert.deepEqual(entries?.map(item=>item.name),['Seasons Example Hotel']);
+  }
+  const unrelated=await request('/hotels?q=Mira%20Road%20Albania');
+  assertHtml(unrelated,'/hotels'); assertNoindex(unrelated);
+  const entries=jsonLd(unrelated.body).find(node=>hasType(node,'ItemList'))?.itemListElement??[];
+  assert.equal(entries.length,0);
+});
+
 test('root-level hotel sitemap index and shard enumerate only publishable properties', async () => {
   const index = await request('/hotel-sitemap.xml'); assertXml(index, 'sitemapindex');
   assert.deepEqual(locations(index.body), [PUBLIC_ORIGIN + '/hotel-sitemap-0.xml']);

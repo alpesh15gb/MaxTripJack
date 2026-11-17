@@ -15,6 +15,8 @@ const supplierHotel=(id='123')=>({tjHotelId:id,name:'Seasons Example Hotel',is_a
 async function isolatedDatabase(){
   const db=new PGlite();
   await db.exec(await readFile(new URL('../db/026-hotel-catalogue.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../db/028-hotel-catalogue-priority.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../db/029-hotel-catalogue-search.sql',import.meta.url),'utf8'));
   return db;
 }
 

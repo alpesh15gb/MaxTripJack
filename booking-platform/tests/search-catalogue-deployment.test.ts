@@ -15,9 +15,9 @@ test('booking migrations preserve one transaction and apply only pending catalog
     };},async readMigration(name){loaded.push(name);return `-- synthetic ${name}`;},
     report:message=>reports.push(message),reportError:message=>reports.push(message),
   });
-  assert.equal(exit,0);assert.deepEqual(loaded,['026-hotel-catalogue','027-flight-route-catalogue']);
+  assert.equal(exit,0);assert.deepEqual(loaded,['026-hotel-catalogue','027-flight-route-catalogue','028-hotel-catalogue-priority','029-hotel-catalogue-search']);
   assert.equal(statements[0],'BEGIN');assert.equal(statements[1],'SELECT pg_advisory_xact_lock(71266301)');
-  assert.equal(statements.at(-1),'COMMIT');assert.equal(statements.filter(s=>s.startsWith('INSERT INTO schema_migrations')).length,2);
+  assert.equal(statements.at(-1),'COMMIT');assert.equal(statements.filter(s=>s.startsWith('INSERT INTO schema_migrations')).length,4);
   assert.equal(released,true);assert.equal(ended,true);assert.doesNotMatch(reports.join('\n'),/private-secret|synthetic-owner|postgresql/);
   assert.equal(new Set(bookingMigrations).size,bookingMigrations.length);
 });

@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {catalogueHotelId, HOTEL_CATALOGUE_FRESH_DAYS, HOTEL_CATALOGUE_SITEMAP_SIZE, type HotelCatalogueContent, type HotelCatalogueEnvironment, type HotelCatalogueRecord} from './hotel-catalogue';
+import {hotelSearchContext,hotelSearchCtes} from './hotel-catalogue-search';
 
 export type CatalogueQuery = (sql: string, values?: unknown[]) => Promise<{rows: Record<string,unknown>[]} >;
 export type HotelCatalogueSyncState = {
@@ -17,6 +18,7 @@ export type HotelCatalogueSyncState = {
   contentCount: number;
   missingCount: number;
   completedAt?: string;
+  deferredCountry?: {countryName:string;mappingPage:number;lastMappingHash?:string};
 };
 export type HotelCatalogueStats = {
   available: boolean;
@@ -59,12 +61,23 @@ export function createHotelCatalogueRepository(query: CatalogueQuery, environmen
     const page = Math.max(1,Math.min(1_000_000,Math.trunc(input.page || 1)));
     const pageSize = Math.max(1,Math.min(100,Math.trunc(input.pageSize || 24)));
     const search = (input.query || '').trim().slice(0,100);
+    const context=search?hotelSearchContext(search):undefined;
+    if(search&&!context)return {available:true,hotels:[],total:0};
     const values: unknown[] = [environment,now().toISOString()];
-    const where = `environment=$1 AND ${fresh}` + (search ? " AND search_document @@ plainto_tsquery('simple',$3)" : '');
-    if (search) values.push(search);
+    const where = `environment=$1 AND ${fresh}`;
+    const ctes=context?hotelSearchCtes(where):'';
+    const source=context?'scored WHERE search_rank<99':`hotel_catalogue WHERE ${where}`;
+    if(context)values.push(context.text,context.nameParts,context.placeParts);
+    const pageSql=context?`${ctes}
+      SELECT catalogue.* FROM (
+        SELECT hotel_id,name,search_rank FROM scored WHERE search_rank<99 ORDER BY search_rank,name,hotel_id
+        LIMIT $${values.length+1} OFFSET $${values.length+2}
+      ) AS matched JOIN hotel_catalogue AS catalogue ON catalogue.environment=$1 AND catalogue.hotel_id=matched.hotel_id
+      ORDER BY matched.search_rank,matched.name,matched.hotel_id`
+      :`SELECT * FROM ${source} ORDER BY name,hotel_id LIMIT $${values.length+1} OFFSET $${values.length+2}`;
     const [found,count] = await Promise.all([
-      query(`SELECT * FROM hotel_catalogue WHERE ${where} ORDER BY name,hotel_id LIMIT $${values.length+1} OFFSET $${values.length+2}`,[...values,pageSize,(page-1)*pageSize]),
-      query(`SELECT count(*)::text AS total FROM hotel_catalogue WHERE ${where}`,values),
+      query(pageSql,[...values,pageSize,(page-1)*pageSize]),
+      query(`${ctes} SELECT count(*)::text AS total FROM ${source}`,values),
     ]);
     return {available:true,hotels:found.rows.map(record),total:Number(count.rows[0]?.total || 0)};
   }
@@ -117,19 +130,20 @@ export function createHotelCatalogueRepository(query: CatalogueQuery, environmen
       pendingIds:row.pending_ids as string[],contentOffset:Number(row.content_offset),mappingHasMore:row.mapping_has_more === true,pageLoaded:row.page_loaded === true,
       generation:Number(row.generation),mappedCount:Number(row.mapped_count),contentCount:Number(row.content_count),missingCount:Number(row.missing_count),
       ...(row.last_mapping_hash ? {lastMappingHash:String(row.last_mapping_hash)} : {}),
+      ...(row.deferred_country ? {deferredCountry:row.deferred_country as HotelCatalogueSyncState['deferredCountry']} : {}),
       ...(row.completed_at ? {completedAt:instant(row.completed_at)} : {})};
   }
   async function writeSync(state: HotelCatalogueSyncState) {
     if (state.environment !== environment) throw new Error('Catalogue checkpoint environment mismatch.');
-    await query(`INSERT INTO hotel_catalogue_sync(environment,countries,country_index,mapping_page,pending_ids,content_offset,mapping_has_more,page_loaded,generation,mapped_count,content_count,missing_count,completed_at,last_mapping_hash)
-      VALUES($1,$2::jsonb,$3,$4,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+    await query(`INSERT INTO hotel_catalogue_sync(environment,countries,country_index,mapping_page,pending_ids,content_offset,mapping_has_more,page_loaded,generation,mapped_count,content_count,missing_count,completed_at,last_mapping_hash,deferred_country)
+      VALUES($1,$2::jsonb,$3,$4,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb)
       ON CONFLICT(environment) DO UPDATE SET countries=excluded.countries,country_index=excluded.country_index,mapping_page=excluded.mapping_page,
       pending_ids=excluded.pending_ids,content_offset=excluded.content_offset,mapping_has_more=excluded.mapping_has_more,page_loaded=excluded.page_loaded,
       generation=excluded.generation,mapped_count=excluded.mapped_count,content_count=excluded.content_count,missing_count=excluded.missing_count,
-      completed_at=excluded.completed_at,last_mapping_hash=excluded.last_mapping_hash,updated_at=now(),last_error_code=NULL,
+      completed_at=excluded.completed_at,last_mapping_hash=excluded.last_mapping_hash,deferred_country=excluded.deferred_country,updated_at=now(),last_error_code=NULL,
       started_at=CASE WHEN hotel_catalogue_sync.generation<>excluded.generation THEN now() ELSE hotel_catalogue_sync.started_at END`,
       [environment,JSON.stringify(state.countries),state.countryIndex,state.mappingPage,JSON.stringify(state.pendingIds),state.contentOffset,state.mappingHasMore,state.pageLoaded,
-        state.generation,state.mappedCount,state.contentCount,state.missingCount,state.completedAt || null,state.lastMappingHash || null]);
+        state.generation,state.mappedCount,state.contentCount,state.missingCount,state.completedAt || null,state.lastMappingHash || null,state.deferredCountry ? JSON.stringify(state.deferredCountry) : null]);
   }
   async function discover(ids: string[], country: string, generation: number) {
     if (ids.some(id => !catalogueHotelId(id))) throw new Error('Invalid discovered hotel ID.');
