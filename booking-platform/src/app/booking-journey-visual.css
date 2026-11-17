@@ -62,7 +62,7 @@ body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .l
 body .booking-workflow.journey-flow.flight-results-page .flight-headline-facts li { color: #384f67; background: #f0f3f9; }
 body .booking-workflow.journey-flow .fare-decision-grid .fare-option-compact { border-color: #dce1e8; background: white; }
 body .booking-workflow.journey-flow .fare-option-heading { border-color: #e3e7ee; }
-body .booking-workflow.journey-flow :is(.fare-comparison-guidance,.journey-leg-context,.flight-selection-summary,.nearby-flight-dates) { background: #f7f8fc; border-color: #dce1e8; color: #384f67; }
+body .booking-workflow.journey-flow :is(.fare-comparison-guidance,.journey-leg-context,.flight-selection-summary) { background: #f7f8fc; border-color: #dce1e8; color: #384f67; }
 
 /* Hotel photography leads; full-stay prices and rate evidence stay together. */
 body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-shopping-card { border-color: #dce1e8; box-shadow: 0 3px 14px #10263d06; }

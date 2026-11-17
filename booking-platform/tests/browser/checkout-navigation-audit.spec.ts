@@ -1,25 +1,98 @@
 import {test,expect,openFlightSearch,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
+import {travelDateLabel} from '../../src/lib/travel-date';
+import {indiaToday} from '../../src/lib/booking-presentation';
+
+function shiftedDate(date:string,days:number){const value=new Date(`${date}T12:00:00Z`);value.setUTCDate(value.getUTCDate()+days);return value.toISOString().slice(0,10);}
 
 test('nearby departure dates use submitted criteria and never move the return',async({page,provider})=>{
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,returnDate:departure,adults:'2',children:'1',infants:'1',cabin:'BUSINESS',autoSearch:'1'}));
  const dates=page.getByRole('navigation',{name:'Nearby departure dates'});
- await expect(dates.getByRole('button',{name:/Next day/})).toBeDisabled();
- for(const width of [320,390]){
-  await page.setViewportSize({width,height:844});
-  const geometry=await dates.evaluate(node=>{const boxes=Array.from(node.children).map(child=>{const box=child.getBoundingClientRect();return {x:box.x,y:box.y,width:box.width,height:box.height};});return {boxes,width:node.getBoundingClientRect().width};});
-  const [previous,current,next]=geometry.boxes;
-  expect(previous.x+previous.width).toBeLessThanOrEqual(current.x);expect(current.x+current.width).toBeLessThanOrEqual(next.x);
-  // An unavailable date has no date sublabel, so its button can be shorter.
-  // The three grid cells must still share the same row's vertical centre.
-  expect(Math.abs((previous.y+previous.height/2)-(next.y+next.height/2))).toBeLessThan(2);expect(current.width).toBeGreaterThanOrEqual(80);
-  expect(previous.height).toBeGreaterThanOrEqual(44);expect(next.height).toBeGreaterThanOrEqual(44);expect(previous.width).toBeLessThan(geometry.width/2);
- }
- await dates.getByRole('button',{name:/Previous day/}).click();
+ const days=dates.locator('[data-flight-date-track] button[data-flight-date]');
+ await expect(days).toHaveCount(15);
+ await expect(dates.locator(`[data-flight-date="${departure}"]`)).toHaveAttribute('aria-current','date');
+ await expect(dates.locator(`[data-flight-date="${shiftedDate(departure,1)}"]`)).toBeDisabled();
+ for(const date of await days.evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-flight-date')!))){if(date>departure)await expect(dates.locator(`[data-flight-date="${date}"]`)).toBeDisabled();}
+ const previous=shiftedDate(departure,-3);
+ await dates.getByRole('button',{name:new RegExp(`^${travelDateLabel(previous)}`)}).click();
  await expect.poll(()=>provider.requests('/api/travel/search').length).toBe(2);
  const request=provider.requests('/api/travel/search')[1].body as Record<string,unknown>;
  expect(request).toMatchObject({from:'BOM',to:'DEL',returnDate:departure,adults:2,children:1,infants:1,cabin:'BUSINESS'});
- const previous=new Date(`${departure}T12:00:00Z`);previous.setUTCDate(previous.getUTCDate()-1);expect(request.date).toBe(previous.toISOString().slice(0,10));
+ expect(request.date).toBe(previous);
+ await expect(dates.locator(`[data-flight-date="${previous}"]`)).toHaveAttribute('aria-current','date');
+ await expect(dates.locator('button[aria-current="date"]')).toHaveCount(1);
  await expect(dates).not.toContainText('₹');expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('15-day flight timeline fits desktop and scrolls inside the mobile strip without searching',async({page,provider,isMobile},info)=>{
+ await page.setViewportSize({width:1440,height:1000});await openFlightSearch(page);
+ const dates=page.getByRole('navigation',{name:'Nearby departure dates'}),track=dates.locator('[data-flight-date-track]'),days=track.locator('button[data-flight-date]');
+ await expect(days).toHaveCount(15);
+ const listed=await days.evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-flight-date')!));
+ expect(listed[0]).toBe(shiftedDate(departure,-7));expect(listed[14]).toBe(shiftedDate(departure,7));
+ expect(new Set(listed).size).toBe(15);for(let index=1;index<listed.length;index++)expect(listed[index]).toBe(shiftedDate(listed[index-1],1));
+ for(const date of listed)await expect(dates.locator(`[data-flight-date="${date}"]`)).toHaveAccessibleName(new RegExp(`^${travelDateLabel(date)}`));
+ const desktop=await track.evaluate(node=>({width:node.clientWidth,content:node.scrollWidth}));expect(desktop.content).toBeLessThanOrEqual(desktop.width+1);
+ await expect(dates.getByRole('button',{name:'Earlier dates',exact:true})).toBeHidden();await expect(dates.getByRole('button',{name:'Later dates',exact:true})).toBeHidden();
+ await expectNoHorizontalOverflow(page);await capture(page,info,'flight-date-timeline-desktop');
+ const searches=provider.requests('/api/travel/search').length;
+ for(const width of [320,390]){
+  await page.setViewportSize({width,height:844});await track.scrollIntoViewIfNeeded();
+  const geometry=await track.evaluate(node=>({width:node.clientWidth,content:node.scrollWidth,overflow:getComputedStyle(node).overflowX,boxes:Array.from(node.querySelectorAll('button[data-flight-date]')).map(button=>{const rect=button.getBoundingClientRect();return {y:rect.y,height:rect.height,width:rect.width};})}));
+  expect(geometry.content).toBeGreaterThan(geometry.width);expect(['auto','scroll']).toContain(geometry.overflow);
+  for(const box of geometry.boxes){expect(box.height).toBeGreaterThanOrEqual(44);expect(box.width).toBeGreaterThanOrEqual(44);expect(Math.abs(box.y-geometry.boxes[0].y)).toBeLessThan(2);}
+  const earlier=dates.getByRole('button',{name:'Earlier dates',exact:true}),later=dates.getByRole('button',{name:'Later dates',exact:true});
+  await expect(earlier).toBeVisible();await expect(later).toBeVisible();
+  await capture(page,info,`flight-date-timeline-centered-${width}`);
+  if(await earlier.isEnabled()){const position=await track.evaluate(node=>node.scrollLeft);await earlier.click();await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeLessThan(position);}
+  await track.evaluate(node=>node.scrollTo({left:0,behavior:'instant'}));
+  const before=await track.evaluate(node=>node.scrollLeft);
+  await later.click();
+  await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeGreaterThan(before);
+  await expect(dates.locator(`[data-flight-date="${departure}"]`)).toHaveAttribute('aria-current','date');
+  expect(provider.requests('/api/travel/search')).toHaveLength(searches);
+  if(isMobile){
+   // Use a real touch gesture rather than assigning scrollLeft to prove swiping works.
+   await track.evaluate(node=>node.scrollTo({left:0,behavior:'instant'}));
+   const bounds=await track.boundingBox();expect(bounds).not.toBeNull();
+   const session=await page.context().newCDPSession(page);
+   try{
+    const x=bounds!.x+bounds!.width-24,y=bounds!.y+bounds!.height/2;
+    await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    for(const distance of [30,70,110,150])await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-distance,y}]});
+    await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeGreaterThan(30);
+   }finally{await session.detach();}
+   expect(provider.requests('/api/travel/search')).toHaveLength(searches);
+  }
+  await expectNoHorizontalOverflow(page);await capture(page,info,`flight-date-timeline-${width}`);
+ }
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('flight date timeline supports keyboard browsing and restores focus after selection',async({page,provider})=>{
+ await openFlightSearch(page);
+ const dates=page.getByRole('navigation',{name:'Nearby departure dates'});
+ const selected=dates.locator(`[data-flight-date="${departure}"]`);
+ const next=dates.locator(`[data-flight-date="${shiftedDate(departure,1)}"]`);
+ await selected.focus();
+ await page.keyboard.press('ArrowRight');
+ await expect(next).toBeFocused();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ await page.keyboard.press('Enter');
+ await expect(next).toHaveAttribute('aria-current','date');
+ await expect(next).toBeFocused();
+ expect(provider.requests('/api/travel/search')).toHaveLength(2);
+});
+
+test('flight timeline starts today instead of offering past departure dates',async({page,provider})=>{
+ const today=indiaToday();
+ await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:today,adults:'1',autoSearch:'1'}));
+ const dates=page.getByRole('navigation',{name:'Nearby departure dates'}),days=dates.locator('[data-flight-date-track] button[data-flight-date]');
+ await expect(days).toHaveCount(15);await expect(days.first()).toHaveAttribute('data-flight-date',today);
+ await expect(days.last()).toHaveAttribute('data-flight-date',shiftedDate(today,14));
+ await expect(dates.locator('button[aria-current="date"]')).toHaveAttribute('data-flight-date',today);
+ expect((await days.evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-flight-date')!))).every(date=>date>=today)).toBe(true);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 test('checkout has one submit action on phones and keeps private details through selection changes',async({page,provider},info)=>{

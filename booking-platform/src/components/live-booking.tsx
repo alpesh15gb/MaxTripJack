@@ -3,12 +3,13 @@ import BillingFields from './billing-fields';
 import {billingFromForm,billingForProduct} from '@/lib/billing';
 import FlightSelectionSummary from './flight-selection-summary';
 import {appendHotelSearchPage,nextHotelSearchPage} from '@/lib/hotel-search-continuation';
-import {nearbyFlightSearch} from '@/lib/nearby-flight-dates';
+import {flightDateTimeline,nearbyFlightSearch} from '@/lib/nearby-flight-dates';
 import {submittedBookingSearch} from '@/lib/submitted-booking-search';
 import {bookingSearchInput,searchFormIsValid,submittedFlightDateInput} from '@/lib/booking-search-input';
 import {takeBackgroundSearchHeaders,invalidateBackgroundSearch} from '@/lib/background-search';
 import useBackgroundSearch from './use-background-search';
 import BookingSearchSummary from './booking-search-summary';
+import FlightDateTimeline from './flight-date-timeline';
 import {fareDecisionName} from '@/lib/flight-decision';
 import '@/app/booking-experience.css';
 import '@/app/flight-results-polish.css';
@@ -521,14 +522,13 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   }});
   const step=quote?(checkoutStep==='payment'?2:1):checkoutStarted?1:0;
   const today=indiaToday();
-  const previousFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,-1,today),[submittedSearch,today]);
+  const timeline=useMemo(()=>flightDateTimeline(submittedSearch,today),[submittedSearch,today]);
   const nextFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,1,today),[submittedSearch,today]);
   const prepareSearch=backgroundSearch.prepare;
   const preparedNearbyDate=useRef(false);
-  function prepareNearbyDate(target:typeof nextFlightDate){
-    if(!target)return;
+  function prepareNearbyDate(criteria:Record<string,string>){
     preparedNearbyDate.current=true;
-    prepareFlightDate(target.criteria,prepareSearch);
+    prepareFlightDate(criteria,prepareSearch);
   }
   useEffect(()=>{
     // Prepare one likely next day after a completed one-way search, including on touch screens.
@@ -675,13 +675,14 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         title:multiCity?legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · '):`${origin} → ${destination}`,
         detail:`${displayDates} · ${travellerCount} traveller${travellerCount===1?'':'s'} · ${String(fields.get('cabin')).replaceAll('_',' ')}`,
         phase:'availability',
+        ...(nearby&&{departureDate:date}),
       }:{
         title:String(fields.get('city')||'Your selected destination'),
         detail:`${displayDates} · ${completeRooms.length} room${completeRooms.length===1?'':'s'} · ${numberOfGuests} guest${numberOfGuests===1?'':'s'}`,
         phase:needsMapping?'destination':'availability',
       };
       setPendingSearchContext(context);
-      requestAnimationFrame(()=>{if(current(task.id)&&busyRef.current)document.getElementById('booking-pending')?.scrollIntoView({behavior:'auto',block:'start'});});
+      if(!nearby)requestAnimationFrame(()=>{if(current(task.id)&&busyRef.current)document.getElementById('booking-pending')?.scrollIntoView({behavior:'auto',block:'start'});});
       if(needsMapping){
         const regionId=String(fields.get('regionId')??'');let cursor=String(fields.get('destinationCursor')??'');
         if(!regionId||!cursor)throw Error('Choose a destination from the suggestions before searching for stays.');
@@ -1071,9 +1072,12 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   // Deriving from matching results also handles content arriving before room detail.
   const roomListing=rooms?.searchId===results?.searchId?results?.results.hotels?.find(hotel=>hotel.tjHotelId===rooms?.hid):undefined;
   const roomProperty=roomListing?.propertyContentStatus==='resolved'?roomListing.property??rooms?.property:rooms?.property??roomListing?.property;
-  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow${results||quote?' has-journey':''}${!checkoutStarted?' booking-shopping':' checkout-active'}${busy&&activity==='Finding available journeys'?' is-searching':''}${product==='HOTEL'&&results&&!checkoutStarted?' hotel-results-page':''}${product==='FLIGHT'&&results&&!checkoutStarted?' flight-results-page':''}${results&&!checkoutStarted?' results-only':''}`}>
+  const searchingAvailability=busy&&activity==='Finding available journeys';
+  const switchingDate=searchingAvailability?pendingSearchContext?.departureDate??null:null;
+  const showSearchScene=searchingAvailability&&!switchingDate;
+  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow${results||quote?' has-journey':''}${!checkoutStarted?' booking-shopping':' checkout-active'}${showSearchScene?' is-searching':''}${product==='HOTEL'&&results&&!checkoutStarted?' hotel-results-page':''}${product==='FLIGHT'&&results&&!checkoutStarted?' flight-results-page':''}${results&&!checkoutStarted?' results-only':''}`}>
     <Link href="/" className="back">← Back to explore</Link>
-    {busy&&activity==='Finding available journeys'&&<SearchJourneyPending product={product} context={pendingSearchContext} onStop={stopAvailabilitySearch}/>}
+    {showSearchScene&&<SearchJourneyPending product={product} context={pendingSearchContext} onStop={stopAvailabilitySearch}/>}
     {busy&&activity!=='Finding available journeys'&&!checkingSelection&&!checkingHotelId&&<section id="booking-pending" className="booking-skeleton booking-pending" role="status" aria-live="polite" aria-label="Search and booking activity"><span aria-hidden="true" className="booking-spinner"/><strong>{activity}…</strong><p>{activity==='Finding available journeys'?'Waiting for live supplier availability. Results will appear here when the response arrives; prices are not confirmed yet.':'We’re checking the details. Please wait before trying again.'}</p><div className="booking-loading-lines" aria-hidden="true"><i/><i/><i/></div></section>}
     {snapshotLoading&&<section className="white-card" role="status"><h2>Restoring your {product==='FLIGHT'?'flight':'hotel'} search…</h2><p>Checking this browser’s search and dates. No booking is being made.</p></section>}
     <div className="page-heading booking-intro"><div className="booking-heading-copy"><span className="booking-heading-icon" aria-hidden="true"><TravelIcon name={product === "FLIGHT" ? "plane" : "hotel"} size={26}/></span><div><><h1>{checkoutStarted?(quote&&checkoutStep==='payment'?'Review & pay':product==='HOTEL'?'Guest details':'Traveller details'):results?(product==='FLIGHT'?'Choose your flight':roomView?'Choose your room':'Choose your stay'):(product==='FLIGHT'?'Your next journey starts here.':'Find your somewhere special.')}</h1>{!results&&!quote&&<p>{product==='FLIGHT'?'Compare flights, make it yours, and review every detail before you pay.':'Discover stays, compare room options, and see the full stay total.'}</p>}</></div></div><span className="booking-test-badge">In Testing · No live bookings or payments</span></div>
@@ -1117,22 +1121,13 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
 
       {results&&!hasFullSearchResults&&!quote&&!signInRequired&&<section id="saved-selection-recovery" tabIndex={-1} className="white-card saved-selection-recovery" aria-label="Saved selection"><h2>Your saved selection</h2><p>This tab has your selected option, not the complete previous search results. No price or availability is confirmed; nothing is reserved. For privacy, traveller and contact details must be entered again after a reload.</p>{product==='FLIGHT'?selectedJourney.map((flight,index)=><div key={index}><h3>{flight.sI[0]?.da.code} → {flight.sI.at(-1)?.aa.code}</h3><p>{flight.sI[0]?.fD.aI.name} · {travelDateTimeLabel(flight.sI[0]?.dt)}</p><p>Selected fare: {flight.totalPriceList.map(fare=>fareDecisionName(fare)).join(' / ')}</p></div>):savedHandoff?.hotel&&<div><h3>{savedHandoff.hotel.name}</h3><p>{savedHandoff.hotel.roomLabel}</p>{savedHandoff.hotel.mealBasis&&<p>{savedHandoff.hotel.mealBasis.replaceAll('_',' ')}</p>}</div>}{busy&&checkingSelection?<p role="status">Checking the current price and conditions… Nothing is reserved yet.</p>:resumeSelection&&!hasVerifiedCustomerIdentity(checkoutSession?.user)?<><p>Continue with your email to check the latest price and availability.</p><CheckoutVerification initialEmail={checkoutSession?.user.email} onVerified={continueVerifiedSelection}/></>:<>{savedHandoff&&<button type="button" className="primary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={()=>void review(savedHandoff.selection)}>Check current price and conditions</button>}<p>To compare other options, search again using your retained criteria.</p></>}<button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onClick={recoverSearch}>Search again</button></section>}
 
-      {results&&hasFullSearchResults&&<section id="booking-results" className="live-results" hidden={checkoutStarted||(busy&&activity==='Finding available journeys')||(product==='HOTEL'&&roomView)} aria-label="Available options" aria-busy={busy}>
-        {product==='FLIGHT'&&<div className="results-heading"><div><h2 id="flight-results-title" tabIndex={-1}>{pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:'Available flights'}</h2><p className="muted">Compare fares, baggage and flexibility.</p></div><div className="flight-sort-options" role="group" aria-label="Sort flights">{flightSortOptions.map(option=><button type="button" key={option.value} aria-pressed={effectiveSort===option.value} disabled={busy||option.disabled} title={option.description} onClick={()=>changeFlightSort(option.value)}>{option.label}</button>)}</div><span className="results-count" role="status" aria-live="polite">{flightRows.length} of {(groups[shownGroup]??[]).length} options · {groupLabel(shownGroup||'')}</span></div>}
-        {product==='FLIGHT'&&<>
+      {results&&hasFullSearchResults&&<section id="booking-results" className="live-results" hidden={checkoutStarted||showSearchScene||(product==='HOTEL'&&roomView)} aria-label="Available options" aria-busy={busy&&!switchingDate}>
+        {product==='FLIGHT'&&<div className="results-heading"><div><h2 id="flight-results-title" tabIndex={-1}>{pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:'Available flights'}</h2><p className="muted">Compare fares, baggage and flexibility.</p></div><div className="flight-sort-options" role="group" aria-label="Sort flights">{flightSortOptions.map(option=><button type="button" key={option.value} aria-pressed={effectiveSort===option.value} disabled={busy||option.disabled} title={option.description} onClick={()=>changeFlightSort(option.value)}>{option.label}</button>)}</div><span className={`results-count${switchingDate?' flight-date-count-hidden':''}`} role="status" aria-live="polite">{flightRows.length} of {(groups[shownGroup]??[]).length} options · {groupLabel(shownGroup||'')}</span></div>}
+        {product==='FLIGHT'&&timeline.length>0&&<FlightDateTimeline days={timeline} selectedDate={submittedSearch.date} returnDate={submittedSearch.returnDate} pendingDate={switchingDate} disabled={busy||Boolean(payment)||paymentUncertain||recovery.blocked} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)}/>}
+        {switchingDate&&<div id="booking-pending" className="flight-date-progress"><div role="status" aria-label="Search and booking activity"><span className="booking-spinner" aria-hidden="true"/><strong>Checking flights for {travelDateLabel(switchingDate)}…</strong></div><button className="secondary" type="button" onClick={stopAvailabilitySearch}>Stop search</button></div>}
+        {product==='FLIGHT'&&!switchingDate&&<>
           {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} disabled={busy} onClick={()=>{setActiveGroup(group);resetFlightGroupRefinements();}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
           {pairedFares&&<FlightSelectionSummary groups={fareGroups.map(group=>{const fare=selectedFare(group);return {group,fare,flight:groups[group]?.find(item=>item.totalPriceList.some(option=>option.id===fare?.id))};})} activeGroup={shownGroup} busy={busy} checking={Boolean(busy&&checkingSelection)} allSelected={allSelected} onChange={group=>{setActiveGroup(group);resetFlightGroupRefinements();}} onReview={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}/>}
-          {!submittedSearch.legs&&<nav className="nearby-flight-dates" aria-label="Nearby departure dates">
-            <button type="button" className="secondary" disabled={busy||!previousFlightDate||recovery.blocked}
-              onPointerEnter={event=>{if(event.pointerType==='mouse')prepareNearbyDate(previousFlightDate);}}
-              onFocus={event=>{if(event.currentTarget.matches(':focus-visible'))prepareNearbyDate(previousFlightDate);}}
-              onClick={()=>{if(previousFlightDate)void search(null,previousFlightDate.criteria);}}>← Previous day{previousFlightDate&&<small>{travelDateLabel(previousFlightDate.date)}</small>}</button>
-            <div><strong>{travelDateLabel(submittedSearch.date)}</strong><small>{submittedSearch.returnDate?`Return stays ${travelDateLabel(submittedSearch.returnDate)}`:'Search nearby dates for live fares'}</small></div>
-            <button type="button" className="secondary" disabled={busy||!nextFlightDate||recovery.blocked}
-              onPointerEnter={event=>{if(event.pointerType==='mouse')prepareNearbyDate(nextFlightDate);}}
-              onFocus={event=>{if(event.currentTarget.matches(':focus-visible'))prepareNearbyDate(nextFlightDate);}}
-              onClick={()=>{if(nextFlightDate)void search(null,nextFlightDate.criteria);}}>Next day →{nextFlightDate&&<small>{travelDateLabel(nextFlightDate.date)}</small>}</button>
-          </nav>}
           <div className="flight-shopping">
           {!checkoutStarted&&<FlightResultsControls sort={effectiveSort} onSort={changeFlightSort} hasDuration={hasKnownDuration} hasDeparture={hasKnownDeparture} group={shownGroup} airlines={airlines} airline={airlineFilter} airlineQuery={airlineQuery} onAirline={changeFlightCarrier} stops={stopFilter} onStops={changeFlightStops} departure={departureWindow} onDeparture={setDepartureWindow} budget={flightBudget} onBudget={setFlightBudget} count={flightRows.length} disabled={busy}/>}
           <div className="flight-shopping-list">

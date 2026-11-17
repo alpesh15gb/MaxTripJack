@@ -1,18 +1,40 @@
 import { bookingSearchUrl } from './booking-search-state';
 
-/** Date navigation uses submitted criteria only; an existing return is never moved. */
-export function nearbyFlightSearch(criteria:Record<string,string>, offset:number, today:string):{date:string;criteria:Record<string,string>;url:string}|null {
-  if(criteria.product!=='FLIGHT'||criteria.legs||!Number.isInteger(offset)||Math.abs(offset)>7||offset===0)return null;
-  const source=criteria.date;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(source??''))return null;
-  const parsed=new Date(`${source}T12:00:00Z`);
-  if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==source)return null;
-  parsed.setUTCDate(parsed.getUTCDate()+offset);
-  const date=parsed.toISOString().slice(0,10);
-  if(date<today||(criteria.returnDate&&date>criteria.returnDate))return null;
+const DATE_RADIUS = 7;
+const DAY_MS = 86_400_000;
+type DateSearch = {date:string;criteria:Record<string,string>;url:string};
+export type FlightTimelineDay = {date:string;search:DateSearch|null};
+
+function departureTime(criteria:Record<string,string>) {
+  if (criteria.product !== 'FLIGHT' || criteria.legs || !/^\d{4}-\d{2}-\d{2}$/.test(criteria.date ?? '')) return null;
+  const time = Date.parse(`${criteria.date}T00:00:00Z`);
+  return Number.isFinite(time) && isoDay(time) === criteria.date ? time : null;
+}
+
+const isoDay = (time:number) => new Date(time).toISOString().slice(0,10);
+
+function searchOnDate(criteria:Record<string,string>, date:string, today:string):DateSearch|null {
+  if (date === criteria.date || date < today || (criteria.returnDate && date > criteria.returnDate)) return null;
   const search={...criteria};
   for(const key of ['browseSearch','flightSearch','flightStops','flightSort','flightAirlineQuery','stay','gallery','stayStep','selectionKey','resumeSelection','resumeReview'])delete search[key];
   const next={...search,date,autoSearch:'1'};
   const url=bookingSearchUrl(next,today);
   return url?{date,criteria:next,url}:null;
+}
+
+/** Date navigation uses submitted criteria only; an existing return is never moved. */
+export function nearbyFlightSearch(criteria:Record<string,string>, offset:number, today:string):DateSearch|null {
+  const departure = departureTime(criteria);
+  if (departure === null || !Number.isInteger(offset) || Math.abs(offset) > DATE_RADIUS) return null;
+  return searchOnDate(criteria, isoDay(departure + offset * DAY_MS), today);
+}
+
+export function flightDateTimeline(criteria:Record<string,string>, today:string):FlightTimelineDay[] {
+  const departure = departureTime(criteria);
+  if (departure === null) return [];
+  const start = Math.max(departure - DATE_RADIUS * DAY_MS, Date.parse(`${today}T00:00:00Z`));
+  return Array.from({length: 2 * DATE_RADIUS + 1}, (_, index) => {
+    const date = isoDay(start + index * DAY_MS);
+    return {date, search: searchOnDate(criteria, date, today)};
+  });
 }

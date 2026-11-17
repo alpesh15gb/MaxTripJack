@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, flight, departure, returning, searchId, expectNoHorizontalOverflow, capture } from './fixtures';
+import {travelDateLabel} from '../../src/lib/travel-date';
 
 const warmPath = '/api/travel/search/warm';
 const searchPath = '/api/travel/search';
@@ -145,16 +146,23 @@ test('nearby flight dates join the exact warm search without a page request', as
   });
   await warmAfterEdit(page, observed, 1);
   expect(observed.warm[0].body.date).toBe(date);
-  await dates.getByRole('button', { name: /Next day/ }).click();
+  await expect(dates.locator('[data-flight-date-track] button[data-flight-date]')).toHaveCount(15);
+  await dates.getByRole('button', { name: new RegExp(`^${travelDateLabel(date)}`) }).click();
   await expect.poll(() => observed.search.length).toBe(2);
   expect(observed.search[1]).toEqual(observed.warm[0]);
   expect(pageRequests).toEqual([]);
-  await expect(page.locator('#booking-pending')).toBeVisible();
+  await expect(page.locator('#booking-results #booking-pending')).toBeVisible();
+  await expect(page.locator('#booking-results #booking-pending')).toContainText(`Checking flights for ${travelDateLabel(date)}`);
+  await expect(dates).toBeVisible();
+  await expect(dates.locator(`[data-flight-date="${date}"]`)).toHaveAttribute('data-pending',/.*/);
+  await expect(dates.locator(`[data-flight-date="${departure}"]`)).toHaveAttribute('aria-current','date');
+  await expect(page.locator('#booking-pending').getByRole('button',{name:'Stop search',exact:true})).toBeVisible();
   await expect(page.locator('.live-flight-card')).toBeHidden();
   await expectNoHorizontalOverflow(page);
   gate.release();
   await expect(page.locator('.live-flight-card')).toBeVisible();
   await expect(page).toHaveURL(url => url.searchParams.get('date') === date);
+  await expect(dates.locator(`[data-flight-date="${date}"]`)).toHaveAttribute('aria-current','date');
   await page.goBack();
   await expect.poll(() => observed.search.at(-1)?.body.date).toBe(departure);
   await expect(dates).toBeVisible();

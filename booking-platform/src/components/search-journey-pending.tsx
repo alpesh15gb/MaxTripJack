@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState} from 'react';
 
-export type PendingSearch = { title: string; detail: string; phase: 'destination' | 'availability' };
+export type PendingSearch = { title: string; detail: string; phase: 'destination' | 'availability'; departureDate?: string };
 
 /** The status follows actual requests. A long wait adds an editing option, never an ETA. */
 export default function SearchJourneyPending({product,context,onStop}:{product:'FLIGHT'|'HOTEL';context:PendingSearch|null;onStop:()=>void}){

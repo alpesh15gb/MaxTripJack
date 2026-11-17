@@ -1,3 +1,99 @@
+.flight-date-timeline {
+  min-width: 0;
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px solid #dbe6e4;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #edf6f4, #f8fafc 65%);
+}
+.flight-date-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px 8px;
+}
+.flight-date-header h3 { margin: 0; color: #163633; font-size: 15px; line-height: 1.3; }
+.flight-date-header p { margin: 4px 0 0; color: #516774; font-size: 12px; }
+.flight-date-arrows { display: flex; gap: 6px; }
+.flight-date-arrows button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #cfdedb;
+  border-radius: 12px;
+  background: #fff;
+  color: #125c52;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.flight-date-arrows button:disabled { opacity: .45; cursor: default; }
+.flight-date-track {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(60px, 1fr);
+  gap: 5px;
+  padding: 3px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+.flight-date-track::-webkit-scrollbar { display: none; }
+.flight-date-day {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-height: 62px;
+  padding: 6px 2px;
+  border: 1px solid #dce5ea;
+  border-radius: 11px;
+  background: #fff;
+  color: #213a50;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.flight-date-day > span { color: #526a7d; font-size: 11px; font-weight: 600; }
+.flight-date-day time { font-size: 11px; }
+.flight-date-day strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.flight-date-day[aria-current="date"] {
+  border-color: #075c51;
+  background: linear-gradient(145deg, #087461, #064c48);
+  color: #fff;
+  box-shadow: 0 2px 6px #075c5130;
+  cursor: default;
+}
+.flight-date-day[aria-current="date"] > span { color: #dbf4ee; }
+.flight-date-day:disabled:not([aria-current]):not([data-pending]) { opacity: .55; cursor: default; }
+.flight-date-day[data-pending] { border-color: #16816e; background: #e0f2ec; box-shadow: inset 0 -3px 0 #16816e; }
+.flight-date-timeline button:focus-visible { outline: 2px solid #097767; outline-offset: 1px; }
+@media (hover: hover) {
+  .flight-date-day:hover:not(:disabled):not([aria-current]), .flight-date-arrows button:hover:not(:disabled) {
+    border-color: #369384;
+    background: #eaf6f2;
+  }
+}
+.flight-date-count-hidden { visibility: hidden; }
+.flight-date-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #dbe6e4;
+  border-radius: 12px;
+  background: #fff;
+}
+.flight-date-progress > div { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.flight-date-progress .booking-spinner { width: 18px; height: 18px; margin: 0; flex: 0 0 18px; border-width: 2px; }
+
 .flight-results-page .flight-shopping-list {
   --flight-carrier-width: 152px;
   --flight-price-width: 172px;
@@ -153,8 +249,9 @@ body .booking-workflow.journey-flow.flight-results-page .flight-result-details .
   body .booking-workflow.journey-flow.flight-results-page .booking-search-panel:not([open]) { margin-bottom: 8px; }
   body .booking-workflow.journey-flow.flight-results-page .booking-search-panel:not([open]) > summary { padding-block: 10px; }
   body .booking-workflow.journey-flow.flight-results-page .results-heading { padding-bottom: 4px; }
-  body .booking-workflow.journey-flow.flight-results-page .nearby-flight-dates { margin: 4px 0 6px; padding: 4px; }
-  body .booking-workflow.journey-flow.flight-results-page .nearby-flight-dates .secondary { padding-block: 4px; }
+  .flight-date-timeline { margin: 6px 0 8px; padding: 7px; border-radius: 13px; }
+  .flight-date-header { margin-bottom: 3px; }
+  .flight-date-track { grid-auto-columns: 66px; }
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping { gap: 6px; }
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls { padding-block: 5px; }
   /* The native select carries its own accessible name and visible selected value. */
