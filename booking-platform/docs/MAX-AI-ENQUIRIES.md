@@ -1,126 +1,45 @@
-# Max AI enquiries and Safar CRM
+# Max AI enquiries — live CRM deployment on hold
 
-**Booking is in testing. Safar CRM contains real business transactions.** This guide replaces the earlier MaxTravel CRM integration instructions. Do not deploy the old `alpesh15gb/MaxTravel` receiver or redirect the legacy booking CRM sender to Safar.
+**Do not run the earlier Safar setup, migration or deployment commands.** On 17 November 2026 the user confirmed that the owner is actively entering real transactions in Safar and that none of the latest integration setup/deployment commands had been run. Leave Safar on its existing running deployment.
 
-The VPS audit on 17 November 2026 found no configured legacy CRM destination, no delivered events and no enquiry events. The queue contained 7 `booking.confirmed`, 1 `booking.failed` and 8 `payment.captured` events from booking tests. The user stopped `max-travel-booking-crm-worker-1`. Preserve those 16 records and leave that worker stopped.
+The enquiry implementation is preserved on [codex/max-ai-enquiries-staging](https://github.com/alpesh15gb/SafarCrm/tree/codex/max-ai-enquiries-staging), commit `7982971`. Normal revert commit `97cab95` removes only this integration from Safar `main`; no history was rewritten. Its tracked source now matches pre-integration commit `a18d1b1`. No VPS command or database rollback was run. Do not deploy the review branch to the live CRM.
 
-## Customer and staff workflow
+## Current operating arrangement
 
-Max AI prepares visa, insurance, holiday and cruise enquiries. The visitor reviews an editable draft, enters contact details outside model chat and explicitly consents before saving. This does not reserve travel, apply for a visa, issue insurance or take payment. Contacts remain unverified.
+- Keep Safar's existing app, import worker and database running unchanged.
+- Keep the legacy booking `crm-worker` stopped. Do not start `enquiry-worker` either.
+- Do not point a booking sender at live Safar, run the cross-repository setup helper, or submit synthetic enquiries into the live CRM.
+- Max AI can save confirmed enquiries in the **booking application's own database**, available at `/operations/enquiries`. Saving an enquiry does not contact Safar or require Safar credentials.
+- Missing CRM configuration leaves delivery pending configuration; it does not invalidate the local save. Booking and payment processing are independent of CRM delivery.
 
-The booking site atomically saves the enquiry, an audit event and an immutable delivery payload. Actor-scoped request IDs recover the same receipt after uncertain responses. Reusing an ID with changed details returns a conflict. Exact retries still work after the requested travel date has passed.
+The last VPS audit found no configured legacy CRM destination, no delivered events and no enquiry events. It showed 7 `booking.confirmed`, 1 `booking.failed` and 8 `payment.captured` events from booking tests. The user stopped `max-travel-booking-crm-worker-1`. Preserve those 16 records. No later live queue state has been independently inspected.
 
-Booking staff use `/operations/enquiries`. Existing verified-email, MFA and permission requirements apply: `bookings:read` to view, `bookings:reconcile` to update status/notes, `integrations:manage` to retry eligible delivery. Staff updates use version checks. Permissions are not automatically granted by this release.
+Compose profiles make senders opt-in, but do not stop an already running container. Leave the previously stopped sender stopped and do not start the new one. No booking deployment is required merely to keep CRM disconnected. If any commands are run after this hold, report which ones before planning further action.
 
-Safar staff use **Website enquiries** at `/enquiries`. This is a separate inbox with assignment, status and notes. The boss sees unassigned enquiries and can assign them; staff see enquiries within their existing access scope. Existing MFA and password-change requirements apply. Structured budgets are separately stored and projected only to users allowed to see profit information. Contact details are explicitly marked unverified.
+## Enquiry workflow
 
-The receiver writes only the new enquiry, enquiry-financial and enquiry-audit tables. It does not create or update existing customers, cases, tasks, bookings, invoices, payments or supplier records. No automatic conversion into a native sales case or customer is included.
+The visitor reviews an editable visa, insurance, holiday or cruise draft, enters contact details outside model chat, and explicitly consents before saving. Contact details remain unverified. An enquiry does not reserve travel, apply for a visa, issue insurance or take payment.
 
-## Test/live separation
+The booking app atomically saves the enquiry, audit event and frozen delivery payload. Actor-scoped request IDs recover the same receipt after uncertain responses. Reusing an ID with changed details returns a conflict. Existing verified-email, MFA and permission requirements apply to booking-admin review. Do not retry CRM delivery during the hold.
 
-`SAFAR_ENQUIRY_MODE=test` is the default. The server saves that mode with each new enquiry and inside its signed schema-version 2 envelope. Neither customer input nor the model chooses it. Retries reuse the original payload. Changing configuration later cannot relabel old test enquiries as live.
+The prepared Safar inbox has separate Live and Test views, staff assignment, notes, unverified contact labels and protected structured budgets. Its receiver writes only new enquiry-related tables. It cannot automatically create native customers, cases, tasks, bookings, invoices or payments. Historical destinations are not backfilled or redirected, and retries preserve the original mode.
 
-Safar opens **Live enquiries** by default. **Test enquiries** is a separate view with prominent labels. Test records are stored in the isolated enquiry tables, never the transaction tables. This separation does not create a second CRM database.
+**A Test view inside the live CRM is not an isolated test environment.** It shares the running app and database. Even an additive migration or app restart can affect active staff. The prepared integration is therefore not approved for live deployment.
 
-When booking is ready for live business, change only `SAFAR_ENQUIRY_MODE=live` through a deliberate deployment of the booking app and enquiry worker. Existing test enquiries retain their original mode. Do not bulk-update the saved mode or recreate payloads to move them into Live.
+## Required next stage
 
-## Dedicated delivery
+1. Create a separate staging Safar instance with its own database, containers, domain, application secrets and signing keys. Use synthetic records and disable jobs that send customer messages or perform transactions. Do not use live customer data or live credentials.
+2. Deploy the preserved review branch only to staging. Exercise all four enquiry services, uncertain retries, replay conflicts, staff/MFA permissions, budgets and desktop/mobile use. Check existing case, booking, invoice and payment workflows there too.
+3. Review the exact migration and deployment diff against the then-current live version. Verify backup and recovery in staging. A backup alone does not eliminate deployment risk; restoring an old database while new transactions are being entered could lose data.
+4. Prepare the concrete rollout and app rollback plan, then obtain the owner's explicit approval for a maintenance window with staff data entry paused during the agreed change.
+5. Only after acceptance, configure live delivery separately. Existing test events must not be replayed as real transactions or relabelled as live.
 
-The new `enquiry-worker` uses the `enquiries` Compose profile and these private booking settings:
+Until these steps are complete, this guide supplies no live setup/deployment commands. The earlier live rollout instructions are withdrawn.
 
-```dotenv
-SAFAR_ENQUIRY_URL=https://crm.maxtravel.in/api/integrations/max-ai/enquiries
-SAFAR_ENQUIRY_KEY_ID=<dedicated-key-id>
-SAFAR_ENQUIRY_SIGNING_KEY=<dedicated-private-secret>
-SAFAR_ENQUIRY_MODE=test
-```
+## Existing validation and limits
 
-Safar's `deploy/.env.production` uses `SAFAR_MAX_AI_SIGNING_KEYS`, a JSON object mapping dedicated key IDs to their private signing secrets. The setup helper below creates a matching pair without displaying it. These settings do not replace OmniRoute, SMTP, database, Supabase or legacy `CRM_*` keys.
+The preserved Safar branch passed its build, 51 unit tests, 20 desktop/mobile UI cases and 11 isolated PostgreSQL/PGlite tests. The database tests execute all 50 migrations and verify that fingerprints of 25 existing synthetic business tables and numbering sequences remain unchanged through enquiry ingestion and follow-up.
 
-HMAC authenticates the raw body, event ID and timestamp. The receiver rejects expired signatures, malformed payloads and conflicting replays. A valid acknowledgement must identify Safar and match the enquiry ID, reference and original environment, with a valid Safar record ID. A generic HTTP 200 or a receipt from the previous CRM is not success. Payloads and acknowledgements are bounded; leases and retries are fenced, with a maximum of 12 attempts before staff intervention.
+Booking passed 736 tests, TypeScript, lint, production build, worker bundling and 48 selected desktop/mobile enquiry cases. Its queue tests execute all 25 booking migrations in isolated PostgreSQL and preserve ordinary test events and historical enquiries. Setup/diagnostic tests cover key preservation, rollback and secret-free output.
 
-New enquiry records have an explicit Safar destination. Migration 025 leaves earlier enquiry destinations NULL and does not rewrite their outbox records. Older records show `DESTINATION_REVIEW` or `LEGACY_DELIVERY` and cannot be retried into Safar. Any future transfer requires a separate review. The ordinary `crm-worker` excludes enquiries and must remain stopped in this testing deployment.
-
-## Pull, configure and deploy
-
-These commands target the confirmed VPS directories. Run each block only after the preceding block succeeds. They do not reset, seed, restore or recreate either database. The helper only changes the named environment settings and makes private backups of the two files. Do not paste those backups or keys into chat.
-
-First pull both correct repositories, keep the old sender stopped, and configure the private test connection. The existing booking image supplies Node 24; its entrypoint is overridden and no app process or network is started by the helper container.
-
-```bash
-(
-  set +x
-  set -e
-  cd /opt/max-travel-booking/booking-platform
-  git pull --ff-only origin main
-  cd /opt/safar-crm
-  test -f deploy/.secrets
-  test -f deploy/.env.production
-  git pull --ff-only origin main
-  docker stop max-travel-booking-crm-worker-1
-  test -f /opt/max-travel-booking/booking-platform/.env.production
-  docker run --rm --network none --user 0:0 --entrypoint node \
-    --mount type=bind,src=/opt/max-travel-booking/booking-platform,dst=/booking \
-    --mount type=bind,src=/opt/safar-crm/deploy,dst=/safar-deploy \
-    max-travel-booking:local /booking/scripts/configure-safar-enquiries.mjs \
-    --booking-env /booking/.env.production \
-    --safar-env /safar-deploy/.env.production
-)
-```
-
-Deploy Safar first. Its existing deployment procedure backs up the database and uploaded files, applies pending migrations transactionally, builds and checks application health. The image tag below retains the prior running image; it does not copy or restore the database. Instance settings determine the actual container names.
-
-```bash
-(
-  set +x
-  set -e
-  cd /opt/safar-crm
-  test -f deploy/.secrets
-  test -f deploy/.env.production
-  . deploy/instance.sh
-  rollback_tag="safar-crm:before-max-ai-$(date +%Y%m%d%H%M%S)"
-  docker tag "$(docker inspect -f '{{.Image}}' "$APP_CONTAINER")" "$rollback_tag"
-  printf 'Retained app image: %s\n' "$rollback_tag"
-  bash deploy/deploy.sh
-)
-```
-
-Then deploy booking migration 025 and the app. The historical `migrate-company-settings.mjs` name runs all registered migrations, including 024 and 025, using owner credentials only for that one-off process. The running app keeps its restricted database credentials. Compose still requires database-password interpolation for app-only operations; the subshell reads the existing value without printing or persisting it.
-
-```bash
-(
-  set +x
-  set -e
-  cd /opt/max-travel-booking/booking-platform
-  POSTGRES_PASSWORD="$(docker exec max-travel-booking-postgres-1 printenv POSTGRES_PASSWORD)"
-  POSTGRES_USER="$(docker exec max-travel-booking-postgres-1 printenv POSTGRES_USER)"
-  test -n "$POSTGRES_PASSWORD"
-  test -n "$POSTGRES_USER"
-  export POSTGRES_PASSWORD POSTGRES_USER
-  docker compose --env-file .env.production -f compose.production.yaml build app
-  docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps \
-    -e POSTGRES_PASSWORD -e POSTGRES_USER app node scripts/migrate-company-settings.mjs
-  docker compose --env-file .env.production -f compose.production.yaml \
-    up -d --no-deps --force-recreate --wait app
-  docker exec max-travel-booking-app-1 node scripts/check-safar-enquiries.mjs
-  docker compose --env-file .env.production -f compose.production.yaml --profile enquiries \
-    up -d --no-deps --force-recreate --wait enquiry-worker
-  docker compose --env-file .env.production -f compose.production.yaml --profile enquiries ps app enquiry-worker
-)
-```
-
-The diagnostic reads configuration presence, schema readiness and queue counts. It authenticates a deliberately invalid `{}` body against Safar and requires the exact validation rejection before database ingestion. It sends no valid enquiry, creates no record and prints no keys or customer details. This proves connectivity and signature validation, not end-to-end delivery or enquiry permissions. If it fails, the block stops before launching the new sender. Do not bypass the failure by starting the old CRM worker.
-
-## Acceptance and rollback
-
-After the diagnostic passes, explicitly submit an identified test enquiry through the website review form. It should appear once in booking Operations, retain `Test`, receive a matching Safar receipt and appear under **Website enquiries → Test enquiries**. The Live view should remain unchanged. Test each service, uncertain-response recovery, assignment and permitted budget visibility on desktop and mobile. Do not use real customer data for a synthetic check. Saving a test enquiry creates an isolated enquiry record, so this acceptance step is deliberate rather than part of the read-only diagnostic.
-
-If there is a problem, stop only `max-travel-booking-enquiry-worker-1`. Retain queued and saved enquiries. The new schema is additive; routine app rollback should keep it and all existing data. Do not restore an older Safar database dump or run reset/seed/clean-start commands to roll back application code, because real transactions may have occurred since the backup. Restore the retained application image through the established instance deployment process if needed.
-
-## Local verification and limits
-
-Safar's PostgreSQL harness executes all 50 committed migrations in isolated PGlite. It exercises signed ingestion, test/live separation, replay conflicts, assignment, MFA, staff scope and budget projection. It fingerprints 25 existing business tables and numbering sequences before and after migration/import/triage and requires them to remain unchanged. The browser suite imports the actual inbox UI with synthetic responses at desktop, mobile and 320px widths; it does not bypass production login.
-
-Booking passed 736 tests, TypeScript, ESLint, production build and all worker bundles. Its 48 selected desktop/mobile enquiry cases passed; Safar's 20 inbox cases also passed. Booking tests cover confirmation/consent, actor-scoped persistence, immutable retries, strict receipts and a PostgreSQL queue harness executing all 25 migrations, preserving unrelated test events and holding historical destinations. Setup/diagnostic cases check secret-free output, key preservation, rollback and read-only SQL.
-
-These local checks do not prove deployed networking, live Supabase/PostgREST configuration or multi-process database concurrency. Deployment health, the signed no-write diagnostic and a deliberate test enquiry are separate acceptance steps. No live transaction records were used in local tests. The booking build reports an existing Next.js security advisory; its dependency upgrade remains separate from this integration correction.
+These results are evidence, not a guarantee of safe live deployment. They do not establish production Supabase/PostgREST behaviour, VPS concurrency, live data compatibility or zero downtime. No live CRM transaction records were modified during development. The existing booking Next.js security advisory remains a separate dependency-upgrade task.
