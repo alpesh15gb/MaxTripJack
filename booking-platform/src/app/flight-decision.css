@@ -1,21 +1,69 @@
 /* Flight decision surfaces only: no hotel or transaction-state selectors. */
-.journey-flow .fare-decision-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
-.journey-flow.booking-workflow .fare-decision-grid .fare-option-compact{display:flex;flex-direction:column;margin:0;gap:10px;align-content:start;align-items:stretch}
-.journey-flow .fare-decision-grid .fare-option-heading{width:100%;display:grid;gap:4px;align-content:start;min-height:68px}
-.journey-flow .fare-decision-dimensions{width:100%;margin:0;display:grid;gap:0;font-size:14px;line-height:1.45}
-.journey-flow .fare-decision-dimensions>div{display:grid;grid-template-columns:minmax(90px,.9fr) minmax(0,1.1fr);gap:8px;padding:7px 0;border-bottom:1px solid #e1e8eb;min-height:35px;align-items:baseline}
-.journey-flow .fare-decision-dimensions dt{font-weight:500;color:#52616a}
-.journey-flow .fare-decision-dimensions dd{margin:0;font-weight:600;color:#183747;overflow-wrap:anywhere}
-.journey-flow.booking-workflow .fare-decision-grid .fare-option-action{display:grid;gap:6px;margin-top:auto}
-.journey-flow .fare-decision-grid .fare-option-action .primary{min-width:0;width:100%}
+.fare-options-rail { container-type: inline-size; min-width: 0; }
+.fare-options-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 3px 6px; color: #526877; font-size: 13px; font-weight: 650; }
+.fare-options-nav > div { display: flex; gap: 6px; }
+.fare-options-nav button {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  border: 1px solid #cadadf; border-radius: 10px; background: white; color: #0b6154;
+  font-size: 25px; line-height: 1; cursor: pointer;
+}
+.fare-options-nav button:hover:not(:disabled) { border-color: #4f9a8f; background: #e6f4ef; }
+.fare-options-nav button:disabled { opacity: .42; cursor: default; }
+.fare-options-nav button:focus-visible { outline: 2px solid #087361; outline-offset: 2px; }
+.fare-decision-grid {
+  --fare-card-gap: 12px;
+  --fare-card-width: calc(100% - 28px);
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--fare-card-width);
+  column-gap: var(--fare-card-gap);
+  min-width: 0;
+  padding: 3px 3px 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #9dbab7 transparent;
+}
+@container (min-width: 520px) {
+  .fare-decision-grid { --fare-card-width: calc((100% - var(--fare-card-gap)) / 2); }
+}
+@container (min-width: 750px) {
+  .fare-decision-grid { --fare-card-width: calc((100% - 2 * var(--fare-card-gap)) / 3); }
+}
+.fare-options-rail[data-single] .fare-decision-grid { --fare-card-width: min(100%, 370px); }
+.journey-flow.booking-workflow .fare-decision-grid > .fare-option-compact {
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: 0; min-width: 0; margin: 0; padding: 14px;
+  border: 1px solid #d6e2e7; border-radius: 13px; background: white;
+}
+.journey-flow.booking-workflow .fare-decision-grid > .is-lowest-fare { border-color: #609d91; box-shadow: inset 0 3px #167965; }
+.journey-flow.booking-workflow .fare-decision-grid > .is-selected { border-color: #2455e7; background: #f4f7ff; }
+.fare-decision-grid .fare-option-heading { display: grid; align-content: start; gap: 5px; padding-bottom: 10px; border-bottom: 1px solid #e0e8ea; }
+.fare-decision-grid .fare-option-heading h4 { margin: 0; color: #173749; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.journey-flow .fare-decision-grid .fare-option-heading > strong { color: #132e43; font-size: 23px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.journey-flow .fare-decision-grid .fare-price-comparison { margin: 0; color: #176044; font-size: 13px; line-height: 1.4; }
+.fare-decision-dimensions { display: grid; margin: 0; font-size: 13px; line-height: 1.4; }
+.fare-decision-dimensions > div { display: grid; grid-template-columns: minmax(76px, .85fr) minmax(0, 1.15fr); align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid #e9eff1; }
+.fare-decision-dimensions dt { color: #526571; }
+.fare-decision-dimensions dd { margin: 0; font-weight: 650; color: #193647; overflow-wrap: anywhere; }
+.fare-decision-dimensions > .fare-difference { background: #eaf5ef; box-shadow: inset 2px 0 #478c77; padding-inline: 6px; }
+.fare-difference-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.journey-flow .fare-decision-grid .fare-option-notes p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; }
+.fare-decision-grid .fare-ineligible { color: #714524; }
+.journey-flow.booking-workflow .fare-decision-grid .fare-option-action { display: grid; grid-template-columns: minmax(0, 1fr); align-content: end; width: 100%; min-width: 0; gap: 6px; margin-top: auto; padding-top: 12px; }
+.journey-flow.booking-workflow .fare-decision-grid .fare-option-action > .primary { grid-row: auto; grid-column: auto; width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 8px; font-size: 14px; }
+/* Shared content tracks keep each feature and action level across every fare. */
+@supports (grid-template-rows: subgrid) {
+  .fare-decision-grid { grid-template-rows: repeat(7, auto); }
+  .journey-flow.booking-workflow .fare-decision-grid > .fare-option-compact { display: grid; grid-row: span 7; grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr); }
+  .fare-decision-grid .fare-decision-dimensions { grid-row: 2 / span 4; grid-template-rows: subgrid; }
+  .fare-decision-grid .fare-option-notes { grid-row: 6; }
+  .fare-decision-grid .fare-option-action { grid-row: 7; }
+}
 .journey-flow .fare-choice-heading .fare-itinerary-dates{font-size:14px;line-height:1.5;margin:4px 0}
 .journey-flow .fare-choice-heading small{font-size:14px;line-height:1.5;color:#52616a}
 .journey-flow .fare-passenger-baggage{border-left:2px solid #91b9af;padding-left:8px}
-@media(max-width:900px){
- .journey-flow .fare-decision-grid{grid-template-columns:minmax(0,1fr)}
- .journey-flow .fare-decision-grid .fare-option-heading{display:flex;min-height:0}
- .journey-flow .fare-decision-dimensions>div{padding:3px 0;min-height:27px;grid-template-columns:minmax(105px,.85fr) minmax(0,1.15fr)}
-}
 .journey-flow .flight-selection-summary h3{margin:0 0 12px;font-size:18px;color:#183747}
 .journey-flow .flight-selection-summary ol{gap:12px}
 .journey-flow .flight-selection-summary li{min-width:0;gap:6px;align-content:start}

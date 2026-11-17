@@ -63,8 +63,14 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   const row=flight();row.totalPriceList.push({...row.totalPriceList[0],id:'flex-exact-id',fareIdentifier:'FLEXIBLE',customerEstimateMinor:720050});provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[row]}}}};provider.quote=reviewedQuote({totalMinor:740050});
   await page.goto(flightQuery());await page.locator('.fare-comparison>summary').press('Enter');
   const offers=page.locator('.flight-shopping-list .fare-option');await expect(offers).toHaveCount(2);
-  await shot(page,info,'compact-fare-comparison',[offers.first().getByRole('button',{name:'Check fare & continue',exact:true}),offers.nth(1).locator('.fare-option-heading')]);
-  await offers.nth(1).getByRole('button',{name:'Check fare & continue',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeFocused();
+  const firstAction=offers.first().getByRole('button',{name:'Check fare & continue',exact:true}),secondAction=offers.nth(1).getByRole('button',{name:'Check fare & continue',exact:true});
+  await shot(page,info,'compact-fare-comparison',[firstAction]);await expect(firstAction).toBeInViewport({ratio:.95});
+  const track=page.locator('.flight-shopping-list .fare-decision-grid'),overflow=await track.evaluate(node=>node.scrollWidth>node.clientWidth+1);
+  if(overflow){await page.getByRole('button',{name:'Next fare options',exact:true}).click();await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);}
+  await secondAction.scrollIntoViewIfNeeded();await expect(secondAction).toBeInViewport({ratio:.95});
+  await shot(page,info,'compact-second-fare-reachable',[offers.nth(1).locator('.fare-option-heading'),secondAction]);
+  await secondAction.click();await expect(page.locator('#booking-review-title')).toBeFocused();
+  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['flex-exact-id']});
   await expect(page.locator('.selected-reviewed-total')).toContainText('₹7,400.50');await expect(page.locator('.selected-reviewed-total')).not.toContainText('₹7,200.50');
   const expiryWidth=await page.locator('.booking-expiry').evaluate(node=>{const content=node.firstElementChild!.getBoundingClientRect(),box=node.getBoundingClientRect();return {content:content.width,available:box.width-22};});
   if((page.viewportSize()?.width??1440)<=600)expect(expiryWidth.content).toBeGreaterThanOrEqual(expiryWidth.available-1);

@@ -505,8 +505,6 @@ body .booking-workflow.journey-flow .flight-shopping-controls,
 body .booking-workflow.journey-flow .hotel-search-filters { background: #fff; border-color: #dce7e1; border-radius: 18px; box-shadow: none; }
 body .booking-workflow.journey-flow .live-flight-card { border-radius: 18px; border-color: #dce7e1; box-shadow: 0 6px 24px #102b3106; }
 body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > summary { background: #f1f6f2; border-left: 1px dashed #bdcfc5; border-radius: 0 17px 17px 0; }
-body .booking-workflow.journey-flow .fare-decision-grid .fare-option-compact { border-color: #dce7e1; border-radius: 14px; box-shadow: none; }
-body .booking-workflow.journey-flow .fare-option-heading { padding-bottom: 12px; border-bottom: 1px solid #e3ece7; }
 body .booking-workflow.journey-flow .hotel-shopping-card { padding: 0; overflow: hidden; }
 body .booking-workflow.journey-flow .hotel-shopping-card .hotel-card-photo { border-radius: 0; min-height: 260px; }
 body .booking-workflow.journey-flow .hotel-result-content { padding-block: 24px; }

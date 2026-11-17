@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import AirlineLogo from './airline-logo';
+import FareOptionsRail from './fare-options-rail';
 import { durationLabel, flightStops, groupLabel, journeyMinutes, refundLabel, type Flight, type FlightFare } from '@/lib/booking-presentation';
 import { displayMoney } from '@/lib/display-money';
 import { comparableFareEstimate, haveComparableCurrency, orderFareOffers } from '@/lib/fare-display';
@@ -42,13 +43,16 @@ export default function BookingFlightCard({
 
   useLayoutEffect(() => {
     if (!busy || !checkingFareId) return;
-    const status = checkingStatus.current;
-    if (!status) return;
-    const bounds = status.getBoundingClientRect();
-    // Keep progress and the disabled action in view without moving keyboard focus.
-    if (bounds.top < 16 || bounds.bottom > window.innerHeight - 120) {
-      status.scrollIntoView({ behavior: 'auto', block: 'center' });
-    }
+    const action = checkingStatus.current?.parentElement;
+    if (!action) return;
+    // The action grows when progress appears. Reveal both the status and button
+    // on both axes after that layout is in place, without moving keyboard focus.
+    const frame = requestAnimationFrame(() => {
+      const bounds = action.getBoundingClientRect();
+      const block = bounds.top < 16 || bounds.bottom > window.innerHeight - 24 ? 'center' : 'nearest';
+      action.scrollIntoView({behavior: 'instant', block, inline: 'nearest'});
+    });
+    return () => cancelAnimationFrame(frame);
   }, [busy, checkingFareId]);
 
   useEffect(() => {
@@ -211,10 +215,10 @@ export default function BookingFlightCard({
             </div>
             <button type="button" className="secondary" disabled={busy} onClick={closeFares}>Back to flights</button>
           </div>
-          <p id={termsId} className="fare-details-unavailable fare-shared-terms">Check the final price, cancellation and change fees, seat inclusions and eligibility at review.</p>
+          <p id={termsId} className="fare-details-unavailable fare-shared-terms">Totals are estimates for all travellers. Check the final price, cancellation and change fees, seat inclusions and eligibility at review.</p>
         </>}
         {offers.length === 0 && <p className="muted">No fare options were supplied for this flight.</p>}
-        <div className={readOnly ? undefined : 'fare-decision-grid'}>{offers.map((fare, index) => {
+        {offers.length > 0 && <FareOptionsRail count={offers.length} locked={busy} readOnly={readOnly}>{offers.map((fare, index) => {
           const compatible = isCompatible(fare);
           const price = comparableFareEstimate(fare, 'INR');
           const difference = compatible && price !== null && baselinePrice !== null ? price - baselinePrice : 0;
@@ -249,7 +253,7 @@ export default function BookingFlightCard({
           </div>;
 
           return <div
-            className={`live-fare fare-option fare-option-compact${isSelected ? ' is-selected' : ''}`}
+            className={`live-fare fare-option fare-option-compact${isSelected ? ' is-selected' : ''}${showBaseline && fare.id === baseline?.id ? ' is-lowest-fare' : ''}`}
             key={fare.id}
             role="group"
             aria-labelledby={fareHeadingId}
@@ -258,14 +262,14 @@ export default function BookingFlightCard({
             <div className="fare-option-heading">
               <h4 id={fareHeadingId}>{fareName}</h4>
               <strong>{price === null ? 'Price at review' : money(price)}</strong>
+              {showBaseline && (fare.id === baseline?.id || difference > 0) && <p className="fare-price-comparison">
+                {difference > 0 ? `+${money(difference)} vs lowest shown fare` : 'Lowest shown estimate'}
+              </p>}
             </div>
-            {showBaseline && (fare.id === baseline?.id || difference > 0) && <p className="fare-price-comparison">
-              {difference > 0 ? `+${money(difference)} vs lowest shown fare` : 'Lowest shown estimate'}
-            </p>}
             <dl className="fare-decision-dimensions">
               {rows.map(({ label, value, differs }) => <div key={label} className={differs ? 'fare-difference' : undefined}>
                 <dt>{label}</dt>
-                <dd>{value}{differs && <small>Differs from lowest shown fare</small>}</dd>
+                <dd>{value}{differs && <span className="fare-difference-note"> · Differs from lowest shown fare</span>}</dd>
               </div>)}
             </dl>
             {(passengerBaggage.length > 0 || eligibility) && <div className="fare-option-notes">
@@ -274,7 +278,6 @@ export default function BookingFlightCard({
             </div>}
             <div className="fare-option-action">
               {checking && <p ref={checkingStatus} className="booking-selection-status" role="status">Checking current fare… Price and availability are not confirmed yet.</p>}
-              <small>{price !== null ? 'All travellers · estimated total' : 'Total for all travellers'}</small>
               <button
                 type="button"
                 className="primary"
@@ -285,7 +288,7 @@ export default function BookingFlightCard({
               >{checking ? 'Checking fare…' : selectionMode === 'leg' && isSelected ? 'Selected' : actionLabel}</button>
             </div>
           </div>;
-        })}</div>
+        })}</FareOptionsRail>}
         {offers.length > 1 && <p className="fare-comparison-guidance">{comparableCurrency ?
           'Lowest INR estimates first; unpriced offers last.' :
           'Supplier order shown. Price differences are unavailable across currencies.'}</p>}
