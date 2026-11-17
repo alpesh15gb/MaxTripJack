@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseHotelBrowse,readHotelBrowse,writeHotelBrowse,hotelJourneyUrl} from '../src/lib/hotel-journey-state';
+import {emptyHotelFilters} from '../src/lib/hotel-results';
 const id='11111111-1111-4111-8111-111111111111';
 const prefix='maxtravel:hotel-browse:v1:';
 function browser(search=''){
@@ -13,10 +14,20 @@ function browser(search=''){
  return {data,storage,cleanup(){if(previousWindow)Object.defineProperty(globalThis,'window',previousWindow);else Reflect.deleteProperty(globalThis,'window');if(previousStorage)Object.defineProperty(globalThis,'sessionStorage',previousStorage);else Reflect.deleteProperty(globalThis,'sessionStorage');}};
 }
 test('hotel browse projection drops private/unrecognized fields and rejects oversized, invalid preferences',()=>{
- assert.deepEqual(parseHotelBrowse({filters:{name:'Stay',budget:'5000',category:'4',type:'Hotel',email:'PRIVATE_EMAIL'},sort:'price',scrollY:42,travellers:[{name:'PRIVATE_NAME'}],token:'PRIVATE_TOKEN',results:{}}),{filters:{name:'Stay',budget:'5000',category:'4',type:'Hotel'},sort:'price',scrollY:42});
+ assert.deepEqual(parseHotelBrowse({filters:{name:'Stay',budget:'5000',category:'4',type:'Hotel',email:'PRIVATE_EMAIL'},sort:'price',scrollY:42,travellers:[{name:'PRIVATE_NAME'}],token:'PRIVATE_TOKEN',results:{}}),{filters:{...emptyHotelFilters,name:'Stay',budget:'5000',category:'4',type:'Hotel'},sort:'price',scrollY:42});
  for(const value of [null,[],1,'str'])assert.deepEqual(parseHotelBrowse(value),{});
- assert.deepEqual(parseHotelBrowse({filters:{name:'x'.repeat(151),budget:'123\u007f'},sort:'unknown',scrollY:Infinity}),{filters:{name:'',budget:'',category:'',type:''}});
+ assert.deepEqual(parseHotelBrowse({filters:{name:'x'.repeat(151),budget:'123\u007f'},sort:'unknown',scrollY:Infinity}),{filters:{...emptyHotelFilters}});
  assert.deepEqual(parseHotelBrowse({scrollY:-1}),{});
+});
+
+test('new location and amenity preferences survive room/back browsing while older saved filters remain valid',()=>{
+ const b=browser();try{
+  const filters={...emptyHotelFilters,area:'Mira Road',amenities:'wifi,parking',budget:'9000'};
+  writeHotelBrowse(id,{filters,sort:'price',scrollY:200});
+  assert.deepEqual(readHotelBrowse(id),{filters,sort:'price',scrollY:200});
+  assert.deepEqual(parseHotelBrowse({filters:{name:'Legacy hotel',category:'3',type:'Hotel',budget:''}}).filters,{...emptyHotelFilters,name:'Legacy hotel',category:'3',type:'Hotel'});
+  assert.deepEqual(parseHotelBrowse({filters:{area:'x'.repeat(151),amenities:['wifi']}}).filters,emptyHotelFilters);
+ }finally{b.cleanup();}
 });
 test('hotel browse storage is bounded, expires, leaves unrelated storage intact and saves no raw data',()=>{
  const b=browser();try{

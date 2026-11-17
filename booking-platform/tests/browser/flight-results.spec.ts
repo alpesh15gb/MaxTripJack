@@ -67,7 +67,7 @@ test('flight shopping preserves local dates, airport identity and party fare con
  const shot=await page.screenshot({path:testInfo.outputPath(`flight-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});await testInfo.attach('flight-shopping viewport',{body:shot,contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-shopping-loaded');
  await filters(page,true);
- await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');await filters(page,false);await expect(page.getByLabel('Active flight filters')).toContainText('Up to ₹7000 · all travellers');await expect(page.getByLabel('Active flight filters')).not.toContainText('/ party');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
+ await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');await filters(page,false);await expect(page.getByLabel('Active flight filters')).toContainText('Up to ₹7,000 · all travellers');await expect(page.getByLabel('Active flight filters')).not.toContainText('/ party');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
  await filters(page,true);
  await page.getByRole('button',{name:'Reset flight filters',exact:true}).click();await expect(cards).toHaveCount(3);
  await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('EVENING');await expect(cards).toHaveCount(2);

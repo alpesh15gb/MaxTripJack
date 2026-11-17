@@ -1,4 +1,5 @@
 import {test,expect,departure,returning,searchId,syntheticSession} from './fixtures';
+import {travelDateLabel} from '../../src/lib/travel-date';
 
 const legs=[{from:'BOM',to:'DEL',date:departure},{from:'DEL',to:'GOI',date:returning}];
 test('submitted multi-city shape survives refresh, but unsubmitted edits do not replace it',async({page,provider})=>{
@@ -10,6 +11,9 @@ test('submitted multi-city shape survives refresh, but unsubmitted edits do not 
  await expect.poll(()=>provider.requests('/api/travel/search').length).toBe(1);
  await expect(page.locator('#booking-results')).toBeVisible();
  const submitted=page.url();
+ const searchSummary=page.locator('#booking-search > summary');
+ await expect(searchSummary.locator('.booking-criteria-destination strong')).toHaveText('BOM → DEL · DEL → GOI');
+ await expect(searchSummary.locator('.booking-criteria-party')).toContainText('4 travellers · BUSINESS');
  await page.locator('#booking-search > summary').click();
  await page.locator('[name="leg-date-1"]').fill(departure);
  expect(page.url()).toBe(submitted);
@@ -73,6 +77,9 @@ test('expired and malformed deep links explain recovery without calling search',
 test('round-trip auto-search refresh preserves the return date and searches once per navigation',async({page,provider})=>{
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,returnDate:returning,adults:'2',cabin:'FIRST',autoSearch:'1'}));
  await expect(page.locator('#booking-results')).toBeVisible();
+ const searchSummary=page.locator('#booking-search > summary');
+ await expect(searchSummary.locator('.booking-criteria-dates')).toContainText(`${travelDateLabel(departure)} – ${travelDateLabel(returning)}`);
+ await expect(searchSummary.locator('.booking-criteria-party')).toContainText('2 travellers · FIRST');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  await page.reload();
  await expect(page.locator('#booking-results')).toBeVisible();

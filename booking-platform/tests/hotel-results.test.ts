@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import HotelResults,{hotelComparisonAmenities} from '../src/components/hotel-results';
-import {hotelContentUnavailable,emptyHotelFilters,filterHotelResults,hotelAmenities,knownHotelTotal,stayNights,type HotelResult} from '../src/lib/hotel-results';
+import {hotelContentUnavailable,emptyHotelFilters,filterHotelResults,hotelAmenities,hotelAmenityOptions,hotelAreaMatches,hotelPracticalAmenities,selectedHotelAmenities,knownHotelTotal,stayNights,type HotelResult} from '../src/lib/hotel-results';
 const hotels:HotelResult[]=[{tjHotelId:'1',name:'Palm House',customerEstimateMinor:800000,property:{starRating:4,propertyType:'Hotel',amenities:[]}},{tjHotelId:'2',name:'Bay Stay',customerEstimateMinor:400000,property:{starRating:3,propertyType:'Resort',amenities:[]}},{tjHotelId:'3',name:'Unpriced stay',property:{amenities:[]}}];
 test('compact hotel amenities preserve supplied wording, practical facts and three distinct positive items',()=>{
  const supplied=['Lobby',' Wi-Fi ','wifi','Parking','No swimming pool','Restaurant','Gym'];
@@ -35,6 +35,56 @@ test('hotel sort keeps unknown prices last and never changes supplier input orde
  assert.deepEqual(filterHotelResults(hotels,emptyHotelFilters,'supplier').map(h=>h.tjHotelId),['1','2','3']);
  assert.deepEqual(hotels.map(h=>h.tjHotelId),['1','2','3']);
  assert.equal(knownHotelTotal({...hotels[0],customerEstimateMinor:NaN}),null);
+});
+
+const localHotels:HotelResult[]=[
+ {tjHotelId:'21',name:'Synthetic Mira Stay',customerEstimateMinor:800000,property:{city:'Mumbai',address:'Seasons Lane, Mira Road East, Maharashtra',amenities:['Free Wi-Fi','WiFi','Private parking','Outdoor swimming pool','Fitness center']}},
+ {tjHotelId:'22',name:'Synthetic Mira Mare',customerEstimateMinor:400000,property:{city:'Ksamil',address:'Beach Road, Albania',amenities:['No Wi-Fi','Pool table','Parking unavailable','Restaurant']}},
+ {tjHotelId:'23',name:'Synthetic Central Stay',customerEstimateMinor:1200000,property:{city:'Mumbai',address:'Main Road, Andheri',amenities:['Wi-Fi','Paid parking','Air conditioning']}},
+ {tjHotelId:'24',name:'Missing property details'},
+];
+test('area filter uses supplied location phrases, boundaries and accents without matching names or joining fields',()=>{
+ assert.deepEqual(filterHotelResults(localHotels,{...emptyHotelFilters,area:'mira road'},'price').map(h=>h.tjHotelId),['21']);
+ assert.equal(hotelAreaMatches({...localHotels[1],property:{...localHotels[1].property!,city:'Mira',address:'Road, Albania'}},'Mira Road'),false);
+ assert.equal(hotelAreaMatches({...localHotels[0],property:{city:'São Paulo',amenities:[]}},'sao paulo'),true);
+ assert.equal(hotelAreaMatches({...localHotels[0],property:{city:'Bagan',amenities:[]}},'Baga'),false);
+ assert.equal(hotelAreaMatches(localHotels[3],'Mumbai'),false);
+ assert.equal(hotelAreaMatches(localHotels[0],'---'),false);
+ assert.deepEqual(filterHotelResults(localHotels,{...emptyHotelFilters,area:'Mumbai',amenities:'wifi,parking',budget:'9000'},'price').map(h=>h.tjHotelId),['21']);
+});
+test('practical amenity counts use positive supplied facts once per stay and do not invent pool or free benefits',()=>{
+ assert.deepEqual(hotelPracticalAmenities(localHotels[1]),['restaurant']);
+ assert.deepEqual(selectedHotelAmenities('parking,wifi,wifi,spa,unknown'),['wifi','parking']);
+ assert.deepEqual(hotelAmenityOptions(localHotels).map(({id,count})=>({id,count})),[{id:'wifi',count:2},{id:'parking',count:2},{id:'pool',count:1},{id:'restaurant',count:1},{id:'fitness',count:1},{id:'air-conditioning',count:1}]);
+ assert.deepEqual(filterHotelResults(localHotels,{...emptyHotelFilters,amenities:'wifi,pool'},'price').map(h=>h.tjHotelId),['21']);
+ assert.deepEqual(filterHotelResults(localHotels,{...emptyHotelFilters,amenities:'wifi,restaurant'},'price'),[]);
+ assert.deepEqual(hotelAmenityOptions([localHotels[3]],'wifi'),[{id:'wifi',label:'Wi-Fi',count:0}]);
+ assert.deepEqual(filterHotelResults(localHotels,emptyHotelFilters,'supplier').map(h=>h.tjHotelId),['21','22','23','24']);
+});
+test('rendered location and practical filters expose only supported choices and honest missing states',()=>{
+ const props={searchId:'11111111-1111-4111-8111-111111111111',context:null,busy:false,onChoose:()=>{}};
+ const html=renderToStaticMarkup(createElement(HotelResults,{...props,hotels:localHotels}));
+ assert.match(html,/Area or address/);assert.match(html,/Practical amenities/);
+ assert.match(html,/type="checkbox" aria-label="Wi-Fi"/);assert.match(html,/aria-label="2 loaded stays"/);
+ const fields=html.match(/<fieldset class="hotel-practical-amenities">[\s\S]*?<\/fieldset>/)?.[0]??'';
+ assert.doesNotMatch(fields,/Free parking|Free Wi-Fi|Guest review|Amenities nearby/i);
+ const missing=renderToStaticMarkup(createElement(HotelResults,{...props,hotels:[localHotels[3]]}));
+ assert.match(missing,/Location details have not been supplied/);assert.match(missing,/No matching practical amenities have been supplied/);
+ assert.doesNotMatch(missing,/type="checkbox"/);assert.match(missing,/placeholder="Search a location"[^>]*disabled/);
+ const loading=renderToStaticMarkup(createElement(HotelResults,{...props,hotels:[localHotels[3]],metadataStatus:'loading'}));
+ assert.match(loading,/Location details are still loading/);assert.match(loading,/Adding supplied amenities/);
+});
+test('saved location and amenity filters render individual removal chips and useful no-match recovery',()=>{
+ const key='maxtravel:hotel-browse:v1:11111111-1111-4111-8111-111111111111';
+ const before=Object.getOwnPropertyDescriptor(globalThis,'sessionStorage');
+ const saved=JSON.stringify({version:1,savedAt:Date.now(),value:{filters:{...emptyHotelFilters,area:'Mumbai',amenities:'wifi,restaurant'}}});
+ Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{length:1,key:()=>key,getItem:(name:string)=>name===key?saved:null,removeItem:()=>{}}});
+ try{
+  const html=renderToStaticMarkup(createElement(HotelResults,{searchId:key.split(':').at(-1)!,hotels:localHotels,context:null,busy:false,onChoose:()=>{}}));
+  assert.match(html,/Filters \(3\)/);assert.match(html,/aria-label="Remove area filter"/);assert.match(html,/aria-label="Remove Wi-Fi filter"/);assert.match(html,/aria-label="Remove Restaurant filter"/);
+  assert.match(html,/No stays match your filters/);assert.match(html,/Some stays may not list the location or amenities/);assert.match(html,/Clear hotel filters/);
+  assert.match(html,/type="checkbox" aria-label="Wi-Fi" checked/);
+ }finally{if(before)Object.defineProperty(globalThis,'sessionStorage',before);else Reflect.deleteProperty(globalThis,'sessionStorage');}
 });
 test('stay context derives nights from submitted calendar dates without per-night assumptions',()=>{
  assert.equal(stayNights({checkIn:'2026-11-04',checkOut:'2026-11-06',rooms:2,guests:4}),2);

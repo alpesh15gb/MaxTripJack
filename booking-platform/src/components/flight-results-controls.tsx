@@ -31,6 +31,34 @@ type Props = {
   disabled: boolean;
 };
 
+export type FlightFilterProps = Pick<Props, 'group'|'airline'|'airlineQuery'|'onAirline'|'stops'|'onStops'|'departure'|'onDeparture'|'budget'|'onBudget'|'disabled'>;
+const departureLabels:Record<string,string> = {EARLY:'Before 06:00',MORNING:'Morning · 06:00–11:59',AFTERNOON:'Afternoon · 12:00–17:59',EVENING:'Evening · 18:00–23:59'};
+function resetFlightFilters(props:FlightFilterProps) {
+  props.onStops('ALL');props.onAirline('ALL');props.onDeparture('ALL');props.onBudget('');
+}
+
+/** Lives above the result cards, so phone users can undo filters without reopening the drawer. */
+export function FlightActiveFilterChips(props:FlightFilterProps) {
+  const carrier=props.airlineQuery?.trim();
+  const completeItinerary=props.group==='COMBO';
+  const budget=Number(props.budget);
+  const budgetLabel=Number.isFinite(budget)&&budget>=0?`Up to ₹${new Intl.NumberFormat('en-IN',{maximumFractionDigits:2}).format(budget)} · all travellers`:'Budget needs review';
+  const filters=[
+    ...(props.airline!=='ALL'?[{key:'airline',label:`${props.airline} · any segment`,removeLabel:`Remove airline filter ${props.airline}`,remove:()=>props.onAirline('ALL'),inactive:false}]:[]),
+    ...(carrier?[{key:'carrier-query',label:`${carrier} · every segment`,removeLabel:`Remove airline preference ${props.airlineQuery}`,remove:()=>props.onAirline(props.airline),inactive:false}]:[]),
+    ...(props.stops!=='ALL'?[{key:'stops',label:props.stops==='0'?'Non-stop':`${props.stops} stop${props.stops==='1'?'':'s'}`,removeLabel:'Remove stops preference',remove:()=>props.onStops('ALL'),inactive:completeItinerary}]:[]),
+    ...(props.departure!=='ALL'?[{key:'departure',label:departureLabels[props.departure]??'Departure preference',removeLabel:'Remove departure time filter',remove:()=>props.onDeparture('ALL'),inactive:completeItinerary}]:[]),
+    ...(props.budget.trim()?[{key:'budget',label:budgetLabel,removeLabel:'Remove budget filter',remove:()=>props.onBudget(''),inactive:false}]:[]),
+  ];
+  if(!filters.length)return null;
+  return <section className="flight-applied-filters flight-active-filter-panel" aria-label="Active flight filters">
+    <div className="flight-active-filter-heading"><strong>Your filters</strong><button type="button" className="flight-filter-clear-all" disabled={props.disabled} onClick={()=>resetFlightFilters(props)}>Clear all filters</button></div>
+    <ul>{filters.map(filter=><li key={filter.key}><button type="button" className={`flight-filter-chip${filter.inactive?' is-inactive':''}`} disabled={props.disabled} aria-label={filter.removeLabel} onClick={filter.remove}>
+      <span>{filter.label}{filter.inactive&&<small>Not applied to complete itineraries</small>}</span><span className="flight-filter-chip-close" aria-hidden="true">×</span>
+    </button></li>)}</ul>
+  </section>;
+}
+
 /** One set of controls: a sidebar on desktop and a native modal on phones. */
 export default function FlightResultsControls(props: Props) {
   const mobile = useSyncExternalStore(subscribeViewport, isMobile, serverViewport);
@@ -38,8 +66,8 @@ export default function FlightResultsControls(props: Props) {
   const trigger = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
-  const activeCount = Number(props.airline !== 'ALL') + Number(Boolean(props.airlineQuery)) + Number(props.stops !== 'ALL') +
-    Number(props.departure !== 'ALL') + Number(Boolean(props.budget));
+  const activeCount = Number(props.airline !== 'ALL') + Number(Boolean(props.airlineQuery?.trim())) + Number(props.group!=='COMBO'&&props.stops !== 'ALL') +
+    Number(props.group!=='COMBO'&&props.departure !== 'ALL') + Number(Boolean(props.budget.trim()));
 
   function close() {
     dialog.current?.close();
@@ -70,10 +98,7 @@ export default function FlightResultsControls(props: Props) {
   }, [mobile, open]);
 
   function reset() {
-    props.onStops('ALL');
-    props.onAirline('ALL');
-    props.onDeparture('ALL');
-    props.onBudget('');
+    resetFlightFilters(props);
   }
 
   const fields = <div id={`${id}-fields`} className="flight-extra-filters is-expanded">

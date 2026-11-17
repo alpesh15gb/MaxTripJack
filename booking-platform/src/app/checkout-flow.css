@@ -103,6 +103,13 @@
 .booking-status-steps h3 { font-size: 16px; margin: 3px 0; }
 .booking-status-steps li strong { display: block; }
 .booking-status-steps li p, .booking-status-steps li small { margin: 4px 0 0; color: #5a685f; font-size: 14px; }
+.initial-review-price-notice { margin: 16px 0; padding: 16px 18px; border: 1px solid #d6b968; border-radius: 12px; background: #fffaf0; color: #44371b; }
+.initial-review-price-notice h3 { margin: 0 0 5px; font-size: 16px; }
+.initial-review-price-notice p { margin: 5px 0 0; font-size: 13px; line-height: 1.5; }
+.initial-review-price-notice dl { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 12px 0; }
+.initial-review-price-notice dt { font-size: 12px; }
+.initial-review-price-notice dd { margin: 3px 0 0; font-size: 19px; font-weight: 700; white-space: nowrap; }
+.final-traveller-room { font-weight: 600; }
 .booking-status-summary dl { margin: 0; }
 .booking-status-summary dt { color: #5a685f; font-size: 13px; margin-top: 18px; }
 .booking-status-summary dd { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
