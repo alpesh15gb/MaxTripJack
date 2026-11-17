@@ -6,7 +6,7 @@ export function proxy(request:NextRequest){
  const noindex=!requestMayBeIndexed(publicRequestUrl(request.nextUrl,request.headers));
  // Operational endpoints and metadata text/XML do not render framework scripts.
  // Preserve their own caching and authorization behavior; only add crawl hygiene.
- if(request.nextUrl.pathname.startsWith("/api/")||["/robots.txt","/sitemap.xml"].includes(request.nextUrl.pathname)){
+ if(request.nextUrl.pathname.startsWith("/api/")||["/robots.txt","/sitemap.xml","/hotel-sitemap.xml","/hotels/sitemap.xml","/flight-routes-sitemap.xml"].includes(request.nextUrl.pathname)||/^\/(?:hotel|flight-route)-sitemap-\d+\.xml$/.test(request.nextUrl.pathname)||/^\/hotels\/sitemap\/(?:0|[1-9]\d{0,4})\.xml$/.test(request.nextUrl.pathname)||/^\/flight-routes-sitemaps\/\d+$/.test(request.nextUrl.pathname)){
   const response=NextResponse.next();if(noindex)response.headers.set("X-Robots-Tag","noindex, nofollow");return response;
  }
  const nonce=randomBytes(24).toString("base64");const policy=contentSecurityPolicy(nonce,process.env.NODE_ENV==="development");

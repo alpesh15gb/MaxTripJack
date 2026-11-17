@@ -64,8 +64,8 @@ test("request indexing requires canonical origin, public path and no query varia
 });
 
 test("sitemap contains 24 editorial pages and four imported policies, with no query/private URL", () => {
-  assert.equal(PUBLIC_SEO_PAGES.length, 33);
-  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 33);
+  assert.equal(PUBLIC_SEO_PAGES.length, 34);
+  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 34);
   const sitemap = buildSitemap(approved);
   assert.deepEqual(sitemap.map(entry => entry.url), PUBLIC_SEO_PAGES.map(page => canonicalUrl(page.path)));
   for (const entry of sitemap) {
@@ -81,7 +81,7 @@ test("sitemap contains 24 editorial pages and four imported policies, with no qu
 
 test("production robots keeps search distinct from optional training and private API access", () => {
   const robots = buildRobots(approved);
-  assert.equal(robots.sitemap, `${SITE_ORIGIN}/sitemap.xml`);
+  assert.deepEqual(robots.sitemap, [`${SITE_ORIGIN}/sitemap.xml`, `${SITE_ORIGIN}/hotel-sitemap.xml`, `${SITE_ORIGIN}/flight-routes-sitemap.xml`]);
   assert.ok(Array.isArray(robots.rules));
   const rules = robots.rules as Array<{ userAgent: string | string[]; allow?: string | string[]; disallow?: string | string[] }>;
   assert.deepEqual(rules[0], { userAgent: "*", allow: "/", disallow: "/api/" });
@@ -159,9 +159,9 @@ test("owner-confirmed office is Secunderabad, India, 09:00–21:00 all seven day
 test("editorial data and sitemap registry cover exactly the same authored routes", () => {
   const authored = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
   assert.deepEqual(authored.sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.title)).size, 28);
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.heading)).size, 28);
-  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.description)).size, 28);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.title)).size, 29);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.heading)).size, 29);
+  assert.equal(new Set([...publicPages, ...flightGuides].map(page => page.description)).size, 29);
   assert.equal(getFlightGuide("this-route-is-not-authored"), undefined);
   assert.equal(getFlightGuide("Hyderabad-to-Delhi"), undefined);
 });
@@ -174,8 +174,9 @@ test("five guide CTAs prefill the exact verified airport pair without inventory,
     "hyderabad-to-bengaluru": ["HYD", "BLR"], "bengaluru-to-hyderabad": ["BLR", "HYD"],
     "hyderabad-to-mumbai": ["HYD", "BOM"], "mumbai-to-hyderabad": ["BOM", "HYD"],
     "hyderabad-to-goa": ["HYD", "GOI"], "delhi-to-hyderabad": ["DEL", "HYD"],
+    "lucknow-to-hyderabad": ["LKO", "HYD"],
   };
-  assert.equal(flightGuides.length, 11);
+  assert.equal(flightGuides.length, 12);
   for (const guide of flightGuides) {
     assert.deepEqual([guide.origin.code, guide.destination.code], pairs[guide.slug as keyof typeof pairs]);
     const url = new URL(flightGuideSearchHref(guide), SITE_ORIGIN);
@@ -184,7 +185,7 @@ test("five guide CTAs prefill the exact verified airport pair without inventory,
     assert.equal(url.searchParams.get("product"), "FLIGHT");
     assert.equal(url.searchParams.get("from"), guide.origin.code);
     assert.equal(url.searchParams.get("to"), guide.destination.code);
-    assert.equal(guide.reviewedAt, "2026-10-20");
+    assert.equal(guide.reviewedAt, guide.slug === 'lucknow-to-hyderabad' ? '2026-11-17' : "2026-10-20");
     assert.ok(guide.sections.length >= 3);
     assert.ok(guide.sources.length >= 2);
     for (const source of guide.sources) assert.equal(new URL(source.href).protocol, "https:");

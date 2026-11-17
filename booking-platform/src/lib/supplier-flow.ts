@@ -29,7 +29,9 @@ export async function searchSupplier(criteria:Search,actor:Actor,timing=new Sear
  const id=randomUUID(),correlationId=randomUUID();
  const supplierRequest=criteria.product==="FLIGHT"?flightSearch(criteria):hotelSearch(criteria,correlationId);
  const [data,rule]=await Promise.all([timing.measure("supplier",()=>criteria.product==="FLIGHT"?cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest)):tripjack(criteria.product,paths[criteria.product].search,supplierRequest)),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
- await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes')",[id,actor.userId,actor.companyId,criteria.product,criteria,criteria.product==="HOTEL"?{...data,[HOTEL_REVIEW_SNAPSHOT_KEY]:{}}:data,correlationId]));
+ // The provider host is currently hardcoded UAT. Record provenance at creation;
+ // later catalogue settings must never relabel historical test results as production.
+ await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at,provider_environment) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes','uat')",[id,actor.userId,actor.companyId,criteria.product,criteria,criteria.product==="HOTEL"?{...data,[HOTEL_REVIEW_SNAPSHOT_KEY]:{}}:data,correlationId]));
  return timing.sync("projection",()=>{
  if(criteria.product==="FLIGHT")return {searchId:id,product:criteria.product,results:customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule)};
  const results=customerHotelResults(data,rule);

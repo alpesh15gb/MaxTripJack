@@ -27,6 +27,7 @@ export const PUBLIC_SEO_PAGES = [
   { path: "/flights/mumbai-to-hyderabad", lastModified: "2026-10-20" },
   { path: "/flights/hyderabad-to-goa", lastModified: "2026-10-20" },
   { path: "/flights/delhi-to-hyderabad", lastModified: "2026-10-20" },
+  { path: "/flights/lucknow-to-hyderabad", lastModified: "2026-11-17" },
   { path: "/about", lastModified: "2026-11-17" },
   { path: "/contact", lastModified: "2026-11-17" },
   { path: "/office", lastModified: "2026-11-04" },

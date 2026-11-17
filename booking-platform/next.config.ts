@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   distDir:process.env.NEXT_DIST_DIR||".next",
   poweredByHeader: false,
   images: { formats: ["image/avif", "image/webp"], minimumCacheTTL: 2592000 },
+  async rewrites() {
+    // Root-level sitemap URLs cover both hotel and flight page directories.
+    // Keep the existing handlers as compatible internal destinations.
+    return [
+      { source: "/hotel-sitemap.xml", destination: "/hotels/sitemap.xml" },
+      { source: "/hotel-sitemap-:shard(\\d+)\\.xml", destination: "/hotels/sitemap/:shard.xml" },
+      { source: "/flight-route-sitemap-:shard(\\d+)\\.xml", destination: "/flight-routes-sitemaps/:shard" },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "Strict-Transport-Security", value: "max-age=31536000" },

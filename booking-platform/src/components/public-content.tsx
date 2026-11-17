@@ -92,7 +92,7 @@ export async function PublicPageView({ page }: { page: PublicPage }) {
         <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />
       </header>
       <div className="public-layout"><article className="public-article"><PlanningNotice /><ContentSections sections={page.sections} />
-        {page.showRoutes && <section className="public-section" aria-labelledby="route-guides-heading"><h2 id="route-guides-heading">Find your flight planning guide</h2><RouteGuideCards /></section>}
+        {page.showRoutes && <section className="public-section" aria-labelledby="route-guides-heading"><h2 id="route-guides-heading">Find your flight planning guide</h2><p><Link href="/flights/routes">Browse the flight route directory →</Link></p><RouteGuideCards /></section>}
         {page.questions && <Questions questions={page.questions} />}<ReviewDate value={page.reviewedAt} />
       </article><aside className="public-rail"><OfficeContactCard compact={!page.contact} id={page.slug === "contact" ? "contact-options" : undefined} /><section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section></aside></div>
       <RelatedLinks links={page.related} />
@@ -127,6 +127,7 @@ export async function HomePublicIntro() {
     <div className="studio-office-note"><TravelIcon name="pin" size={25}/><h3>Office address and hours</h3><p>{businessProfile.address.display}</p><p><strong>{businessProfile.hours.display}</strong></p><Link href="/office">Office details & directions →</Link><a href={businessProfile.emailHref}>{businessProfile.email}</a></div></div>
     <p className="studio-uat-note">The online platform is currently In Testing. Test searches and checkout are not live travel bookings.</p>
     <nav className="home-public-links" aria-label="Travel planning and agency information"><Link href="/flights">Flight planning</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/flight-booking-guide">Booking guide</Link><Link href="/passport-renewal-guide">Passport help</Link><Link href="/visa-guide">Visa planning</Link><Link href="/travel-insurance-guide">Travel insurance</Link><Link href="/cruise-holidays-guide">Cruises</Link><Link href="/holiday-packages-guide">Holiday packages</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/about">About MaxTravel</Link></nav>
+    <nav className="home-public-links" aria-label="Browse travel catalogues"><Link href="/hotels">Explore the hotel directory</Link><Link href="/flights/routes">Explore the flight route directory</Link></nav>
     <h3 className="home-public-routes-heading">Start with the right airport pair</h3><RouteGuideCards/><SeoJsonLd id="maxtravel-business-schema" data={homeDiscoveryGraph(businessProfile)}/>
   </section>;
 }

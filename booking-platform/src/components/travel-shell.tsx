@@ -37,7 +37,7 @@ export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number 
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }
 
-export function TravelHeader({ active, onProductChange }: { active?: "flights" | "hotels" | "trips" | "account" | "packages"; onProductChange?: (product: "FLIGHT" | "HOTEL") => void }) {
+export function TravelHeader({ active, onProductChange, hotelHref = '/book?product=HOTEL' }: { active?: "flights" | "hotels" | "trips" | "account" | "packages"; onProductChange?: (product: "FLIGHT" | "HOTEL") => void; hotelHref?: '/hotels' | '/book?product=HOTEL' }) {
   return <>
     <a className="travel-skip" href="#main-content">Skip to main content</a>
     <div className="travel-environment"><span />In Testing <span className="travel-environment-detail">No live bookings or payments</span></div>
@@ -47,7 +47,7 @@ export function TravelHeader({ active, onProductChange }: { active?: "flights" |
         {(["FLIGHT", "HOTEL"] as const).map(product => {
           const label = product === "FLIGHT" ? "Flights" : "Hotels";
           const selected = active === (product === "FLIGHT" ? "flights" : "hotels");
-          return onProductChange ? <button type="button" key={product} aria-current={selected ? "page" : undefined} onClick={() => onProductChange(product)}>{label}</button> : <Link key={product} aria-current={selected ? "page" : undefined} href={product === "FLIGHT" ? "/book?product=FLIGHT" : "/book?product=HOTEL"}>{label}</Link>;
+          return onProductChange ? <button type="button" key={product} aria-current={selected ? "page" : undefined} onClick={() => onProductChange(product)}>{label}</button> : <Link key={product} aria-current={selected ? "page" : undefined} href={product === "FLIGHT" ? "/book?product=FLIGHT" : hotelHref}>{label}</Link>;
         })}
         <Link href="/packages" aria-current={active === "packages" ? "page" : undefined}>Packages</Link>
         <Link href="/my-trips" aria-current={active === "trips" ? "page" : undefined}>My trips</Link>
@@ -70,7 +70,7 @@ export function TravelFooter({compact=false}:{compact?:boolean}={}) {
   <div className="travel-footer-inner"><div className="travel-footer-grid">
    <div className="travel-footer-identity"><Link href="/" className="travel-footer-brand" aria-label="MaxTravel home"><BrandLogo variant="footer"/></Link><nav className="travel-footer-socials" aria-label="Follow MaxTravel">{footerSocialLinks.map(item=><a key={item.name} href={item.name==='google'?businessProfile.mapsHref:item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}</nav></div>
    <nav className="travel-footer-group" aria-labelledby="footer-tourism"><h2 id="footer-tourism">Travel & Tourism</h2><ul><li><Link href="/flight-booking-guide">Flight booking guide</Link></li><li><Link href="/holiday-packages-guide">Holiday planning</Link></li><li><Link href="/cruise-holidays-guide">Cruise guide</Link></li></ul></nav>
-   <nav className="travel-footer-group travel-footer-services" aria-labelledby="footer-services"><h2 id="footer-services">Services</h2><ul><li><Link href="/book?product=FLIGHT"><TravelIcon name="airplane"/>Flight</Link></li><li><Link href="/book?product=HOTEL"><TravelIcon name="bed"/>Hotel</Link></li><li><a href="https://maxtravel.us/bus"><TravelIcon name="bus"/>Bus</a></li><li><Link href="/packages"><TravelIcon name="holiday"/>Holiday</Link></li><li><a href="https://maxtravel.us/visa"><TravelIcon name="passport"/>Visa</a></li><li><a href={businessProfile.emailHref+'?subject=Travel%20insurance%20enquiry'}><TravelIcon name="shield"/>Insurance</a></li></ul></nav>
+   <nav className="travel-footer-group travel-footer-services" aria-labelledby="footer-services"><h2 id="footer-services">Services</h2><ul><li><Link href="/book?product=FLIGHT"><TravelIcon name="airplane"/>Flight</Link></li><li><Link href="/hotels"><TravelIcon name="bed"/>Hotel</Link></li><li><a href="https://maxtravel.us/bus"><TravelIcon name="bus"/>Bus</a></li><li><Link href="/packages"><TravelIcon name="holiday"/>Holiday</Link></li><li><a href="https://maxtravel.us/visa"><TravelIcon name="passport"/>Visa</a></li><li><a href={businessProfile.emailHref+'?subject=Travel%20insurance%20enquiry'}><TravelIcon name="shield"/>Insurance</a></li></ul></nav>
    <nav className="travel-footer-group" aria-labelledby="footer-support"><h2 id="footer-support">Help & Support</h2><ul><li><a href={businessProfile.emailHref+'?subject=Partnership%20enquiry'}>Become a Partner</a></li><li><a href="https://maxtravel.us/web-check-in">Web Check In</a></li><li><Link href="/contact">Contact Us</Link></li><li><Link href="/about">About Us</Link></li></ul></nav>
   </div><div className="travel-footer-legal-row"><FooterPolicyLinks/>
    {/* eslint-disable-next-line @next/next/no-img-element -- Original local SVG brand artwork, served without an image proxy. */}

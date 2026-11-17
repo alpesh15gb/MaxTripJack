@@ -418,6 +418,36 @@ export const flightGuides: readonly FlightGuide[] = [
     relatedSlugs: ['delhi-to-mumbai', 'hyderabad-to-delhi'],
   },
   ...domesticGuides,
+  {
+    slug: 'lucknow-to-hyderabad',
+    title: 'Lucknow to Hyderabad Flights: LKO–HYD Airport & Booking Guide',
+    description: 'Plan Lucknow to Hyderabad flights with LKO and HYD airport details, Hyderabad transfer options and a checklist for comparing fares, baggage and cancellation terms.',
+    heading: 'Lucknow to Hyderabad flights',
+    intro: 'Start with the right airports: Chaudhary Charan Singh International Airport in Lucknow (LKO) and Rajiv Gandhi International Airport in Hyderabad (HYD). Choose travel dates to compare the available flight options and the full fare for your party.',
+    origin: {code:'LKO',name:'Chaudhary Charan Singh International Airport',city:'Lucknow'},
+    destination: airports.HYD,
+    sections: [
+      {heading:'LKO to HYD: what this airport pair means',paragraphs:[
+        'This page covers departures from Lucknow (LKO) and arrivals at Hyderabad (HYD). Confirm these airport codes on both the itinerary and any airport-transfer arrangement. A flight to another city is not an interchangeable substitute.',
+        'Both cities use Indian Standard Time. An overnight connection may still arrive on the next calendar day, so read the arrival date as well as the local time. The airport pair alone does not establish that a non-stop flight is available for your chosen date.',
+      ],links:[sources.indiaTime]},
+      {heading:'Plan your arrival in Hyderabad',paragraphs:[
+        'Hyderabad Airport lists Pushpak airport buses, prepaid taxis and car rentals among its transport options. Save your full destination address in Hyderabad or Secunderabad, then compare the current pickup points and timetable for your arrival.',
+        'Allow for baggage collection and the journey to your final address. Avoid a fixed airport-to-city transfer promise: the destination, traffic and arrival time all affect the onward trip.',
+      ],links:[sources.hyderabadTransport]},
+      {heading:'Compare your Lucknow–Hyderabad fare',paragraphs:[
+        'Search with the same dates and travellers when comparing options. Check stops and the whole journey time, then compare the total after required charges and any bags or seats you need.',
+        'Read the selected fare’s baggage allowance, change charges, cancellation and no-show terms. A general airline route page is useful planning evidence, but it is not a current MaxTravel fare, guaranteed seat or booking confirmation.',
+      ],bullets:['Confirm LKO → HYD and the arrival date.','Check every connection and any change of airport.','Review the full price and fare rules before payment.']},
+    ],
+    questions:[
+      {question:'Which airports are used for Lucknow to Hyderabad flights?',answer:'This guide uses Chaudhary Charan Singh International Airport in Lucknow, code LKO, and Rajiv Gandhi International Airport in Hyderabad, code HYD.'},
+      {question:'Can I book a non-stop Lucknow to Hyderabad flight?',answer:'Search your dates and check the stops shown for each returned itinerary. This guide does not guarantee a non-stop flight or a seat for a particular date.'},
+      {question:'Is there a time difference between Lucknow and Hyderabad?',answer:'Both cities use Indian Standard Time. Check the date of arrival separately if your itinerary includes an overnight connection.'},
+    ],
+    sources:[{label:'IndiGo: Lucknow–Hyderabad route and airport identities',href:'https://www.goindigo.in/domestic-flights/lucknow-to-hyderabad-flights.html'},sources.hyderabadTransport,sources.indiaTime],
+    reviewedAt:'2026-11-17',relatedSlugs:['hyderabad-to-delhi','hyderabad-to-bengaluru'],
+  },
 ];
 
 export function getFlightGuide(slug: string): FlightGuide | undefined {

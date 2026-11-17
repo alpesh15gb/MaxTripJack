@@ -1,5 +1,7 @@
 import type { Metadata, MetadataRoute } from "next";
 import { isPublicSeoPath, PUBLIC_SEO_PAGES } from "./seo-registry";
+import { isHotelPublicPath } from './hotel-public-path';
+import { isFlightRouteSeoPath } from './flight-route-paths';
 
 export const SITE_ORIGIN = "https://maxtravel.in";
 export const SITE_NAME = "MaxTravel";
@@ -51,7 +53,7 @@ export function privatePageMetadata(title: string, follow = false): Metadata {
 
 /** Request-origin guard prevents a preview host inheriting production SEO settings. */
 export function requestMayBeIndexed(url: URL, environment: SeoEnvironment = process.env) {
-  return indexingEnabled(environment) && url.origin === SITE_ORIGIN && !url.search && isPublicSeoPath(url.pathname);
+  return indexingEnabled(environment) && url.origin === SITE_ORIGIN && !url.search && (isPublicSeoPath(url.pathname) || isHotelPublicPath(url.pathname) || isFlightRouteSeoPath(url.pathname));
 }
 
 /** Behind the trusted reverse proxy the app sees an internal origin; use the forwarded public host and scheme. */
@@ -74,7 +76,7 @@ export function buildRobots(environment: SeoEnvironment = process.env): Metadata
     // Google-Extended also controls some Gemini grounding uses, not Google Search.
     rules.push({ userAgent: ["GPTBot", "Google-Extended"], disallow: "/" });
   }
-  return { rules, sitemap: canonicalUrl("/sitemap.xml") };
+  return { rules, sitemap: [canonicalUrl('/sitemap.xml'), canonicalUrl('/hotel-sitemap.xml'), canonicalUrl('/flight-routes-sitemap.xml')] };
 }
 
 export function buildSitemap(environment: SeoEnvironment = process.env): MetadataRoute.Sitemap {
