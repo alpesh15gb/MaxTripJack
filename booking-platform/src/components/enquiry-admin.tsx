@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import OperationsPageNavigation from './operations-page-navigation';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {authClient} from '@/lib/auth-client';
 import {enquiryContactSchema, enquiryDraftSchema, enquiryServiceLabels, enquiryServices, type EnquiryContact, type EnquiryDraft, type EnquiryReceipt, type EnquiryStatus} from '@/lib/travel-enquiry-contract';
 import '@/app/enquiry-experience.css';
+import '@/app/operations-utility-pages.css';
 
 type Row = EnquiryReceipt & {version: number; updatedAt: string; draft: EnquiryDraft; contact: EnquiryContact; contactVerified: boolean; internalNote: string};
 type Filters = {q: string; service: string; status: string};
@@ -113,8 +115,8 @@ function EnquiryWorkspace() {
   }
 
   return <main className="enquiry-admin" id="main-content">
-    <Link href="/operations" className="enquiry-admin-back">← Operations</Link>
-    <header className="enquiry-admin-top"><div><h1>Travel enquiries</h1><p>Visa, insurance, holiday and cruise requests saved by customers. An enquiry is not a booking.</p></div><button type="button" disabled={loading || Boolean(busyId)} onClick={() => void load(filters, page)}>Refresh enquiries</button></header>
+    <OperationsPageNavigation active="enquiries"/>
+    <header className="enquiry-admin-top"><div><p className="ops-utility-eyebrow">CUSTOMER REQUESTS</p><h1>Travel enquiries</h1><p>Visa, insurance, holiday and cruise requests saved by customers. An enquiry is not a booking.</p></div><button type="button" disabled={loading || Boolean(busyId)} onClick={() => void load(filters, page)}>Refresh enquiries</button></header>
     {error && <p className="enquiry-admin-message" role="alert">{error}</p>}
     {message && <p className="enquiry-admin-message" role="status">{message}</p>}
     {!ready ? <section><p role="status">{loading ? 'Checking access and loading enquiries…' : 'Enquiries are unavailable until access and the latest records can be checked.'}</p><Link href="/account">Account &amp; security</Link></section> : <>
@@ -151,6 +153,6 @@ function EnquiryWorkspace() {
 
 export default function EnquiryAdmin() {
   const {data: session, isPending} = authClient.useSession();
-  if (isPending) return <main className="enquiry-admin"><h1>Travel enquiries</h1><p role="status">Checking your session…</p></main>;
+  if (isPending) return <main id="main-content" className="enquiry-admin"><OperationsPageNavigation active="enquiries"/><h1>Travel enquiries</h1><p role="status">Checking your session…</p></main>;
   return <EnquiryWorkspace key={session?.user.id ?? 'guest'}/>;
 }

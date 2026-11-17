@@ -6,6 +6,7 @@ import { editorialDiscoveryGraph } from "@/lib/discovery-graph";
 import { getPublicPage } from "@/lib/public-pages";
 import { accountHref } from "@/lib/account-return";
 import "./support-experience.css";
+import "./public-refresh.css";
 
 const tasks = [
   { id: "booking", icon: "bag" as const, label: "YOUR JOURNEY", title: "Change or cancel a booking", detail: "Open your trip, then choose Changes, cancellation & refund updates to see the available next step.", action: "Manage a booking", href: "/my-trips", note: "A request does not change your travel until the supplier confirms it." },
@@ -22,7 +23,7 @@ export default async function SupportExperience() {
     { path: "/customer-support", title: page.title, description: page.description },
     [{ label: "Home", href: "/" }, { label: "Customer support", href: "/customer-support" }],{businessProfile},
   );
-  return <><TravelHeader/><main id="main-content" className="support-experience page-shell">
+  return <><TravelHeader/><main id="main-content" className="support-experience page-shell public-refresh">
     <nav className="support-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><span aria-current="page">Customer support</span></nav>
     <header className="support-intro"><div><p className="support-eyebrow">MAX TRAVEL · CUSTOMER SUPPORT</p><h1>Let’s find your next step.</h1><p>A trip to manage, a question to clear up, or a new place to go?</p></div><div className="support-intro-contact"><span>{businessProfile.hours.display}</span><a className="support-contact-jump" href="#contact-team">Talk to our team <TravelIcon name="arrow" size={18}/></a></div></header>
     <div className="support-layout"><section aria-labelledby="support-tasks-heading"><h2 id="support-tasks-heading" className="support-section-title">What do you need help with?</h2><div className="support-task-grid">{tasks.map(task=><article className="support-task" key={task.id} aria-labelledby={`support-${task.id}`}><span className="support-task-icon"><TravelIcon name={task.icon} size={25}/></span><h3 id={`support-${task.id}`}>{task.title}</h3><p>{task.detail}</p><Link className="support-task-action" href={task.href}>{task.action}<TravelIcon name="arrow" size={17}/></Link><small>{task.note}</small></article>)}</div></section>

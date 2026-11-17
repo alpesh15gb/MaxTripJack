@@ -16,6 +16,7 @@ import '@/app/hotel-results-polish.css';
 import '@/app/flight-shopping.css';
 import '@/app/hotel-shopping.css';
 import '@/app/flight-filter-drawer.css';
+import '@/app/booking-journey-visual.css';
 import { useCallback,useEffect, useMemo,useRef,useState } from 'react';
 import { guestDetailsIssues,panRequiredForTraveller,type GuestIssue,type PartySearch } from '@/lib/guest-validation-rules';
 import { guestIssueField,guestNativeIssues,guestsFromForm,parseGuestIssues } from '@/lib/guest-form';

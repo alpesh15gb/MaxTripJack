@@ -7,10 +7,10 @@
 @media(max-width:800px){.visibility-page{padding:22px 18px 48px}.visibility-heading{align-items:flex-start;flex-direction:column;gap:18px}.visibility-heading h1{font-size:30px}.visibility-metrics{grid-template-columns:1fr}.visibility-metric strong{font-size:30px}.visibility-funnel{grid-template-columns:repeat(2,minmax(0,1fr))}.visibility-sectionHeading{align-items:flex-start;flex-direction:column;gap:0;margin-bottom:18px}.visibility-connections article>div{align-items:flex-start;flex-direction:column;gap:8px}.visibility-notice{padding:18px}.visibility-navigation{font-size:12px;flex-wrap:wrap;margin-bottom:28px}}
 @media(max-width:420px){.visibility-funnel{grid-template-columns:1fr}.visibility-table{min-width:620px}.visibility-section h2{font-size:22px}}
 /* A calm, readable reporting desk aligned with the customer-facing travel system. */
-.visibility-page { max-width: 1280px; padding: 34px 40px 72px; color: #142d40; background: #f5f7fa; font-size: 14px; min-height: 100vh; }
+.visibility-page { max-width: 1280px; padding: 34px 40px 72px; color: #10263d; background: #f5f7fa; font-size: 14px; min-height: 100vh; }
 .visibility-navigation { margin-bottom: 28px; align-items: center; }
 .visibility-navigation a { display: inline-flex; min-height: 44px; align-items: center; padding: 10px 16px; border: 1px solid #d8e3eb; background: white; border-radius: 11px; font-size: 13px; text-decoration: none; color: #31536b; }
-.visibility-heading { background: #142d40; color: white; border-radius: 22px; padding: 34px; margin-bottom: 24px; }
+.visibility-heading { background: #10263d; color: white; border-radius: 22px; padding: 34px; margin-bottom: 24px; }
 .visibility-heading h1 { font-size: clamp(30px, 3.8vw, 43px); letter-spacing: -1.2px; margin: 10px 0 15px; }
 .visibility-heading p { color: #c9d9e4; font-size: 15px; line-height: 1.8; }
 .visibility-heading .visibility-eyebrow { color: #a6d5db; font-size: 11px; letter-spacing: 1.3px; }
@@ -19,14 +19,14 @@
 .visibility-notice h2 { color: #685631; font-size: 20px; letter-spacing: -.3px; }
 .visibility-section { border: 1px solid #dfe7ed; border-radius: 20px; background: white; padding: 30px; margin: 25px 0; }
 .visibility-section h2 { font-size: 25px; letter-spacing: -.6px; margin-bottom: 16px; }
-.visibility-eyebrow { color: #087f8c; font-size: 11px; letter-spacing: 1.2px; line-height: 1.7; }
+.visibility-eyebrow { color: #1549e6; font-size: 11px; letter-spacing: 1.2px; line-height: 1.7; }
 .visibility-badge { background: #f1f7f8; border-color: #cfdee2; color: #416976; font-size: 12px; padding: 6px 11px; }
 .visibility-meta { font-size: 13px; line-height: 1.85; color: #5c7283; }
 .visibility-metrics { margin: 23px 0; gap: 16px; }
 .visibility-metric { border-radius: 16px; padding: 23px; background: #f7f9fc; border-color: #dce6ed; }
 .visibility-metric h3 { color: #476375; font-size: 14px; min-height: 42px; }
-.visibility-metric strong { font-size: 30px; font-weight: 700; letter-spacing: -1px; color: #142d40; }
-.visibility-metric p { color: #087f8c; font-size: 14px; line-height: 1.7; }
+.visibility-metric strong { font-size: 30px; font-weight: 700; letter-spacing: -1px; color: #10263d; }
+.visibility-metric p { color: #1549e6; font-size: 14px; line-height: 1.7; }
 .visibility-metric small { font-size: 12px; line-height: 1.85; color: #5c7283; }
 .visibility-connections { border-radius: 15px; border-color: #dfe7ed; }
 .visibility-connections article { padding: 22px; border-color: #e2e9ee; }
@@ -36,7 +36,7 @@
 .visibility-funnel { gap: 16px; margin: 23px 0; }
 .visibility-funnel li { padding: 22px; border-radius: 15px; border-color: #dfe7ed; background: #fbfcfd; }
 .visibility-funnel h3 { font-size: 15px; line-height: 1.6; }
-.visibility-funnel h3:before { color: #087f8c; }
+.visibility-funnel h3:before { color: #1549e6; }
 .visibility-funnel code { font-size: 12px; line-height: 1.6; }
 .visibility-funnel span { color: #537183; font-size: 14px; }
 .visibility-funnel small { font-size: 13px; line-height: 1.8; }
@@ -56,24 +56,45 @@
   gap: 30px;
   align-items: start;
 }
-.visibility-jump-nav { position: sticky; top: 24px; display: grid; gap: 4px; border-left: 2px solid #dce7e1; padding-left: 12px; }
+.visibility-jump-nav { position: sticky; top: 24px; display: grid; gap: 4px; border-left: 2px solid #dce1e8; padding-left: 12px; }
 .visibility-jump-nav a { padding: 13px 12px; border-radius: 8px; min-height: 44px; font-size: 14px; text-decoration: none; }
-.visibility-jump-nav a:hover { background: #e8f4ee; color: #006756; }
+.visibility-jump-nav a:hover { background: #e8f4ee; color: #1549e6; }
 .visibility-content { min-width: 0; }
 .visibility-content .visibility-section:first-child { padding-top: 0; border-top: 0; }
 .visibility-content h2[id] { scroll-margin-top: 28px; }
 .visibility-content .visibility-connections { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border: 0; border-radius: 0; }
-.visibility-content .visibility-connections article { border: 1px solid #dce7e1; background: #fff; border-radius: 14px; padding: 20px; }
+.visibility-content .visibility-connections article { border: 1px solid #dce1e8; background: #fff; border-radius: 14px; padding: 20px; }
 .visibility-content .visibility-connections article > div { align-items: flex-start; flex-direction: column; gap: 10px; }
 .visibility-content .visibility-metric { padding: 20px; }
 .visibility-content .visibility-funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.visibility-content .visibility-funnel li { border-left: 3px solid #006756; background: #fff; border-radius: 0 12px 12px 0; }
+.visibility-content .visibility-funnel li { border-left: 3px solid #1549e6; background: #fff; border-radius: 0 12px 12px 0; }
 @media (max-width: 1000px) {
   .visibility-workbench { grid-template-columns: 1fr; gap: 24px; }
-  .visibility-jump-nav { position: static; display: flex; flex-wrap: wrap; padding: 0; border: 0; border-bottom: 1px solid #dce7e1; }
+  .visibility-jump-nav { position: static; display: flex; flex-wrap: wrap; padding: 0; border: 0; border-bottom: 1px solid #dce1e8; }
 }
 @media (max-width: 600px) {
   .visibility-content .visibility-connections, .visibility-content .visibility-funnel { grid-template-columns: 1fr; }
   .visibility-jump-nav { gap: 0; }
   .visibility-jump-nav a { font-size: 13px; padding: 10px; }
 }
+
+body .visibility-page { color: #10263d; background: #f7f6f2; padding-top: 30px; }
+body .visibility-page .visibility-heading { background: #10263d; color: #fff; border-radius: 18px; padding: 32px; }
+.visibility-page .visibility-heading h1 { font-size: clamp(32px, 3.5vw, 44px); line-height: 1.12; letter-spacing: -.045em; font-weight: 650; }
+.visibility-page .visibility-heading .visibility-eyebrow { color: #ffcf94; font-size: 10px; letter-spacing: .12em; }
+.visibility-page .visibility-heading p:not(.visibility-eyebrow) { color: #c8d5e8; font-size: 14px; }
+.visibility-page .visibility-button { background: #fff; color: #1549e6; border-color: #fff; border-radius: 10px; }
+.visibility-page .visibility-notice { background: #fff7ec; border-color: #edddc7; border-radius: 14px; }
+.visibility-page .visibility-section { border-color: #dce1e8; border-radius: 16px; }
+.visibility-page .visibility-section h2 { color: #10263d; font-size: 24px; }
+.visibility-page .visibility-eyebrow { color: #1549e6; font-size: 10px; letter-spacing: .12em; }
+.visibility-page .visibility-jump-nav { border-color: #dce1e8; }
+.visibility-page .visibility-jump-nav a { color: #526176; font-size: 13px; }
+.visibility-page .visibility-jump-nav a:hover { color: #1549e6; background: #edf2ff; }
+.visibility-page .visibility-metric { border-color: #e1e7f0; background: #f5f7fc; }
+.visibility-page .visibility-metric strong { color: #10263d; font-variant-numeric: tabular-nums; }
+.visibility-page .visibility-metric p { color: #1549e6; }
+.visibility-page .visibility-content .visibility-funnel li { border-left-color: #1549e6; }
+.visibility-page .visibility-table thead { background: #f1f4fa; }
+.visibility-page .visibility-tableWrap { border-color: #dce1e8; }
+@media (max-width: 600px) { body .visibility-page { padding-top: 22px; } body .visibility-page .visibility-heading { padding: 26px 22px; } }

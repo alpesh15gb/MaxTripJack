@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import OperationsPageNavigation from "./operations-page-navigation";
 import { useEffect, useState } from "react";
 import { ANALYTICS_FUNNEL } from "@/lib/analytics";
 import { formatInrMinor, VISIBILITY_BASELINES, VISIBILITY_CONNECTIONS, type VisibilityLedgerSnapshot } from "@/lib/visibility-readiness";
@@ -32,7 +32,7 @@ export default function VisibilityDashboard() {
   }, [refresh]);
 
   return <main id="main-content" className="visibility-page">
-    <nav className="visibility-navigation" aria-label="Operations navigation"><Link href="/operations">← Operations workspace</Link><Link href="/account">Account & security</Link></nav>
+    <OperationsPageNavigation active="visibility" />
     <header className="visibility-heading"><div><p className="visibility-eyebrow">PRIVATE · FINANCE PERMISSION REQUIRED</p><h1>Visibility & measurement</h1><p>Readiness, known gaps and a read-only booking ledger snapshot.</p></div>
       <button className="visibility-button" disabled={loading} onClick={() => { setSnapshot(null); setMessage(""); setRefresh(value => value + 1); }}>{loading ? "Loading ledger…" : "Refresh ledger"}</button>
     </header>

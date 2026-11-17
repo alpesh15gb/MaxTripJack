@@ -1,0 +1,127 @@
+/* Booking-only visual language. Keep the established comparison grids and
+   sticky-action geometry; no selectors escape the booking workflow. */
+body .booking-workflow.journey-flow {
+  --booking-ink: #10263d;
+  --booking-muted: #536579;
+  --booking-blue: #1549e6;
+  --booking-teal: #1549e6;
+  --journey-ink: #10263d;
+  --journey-muted: #536579;
+  --journey-blue: #1549e6;
+  color: var(--booking-ink);
+  font-family: var(--font-geist-sans), sans-serif;
+}
+body .booking-workflow.journey-flow :is(h1,h2,h3,h4,legend) { color: #10263d; text-wrap: pretty; }
+body .booking-workflow.journey-flow :is(.booking-intro h1,.stay-detail-heading h2) { font-family: var(--travel-display, Georgia), serif; font-weight: 500; letter-spacing: -.035em; }
+body .booking-workflow.journey-flow :is(.primary,.choose-fare-label) { background: #1549e6; border-color: #1549e6; color: #fff; border-radius: 10px; box-shadow: 0 3px 8px #1549e615; }
+body .booking-workflow.journey-flow :is(.primary,.fare-comparison > summary):hover:not(:disabled) .choose-fare-label,
+body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: #1038b5; border-color: #1038b5; }
+body .booking-workflow.journey-flow .secondary { color: #10263d; border-color: #c7d0dc; background: #fff; border-radius: 10px; }
+body .booking-workflow.journey-flow :is(button,input,select,summary,a):focus-visible { outline: 3px solid #1549e6; outline-offset: 3px; }
+body .booking-workflow.journey-flow :is(input[type=checkbox],input[type=radio]) { accent-color: #1549e6; }
+body .booking-workflow.journey-flow :is(.eyebrow,.stay-eyebrow,.hotel-property-locality,.hotel-reset,.flight-filter-clear-all) { color: #1549e6; }
+body .booking-workflow.journey-flow :is(.booking-heading-icon,.summary-compass) { background: #eaf0ff; color: #1549e6; border-radius: 14px; }
+body .booking-workflow.journey-flow :is(.booking-intro,.booking-progress li) { border-color: #dce1e8; }
+body .booking-workflow.journey-flow .booking-progress li { color: #536579; }
+body .booking-workflow.journey-flow .booking-progress li.is-current { color: #1549e6; border-color: #1549e6; }
+body .booking-workflow.journey-flow .booking-progress li.is-complete { border-color: #95acf5; }
+body .booking-workflow.journey-flow .booking-progress li span { background: #edf0f5; color: #536579; }
+body .booking-workflow.journey-flow .booking-progress li.is-current span { background: #1549e6; color: white; }
+body .booking-workflow.journey-flow .booking-progress li.is-complete span { color: #1549e6; background: #eaf0ff; }
+
+/* The editable trip reads as a small travel document, separate from results. */
+body .booking-workflow.journey-flow .booking-search-panel { border-color: #d9e0e8; border-radius: 14px; box-shadow: 0 4px 16px #10263d05; }
+body .booking-workflow.journey-flow.has-journey .booking-search-panel:not([open]) > summary.booking-criteria-strip { background: var(--brand-ink); color: #fff; border-radius: 13px; }
+body .booking-workflow.journey-flow .booking-search-panel[open] > summary.booking-criteria-strip { background: #f0f4fc; color: var(--brand-ink); border-radius: 13px 13px 0 0; }
+body .booking-workflow.journey-flow.has-journey .booking-search-panel:not([open]) .search-edit-label { color: #edf2ff; border-color: #ffffff60; background: #ffffff0a; }
+body .booking-workflow.journey-flow .booking-search-panel[open] .search-edit-label { color: var(--brand-action); background: #fff; border-color: var(--brand-border); }
+body .booking-workflow.journey-flow .booking-product-tabs { background: #edf0f5; border-radius: 12px; }
+body .booking-workflow.journey-flow .booking-product-tabs button { border-radius: 9px; }
+body .booking-workflow.journey-flow .booking-product-tabs button[aria-pressed=true] { color: #1549e6; }
+body .booking-workflow.journey-flow label { color: #384f67; }
+body .booking-workflow.journey-flow :is(.live-search,.traveller-card,.booking-contact,.checkout-verification-form) :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) { background: white; border-color: #c7d0dc; color: #10263d; border-radius: 9px; }
+body .booking-workflow.journey-flow :is(.flight-shopping-controls,.hotel-shopping.hotel-comparison .hotel-search-filters) { border-color: #dce1e8; background: white; border-radius: 12px; }
+body .booking-workflow.journey-flow :is(.flight-shopping-controls,.hotel-search-filters,.flight-filter-sheet-body) :is(input,select) { background: #fff; color: #10263d; border-color: #c7d0dc; }
+body .booking-workflow.journey-flow :is(.hotel-filter-drawer,.flight-filter-dialog) { color: #10263d; }
+body .booking-workflow.journey-flow :is(.hotel-filter-drawer,.flight-filter-dialog)::backdrop { background: #10263d99; }
+body .booking-workflow.journey-flow :is(.hotel-filter-drawer > header,.flight-filter-sheet > header) { background: #f7f6f2; border-color: #dce1e8; }
+body .booking-workflow.journey-flow :is(.hotel-filter-drawer > footer,.flight-filter-sheet > footer) { background: #fff; border-color: #dce1e8; }
+body .booking-workflow.journey-flow :is(.flight-filter-chip,.hotel-filter-chip) { border-color: #b5c5f5; color: #123dbd; background: #eef3ff; }
+body .booking-workflow.journey-flow .flight-active-filter-panel { background: #f7f8fb; border-color: #dce1e8; }
+
+/* Repeated flight rows stay dense; cobalt identifies the current comparison. */
+body .booking-workflow.journey-flow.flight-results-page .flight-result-shortcuts button { border-color: #dce1e8; color: #10263d; border-radius: 10px; background: #fff; }
+body .booking-workflow.journey-flow.flight-results-page .flight-result-shortcuts button[aria-pressed=true] { border-color: #1549e6; background: #eef3ff; box-shadow: inset 0 3px #1549e6; }
+body .booking-workflow.journey-flow.flight-results-page .flight-shortcut-metrics strong { color: #1549e6; letter-spacing: -.02em; }
+body .booking-workflow.journey-flow.flight-results-page :is(.flight-shortcut-metrics small,.flight-shortcut-unavailable,.flight-result-columns,.flight-headline-facts) { color: #536579; }
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card { border-color: #dce1e8; box-shadow: 0 3px 12px #10263d06; }
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card.is-selected { border-color: #1549e6; box-shadow: 0 0 0 1px #1549e6; }
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .airline-monogram { background: #f0f3f9; color: #384f67; border-color: #dce1e8; }
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary { background: #f7f8fc; border-color: #dce1e8; }
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > strong { color: #10263d; font-weight: 750; letter-spacing: -.035em; }
+body .booking-workflow.journey-flow.flight-results-page .flight-headline-facts li { color: #384f67; background: #f0f3f9; }
+body .booking-workflow.journey-flow .fare-decision-grid .fare-option-compact { border-color: #dce1e8; background: white; }
+body .booking-workflow.journey-flow .fare-option-heading { border-color: #e3e7ee; }
+body .booking-workflow.journey-flow :is(.fare-comparison-guidance,.journey-leg-context,.flight-selection-summary,.nearby-flight-dates) { background: #f7f8fc; border-color: #dce1e8; color: #384f67; }
+
+/* Hotel photography leads; full-stay prices and rate evidence stay together. */
+body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-shopping-card { border-color: #dce1e8; box-shadow: 0 3px 14px #10263d06; }
+body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-shopping-card h3 a { color: #10263d; }
+body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-result-action { background: #f7f6f2; border-color: #e0e2e7; }
+body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-stay-price strong { color: #10263d; font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
+body .booking-workflow.journey-flow :is(.hotel-amenity-list li,.stay-amenities li) { background: #f0f3f9; color: #384f67; }
+body .booking-workflow.journey-flow :is(.hotel-property-address,.hotel-comparison-guidance,.hotel-search-scope,.stay-muted,.stay-address,.stay-content-note,.stay-price-disclosure) { color: #536579; }
+body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison :is(.stay-rate-preview,.stay-room-group,.stay-about,.stay-date-strip) { background: white; border-color: #dce1e8; }
+body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .stay-room-group { padding: 0; overflow: hidden; }
+body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .stay-room-group-heading { padding: 16px 18px; background: #f7f6f2; border-bottom: 1px solid #dce1e8; }
+body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .stay-room-rates { padding: 8px; }
+body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .room-option-card.stay-room-rate[data-room-option-id] { border-color: #dce1e8; }
+body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .stay-room-rate > .room-option-action { background: #f7f8fc; border-color: #dce1e8; }
+body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison :is(.stay-preview-price strong,.stay-room-rate-action > strong) { color: #10263d; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+body .booking-workflow.journey-flow .stay-room-filters { background: #f7f8fc; border-color: #dce1e8; }
+body .booking-workflow.journey-flow .stay-stars { color: #99600e; }
+body .booking-workflow.journey-flow .stay-section-nav a { color: #1549e6; text-underline-offset: 4px; }
+
+/* A quiet, legible checkout with the total visually tied to its action. */
+body .booking-workflow.journey-flow :is(.booking-review,.booking-summary,.checkout-verification-stage) { border-color: #dce1e8; border-radius: 16px; box-shadow: 0 4px 20px #10263d05; }
+body .booking-workflow.journey-flow .booking-review > .page-heading { border-color: #e3e7ee; }
+body .booking-workflow.journey-flow :is(.traveller-card,.booking-contact) { background: #fafaf8; border-color: #dce1e8; border-radius: 12px; }
+body .booking-workflow.journey-flow :is(.traveller-card legend,.booking-contact h3) { color: #10263d; }
+body .booking-workflow.journey-flow .booking-summary:not(.is-planning) { border-top: 4px solid #1549e6; }
+body .booking-workflow.journey-flow :is(.booking-total dd,.booking-payment-total,.selected-reviewed-total strong) { color: #1549e6; font-variant-numeric: tabular-nums; }
+body .booking-workflow.journey-flow :is(.booking-payment-review,.final-traveller-summary,.booking-verification-summary,.compact-selected-itinerary) { background: #f7f8fc; border-color: #dce1e8; }
+body .booking-workflow.journey-flow .booking-payment-heading { background: #10263d; border-radius: 12px; }
+body .booking-workflow.journey-flow .booking-payment-heading h3 { color: #fff; }
+body .booking-workflow.journey-flow .booking-payment-heading p { color: #dce6f3; }
+body .booking-workflow.journey-flow .booking-expiry { background: #f7f8fc; border-color: #dce1e8; color: #384f67; }
+body .booking-workflow.journey-flow .booking-expiry.is-expired { background: #fff5e8; border-color: #e1b77d; }
+body .booking-workflow.journey-flow .initial-review-price-notice { background: #fff8ee; border-color: #e2c399; border-left: 3px solid #ffb45a; color: #533c20; }
+body .booking-workflow.journey-flow .initial-review-price-notice h3 { color: #533c20; }
+body .booking-workflow.journey-flow .checkout-price-breakdown > summary { color: #10263d; }
+body .booking-workflow.journey-flow .checkout-submit-action.mobile-booking-action { border-color: #dce1e8; }
+body .booking-workflow.journey-flow :is(.checkout-verification-channels,.booking-party-picker) { background: #f0f3f9; border-color: #dce1e8; }
+body .booking-workflow.journey-flow .checkout-verification-channels button[aria-pressed=true] { color: #1549e6; border-color: #b5c5f5; }
+
+/* Actual search phases stay honest; visual treatment adds no simulated progress. */
+body .booking-workflow.journey-flow .journey-search-scene { border-color: #dce1e8; background: #fff; box-shadow: 0 8px 32px #10263d06; }
+body .booking-workflow.journey-flow .journey-search-art { background: #f7f6f2; color: #1549e6; border-radius: 12px; }
+body .booking-workflow.journey-flow .journey-search-copy h2 { color: #10263d; letter-spacing: -.03em; }
+body .booking-workflow.journey-flow .journey-search-copy [role=status] strong { color: #1549e6; }
+body .booking-workflow.journey-flow .journey-search-delay { border-left: 3px solid #ffb45a; padding-left: 12px; color: #533c20; }
+body .booking-workflow.journey-flow .journey-skeleton-card { background: #fafaf8; border-color: #e3e7ee; }
+
+@media (max-width: 700px) {
+  body .booking-workflow.journey-flow .booking-review > .page-heading { padding-bottom: 12px; margin-bottom: 12px; }
+  body .booking-workflow.journey-flow .booking-review > .page-heading h2 { font-size: 26px; line-height: 1.15; }
+  body .booking-workflow.journey-flow .initial-review-price-notice { margin: 10px 0; padding: 11px 12px; border-radius: 10px; }
+  body .booking-workflow.journey-flow .initial-review-price-notice h3 { font-size: 15px; margin: 0 0 4px; }
+  body .booking-workflow.journey-flow .initial-review-price-notice p { font-size: 12px; line-height: 1.45; margin: 4px 0 0; }
+  body .booking-workflow.journey-flow .initial-review-price-notice dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 9px 0; }
+  body .booking-workflow.journey-flow .initial-review-price-notice dl > div { min-width: 0; }
+  body .booking-workflow.journey-flow .initial-review-price-notice dt { font-size: 11px; line-height: 1.4; }
+  body .booking-workflow.journey-flow .initial-review-price-notice dd { font-size: 17px; letter-spacing: -.025em; font-variant-numeric: tabular-nums; white-space: normal; overflow-wrap: anywhere; }
+  body .booking-workflow.journey-flow .booking-review > .booking-expiry { padding: 10px; margin: 8px 0; border-radius: 10px; }
+  body .booking-workflow.journey-flow .checkout-submit-action.mobile-booking-action { box-shadow: 0 -4px 24px #10263d10; background: #fff; }
+  body .booking-workflow.journey-flow .checkout-submit-action .mobile-action-total strong { color: #10263d; font-variant-numeric: tabular-nums; }
+  body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .stay-room-group-heading { padding: 13px 14px; }
+}

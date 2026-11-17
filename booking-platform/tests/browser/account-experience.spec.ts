@@ -293,7 +293,7 @@ test('account heading styling does not reduce footer text contrast',async({page,
  const luminance=(value:string)=>rgb(value).map(c=>c/255).map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)).reduce((sum,c,i)=>sum+c*[.2126,.7152,.0722][i],0);
  expect(colours.headings.length).toBeGreaterThan(0);
  for(const foreground of colours.headings){const a=luminance(foreground),b=luminance(colours.background);expect((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toBeGreaterThanOrEqual(4.5);}
- await expect(page.locator('.account-experience-main h1')).toHaveCSS('color','rgb(20, 45, 64)');
+ await expect(page.locator('.account-experience-main h1')).toHaveCSS('color','rgb(16, 38, 61)');
  await capture(page,testInfo,'account-heading-footer-contrast');
 });
 

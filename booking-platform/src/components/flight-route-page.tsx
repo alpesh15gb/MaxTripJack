@@ -6,11 +6,12 @@ import { routeAirport,type FlightRouteRecord } from '@/lib/flight-route-catalogu
 import { flightRouteSearchHref,flightRouteStructuredData } from '@/lib/flight-route-seo';
 import './public-content.css';
 import './flight-route-catalogue.css';
+import './public-refresh.css';
 
 export default function FlightRoutePage({route}:{route:FlightRouteRecord}) {
   const from=routeAirport(route.from)!,to=routeAirport(route.to)!;
   const domestic=from.country===to.country;
-  return <div className="public-site"><TravelHeader active="flights"/><main id="main-content" className="public-main">
+  return <div className="public-site public-refresh"><TravelHeader active="flights"/><main id="main-content" className="public-main">
     <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol><li><Link href="/">Home</Link></li><li><Link href="/flights/routes">Flight routes</Link></li><li aria-current="page">{from.city} to {to.city}</li></ol></nav>
     <header className="public-hero public-hero--editorial"><div className="public-hero-copy"><p className="public-eyebrow">PLAN YOUR NEXT JOURNEY</p><h1>{from.city} to {to.city} flights</h1><p className="public-intro">Compare the journey from {from.name} ({from.code}) to {to.name} ({to.code}). Start with your dates, then choose the times, baggage and flexibility that work for you.</p><Link className="public-button" href={flightRouteSearchHref(route)}>Check flights and fares <TravelIcon name="arrow" size={18}/></Link><p className="public-cta-note">Choose dates and travellers next. Nothing is selected or reserved.</p></div><div className="public-route-pass"><div><span>Departure</span><strong>{from.code}</strong><p>{from.city}</p></div><TravelIcon name="plane" size={28}/><div><span>Arrival</span><strong>{to.code}</strong><p>{to.city}</p></div><span>{domestic?'Same-country journey':'International journey'}</span></div></header>
     <div className="public-layout"><article className="public-article">

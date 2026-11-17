@@ -7,6 +7,7 @@ import { flightGuides, flightGuideSearchHref, type FlightGuide } from "@/lib/fli
 import type { ContentSection, PublicLink, PublicPage } from "@/lib/public-pages";
 import { editorialDiscoveryGraph, homeDiscoveryGraph, type Breadcrumb } from "@/lib/discovery-graph";
 import "./public-content.css";
+import "./public-refresh.css";
 
 function Breadcrumbs({ items }: { items: readonly Breadcrumb[] }) {
   return <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol>{items.map((item, index) => <li key={item.href}>{index === items.length - 1 ? <span aria-current="page">{item.label}</span> : <Link href={item.href}>{item.label}</Link>}</li>)}</ol></nav>;
@@ -22,7 +23,7 @@ function SectionLinks({ sections, hasQuestions }: { sections: readonly ContentSe
   return <nav className="public-section-links" aria-label="On this page">
     <p>On this page</p>
     <ul>
-      {sections.map((section, index) => <li key={section.heading}><a href={`#section-${index}`}>{section.heading}</a></li>)}
+      {sections.map((section, index) => <li key={section.heading}><a href={`#section-${index}`}><span className="public-chapter-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><span>{section.heading}</span></a></li>)}
       {hasQuestions && <li><a href="#questions-heading">Frequently asked questions</a></li>}
     </ul>
   </nav>;
@@ -83,7 +84,7 @@ export async function PublicPageView({ page }: { page: PublicPage }) {
   const path = `/${page.slug}`;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: page.slug === "flights" ? "Flights" : page.title.split(" | ")[0], href: path }];
   const schema = editorialDiscoveryGraph({ ...page, path }, breadcrumbs, { businessProfile, fullBusinessProfile: page.businessSchema });
-  return <div className="public-site">
+  return <div className="public-site public-refresh">
     <TravelHeader active={page.slug === "flights" ? "flights" : undefined} />
     <main id="main-content" className="public-main">
       <Breadcrumbs items={breadcrumbs} />
@@ -105,7 +106,7 @@ export async function FlightGuideView({ guide }: { guide: FlightGuide }) {
   const path = `/flights/${guide.slug}`;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Flights", href: "/flights" }, { label: `${guide.origin.city} to ${guide.destination.city}`, href: path }];
   const related = flightGuides.filter(route => guide.relatedSlugs.includes(route.slug)).map(route => ({ label: `${route.origin.city} to ${route.destination.city} guide`, href: `/flights/${route.slug}` }));
-  return <div className="public-site"><TravelHeader active="flights" /><main id="main-content" className="public-main">
+  return <div className="public-site public-refresh"><TravelHeader active="flights" /><main id="main-content" className="public-main">
     <Breadcrumbs items={breadcrumbs} /><header className="public-hero public-hero--editorial">
       <div className="public-hero-copy"><p className="public-eyebrow">FLIGHT PLANNING GUIDE</p><h1>{guide.heading}</h1><p className="public-intro">{guide.intro}</p><Link className="public-button" href={flightGuideSearchHref(guide)}>Plan this route<TravelIcon name="arrow" size={18} /></Link><p className="public-cta-note">Prefills airports only. Choose your own dates. Does not select or reserve a flight.</p></div>
       <div className="public-route-pass" aria-label="Route at a glance"><div><span>Departure</span><strong>{guide.origin.code}</strong><p>{guide.origin.city}</p></div><TravelIcon name="plane" size={28}/><div><span>Arrival</span><strong>{guide.destination.code}</strong><p>{guide.destination.city}</p></div><a href="#airports-heading">Check your airports <span aria-hidden="true">↓</span></a></div>

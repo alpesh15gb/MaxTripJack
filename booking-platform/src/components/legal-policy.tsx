@@ -7,6 +7,7 @@ import {editorialDiscoveryGraph} from '@/lib/discovery-graph';
 import {pageMetadata} from '@/lib/seo';
 import {notFound} from 'next/navigation';
 import './legal-policy.css';
+import './public-refresh.css';
 
 export function legalPolicyMetadata(slug:string){
  const policy=getLegalPolicy(slug);if(!policy)throw new Error('Unknown policy');
@@ -18,7 +19,7 @@ export async function LegalPolicyPage({slug}:{slug:string}){
  const policy=getLegalPolicy(slug);if(!policy)notFound();
  const description=`Read MaxTravel’s ${policy.title.toLowerCase()} and find our contact details for any questions.`;
  const graph=editorialDiscoveryGraph({path:`/${slug}`,title:policy.title,description},[{label:'Home',href:'/'},{label:policy.title,href:`/${slug}`}],{businessProfile,sources:[{label:'View this policy on maxtravel.us',href:policy.sourceUrl}]});
- return <div className="legal-site"><TravelHeader/><main id="main-content" className="legal-main">
+ return <div className="legal-site public-refresh"><TravelHeader/><main id="main-content" className="legal-main">
   <nav className="legal-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><span aria-current="page">{policy.title}</span></nav>
   <header className="legal-header"><div><p>POLICIES & INFORMATION</p><h1>{policy.title}</h1></div><Link className="legal-header-contact" href="/contact">Questions about this policy? <span>Contact our team →</span></Link></header>
   <div className="legal-layout"><aside className="legal-sidebar">

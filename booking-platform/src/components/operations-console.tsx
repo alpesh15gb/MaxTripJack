@@ -525,6 +525,7 @@ export default function OperationsConsole() {
               </Link>
             ))}
           </nav>
+          <p className="ops-nav-caption ops-tools-caption">TOOLS & SETTINGS</p>
           {context.permissions.includes("finance:read") && (
             <>
               <Link href="/operations/reports">Booking reports ↗</Link>

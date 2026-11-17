@@ -57,6 +57,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   }});
 
   function changeProduct(next: Product) {
+    if (next === product) return;
     backgroundSearch.pause();invalidateBackgroundSearch();
     if (product === "FLIGHT" && form.current) {
       const data = new FormData(form.current);
@@ -67,6 +68,13 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     setProduct(next);
     setAdults(current => next === "HOTEL" ? Math.min(4, current) : current);
     setNotice("");
+  }
+
+  function openSearch(next: Product) {
+    changeProduct(next);
+    const search = document.getElementById('trip-search');
+    search?.scrollIntoView({block:'start'});
+    search?.focus({preventScroll:true});
   }
 
   function swapAirports() {
@@ -125,7 +133,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   }
 
   return <div className="trip-home">
-    <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={changeProduct} />
+    <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={openSearch} />
     <main id="main-content">
       <section className="home-intro" aria-labelledby="home-title">
         <div className="studio-hero-copy">
@@ -134,7 +142,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
           <a className="hero-explore-link" href="#discover">Explore destinations <TravelIcon name="arrow" size={18} /></a>
         </div>
         <div className="studio-hero-photo">
-          <Image src={featured.image} alt={featured.alt} fill sizes="(max-width: 1288px) 100vw, 1240px" preload={featured === destinations[0]} />
+          <Image src={featured.image} alt={featured.alt} fill sizes="(max-width: 760px) calc(100vw - 24px), (max-width: 1320px) 59vw, 754px" preload={featured === destinations[0]} />
           <span role="status"><TravelIcon name="pin" size={15} />{featured.name}</span>
         </div>
         <div className="hero-destination-picker" role="group" aria-label="Preview a destination">
@@ -146,7 +154,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
         </div>
       </section>
 
-      <section id="trip-search" className="home-search-card" aria-label="Plan your trip">
+      <section id="trip-search" className="home-search-card" aria-label="Plan your trip" tabIndex={-1}>
         <div className="home-search-top"><div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div></div>
         <form ref={form} className="home-search-form" aria-describedby={notice?'home-search-error':undefined} onChange={event=>{const target=event.target;if(target instanceof HTMLInputElement&&['From airport','To airport'].includes(target.getAttribute('aria-label')??'')&&['Choose different departure and arrival airports.','Select a departure and arrival airport, or enter their three-letter airport codes.'].includes(notice))setNotice('');}} onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><span className="home-economy">{cabin.replaceAll("_", " ").toLowerCase()}</span></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
@@ -168,13 +176,13 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
 
       <section id="discover" className="home-discover" aria-labelledby="discover-heading">
         <div className="home-section-heading">
-          <div><h2 id="discover-heading">Pick a place to get away</h2></div>
+          <div><h2 id="discover-heading">Where to next?</h2></div>
           <Link href="/book?product=HOTEL">Search all stays <TravelIcon name="arrow" size={18} /></Link>
         </div>
         <div className="home-destinations">
-          {destinations.map(destination => (
+          {[destinations[1], destinations[0], ...destinations.slice(2)].map(destination => (
             <Link className="home-destination" href={`/book?product=HOTEL&city=${encodeURIComponent(destination.name === "The Maldives" ? "Maldives" : destination.name)}`} key={destination.name} aria-label={`Explore stays in ${destination.name}`}>
-              <Image className="home-destination-photo" src={destination.image} alt="" fill sizes="(max-width: 700px) 90vw, 50vw" loading="lazy" />
+              <Image className="home-destination-photo" src={destination.image} alt="" fill sizes="(max-width: 700px) 50vw, (max-width: 1280px) 40vw, 520px" loading="lazy" />
               <span className="home-destination-shade" aria-hidden="true" />
               <div><h3>{destination.name}</h3><p>{destination.detail}</p></div>
               <span className="home-destination-arrow"><TravelIcon name="arrow" /></span>

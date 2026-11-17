@@ -6,6 +6,7 @@ import {PackagePhoto} from './package-photo';
 import { useEffect, useState } from 'react';
 import { TravelFooter, TravelHeader, TravelIcon } from './travel-shell';
 import { currentPackage, currentPackageSummary, packageEmailHref, packagePrice, packagePriceBasis, type TravelPackage, type TravelPackageSummary } from '@/lib/travel-packages';
+import './public-refresh.css';
 
 type Catalogue = {packages:TravelPackageSummary[];truncated:boolean;unavailableCount:number};
 function PackageMoney({item}: {item:TravelPackageSummary}) {
@@ -31,8 +32,8 @@ function PackageContent({slug,initialPackage}: {slug?:string;initialPackage?:Tra
   const retry = () => {setError('');setNotFound(false);setCatalogue(null);setAttempt(value => value+1);};
   const item = slug ? catalogue?.packages[0] as TravelPackage | undefined : undefined;
   const visible = catalogue?.packages.filter(p => `${p.title} ${p.destination}`.toLowerCase().includes(query.trim().toLowerCase())) || [];
-  return <div className="travel-app"><TravelHeader active="packages"/><main id="main-content" className={`package-main ${slug ? "package-main--detail" : "package-main--catalogue"}`}>
-    <div className="package-breadcrumb"><Link href="/">Home</Link><span>/</span>{slug ? <Link href="/packages">Travel packages</Link> : <span>Travel packages</span>}</div>
+  return <div className="travel-app public-refresh"><TravelHeader active="packages"/><main id="main-content" className={`package-main ${slug ? "package-main--detail" : "package-main--catalogue"}`}>
+    <nav className="package-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span>{slug ? <><Link href="/packages">Travel packages</Link>{item && <><span aria-hidden="true">/</span><span aria-current="page">{item.title}</span></>}</> : <span aria-current="page">Travel packages</span>}</nav>
     <header className="package-heading"><div className="package-heading-copy"><span className="package-eyebrow">A journey, thoughtfully planned</span><h1>{item?.title || (slug ? 'Your next journey' : 'Travel packages')}</h1><p>{item?.summary || 'Explore plans from the Max Travel team. Review what’s included, then speak with us about dates and a personalised quote.'}</p></div>{!slug && <div className="package-planning-note"><TravelIcon name="globe" size={30}/><h2>Make it your journey</h2><p>Choose a destination, review the itinerary, then discuss your dates with our team.</p><Link href="/contact">Plan with MaxTravel <TravelIcon name="arrow" size={18}/></Link></div>}</header>
     <div className="package-disclosure"><TravelIcon name="shield"/><p><strong>Enquiry only — not instant booking.</strong> Availability and the final quote must be confirmed by our team. Sending an enquiry does not reserve a trip or take a payment.</p></div>
     {error ? <section className="package-state" role="alert"><h2>{notFound ? 'Package unavailable' : 'We couldn’t load packages'}</h2><p>{error}</p>{!notFound && <button onClick={retry}>Try again</button>}{slug&&<Link href="/packages">Browse packages</Link>}<Link href="/contact">Plan a trip with our team</Link><Link href="/customer-support">Contact support</Link></section> : !catalogue ? <section className="package-state" role="status"><h2>Loading travel plans…</h2><p>Checking the latest published details.</p></section> : item ? <PackageDetail item={item}/> : <>

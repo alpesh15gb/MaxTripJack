@@ -5,13 +5,14 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import HotelGallery from '../../src/components/hotel-gallery';
 
 const placement = build({entryPoints:['src/components/max-ai-launcher-placement.ts'],bundle:true,platform:'browser',format:'iife',globalName:'LauncherPlacement',write:false}).then(result=>result.outputFiles[0].text);
+const viewportMeta = '<meta name="viewport" content="width=device-width, initial-scale=1">';
 const launcherMarkup = '<button class="max-ai-launcher" aria-label="Open Max AI travel assistant"><span class="max-ai-launcher-icon"><svg width="22" height="22"></svg></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></button><div class="max-ai-mobile-clearance" aria-hidden="true"></div>';
 
 for(const width of [320,390,760,1440])test(`gallery action stays in one contained accessible row at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});
   await page.route('https://i.travelapi.com/**',route=>route.abort());
   const gallery=renderToStaticMarkup(createElement(HotelGallery,{name:'Synthetic Hotel',photos:[{url:'https://i.travelapi.com/lodging/10000/test.jpg',isHero:true}],open:false,onOpenChange:()=>{}}));
-  await page.setContent(`<style>*{box-sizing:border-box}body{margin:18px}button{font:inherit}</style><main>${gallery}</main>`);
+  await page.setContent(`${viewportMeta}<style>*{box-sizing:border-box}body{margin:18px}button{font:inherit}</style><main>${gallery}</main>`);
   await page.addStyleTag({path:'src/app/hotel-detail.css'});
   const button=page.getByRole('button',{name:'View all 1 photo',exact:true});
   await expect(button).toHaveAttribute('aria-haspopup','dialog');
@@ -23,7 +24,7 @@ for(const width of [320,390,760,1440])test(`gallery action stays in one containe
 
 for(const width of [320,390,760])test(`compact Max AI avoids scrolling availability and sticky controls at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:844});
-  await page.setContent(`<style>*{box-sizing:border-box}body{margin:0}main{height:1800px}#availability{position:absolute;left:18px;right:18px;top:764px;display:flex;align-items:center;justify-content:center;min-height:46px;background:#ddd}#pay{position:fixed;bottom:0;left:0;right:0;height:110px;background:white}#pay[hidden]{display:none}</style><main><a id="availability" href="#test">Check test availability</a></main><div id="pay" class="mobile-booking-action" hidden><button>Agree &amp; pay</button></div>${launcherMarkup}`);
+  await page.setContent(`${viewportMeta}<style>*{box-sizing:border-box}body{margin:0}main{height:1800px}#availability{position:absolute;left:18px;right:18px;top:764px;display:flex;align-items:center;justify-content:center;min-height:46px;background:#ddd}#pay{position:fixed;bottom:0;left:0;right:0;height:110px;background:white}#pay[hidden]{display:none}</style><main><a id="availability" href="#test">Check test availability</a></main><div id="pay" class="mobile-booking-action" hidden><button>Agree &amp; pay</button></div>${launcherMarkup}`);
   await page.addStyleTag({path:'src/app/max-ai.css'});
   await page.addScriptTag({content:`${await placement}\nwindow.stopPlacement=LauncherPlacement.observeMobileLauncher(document.querySelector('.max-ai-launcher'));`});
   const launcher=page.getByRole('button',{name:'Open Max AI travel assistant'}),action=page.locator('#availability'),bar=page.locator('#pay');

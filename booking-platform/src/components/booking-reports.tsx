@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import OperationsPageNavigation from "./operations-page-navigation";
 import BookingReportRows, { reportIndiaDate as indiaDate } from "./booking-report-rows";
 import { useEffect, useRef, useState } from "react";
 import { defaultReportFilters, parseReportFilters, reportParams, REPORT_DEFINITIONS, REPORT_SCOPES, REPORT_STATUSES, type BookingReport, type ReportFilters } from "@/lib/booking-report";
@@ -74,7 +74,7 @@ export default function BookingReports() {
   }
   const unapplied = applied && reportParams(draft).toString() !== reportParams(applied).toString();
   return <main id="main-content" className="reports-page">
-    <nav className="reports-nav" aria-label="Operations navigation"><Link href="/operations">← Operations workspace</Link><Link href="/operations/visibility">Measurement readiness</Link><Link href="/account">Account & security</Link></nav>
+    <OperationsPageNavigation active="reports" />
     <header className="reports-heading"><div><p className="reports-eyebrow">PRIVATE · FINANCE REPORTING</p><h1>Know where every booking stands.</h1><p>One order cohort. Clear booking, payment and refund totals.</p></div><span className="reports-badge">In Testing</span></header>
     <aside className="reports-notice"><strong>Current state, not period cash flow.</strong><p>Dates select when bookings were created in Asia/Kolkata. Payments and refunds include later updates to those bookings. These records are not production revenue, bank settlement or net profit. Test and live records cannot be separated by an existing per-order environment marker.</p></aside>
     <div className="reports-workbench">

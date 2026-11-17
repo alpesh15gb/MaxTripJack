@@ -6,6 +6,7 @@ import {listFlightRoutes} from '@/lib/flight-route-store';
 import {flightRoutePath,routeAirport} from '@/lib/flight-route-catalogue';
 import './public-content.css';
 import './flight-route-catalogue.css';
+import './public-refresh.css';
 
 export const FLIGHT_DIRECTORY_PAGE_SIZE=24;
 export function flightDirectoryPath(page:number){return page===1?'/flights/routes':`/flights/routes/page/${page}`;}
@@ -18,7 +19,7 @@ export default async function FlightRouteDirectory({page=1,query=''}:{page?:numb
   const words=q.toLowerCase().split(/\s+/).filter(Boolean);
   const guides=page===1?flightGuides.filter(g=>words.every(word=>`${g.origin.city} ${g.origin.code} ${g.destination.city} ${g.destination.code}`.toLowerCase().includes(word))):[];
   const querySuffix=q?`?q=${encodeURIComponent(q)}`:'';
-  return <div className="public-site route-directory"><TravelHeader active="flights"/><main id="main-content" className="public-main">
+  return <div className="public-site route-directory public-refresh"><TravelHeader active="flights"/><main id="main-content" className="public-main">
     <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol><li><Link href="/">Home</Link></li><li><Link href="/flights">Flights</Link></li><li aria-current="page">Route directory{page>1?` · Page ${page}`:''}</li></ol></nav>
     <header className="public-hero public-hero--editorial"><div className="public-hero-copy"><p className="public-eyebrow">FROM YOUR CITY TO YOUR NEXT CHAPTER</p><h1>Explore flight routes{page>1?` · Page ${page}`:''}</h1><p className="public-intro">Find the right airports, plan the onward journey and compare fares for your own dates. Start with a city or airport code.</p><Link className="public-button" href="/book?product=FLIGHT">Search flights <TravelIcon name="arrow" size={18}/></Link></div></header>
     <form className="route-directory-search" method="get" action="/flights/routes"><label>City or airport code<input type="search" name="q" defaultValue={q} maxLength={80} placeholder="Lucknow, Hyderabad, LKO…"/></label><button type="submit">Find a route</button>{q&&<Link href="/flights/routes">Clear search</Link>}</form>

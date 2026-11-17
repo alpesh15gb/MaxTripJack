@@ -5,7 +5,7 @@ import {maxAiGatewayConfiguration} from '@/lib/max-ai-provider';
 import {conversationConfigured} from '@/lib/max-ai-conversation';
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { SITE_NAME, SITE_ORIGIN, siteRobots } from "@/lib/seo";
 import "./globals.css";
 import "./refinement.css";
@@ -23,6 +23,7 @@ import "./journey-polish.css";
 import "./flight-decision.css";
 import "./visual-polish.css";
 import "./checkout-flow.css";
+import "./homepage-design.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,14 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const travelDisplay = Instrument_Serif({
+  variable: "--font-travel-display",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -49,7 +58,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${travelDisplay.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col"><CompanyProfileProvider value={company}>{children}<MaxAiAssistant enabled={Boolean(maxAiGatewayConfiguration())&&conversationConfigured()}/></CompanyProfileProvider></body>
     </html>
