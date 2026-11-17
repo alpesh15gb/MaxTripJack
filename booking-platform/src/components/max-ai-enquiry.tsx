@@ -13,7 +13,7 @@ function receipt(value: unknown): EnquiryReceipt | null {
   const item = value as EnquiryReceipt;
   return typeof item.id === 'string' && typeof item.reference === 'string' && item.reference.length > 0 && item.reference.length <= 60 &&
     ['VISA', 'INSURANCE', 'HOLIDAY', 'CRUISE'].includes(item.service) && ['NEW', 'CONTACTED', 'QUOTED', 'CLOSED'].includes(item.status) &&
-    typeof item.createdAt === 'string' && ['PENDING', 'DELIVERED', 'ACTION_REQUIRED', 'NOT_CONFIGURED'].includes(item.crmStatus) ? item : null;
+    typeof item.createdAt === 'string' && ['PENDING', 'DELIVERED', 'ACTION_REQUIRED', 'NOT_CONFIGURED', 'LEGACY_DELIVERY', 'DESTINATION_REVIEW'].includes(item.crmStatus) ? item : null;
 }
 
 async function responseBody(response: Response): Promise<Record<string, unknown>> {

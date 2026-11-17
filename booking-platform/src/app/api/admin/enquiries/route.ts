@@ -35,8 +35,9 @@ export async function POST(request:Request){try{
   sameOrigin(request);const actor=await administrator(request,'integrations:manage');
   const input=await body(request,z.object({id:z.string().uuid(),version:z.number().int().positive(),action:z.literal('retry_crm')}).strict());
   await transaction(async tx=>{
-    const row=await tx.query('SELECT crm_event_id,version FROM travel_enquiries WHERE id=$1 FOR UPDATE',[input.id]);
+    const row=await tx.query('SELECT crm_event_id,version,crm_receiver FROM travel_enquiries WHERE id=$1 FOR UPDATE',[input.id]);
     if(!row.rows[0]||row.rows[0].version!==input.version)throw new HttpError(409,'This enquiry changed. Refresh it before retrying.');
+    if(row.rows[0].crm_receiver!=='safar')throw new HttpError(409,'This enquiry predates the Safar destination. Review its previous delivery before arranging a separate transfer.');
     const updated=await tx.query('UPDATE outbox_events SET attempts=0,next_attempt=now() WHERE id=$1 AND delivered_at IS NULL AND (lease_until IS NULL OR lease_until<now()) RETURNING id',[row.rows[0].crm_event_id]);
     if(!updated.rowCount)throw new HttpError(409,'CRM delivery is already complete or being checked. Refresh its status.');
     await tx.query("INSERT INTO audit_events(id,actor_id,action,entity_id) VALUES($1,$2,'enquiry.crm-retry',$3)",[randomUUID(),actor.userId,input.id]);

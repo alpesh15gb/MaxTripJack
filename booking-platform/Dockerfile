@@ -25,6 +25,8 @@ COPY --from=build /app/scripts/provision-runtime-role.mjs ./scripts/provision-ru
 COPY --from=build /app/scripts/release-check.mjs ./scripts/release-check.mjs
 COPY --from=build /app/scripts/diagnose-checkout.mjs ./scripts/diagnose-checkout.mjs
 COPY --from=build /app/scripts/check-max-ai.mjs ./scripts/check-max-ai.mjs
+COPY --from=build /app/scripts/check-safar-enquiries.mjs ./scripts/check-safar-enquiries.mjs
+COPY --from=build /app/scripts/configure-safar-enquiries.mjs ./scripts/configure-safar-enquiries.mjs
 COPY --from=build /app/db ./db
 USER travel
 EXPOSE 3000

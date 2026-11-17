@@ -7,7 +7,7 @@ try {
   await client.query("BEGIN");
   await client.query("SELECT pg_advisory_xact_lock(71266301)");
   await client.query("CREATE TABLE IF NOT EXISTS schema_migrations(name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
-  for (const name of ["001-booking-platform", "002-provider-integration", "003-booking-details", "004-operations", "005-cancellation-offers", "006-flight-amendments", "007-delivery", "008-catalogue", "009-security-operations", "010-cancellation-polling", "011-payment-method", "012-partial-cancellation", "013-flight-services", "014-crm-commands", "015-fare-validation", "016-payglocal", "017-payglocal-recovery", "018-payglocal-webhooks", "019-cancellation-reconciliation", "020-whatsapp-verification", "021-company-settings", "022-pricing-promos", "023-promo-discovery", "024-travel-enquiries"]) {
+  for (const name of ["001-booking-platform", "002-provider-integration", "003-booking-details", "004-operations", "005-cancellation-offers", "006-flight-amendments", "007-delivery", "008-catalogue", "009-security-operations", "010-cancellation-polling", "011-payment-method", "012-partial-cancellation", "013-flight-services", "014-crm-commands", "015-fare-validation", "016-payglocal", "017-payglocal-recovery", "018-payglocal-webhooks", "019-cancellation-reconciliation", "020-whatsapp-verification", "021-company-settings", "022-pricing-promos", "023-promo-discovery", "024-travel-enquiries", "025-safar-enquiry-destination"]) {
   const existing = await client.query("SELECT name FROM schema_migrations WHERE name=$1", [name]);
   if (!existing.rowCount) {
     await client.query(await readFile(new URL(`../db/${name}.sql`, import.meta.url), "utf8"));

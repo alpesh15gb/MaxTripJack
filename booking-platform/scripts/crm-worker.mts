@@ -7,7 +7,6 @@ import { randomUUID } from "node:crypto";
 import { crmSignature } from "../src/lib/signatures";
 import { crmSnapshot } from "../src/lib/crm-snapshot";
 import { database } from "../src/lib/db";
-import {readEnquiryCrmResponse} from "../src/lib/travel-enquiry-delivery";
 
 const url = process.env.CRM_EVENTS_URL;
 const key = process.env.CRM_SIGNING_KEY;
@@ -22,12 +21,11 @@ try {
     await heartbeat("crm");
     const lease = randomUUID();
     const claimed = await pool.query(`UPDATE outbox_events SET lease_token=$1,lease_until=now()+interval '60 seconds'
-      WHERE id=(SELECT id FROM outbox_events WHERE delivered_at IS NULL AND attempts<12 AND next_attempt<=now() AND (lease_until IS NULL OR lease_until<now()) ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`, [lease]);
+      WHERE id=(SELECT id FROM outbox_events WHERE event_type<>'enquiry.created' AND delivered_at IS NULL AND attempts<12 AND next_attempt<=now() AND (lease_until IS NULL OR lease_until<now()) ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`, [lease]);
     const event = claimed.rows[0];
     if (!event) { await new Promise(r => setTimeout(r, 2000)); continue; }
     const timestamp = String(Math.floor(Date.now() / 1000));
     try {
-      if(event.event_type==='enquiry.created'&&!event.delivery_payload)throw new Error('Enquiry payload must be frozen at submission.');
       const payload = await crmDeliveryPayload(event, {
         snapshot: crmSnapshot,
         document: bookingDocument,
@@ -40,15 +38,7 @@ try {
       });
       const response = await fetch(url, { method: "POST", headers: await deploymentProtectionHeaders(url,{ "Content-Type": "application/json", "X-MaxTravel-Key-Id": keyId, "X-MaxTravel-Timestamp": timestamp, "X-MaxTravel-Event-Id": event.id, "X-MaxTravel-Signature": crmSignature(timestamp, event.id, payload, key) }), body: payload, signal: AbortSignal.timeout(15000), redirect: "error" });
       if (!response.ok) throw new Error("Delivery rejected");
-      if(event.event_type==='enquiry.created'){
-        const receipt=await readEnquiryCrmResponse(response,event.aggregate_id);
-        // Receipt and delivered flag change atomically, only for the current lease.
-        await pool.query(`WITH saved AS (
-          UPDATE travel_enquiries SET crm_reference=$3,crm_lead_id=$4,updated_at=now()
-          WHERE crm_event_id=$1 AND EXISTS(SELECT 1 FROM outbox_events WHERE id=$1 AND lease_token=$2) RETURNING crm_event_id
-        ) UPDATE outbox_events SET delivered_at=now(),lease_token=NULL,lease_until=NULL
-          WHERE id IN (SELECT crm_event_id FROM saved) AND lease_token=$2`,[event.id,lease,receipt.crmReference,receipt.leadId]);
-      }else await pool.query("UPDATE outbox_events SET delivered_at=now(),lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2", [event.id, lease]);
+      await pool.query("UPDATE outbox_events SET delivered_at=now(),lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2", [event.id, lease]);
     } catch {
       const backoffSeconds = Math.min(3600, 2 ** Math.min(event.attempts + 1, 12) * 10);
       await pool.query("UPDATE outbox_events SET attempts=attempts+1,next_attempt=now()+($3 * interval '1 second'),lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2", [event.id, lease, backoffSeconds]);

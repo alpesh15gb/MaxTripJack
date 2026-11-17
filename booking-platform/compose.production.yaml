@@ -93,6 +93,13 @@ services:
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/crm-worker.mjs]
     profiles: [crm]
+  enquiry-worker:
+    <<: *runtime-security
+    image: max-travel-booking:local
+    restart: unless-stopped
+    env_file: .env.production
+    command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/enquiry-worker.mjs]
+    profiles: [enquiries]
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped

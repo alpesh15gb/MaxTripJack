@@ -40,7 +40,7 @@ Use a private, local connection on this VPS, or an HTTPS gateway URL for a remot
 
 The base URL ends at `/v1`; the server appends `/chat/completions`. Preserve the exact model/combo identifier accepted by your gateway, including its case. That target must support function tools. A model's ordinary text response alone does not prove that it can execute this integration's tool protocol. OmniRoute may route a combo to providers with different capabilities, so every fallback used by the combo should support tools.
 
-For the enquiry release, follow [the enquiry migration and CRM deployment guide](MAX-AI-ENQUIRIES.md) first. It includes an additive booking migration and a CRM receiver/schema update; deploy the CRM before the booking application and CRM worker. The following app-only command is for subsequent configuration changes after those migrations:
+For enquiries, follow [the Safar enquiry deployment guide](MAX-AI-ENQUIRIES.md) first. Booking is still in testing while Safar contains real transactions. The dedicated enquiry worker uses test-labelled records in a separate inbox, with no writes to existing business records. Keep the legacy CRM worker stopped. Deploy Safar before the booking app and dedicated enquiry worker. The following app-only command is for subsequent configuration changes after those migrations:
 
 ```bash
 (
@@ -87,7 +87,7 @@ Same-origin checks, shared request limits, bounded tool loops, response sizes an
 
 The app does not save a chat transcript to its database or browser local storage. Messages are still processed by OmniRoute and its selected upstream provider; review their logging and retention configuration. Users should keep passwords, OTPs, authenticator codes, card details, passports and PAN information out of chat.
 
-Explicitly submitted enquiries are separate persisted records containing the reviewed travel details, contact details and consent time. Guest contact details remain unverified. The signed CRM delivery creates a provisional sales lead and service case; it does not merge a customer merely because an unverified email or phone matches. Submission retries use the original request ID and payload, including after an uncertain response. Admin follow-up changes require operations permissions; CRM retries require integration permissions.
+Explicitly submitted enquiries are separate persisted records containing the reviewed travel details, contact details and consent time. Guest contact details remain unverified. Signed delivery creates an isolated Safar website-enquiry record; it does not create a customer, sales case, task or financial transaction. The original test/live mode is immutable across retries. Submission retries use the original request ID and payload, including after an uncertain response. Admin follow-up changes require operations permissions; Safar delivery retries require integration permissions.
 
 ## Response speed
 
@@ -111,12 +111,13 @@ callback that could redirect typing to the destination field. Both were fixed;
 the final affected suite includes a deterministic delayed-frame regression and
 passes against the rebuilt application.
 
-The actual MaxTravel CRM receiver passed its production build, TypeScript,
-focused lint and a real signed-route integration test using a freshly migrated
-isolated SQLite database. All four services, replay/conflict handling, unverified
-contact isolation and budget permissions were exercised. Booking persistence
-tests use a database adapter; no local PostgreSQL server was available to execute
-its migration. See [the enquiry deployment guide](MAX-AI-ENQUIRIES.md).
+The corrected receiver targets **Safar CRM**, not the old MaxTravel CRM repository.
+Safar passed production build, TypeScript, 51 unit tests and 20 desktop/mobile
+inbox cases. Its 11 PostgreSQL tests execute all 50 migrations in isolated PGlite,
+verify test/live and staff permissions, and prove 25 existing business tables and
+numbering sequences remain unchanged. Booking queue tests also use isolated
+PostgreSQL. See [the enquiry deployment guide](MAX-AI-ENQUIRIES.md) for the current
+dedicated sender, strict receipts, deployment and verification limits.
 
 Earlier live acceptance verified flight/hotel search and handoffs, and the VPS
 diagnostic accepted `APEXV1` function calling and tool-result follow-up.
@@ -140,7 +141,7 @@ The existing Next.js dependency security advisory remains outside this change.
 6. Ask for your trips signed out, then signed in. Switch accounts and sign out again. Old private cards and conversation state must be cleared and unavailable to the new session.
 7. Ask it to book, pay, cancel, refund or change pricing. It should open the correct app screen and never claim it performed the change.
 8. Test stop, close/reopen, new chat, network failure and expired conversation recovery on desktop and mobile. Complete a normal flight/hotel checkout separately to verify the assistant does not obstruct those controls.
-9. Review each service enquiry, edit its details, explicitly submit and confirm one matching reference in Operations and the CRM. Verify pending and delivered statuses separately. Use identified test details, not a real customer's information.
+9. Review each service enquiry, edit its details, explicitly submit and confirm one matching reference in Operations and Safar's **Test enquiries** view. Verify pending and delivered statuses separately, and that the Live inbox is unchanged. Use identified test details, not a real customer's information.
 10. Compare generic starters with detailed searches using `Max AI timing` logs. Generic first-turn questions should report zero model calls; complete search/draft tools should omit an unnecessary summary call. Confirm sequential package planning and hotel pagination still work.
 
 Use test supplier/payment environments for checkout validation. Do not test a live payment or supplier reservation merely to check whether the assistant renders results.

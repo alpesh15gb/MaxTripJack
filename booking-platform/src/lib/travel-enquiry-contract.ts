@@ -69,8 +69,8 @@ export type EnquiryContact=z.infer<typeof enquiryContactSchema>;
 export const enquirySubmitSchema=z.object({requestId:z.string().uuid(),draft:enquiryDraftSchema,contact:enquiryContactSchema,consent:z.literal(true)}).strict();
 export type EnquirySubmission=z.infer<typeof enquirySubmitSchema>;
 export type EnquiryStatus='NEW'|'CONTACTED'|'QUOTED'|'CLOSED';
-export type EnquiryCrmStatus='PENDING'|'DELIVERED'|'ACTION_REQUIRED'|'NOT_CONFIGURED';
-export type EnquiryReceipt={id:string;reference:string;service:EnquiryService;status:EnquiryStatus;createdAt:string;crmStatus:EnquiryCrmStatus;crmReference?:string};
+export type EnquiryCrmStatus='PENDING'|'DELIVERED'|'ACTION_REQUIRED'|'NOT_CONFIGURED'|'LEGACY_DELIVERY'|'DESTINATION_REVIEW';
+export type EnquiryReceipt={id:string;reference:string;service:EnquiryService;status:EnquiryStatus;createdAt:string;crmStatus:EnquiryCrmStatus;crmReference?:string;crmEnvironment?:'test'|'live'};
 
 export function enquirySummary(draft:EnquiryDraft):string[]{
   return [draft.destination,draft.travelWindow,
