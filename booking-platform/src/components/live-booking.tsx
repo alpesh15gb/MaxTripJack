@@ -5,7 +5,7 @@ import FlightSelectionSummary from './flight-selection-summary';
 import {appendHotelSearchPage,nextHotelSearchPage} from '@/lib/hotel-search-continuation';
 import {nearbyFlightSearch} from '@/lib/nearby-flight-dates';
 import {submittedBookingSearch} from '@/lib/submitted-booking-search';
-import {bookingSearchInput,searchFormIsValid} from '@/lib/booking-search-input';
+import {bookingSearchInput,searchFormIsValid,submittedFlightDateInput} from '@/lib/booking-search-input';
 import {takeBackgroundSearchHeaders,invalidateBackgroundSearch} from '@/lib/background-search';
 import useBackgroundSearch from './use-background-search';
 import BookingSearchSummary from './booking-search-summary';
@@ -111,6 +111,12 @@ function currentRoutePrefill(){
 }
 function routeFingerprint(value:Record<string,string>){return JSON.stringify(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)));}
 function flightViewFingerprint(value:Record<string,string>){return JSON.stringify([value.flightSearch??'',value.flightStops??'',value.flightSort??'',value.flightAirlineQuery??'']);}
+function prepareFlightDate(criteria:Record<string,string>,prepare:ReturnType<typeof useBackgroundSearch>['prepare']){
+  const {fields,party}=submittedFlightDateInput(criteria);
+  let input;
+  try{input=bookingSearchInput(fields,{product:'FLIGHT',...party});}catch{return;}
+  prepare(input);
+}
 function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfigured,billingRequired}:{prefill?:Record<string,string>;routePrefill:Record<string,string>;adoptRoute:(next:Record<string,string>)=>void;checkoutConfigured:boolean;billingRequired:boolean}){
   const router=useRouter();
   const routeSearch=useSearchParams().toString();
@@ -258,9 +264,9 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const flightViewRoute=useRef(flightViewFingerprint(prefill));
   useEffect(()=>{
     const rememberRoute=()=>{
-      const hotelEntry=window.history.state?.hotelEntry,bookingCheckout=window.history.state?.bookingCheckout;
+      const {hotelEntry,bookingCheckout,flightDateSearch}=window.history.state??{};
       // Keep only our own state; Next must manage its private router tree.
-      ownedRoute.current={url:window.location.pathname+window.location.search,state:{...(['detail','gallery','review'].includes(hotelEntry)?{hotelEntry}:{}),...(bookingCheckout?{bookingCheckout}:{})}};
+      ownedRoute.current={url:window.location.pathname+window.location.search,state:{...(['detail','gallery','review'].includes(hotelEntry)?{hotelEntry}:{}),...(bookingCheckout?{bookingCheckout}:{}),...(flightDateSearch?{flightDateSearch:true}:{})}};
     };
     const currentRoute=currentRoutePrefill();
     if(submittedSearchRoute.current===window.location.pathname+window.location.search){rememberRoute();return;}
@@ -284,7 +290,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(currentRoute.selectionKey&&currentRoute.selectionKey===savedHandoff?.key){rememberRoute();return;}
     // A cached server tree is not authority for the current browser entry. Do
     // not remember a mismatching URL: it may be a new Link awaiting its RSC data.
-    if(routeFingerprint(currentRoute)!==routeFingerprint(routePrefill))return;
+    if(!window.history.state?.flightDateSearch&&routeFingerprint(currentRoute)!==routeFingerprint(routePrefill))return;
     const timer=setTimeout(()=>{
       if(routeFingerprint(currentRoutePrefill())!==routeFingerprint(currentRoute))return;
       if(payment||paymentUncertain||recovery.blocked||busyRef.current){
@@ -508,12 +514,32 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   },[selectedFares,shownGroup,allSelected]);
   const verificationActive=signInRequired||signInWithoutSelection;
   const checkoutStarted=Boolean(quote)||verificationActive||Boolean(busy&&verificationSelection);
-  const backgroundSearch=useBackgroundSearch({form:searchForm,formKey:JSON.stringify(searchPrefill),enabled:!busy&&!roomView&&!checkoutStarted&&!payment&&!paymentUncertain&&!recovery.blocked,read:()=>{
+  const canWarmSearch=!busy&&!roomView&&!checkoutStarted&&!payment&&!paymentUncertain&&!recovery.blocked;
+  const backgroundSearch=useBackgroundSearch({form:searchForm,formKey:JSON.stringify(searchPrefill),enabled:canWarmSearch,editingResults:hasFullSearchResults,read:()=>{
     if(busyRef.current||!searchForm.current||!searchFormIsValid(searchForm.current))return null;
     try{return bookingSearchInput(new FormData(searchForm.current),{product,adults,children,infants,multiCity,legCount,hotelOccupancy});}catch{return null;}
   }});
   const step=quote?(checkoutStep==='payment'?2:1):checkoutStarted?1:0;
-  const previousFlightDate=nearbyFlightSearch(submittedSearch,-1,indiaToday()),nextFlightDate=nearbyFlightSearch(submittedSearch,1,indiaToday());
+  const today=indiaToday();
+  const previousFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,-1,today),[submittedSearch,today]);
+  const nextFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,1,today),[submittedSearch,today]);
+  const prepareSearch=backgroundSearch.prepare;
+  const preparedNearbyDate=useRef(false);
+  function prepareNearbyDate(target:typeof nextFlightDate){
+    if(!target)return;
+    preparedNearbyDate.current=true;
+    prepareFlightDate(target.criteria,prepareSearch);
+  }
+  useEffect(()=>{
+    // Prepare one likely next day after a completed one-way search, including on touch screens.
+    if(preparedNearbyDate.current||!canWarmSearch||!hasFullSearchResults||!nextFlightDate||submittedSearch.returnDate)return;
+    const timer=setTimeout(()=>{
+      if(document.querySelector<HTMLDetailsElement>('#booking-search')?.open)return;
+      preparedNearbyDate.current=true;
+      prepareFlightDate(nextFlightDate.criteria,prepareSearch);
+    },600);
+    return()=>clearTimeout(timer);
+  },[canWarmSearch,hasFullSearchResults,nextFlightDate,submittedSearch.returnDate,prepareSearch]);
   const selectedEstimates=selectedJourney.map(estimatedFare);
   const selectedEstimate=hasFullSearchResults?(product==='HOTEL'
     ?(selectedRoom&&Number.isFinite(selectedRoom.pricing.totalPrice)&&selectedRoom.pricing.totalPrice>0?Math.round(selectedRoom.pricing.totalPrice*100):null)
@@ -619,10 +645,13 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     const url=new URL(window.location.href);for(const key of ['browseSearch','flightSearch','flightStops','flightSort','flightAirlineQuery','stay','gallery','stayStep'])url.searchParams.delete(key);url.searchParams.set('product',next);window.history.replaceState(null,'',url.pathname+url.search);
     clearSelectionHandoff();checkoutHistory.current=null;setHasFullSearchResults(false);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;privateDraft.current=null;setProduct(next);setAirlineQuery('');setResults(null);setQuote(null);setRooms(null);setRoomView(false);setSelectedFares({});setMessage('');setSelection(null);setCheckoutStep('travellers');setExtrasPending(false);
   }
-  async function search(form:HTMLFormElement){
+  async function search(form:HTMLFormElement|null,dateSearch?:Record<string,string>){
+    if((!form&&!dateSearch)||payment||paymentUncertain||recovery.blocked)return;
+    const nearby=dateSearch?submittedFlightDateInput(dateSearch):null;
+    const fields=nearby?.fields??new FormData(form!);
+    const party=nearby?.party??{adults,children,infants};
     backgroundSearch.pause();
-    const task=begin('Finding available journeys');if(!task)return;snapshotController.current?.abort();setSnapshotLoading(false);clearFlightViewFields();setAirlineQuery('');hotelMoreRequest.current?.abort();setLoadingMoreHotels(false);setHotelMoreError('');privateDraft.current=null;checkoutHistory.current=null;setFreshSearchRequired(false);
-    const fields=new FormData(form);
+    const task=begin('Finding available journeys');if(!task)return;snapshotController.current?.abort();setSnapshotLoading(false);if(!nearby){clearFlightViewFields();setAirlineQuery('');}hotelMoreRequest.current?.abort();setLoadingMoreHotels(false);setHotelMoreError('');privateDraft.current=null;checkoutHistory.current=null;setFreshSearchRequired(false);
     let validating=true;
     try{
       const date=String(fields.get('date')??'');
@@ -630,7 +659,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       const origin=String(fields.get('from')??'').toUpperCase(),destination=String(fields.get('to')??'').toUpperCase();
       const returnDate=String(fields.get('returnDate')??'');
       if(product==='FLIGHT'&&origin===destination)throw Error('Choose different departure and arrival airports.');
-      if(product==='FLIGHT'&&(adults+children>9||infants>adults))throw Error('Adults and children must total nine or fewer. Each infant needs an adult.');
+      if(product==='FLIGHT'&&(party.adults+party.children>9||party.infants>party.adults))throw Error('Adults and children must total nine or fewer. Each infant needs an adult.');
       if(product==='FLIGHT'&&!multiCity&&returnDate&&returnDate<date)throw Error('Your return date cannot be before departure.');
       const end=String(fields.get('end')??'');
       if(product==='HOTEL'&&end<=date)throw Error('Check-out must be after check-in.');
@@ -638,7 +667,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       if(product==='FLIGHT'&&multiCity&&legs.some((leg,index)=>leg.from===leg.to||(index>0&&leg.date<legs[index-1].date)))throw Error('Choose different airports and chronological dates for every flight.');
       const completeRooms=product==='HOTEL'?completeHotelRooms(hotelOccupancy):[];
       const numberOfGuests=completeRooms.reduce((sum,room)=>sum+room.adults+room.childAge.length,0);
-      const travellerCount=adults+children+infants;
+      const travellerCount=party.adults+party.children+party.infants;
       const lastDate=product==='HOTEL'?end:returnDate;
       const displayDates=`${travelDateLabel(date)}${lastDate?` – ${travelDateLabel(lastDate)}`:''}`;
       const needsMapping=product==='HOTEL'&&!parseHotelIds(String(fields.get('hotelIds')??'')).length;
@@ -662,24 +691,36 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           fields.set('hotelIds',page.hotelIds.join(','));fields.set('destinationCursor',page.nextCursor??'');
           if(page.hotelIds.length)break;
           cursor=page.nextCursor??'';
-          const cursorField=form.elements.namedItem('destinationCursor');if(cursorField instanceof HTMLInputElement)cursorField.value=cursor;
+          const cursorField=form?.elements.namedItem('destinationCursor');if(cursorField instanceof HTMLInputElement)cursorField.value=cursor;
         }
         if(!parseHotelIds(String(fields.get('hotelIds')??'')).length)throw Error(cursor?'No stays in these destination batches. Search again to check the next available batch.':'No hotels were found for this destination. Choose another destination.');
         setPendingSearchContext({...context,phase:'availability'});
       }
-      const input=bookingSearchInput(fields,{product,adults,children,infants,multiCity,legCount,hotelOccupancy});
-      validating=false;setSearchValidation(false);snapshotController.current?.abort();setSnapshotLoading(false);hotelRequest.current?.abort();++hotelGeneration.current;setGalleryOpen(false);clearSelectionHandoff();setHasFullSearchResults(false);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;
-      setQuote(null);setResults(null);setRooms(null);setRoomView(false);setSelectedFares({});setSelection(null);setSortBy('price');setStopFilter('ALL');setAirlineFilter('ALL');setDepartureWindow('ALL');setFlightBudget('');setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
+      const input=bookingSearchInput(fields,{product,...party,multiCity:!nearby&&multiCity,legCount,hotelOccupancy});
+      validating=false;setSearchValidation(false);snapshotController.current?.abort();setSnapshotLoading(false);hotelRequest.current?.abort();++hotelGeneration.current;setGalleryOpen(false);clearSelectionHandoff();setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;
+      if(!nearby){setHasFullSearchResults(false);setResults(null);setSelectedFares({});}
+      setQuote(null);setRooms(null);setRoomView(false);setSelection(null);setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
       const data=await api<Results>('/api/travel/search',input,task.signal,takeBackgroundSearchHeaders(input));
       if(current(task.id)){
+        setSelectedFares({});setSortBy('price');setStopFilter('ALL');setAirlineFilter('ALL');setAirlineQuery('');setDepartureWindow('ALL');setFlightBudget('');
         // Commit only successful submitted criteria, never an unsubmitted edit or checkout fields.
-        const criteria:Record<string,string>=product==='FLIGHT'?{product,from:origin,to:destination,date,adults:String(adults),children:String(children),infants:String(infants),cabin:String(fields.get('cabin')),...(multiCity?{legs:JSON.stringify(legs)}:returnDate?{returnDate}:{})}:{product,city:String(fields.get('city')??''),hotelIds:String(fields.get('hotelIds')??''),date,end:String(fields.get('end')),adults:String(hotelOccupancy[0].adults),rooms:JSON.stringify(hotelOccupancy),nationality:String(fields.get('nationality')),regionId:String(fields.get('regionId')??''),destinationCursor:String(fields.get('destinationCursor')??'')};
+        const criteria:Record<string,string>=dateSearch??(product==='FLIGHT'?{product,from:origin,to:destination,date,adults:String(adults),children:String(children),infants:String(infants),cabin:String(fields.get('cabin')),...(multiCity?{legs:JSON.stringify(legs)}:returnDate?{returnDate}:{})}:{product,city:String(fields.get('city')??''),hotelIds:String(fields.get('hotelIds')??''),date,end:String(fields.get('end')),adults:String(hotelOccupancy[0].adults),rooms:JSON.stringify(hotelOccupancy),nationality:String(fields.get('nationality')),regionId:String(fields.get('regionId')??''),destinationCursor:String(fields.get('destinationCursor')??'')});
         if(product==='HOTEL')setHotelNextCursor(criteria.destinationCursor);
-        if(prefill.autoSearch==='1')criteria.autoSearch='1';
+        if(prefill.autoSearch==='1'||window.history.state?.flightDateSearch)criteria.autoSearch='1';
         const committedSearch=submittedBookingSearch(criteria);
         const searchUrl=committedSearch.shareable?committedSearch.url:null;
         setSubmittedSearch(committedSearch.criteria);submittedSearchRoute.current=committedSearch.url;
-        window.history.replaceState(null,'',committedSearch.url);
+        if(nearby){
+          const previous=submittedBookingSearch({...submittedSearch,autoSearch:'1'});
+          window.history.replaceState({flightDateSearch:true},'',previous.url);
+          window.history.pushState({flightDateSearch:true},'',committedSearch.url);
+          setAdults(party.adults);setChildren(party.children);setInfants(party.infants);setCabin(criteria.cabin);
+          setSearchPrefill(committedSearch.criteria);
+        }else{
+          const currentDateEntry=product==='FLIGHT'&&window.history.state?.flightDateSearch;
+          window.history.replaceState(currentDateEntry?{flightDateSearch:true}:null,'',committedSearch.url);
+          if(needsMapping)setSearchPrefill(committedSearch.criteria);
+        }
         if(!searchUrl)setMessage('Your search is ready. This large search cannot be saved in a link; after refreshing or signing in, choose your search again.');
         setHotelStayContext(product === 'HOTEL' ? {
           checkIn: date,
@@ -1081,7 +1122,17 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         {product==='FLIGHT'&&<>
           {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} disabled={busy} onClick={()=>{setActiveGroup(group);resetFlightGroupRefinements();}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
           {pairedFares&&<FlightSelectionSummary groups={fareGroups.map(group=>{const fare=selectedFare(group);return {group,fare,flight:groups[group]?.find(item=>item.totalPriceList.some(option=>option.id===fare?.id))};})} activeGroup={shownGroup} busy={busy} checking={Boolean(busy&&checkingSelection)} allSelected={allSelected} onChange={group=>{setActiveGroup(group);resetFlightGroupRefinements();}} onReview={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}/>}
-          {!submittedSearch.legs&&<nav className="nearby-flight-dates" aria-label="Nearby departure dates"><button type="button" className="secondary" disabled={busy||!previousFlightDate||recovery.blocked} onClick={()=>{if(previousFlightDate)router.push(previousFlightDate.url);}}>← Previous day{previousFlightDate&&<small>{travelDateLabel(previousFlightDate.date)}</small>}</button><div><strong>{travelDateLabel(submittedSearch.date)}</strong><small>{submittedSearch.returnDate?`Return stays ${travelDateLabel(submittedSearch.returnDate)}`:'Search nearby dates for live fares'}</small></div><button type="button" className="secondary" disabled={busy||!nextFlightDate||recovery.blocked} onClick={()=>{if(nextFlightDate)router.push(nextFlightDate.url);}}>Next day →{nextFlightDate&&<small>{travelDateLabel(nextFlightDate.date)}</small>}</button></nav>}
+          {!submittedSearch.legs&&<nav className="nearby-flight-dates" aria-label="Nearby departure dates">
+            <button type="button" className="secondary" disabled={busy||!previousFlightDate||recovery.blocked}
+              onPointerEnter={event=>{if(event.pointerType==='mouse')prepareNearbyDate(previousFlightDate);}}
+              onFocus={event=>{if(event.currentTarget.matches(':focus-visible'))prepareNearbyDate(previousFlightDate);}}
+              onClick={()=>{if(previousFlightDate)void search(null,previousFlightDate.criteria);}}>← Previous day{previousFlightDate&&<small>{travelDateLabel(previousFlightDate.date)}</small>}</button>
+            <div><strong>{travelDateLabel(submittedSearch.date)}</strong><small>{submittedSearch.returnDate?`Return stays ${travelDateLabel(submittedSearch.returnDate)}`:'Search nearby dates for live fares'}</small></div>
+            <button type="button" className="secondary" disabled={busy||!nextFlightDate||recovery.blocked}
+              onPointerEnter={event=>{if(event.pointerType==='mouse')prepareNearbyDate(nextFlightDate);}}
+              onFocus={event=>{if(event.currentTarget.matches(':focus-visible'))prepareNearbyDate(nextFlightDate);}}
+              onClick={()=>{if(nextFlightDate)void search(null,nextFlightDate.criteria);}}>Next day →{nextFlightDate&&<small>{travelDateLabel(nextFlightDate.date)}</small>}</button>
+          </nav>}
           <div className="flight-shopping">
           {!checkoutStarted&&<FlightResultsControls sort={effectiveSort} onSort={changeFlightSort} hasDuration={hasKnownDuration} hasDeparture={hasKnownDeparture} group={shownGroup} airlines={airlines} airline={airlineFilter} airlineQuery={airlineQuery} onAirline={changeFlightCarrier} stops={stopFilter} onStops={changeFlightStops} departure={departureWindow} onDeparture={setDepartureWindow} budget={flightBudget} onBudget={setFlightBudget} count={flightRows.length} disabled={busy}/>}
           <div className="flight-shopping-list">

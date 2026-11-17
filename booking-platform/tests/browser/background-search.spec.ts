@@ -123,6 +123,70 @@ test('hotel warming preserves every room, child age, nationality and stay date',
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
+test('nearby flight dates join the exact warm search without a page request', async ({ page, provider }) => {
+ const observed = observeSearches(page);
+ const gate = held();
+ const date = nextDay(departure);
+ const pageRequests: string[] = [];
+ await page.route(`**${searchPath}`, async route => {
+  const requested = route.request().postDataJSON().date;
+  if (requested === date) await gate.promise;
+  const dated = flight('ONWARD', 'dated-fare');
+  dated.sI[0].dt = `${requested}T09:00`;
+  dated.sI[0].at = `${requested}T11:00`;
+  await route.fulfill({ json: { searchId, results: { searchResult: { tripInfos: { ONWARD: [dated] } } } } });
+ });
+ try {
+  await page.goto(flightQuery() + '&autoSearch=1');
+  const dates = page.getByRole('navigation', { name: 'Nearby departure dates' });
+  await expect(dates).toBeVisible();
+  page.on('request', request => {
+   if (new URL(request.url()).pathname === '/book') pageRequests.push(request.url());
+  });
+  await warmAfterEdit(page, observed, 1);
+  expect(observed.warm[0].body.date).toBe(date);
+  await dates.getByRole('button', { name: /Next day/ }).click();
+  await expect.poll(() => observed.search.length).toBe(2);
+  expect(observed.search[1]).toEqual(observed.warm[0]);
+  expect(pageRequests).toEqual([]);
+  await expect(page.locator('#booking-pending')).toBeVisible();
+  await expect(page.locator('.live-flight-card')).toBeHidden();
+  await expectNoHorizontalOverflow(page);
+  gate.release();
+  await expect(page.locator('.live-flight-card')).toBeVisible();
+  await expect(page).toHaveURL(url => url.searchParams.get('date') === date);
+  await page.goBack();
+  await expect.poll(() => observed.search.at(-1)?.body.date).toBe(departure);
+  await expect(dates).toBeVisible();
+  await page.goForward();
+  await expect.poll(() => observed.search.at(-1)?.body.date).toBe(date);
+  await expect(dates).toBeVisible();
+  expect(provider.requests('/api/travel/review')).toHaveLength(0);
+ } finally { gate.release(); }
+});
+
+test('changing a hotel date reuses the mapped properties and prepares the exact stay sooner', async ({ page, provider }) => {
+ const observed = observeSearches(page);
+ const date = nextDay(departure);
+ provider.search = { searchId, results: { hotels: [{ tjHotelId: '10001', name: 'Date-change fixture stay', customerEstimateMinor: 800000 }] } };
+ provider.overrides['POST /api/travel/destination-hotels'] = { body: { hotelIds: ['10001'], nextCursor: '40:0' } };
+ await page.goto(hotelQuery().replace('hotelIds=10001%2C10002', 'regionId=3&destinationCursor=20%3A0'));
+ const form = page.getByRole('form', { name: 'Search availability' });
+ await form.getByRole('button', { name: 'Search stays', exact: true }).click();
+ await expect(page.getByRole('article', { name: 'Date-change fixture stay' })).toBeVisible();
+ await page.locator('#booking-search > summary').click();
+ await form.getByLabel('Check-in', { exact: true }).fill(date);
+ await page.clock.fastForward(650);
+ await expect.poll(() => observed.warm.length).toBe(1);
+ expect(observed.warm[0].body).toMatchObject({ hotelIds: ['10001'], checkIn: date, checkOut: returning, rooms: [{ adults: 1, children: 0, childAge: [] }], nationality: '106' });
+ await form.getByRole('button', { name: 'Search stays', exact: true }).click();
+ await expect.poll(() => observed.search.length).toBe(2);
+ expect(observed.search[1]).toEqual(observed.warm[0]);
+ expect(provider.requests('/api/travel/destination-hotels')).toHaveLength(1);
+ await expect(page.getByRole('article', { name: 'Date-change fixture stay' })).toBeVisible();
+ await expectNoHorizontalOverflow(page);
+});
+
 for (const product of ['FLIGHT', 'HOTEL'] as const) {
  test(`${product} Search submits immediately with matching intent while background work is pending`, async ({ page, provider }, info) => {
   const observed = observeSearches(page), gate = held();

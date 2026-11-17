@@ -3,6 +3,14 @@ import {completeHotelRooms,type DraftHotelRoom} from './hotel-occupancy';
 import {searchSchema,type Search} from './providers/contracts';
 
 export type BookingSearchDraft={product:'FLIGHT'|'HOTEL';adults:number;children?:number;infants?:number;multiCity?:boolean;legCount?:number;hotelOccupancy?:DraftHotelRoom[]};
+
+/** Date shortcuts use submitted criteria independently of edits in the form. */
+export function submittedFlightDateInput(criteria:Record<string,string>){
+ const fields=new FormData();
+ for(const [name,value] of Object.entries(criteria))fields.set(name,value);
+ const party={adults:Number(criteria.adults),children:Number(criteria.children??0),infants:Number(criteria.infants??0)};
+ return {fields,party};
+}
 /** The same public, validated request is used for warming and actual submission. */
 export function bookingSearchInput(fields:FormData,draft:BookingSearchDraft):Search{
  const text=(name:string)=>String(fields.get(name)??'');
