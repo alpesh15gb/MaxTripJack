@@ -24,6 +24,40 @@ for(const product of ['FLIGHT','HOTEL'] as const){
  });
 }
 
+test('hotel search shows the chosen stay criteria during mapping before checking rates', async ({page, provider}) => {
+ let releaseMapping!: () => void;
+ let releaseRates!: () => void;
+ const mapping = new Promise<void>(resolve => { releaseMapping = resolve; });
+ const rates = new Promise<void>(resolve => { releaseRates = resolve; });
+ let rateCalls = 0;
+ await page.route('**/api/travel/destination-hotels', async route => {
+  await mapping;
+  await route.fulfill({json:{hotelIds:['10001'],nextCursor:null}});
+ });
+ await page.route('**/api/travel/search', async route => {
+  rateCalls++;
+  await rates;
+  await route.fulfill({json:{searchId,results:{hotels:[{tjHotelId:'10001',name:'Fixture Stay',customerEstimateMinor:800000}]}}});
+ });
+ try {
+  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',regionId:'1001',destinationCursor:'0:0',date:departure,end:returning,adults:'1'}));
+  await page.getByRole('button',{name:'Search stays',exact:true}).click();
+  const pending=page.getByRole('region',{name:'Search in progress',exact:true});
+  await expect(pending.getByRole('heading',{name:'Goa',exact:true})).toBeVisible();
+  const status=pending.getByRole('status',{name:'Search and booking activity'});
+  await expect(status).toContainText('Finding properties in this destination');
+  await expect(status).not.toContainText('Waiting for live supplier availability');
+  expect(rateCalls).toBe(0);
+  releaseMapping();
+  await expect(status).toContainText('Waiting for live supplier availability');
+  await expect.poll(()=>rateCalls).toBe(1);
+  releaseRates();
+  await expect(page.getByRole('article',{name:'Fixture Stay'})).toContainText('₹8,000.00');
+  await expect(pending).toHaveCount(0);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ } finally { releaseMapping(); releaseRates(); }
+});
+
 test('large flight response mounts fare details only when opened and retains all options',async({page,provider},testInfo)=>{
  const flights=Array.from({length:145},(_,i)=>{
   const row=flight('ONWARD',`fare-${i}`);

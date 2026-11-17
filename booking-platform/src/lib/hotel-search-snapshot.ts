@@ -6,6 +6,7 @@ import { searchSchema } from './providers/contracts';
 import { bookingSearchPrefill } from './booking-search-state';
 import { customerHotelResults } from './customer-pricing';
 import { hotelContentForSearch } from './hotel-content';
+import { mergeHotelPropertyDetails } from './hotel-property-merge';
 
 /** Recover an owned browsing session, never create a search or reserve inventory.
  * The response is a fresh customer projection of the saved search, not raw provider
@@ -38,6 +39,6 @@ export async function customerHotelSearchSnapshot(searchId: string, actor: Actor
     searchId, expiresAt: new Date(expiry).toISOString(), criteria,
     propertyContentPending: Object.values(statuses).includes('pending'),
     propertyContentUnavailable: Object.values(statuses).includes('unavailable'),
-    results: {hotels: hotels.map(hotel => ({...hotel, propertyContentStatus: statuses[hotel.tjHotelId], property: properties[hotel.tjHotelId] ?? hotel.property}))},
+    results: {hotels: hotels.map(hotel => ({...hotel, propertyContentStatus: statuses[hotel.tjHotelId], property: mergeHotelPropertyDetails(properties[hotel.tjHotelId],hotel.property)}))},
   };
 }

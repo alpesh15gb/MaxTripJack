@@ -8,3 +8,10 @@ test('search timing contains only fixed aggregate durations including failed wor
  await assert.rejects(timing.measure('persist',async()=>{now=127;throw Error('secret not included');}));
  assert.equal(timing.header(),'supplier;dur=120.0, projection;dur=5.0, persist;dur=2.0, total;dur=127.0');
 });
+test('flight cache timing explains shared work using fixed labels only',()=>{
+ const timing=new SearchTiming(()=>0);
+ timing.flightCache('coalesced');
+ assert.equal(timing.header(),'total;dur=0.0, flight_cache;desc="coalesced"');
+ timing.flightCache('hit');
+ assert.equal(timing.header(),'total;dur=0.0, flight_cache;desc="hit"');
+});

@@ -38,6 +38,15 @@ test('bad origins, cursors and unknown catalogue regions never reach the supplie
  }finally{h.cleanup();}
 });
 
+test('cached mapping still verifies access and the current destination before returning static IDs',async()=>{
+ const h=await harness();try{
+  const first=await h.call();assert.equal(first.status,200);const expected=await first.json();
+  const second=await h.call();assert.equal(second.status,200);assert.deepEqual(await second.json(),expected);
+  assert.equal(h.state.supplier.length,1);assert.equal(h.state.access,2);
+  h.state.known=false;assert.equal((await h.call()).status,404);assert.equal(h.state.supplier.length,1);
+ }finally{h.cleanup();}
+});
+
 test('legacy native numeric pages preserve their single-region contract without affecting web aggregation',async()=>{
  const h=await harness();try{
   h.state.result.pageable.totalPages=4;

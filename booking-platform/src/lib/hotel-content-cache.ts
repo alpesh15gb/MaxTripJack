@@ -8,6 +8,7 @@ export type HotelContentStatus = 'pending' | 'resolved' | 'unavailable';
 export function createHotelContentCache(
   fetchContent: (hotelIds: string[]) => Promise<unknown>,
   now: () => number = Date.now,
+  storedContent?: (hotelIds:string[]) => Promise<Record<string,HotelPropertyDetails>>,
 ) {
   const cache = new Map<string, {expires: number; property?: HotelPropertyDetails; status: Exclude<HotelContentStatus, 'pending'>}>();
   const pending = new Map<string, Promise<void>>();
@@ -29,7 +30,10 @@ export function createHotelContentCache(
     const result: Record<string, HotelPropertyDetails> = {};
     for (const id of scopedIds(requestedIds, ownedSearchHotelIds)) {
       const entry = cache.get(id);
-      if (entry?.property && entry.expires > now()) result[id] = structuredClone(entry.property);
+      if (entry?.property && entry.expires > now()) {
+        cache.delete(id);cache.set(id,entry);
+        result[id] = structuredClone(entry.property);
+      }
     }
     return result;
   }
@@ -44,20 +48,29 @@ export function createHotelContentCache(
     const missing = ids.filter(id => !pending.has(id) && (!cache.has(id) || cache.get(id)!.expires <= now()));
     // Bound concurrent metadata work as well as retained cache entries.
     if (missing.length && pending.size + missing.length <= maxEntries) {
-      const work = Promise.resolve().then(() => fetchContent(missing)).then(response => {
-        const allowed = new Set(missing);
-        const rows = hotelObject(response).hotels;
-        if (!Array.isArray(rows)) throw new Error('Hotel content unavailable.');
-        const found = new Map<string, HotelPropertyDetails>();
-        for (const raw of (Array.isArray(rows) ? rows : []).slice(0, 100)) {
-          const hotel = hotelObject(raw);
-          const id = typeof hotel.tjHotelId === 'number' && Number.isSafeInteger(hotel.tjHotelId) ? String(hotel.tjHotelId) : hotel.tjHotelId;
-          if (typeof id === 'string' && allowed.has(id) && hotel.is_active !== false) found.set(id, hotelPropertyDetails(hotel));
+      const work = Promise.resolve().then(async() => {
+        const found = new Map<string,HotelPropertyDetails>();
+        if(storedContent)try{
+          const stored=await storedContent(missing);
+          for(const id of missing)if(Object.hasOwn(stored,id))found.set(id,structuredClone(stored[id]));
+        }catch{ /* Optional local catalogue failure falls back to the supplier. */ }
+        const remaining=missing.filter(id=>!found.has(id));
+        try{
+          if(remaining.length){
+            const rows=hotelObject(await fetchContent(remaining)).hotels;
+            if(!Array.isArray(rows))throw Error('Hotel content unavailable.');
+            const allowed=new Set(remaining);
+            for(const raw of rows.slice(0,100)){
+              const hotel=hotelObject(raw);
+              const id=typeof hotel.tjHotelId==='number'&&Number.isSafeInteger(hotel.tjHotelId)?String(hotel.tjHotelId):hotel.tjHotelId;
+              if(typeof id==='string'&&allowed.has(id)&&hotel.is_active!==false)found.set(id,hotelPropertyDetails(hotel));
+            }
+          }
+          for(const id of missing)put(id,found.get(id));
+        }catch{
+          // Keep useful local properties even when the remaining supplier batch fails.
+          for(const id of missing)put(id,found.get(id),found.has(id)?'resolved':'unavailable');
         }
-        for (const id of missing) put(id, found.get(id));
-      }).catch(() => {
-        // Optional catalogue failure must not break dynamic availability; no raw error/key exposure.
-        for (const id of missing) put(id, undefined, 'unavailable');
       }).finally(() => { for (const id of missing) pending.delete(id); });
       for (const id of missing) pending.set(id, work);
     }

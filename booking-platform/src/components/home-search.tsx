@@ -9,6 +9,9 @@ import { useRef, useState, useTransition, type ReactNode } from "react";
 import AirportPicker from "@/components/airport-picker";
 import HotelDestination from "@/components/hotel-destination";
 import { indiaToday } from "@/lib/booking-presentation";
+import {bookingSearchInput,searchFormIsValid} from '@/lib/booking-search-input';
+import {invalidateBackgroundSearch} from '@/lib/background-search';
+import useBackgroundSearch from './use-background-search';
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
 
 type Product = "FLIGHT" | "HOTEL";
@@ -43,8 +46,18 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState("");
   const [navigating, startNavigation] = useTransition();
   const nights = Math.round((Date.parse(end) - Date.parse(date)) / 86400000);
+  function currentSearchInput(data:FormData){
+    data.set('cabin',cabin);data.set('nationality','106');
+    if(product==='FLIGHT'&&roundTrip)data.set('returnDate',end);else data.delete('returnDate');
+    return bookingSearchInput(data,{product,adults,children:childCount,infants,hotelOccupancy:[{adults,childAge:[]}]});
+  }
+  const backgroundSearch=useBackgroundSearch({form,enabled:!navigating,read:()=>{
+    if(!form.current||!searchFormIsValid(form.current))return null;
+    try{return currentSearchInput(new FormData(form.current));}catch{return null;}
+  }});
 
   function changeProduct(next: Product) {
+    backgroundSearch.pause();invalidateBackgroundSearch();
     if (product === "FLIGHT" && form.current) {
       const data = new FormData(form.current);
       setAirports({ from: String(data.get("from") || ""), to: String(data.get("to") || "") });
@@ -64,6 +77,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   }
 
   function advancedSearch() {
+    backgroundSearch.pause();
     const data = form.current ? new FormData(form.current) : new FormData();
     const params = new URLSearchParams({ product, date, adults: String(adults) });
     if (product === "FLIGHT") {
@@ -104,6 +118,9 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       params.set("city", String(data.get("city") || "")); params.set("nationality", "106");
     }
     setNotice("");
+    // Exact criteria stay in JS memory across the client navigation. An incomplete
+    // destination batch simply uses the normal /book mapping/search path.
+    try{backgroundSearch.warmOnSubmit(currentSearchInput(data));}catch{backgroundSearch.pause();}
     startNavigation(() => router.push(`/book?${params}`));
   }
 

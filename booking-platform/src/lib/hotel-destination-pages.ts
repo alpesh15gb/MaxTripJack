@@ -2,6 +2,13 @@ import {z} from 'zod';
 
 export const destinationCursorSchema=z.string().regex(/^\d{1,6}:\d{1,6}$/);
 const regionBatchSize=20;
+const mappingResponseSchema=z.object({hotels:z.array(z.object({tjHotelId:z.union([z.string().regex(/^\d{1,30}$/),z.number().int().nonnegative().safe()])})).max(100),pageable:z.object({totalPages:z.union([z.number().int().nonnegative().max(999999),z.string().regex(/^\d{1,6}$/).transform(Number)]).nullish()}).nullish()});
+/** Keep only static IDs/pagination; duplicate rows still count toward a full page. */
+export function hotelMappingResponse(response:unknown){
+ const data=mappingResponseSchema.parse(response);
+ return {hotels:data.hotels.map(hotel=>({tjHotelId:String(hotel.tjHotelId)})),
+  ...(data.pageable?.totalPages!=null?{pageable:{totalPages:data.pageable.totalPages}}:{})};
+}
 export function destinationPage(regionIds:string[],cursor='0:0'){
  destinationCursorSchema.parse(cursor);
  const [offset,page]=cursor.split(':').map(Number);
@@ -12,7 +19,7 @@ export function destinationPage(regionIds:string[],cursor='0:0'){
  * on a full page must not silently hide remaining inventory. */
 export function destinationPageResult(regionIds:string[],cursor:string|undefined,response:unknown){
  const current=destinationPage(regionIds,cursor);
- const data=z.object({hotels:z.array(z.object({tjHotelId:z.union([z.string().regex(/^\d+$/),z.number().int().nonnegative().safe()])})).max(100),pageable:z.object({totalPages:z.union([z.number().int().nonnegative().max(999999),z.string().regex(/^\d{1,6}$/).transform(Number)]).nullish()}).nullish()}).parse(response);
+ const data=hotelMappingResponse(response);
  const morePages=data.pageable?.totalPages!=null?current.page+1<data.pageable.totalPages:data.hotels.length===100;
  const nextCursor=morePages?`${current.offset}:${current.page+1}`:current.offset+regionBatchSize<regionIds.length?`${current.offset+regionBatchSize}:0`:null;
  return {hotelIds:[...new Set(data.hotels.map(hotel=>String(hotel.tjHotelId)))],nextCursor,hasMore:nextCursor!==null};

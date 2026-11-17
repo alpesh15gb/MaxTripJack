@@ -134,6 +134,7 @@ export const test = base.extend<{ provider: ProviderFixture }>({
         case 'GET /api/travel/destinations': reply = { body: { destinations: [{ region_id: '1001', label: 'Goa, India' }] } }; break;
         case 'POST /api/travel/destination-hotels': reply = { body: { hotelIds: ['10001', '10002'], hasMore: false } }; break;
         case 'GET /api/travel/nationalities': reply = { body: { nationalities: [{ countryId: '106', name: 'India' }] } }; break;
+        case 'POST /api/travel/search/warm': reply = { body: { status: 'ready' } }; break;
         case 'POST /api/travel/search':
           if (provider.searchDelay) await new Promise(resolve => setTimeout(resolve, provider.searchDelay));
           reply = { body: provider.search }; break;

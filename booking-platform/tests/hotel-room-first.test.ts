@@ -103,6 +103,7 @@ test('room detail cache miss does not start metadata work and retains ownership/
   const result=await detail('owned-search','10001',actor);
   assert.equal(result.property,undefined);assert.equal(contentCalls,0);
   assert.equal(state.calls,1);
+  assert.equal(state.queries.filter(query=>query.sql.includes('FROM supplier_searches')).length,1,'Detail reuses its authorized search instead of reading the full result JSON twice');
   await assert.rejects(detail('owned-search','99999',actor),/Hotel not part of this search/);
   state.expires=new Date(Date.now()-1).toISOString();
   await assert.rejects(detail('owned-search','10001',actor),/expired/);
