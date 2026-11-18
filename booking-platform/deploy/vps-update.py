@@ -473,11 +473,11 @@ class Update:
             interpolation_names.update(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)", Path(file).read_text()))
         compose_env = compose_interpolation_environment(interpolation_names, containers, project, os.environ)
         # Profile-gated workers (e.g. catalogue-worker) are absent from the rendered
-        # model unless their profile is enabled. Enable every declared profile so all
-        # running services are modelled; services are still started/stopped by name.
-        for profile in self.run(command + ["config", "--profiles"], cwd=working, env=compose_env).split():
-            command += ["--profile", profile]
-        normalized = resolved_compose(json.loads(self.run(command + ["config", "--format", "json"], cwd=working, env=compose_env)))
+        # model unless their profile is active. Naming the running services makes
+        # Compose enable exactly their profiles; stopped profiled services (such as a
+        # backup job whose env file is absent) stay out of the model.
+        running = sorted({(c["Config"].get("Labels") or {}).get("com.docker.compose.service", "") for c in containers} - {""})
+        normalized = resolved_compose(json.loads(self.run(command + ["config", "--format", "json", *running], cwd=working, env=compose_env)))
         defaults = image_environment_defaults(containers, app["Image"], lambda image: self.inspect("image", image),
             lambda service: print(f"Worker {service} image is no longer stored locally; using the app image defaults (same build).", flush=True))
         frozen = freeze_config(normalized, containers, defaults,

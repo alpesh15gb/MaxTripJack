@@ -19,7 +19,7 @@ spec.loader.exec_module(update)
 
 
 class SafetyTests(unittest.TestCase):
-    def test_snapshot_enables_declared_profiles_so_running_profiled_workers_are_modelled(self):
+    def test_snapshot_names_running_services_so_profiled_workers_are_modelled(self):
         with tempfile.TemporaryDirectory() as temporary:
             working, recovery = Path(temporary) / "work", Path(temporary) / "recovery"
             working.mkdir(); recovery.mkdir()
@@ -41,10 +41,8 @@ class SafetyTests(unittest.TestCase):
                 calls.append(args)
                 if args[:3] == ["docker", "ps", "-q"]:
                     return "app-id\nworker-id\n"
-                if args[-1] == "--profiles":
-                    return "catalogue\n"
-                if args[-3:] == ["config", "--format", "json"]:
-                    if "catalogue" not in args:
+                if "config" in args and "--format" in args:
+                    if "catalogue-worker" not in args:
                         return json.dumps({**rendered, "services": {"app": rendered["services"]["app"]}})
                     return json.dumps(rendered)
                 raise AssertionError(args)
@@ -52,8 +50,9 @@ class SafetyTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 stack = state.snapshot("max-travel-booking-app-1", "max-travel-booking")
             self.assertEqual(sorted(stack["services"]), ["app", "catalogue-worker"])
-            render = next(c for c in calls if c[-3:] == ["config", "--format", "json"])
-            self.assertEqual(render[render.index("--profile") + 1], "catalogue")
+            render = next(c for c in calls if "config" in c and "--format" in c)
+            self.assertEqual(render[render.index("json") + 1:], ["app", "catalogue-worker"])
+            self.assertNotIn("--profile", render)
 
     def test_pruned_worker_image_uses_app_image_defaults_but_app_and_database_never_do(self):
         images = {"sha256:app": {"Config": {"Env": ["PATH=/usr/bin", "NODE_ENV=production"]}}, "sha256:pg": {"Config": {"Env": ["PGDATA=/data"]}}}
