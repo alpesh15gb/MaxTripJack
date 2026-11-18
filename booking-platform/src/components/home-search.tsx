@@ -21,6 +21,10 @@ const destinations = [
   { name: "Dubai", image: "/travel/dubai.jpg", alt: "Dubai's skyline", detail: "Skyline views and desert sunsets" },
   { name: "Bali", image: "/travel/bali.jpg", alt: "Ulun Danu Beratan temple reflected in a lake in Bali", detail: "Lakeside temples and island stays" },
 ];
+const heroDestinations = [
+  { name: "Paris", image: "/travel/paris-evening.webp", alt: "The Eiffel Tower and the Seine at blue hour" },
+  ...destinations,
+];
 
 function dateAfter(days: number) {
   const date = new Date();
@@ -31,7 +35,7 @@ function dateAfter(days: number) {
 export default function HomeSearch({ children }: { children: ReactNode }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
-  const [featured, setFeatured] = useState(destinations[0]);
+  const [featured, setFeatured] = useState(heroDestinations[0]);
   const [product, setProduct] = useState<Product>("FLIGHT");
   const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
   const [airportRevision, setAirportRevision] = useState(0);
@@ -138,15 +142,18 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       <section className="home-intro" aria-labelledby="home-title">
         <div className="studio-hero-copy">
           <h1 id="home-title">Find your <em>next escape.</em></h1>
-          <p>Beach days in Goa, city lights in Dubai, or somewhere you haven’t thought of yet.</p>
-          <a className="hero-explore-link" href="#discover">Explore destinations <TravelIcon name="arrow" size={18} /></a>
+          <p>Flights, distinctive stays and holidays from Goa to Paris.</p>
+          <div className="home-hero-actions">
+            <a className="hero-explore-link" href="#discover">Explore destinations <TravelIcon name="arrow" size={17} /></a>
+            <a className="hero-search-link" href="#trip-search">Plan a trip</a>
+          </div>
         </div>
         <div className="studio-hero-photo">
-          <Image src={featured.image} alt={featured.alt} fill sizes="(max-width: 760px) calc(100vw - 24px), (max-width: 1320px) 59vw, 754px" preload={featured === destinations[0]} />
+          <Image src={featured.image} alt={featured.alt} fill sizes="100vw" preload={featured === heroDestinations[0]} />
           <span role="status"><TravelIcon name="pin" size={15} />{featured.name}</span>
         </div>
         <div className="hero-destination-picker" role="group" aria-label="Preview a destination">
-          {destinations.map(destination => (
+          {heroDestinations.map(destination => (
             <button key={destination.name} type="button" aria-pressed={featured === destination} onClick={() => setFeatured(destination)}>
               {destination.name}
             </button>
@@ -155,14 +162,17 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       </section>
 
       <section id="trip-search" className="home-search-card" aria-label="Plan your trip" tabIndex={-1}>
-        <div className="home-search-top"><div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div></div>
+        <div className="home-search-top">
+          <div className="home-search-heading"><div aria-hidden="true"><TravelIcon name={product === "FLIGHT" ? "airplane" : "bed"} size={21} /></div><h2>{product === "FLIGHT" ? "Find a flight" : "Find a stay"}</h2></div>
+          <div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div>
+        </div>
         <form ref={form} className="home-search-form" aria-describedby={notice?'home-search-error':undefined} onChange={event=>{const target=event.target;if(target instanceof HTMLInputElement&&['From airport','To airport'].includes(target.getAttribute('aria-label')??'')&&['Choose different departure and arrival airports.','Select a departure and arrival airport, or enter their three-letter airport codes.'].includes(notice))setNotice('');}} onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><span className="home-economy">{cabin.replaceAll("_", " ").toLowerCase()}</span></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
           {product === "FLIGHT" && <details className="home-party-options"><summary>Children, infants & cabin <span>{childCount||infants||cabin!=="ECONOMY"?`${childCount} children · ${infants} infants · ${cabin.replaceAll("_", " ").toLowerCase()}`:""}</span></summary><div><label>Children · age 2–11<select aria-label="Children · age 2–11" value={childCount} onChange={event => setChildCount(Number(event.target.value))}>{Array.from({length: 10 - adults}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Infants · under 2<select aria-label="Infants · under 2" value={infants} onChange={event => setInfants(Number(event.target.value))}>{Array.from({length: adults + 1}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Cabin<select aria-label="Cabin" value={cabin} onChange={event => setCabin(event.target.value)}><option value="ECONOMY">Economy</option><option value="PREMIUM_ECONOMY">Premium economy</option><option value="BUSINESS">Business</option><option value="FIRST">First</option></select></label></div><p>Up to 9 adults and children. Each infant travels with an adult. Ages apply on the travel date.</p></details>}
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
             {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
-            <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Departure" : "Check-in"}</span><input aria-label={product === "FLIGHT" ? "Departure" : "Check-in"} type="date" name="date" value={date} required min={dateAfter(0)} onChange={event => setDate(event.target.value)} /><small>{product === "FLIGHT" ? "Your journey begins" : "Time to check in"}</small></label>
-            {(product === "HOTEL" || roundTrip) && <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Return" : "Check-out"}</span><input aria-label={product === "FLIGHT" ? "Return" : "Check-out"} type="date" name="end" value={end} required min={date} onChange={event => setEnd(event.target.value)} /><small>{product === "HOTEL" && nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : "Your journey home"}</small></label>}
+            <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Departure" : "Check-in"}</span><input aria-label={product === "FLIGHT" ? "Departure" : "Check-in"} type="date" name="date" value={date} required min={dateAfter(0)} onChange={event => setDate(event.target.value)} /></label>
+            {(product === "HOTEL" || roundTrip) && <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Return" : "Check-out"}</span><input aria-label={product === "FLIGHT" ? "Return" : "Check-out"} type="date" name="end" value={end} required min={date} onChange={event => setEnd(event.target.value)} />{product === "HOTEL" && nights > 0 && <small>{nights} night{nights === 1 ? "" : "s"}</small>}</label>}
             <label className="home-search-input home-guests"><span>{product === "FLIGHT" ? "Travellers" : "Guests"}</span><select aria-label={product === "FLIGHT" ? "Travellers" : "Guests"} value={adults} onChange={event => { const count = Number(event.target.value); setAdults(count); setChildCount(value => Math.min(value, 9 - count)); setInfants(value => Math.min(value, count)); }}>{Array.from({ length: product === "FLIGHT" ? 9 : 4 }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value} adult{value === 1 ? "" : "s"}</option>)}</select><small>{product === "FLIGHT" ? "12 years & above" : "1 room"}</small></label>
             <button className="home-search-submit" disabled={navigating} type="submit"><TravelIcon name="search" size={19} /><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
           </div>

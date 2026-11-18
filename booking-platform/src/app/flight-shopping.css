@@ -2,9 +2,9 @@
   min-width: 0;
   margin: 12px 0 16px;
   padding: 12px;
-  border: 1px solid #dbe6e4;
+  border: 1px solid var(--brand-line, #d9d4cb);
   border-radius: 16px;
-  background: linear-gradient(135deg, #edf6f4, #f8fafc 65%);
+  background: linear-gradient(135deg, var(--brand-sand, #EDE5D7), var(--brand-ivory, #FAF9F6) 65%);
 }
 .flight-date-header {
   display: flex;
@@ -13,8 +13,8 @@
   gap: 8px;
   margin: 0 2px 8px;
 }
-.flight-date-header h3 { margin: 0; color: #163633; font-size: 15px; line-height: 1.3; }
-.flight-date-header p { margin: 4px 0 0; color: #516774; font-size: 12px; }
+.flight-date-header h3 { margin: 0; color: var(--brand-midnight, #101C2C); font-size: 15px; line-height: 1.3; }
+.flight-date-header p { margin: 4px 0 0; color: var(--brand-muted, #596675); font-size: 12px; }
 .flight-date-arrows { display: flex; gap: 6px; }
 .flight-date-arrows button {
   display: grid;
@@ -22,10 +22,10 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid #cfdedb;
+  border: 1px solid var(--brand-line, #d9d4cb);
   border-radius: 12px;
   background: #fff;
-  color: #125c52;
+  color: var(--brand-midnight, #101C2C);
   font-size: 26px;
   line-height: 1;
   cursor: pointer;
@@ -50,32 +50,32 @@
   gap: 4px;
   min-height: 62px;
   padding: 6px 2px;
-  border: 1px solid #dce5ea;
+  border: 1px solid var(--brand-line, #d9d4cb);
   border-radius: 11px;
   background: #fff;
-  color: #213a50;
+  color: var(--brand-slate, #24364B);
   font-family: inherit;
   white-space: nowrap;
   cursor: pointer;
 }
-.flight-date-day > span { color: #526a7d; font-size: 11px; font-weight: 600; }
+.flight-date-day > span { color: var(--brand-muted, #596675); font-size: 11px; font-weight: 600; }
 .flight-date-day time { font-size: 11px; }
 .flight-date-day strong { font-size: 18px; font-variant-numeric: tabular-nums; }
 .flight-date-day[aria-current="date"] {
-  border-color: #075c51;
-  background: linear-gradient(145deg, #087461, #064c48);
+  border-color: var(--brand-midnight, #101C2C);
+  background: linear-gradient(145deg, var(--brand-slate, #24364B), var(--brand-midnight, #101C2C));
   color: #fff;
-  box-shadow: 0 2px 6px #075c5130;
+  box-shadow: 0 2px 6px #101c2c30;
   cursor: default;
 }
-.flight-date-day[aria-current="date"] > span { color: #dbf4ee; }
+.flight-date-day[aria-current="date"] > span { color: var(--brand-sand, #EDE5D7); }
 .flight-date-day:disabled:not([aria-current]):not([data-pending]) { opacity: .55; cursor: default; }
-.flight-date-day[data-pending] { border-color: #16816e; background: #e0f2ec; box-shadow: inset 0 -3px 0 #16816e; }
-.flight-date-timeline button:focus-visible { outline: 2px solid #097767; outline-offset: 1px; }
+.flight-date-day[data-pending] { border-color: var(--brand-gold-ink, #785A25); background: var(--brand-sand, #EDE5D7); box-shadow: inset 0 -3px 0 var(--brand-gold-ink, #785A25); }
+.flight-date-timeline button:focus-visible { outline: 2px solid var(--brand-midnight, #101C2C); outline-offset: 1px; }
 @media (hover: hover) {
   .flight-date-day:hover:not(:disabled):not([aria-current]), .flight-date-arrows button:hover:not(:disabled) {
-    border-color: #369384;
-    background: #eaf6f2;
+    border-color: var(--brand-gold-ink, #785A25);
+    background: var(--brand-sand, #EDE5D7);
   }
 }
 .flight-date-count-hidden { visibility: hidden; }
@@ -87,7 +87,7 @@
   gap: 10px;
   margin-bottom: 14px;
   padding: 12px;
-  border: 1px solid #dbe6e4;
+  border: 1px solid var(--brand-line, #d9d4cb);
   border-radius: 12px;
   background: #fff;
 }

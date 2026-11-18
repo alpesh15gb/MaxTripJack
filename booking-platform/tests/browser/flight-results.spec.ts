@@ -79,9 +79,11 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await filters(page,false);
  await cards.first().locator('.flight-segment-details>summary').click();await expect(cards.first().locator('.flight-segment-details')).toContainText('EX 123');
  await cards.first().locator('.fare-comparison>summary').click();await expect(cards.first()).toContainText('child: cabin baggage 5 Kg');await expect(cards.first()).toContainText('infant: cabin baggage not supplied');
- await expect(cards.first()).toContainText('₹14,500');await expect(cards.first()).toContainText('All travellers · estimated total');
+ const flexibleFare=cards.first().getByRole('group',{name:'Flexible fare',exact:true});
+ await expect(flexibleFare).toContainText('₹14,500');
+ await expect(flexibleFare).toHaveAccessibleDescription(/Totals are estimates for all travellers\./);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-fare-families');
- await cards.first().locator('.fare-option').filter({has:page.getByRole('heading',{name:'Flexible fare',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await flexibleFare.getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['night-flex']});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/search')[0].body).toMatchObject({date:departure});expect(provider.requests('/api/payments/create')).toHaveLength(0);

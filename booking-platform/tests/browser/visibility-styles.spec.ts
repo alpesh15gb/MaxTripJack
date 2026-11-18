@@ -13,7 +13,7 @@ test('production visibility access boundary retains its scoped layout', async ({
   await expect(main.getByRole('heading', { name: 'Visibility dashboard', exact: true })).toBeVisible();
   await expect(main.getByRole('heading', { name: /Authorised access required|Access verification unavailable/ })).toBeVisible();
   await expect(main).toContainText('No reporting data has been loaded.');
-  await expect(main).toHaveCSS('background-color', 'rgb(247, 246, 242)');
+  await expect(main).toHaveCSS('background-color', 'rgb(250, 249, 246)');
   await expect(main.locator('.visibility-notice')).toHaveCSS('border-radius', '14px');
   await expect(main).toHaveCSS('padding-left', page.viewportSize()!.width <= 600 ? '16px' : '40px');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -23,7 +23,7 @@ test('production visibility access boundary retains its scoped layout', async ({
 let compiled: Promise<{ script: string; css: string }> | undefined;
 function assets() {
   return compiled ??= build({
-    stdin: { contents: `import {createRoot} from 'react-dom/client'; import Dashboard from './src/components/visibility-dashboard'; createRoot(document.getElementById('root')).render(<Dashboard/>);`, resolveDir: process.cwd(), loader: 'tsx' },
+    stdin: { contents: `import './src/app/visual-polish.css'; import {createRoot} from 'react-dom/client'; import Dashboard from './src/components/visibility-dashboard'; createRoot(document.getElementById('root')).render(<Dashboard/>);`, resolveDir: process.cwd(), loader: 'tsx' },
     outfile: resolve('.visibility-browser-fixture/client.js'), bundle: true, write: false, platform: 'browser', format: 'iife', jsx: 'automatic', logLevel: 'silent',
     plugins: [{ name: 'fixture-link', setup(plugin) {
       plugin.onResolve({ filter: /^next\/link$/ }, () => ({ path: 'link', namespace: 'fixture' }));
@@ -50,7 +50,7 @@ test('actual visibility client shows responsive cards and removes stale values w
   await page.route('**/api/admin/visibility', route => route.fulfill(denied ? { status: 403, json: { error: 'Synthetic finance access revoked.' } } : { json: snapshot }));
   await page.goto('/__visibility_client_fixture');
   await expect(page.getByRole('button', { name: 'Refresh ledger' })).toBeEnabled();
-  await expect(page.locator('.visibility-heading')).toHaveCSS('background-color', 'rgb(16, 38, 61)');
+  await expect(page.locator('.visibility-heading')).toHaveCSS('background-color', 'rgb(16, 28, 44)');
   const metrics = page.locator('.visibility-metrics');
   await expect(metrics).toHaveCSS('display', 'grid');
   await expect(metrics).toHaveCSS('gap', '16px');

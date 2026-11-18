@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { TravelHeader, TravelFooter } from "@/components/travel-shell";
+import "@/components/public-refresh.css";
 
 export default function NotFound() {
   return <div className="travel-app">
     <TravelHeader />
-    <main id="main-content" className="state-page state-page--discovery">
+    <main id="main-content" className="state-page state-page--discovery public-refresh">
       <div>
         <span className="state-code" aria-hidden="true">404</span>
         <h1>We couldn’t find that page</h1>

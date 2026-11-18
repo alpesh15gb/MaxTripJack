@@ -18,13 +18,14 @@ export function mobileLauncherLift(resting: Rectangle, obstacles: Rectangle[]): 
 }
 
 /** Observe nearby actions; scrolling only reads this bounded set, never scans the page. */
-export function observeMobileLauncher(launcher: HTMLButtonElement, clearance = document.querySelector<HTMLElement>('.max-ai-mobile-clearance')): () => void {
+export function observeLauncherPlacement(launcher: HTMLButtonElement, homePage: boolean): () => void {
   const mobile = window.matchMedia('(max-width: 760px)');
-  let stopMobile: (() => void) | undefined;
+  const clearance = document.querySelector<HTMLElement>('.max-ai-mobile-clearance');
+  let stopObserving: (() => void) | undefined;
   function start() {
-    stopMobile?.();
-    stopMobile = undefined;
-    if (!mobile.matches) return;
+    stopObserving?.();
+    stopObserving = undefined;
+    if (!mobile.matches && !homePage) return;
     let frame = 0, lift = 0, barInset = 0, controlsChanged = true;
     let intersections: IntersectionObserver;
     const observed = new Set<HTMLElement>(), nearby = new Set<HTMLElement>(), bars = new Set<HTMLElement>();
@@ -47,6 +48,7 @@ export function observeMobileLauncher(launcher: HTMLButtonElement, clearance = d
         const style = getComputedStyle(control);
         if (style.visibility === 'hidden' || style.display === 'none') continue;
         if (bars.has(control) && style.position === 'fixed' && rect.bottom >= window.innerHeight - 1) nextBarInset = Math.max(nextBarInset, window.innerHeight - rect.top);
+        if (rect.left >= resting.right + GAP || rect.right <= resting.left - GAP) continue;
         obstacles.push(rect);
       }
       if (nextBarInset !== barInset) { barInset = nextBarInset; clearance?.style.setProperty('--max-ai-bar-inset', `${barInset}px`); }
@@ -54,7 +56,8 @@ export function observeMobileLauncher(launcher: HTMLButtonElement, clearance = d
       if (next !== lift) { lift = next; launcher.style.setProperty('--max-ai-lift', `${lift}px`); }
     }
     function refresh() {
-      const controls = new Set(Array.from(document.querySelectorAll<HTMLElement>(CONTROL_SELECTOR)).filter(node => !node.closest('.max-ai-dialog,.max-ai-launcher,dialog')).slice(0, 600));
+      const root = mobile.matches ? document : document.querySelector('.trip-home');
+      const controls = new Set(Array.from(root?.querySelectorAll<HTMLElement>(CONTROL_SELECTOR) ?? []).filter(node => !node.closest('.max-ai-dialog,.max-ai-launcher,dialog')).slice(0, 600));
       for (const node of observed) if (!controls.has(node)) { intersections.unobserve(node); observed.delete(node); nearby.delete(node); bars.delete(node); }
       for (const node of controls) if (!observed.has(node)) { observed.add(node); intersections.observe(node); if (node.matches(BAR_SELECTOR)) bars.add(node); }
     }
@@ -64,7 +67,7 @@ export function observeMobileLauncher(launcher: HTMLButtonElement, clearance = d
       intersections = new IntersectionObserver(entries => {
         for (const entry of entries) { if (entry.isIntersecting) nearby.add(entry.target as HTMLElement); else nearby.delete(entry.target as HTMLElement); }
         schedule();
-      }, { rootMargin: `${-Math.max(0, window.innerHeight - Math.min(360, window.innerHeight * .55))}px 0px 0px 0px` });
+      });
       for (const node of observed) intersections.observe(node);
       schedule();
     }
@@ -84,9 +87,9 @@ export function observeMobileLauncher(launcher: HTMLButtonElement, clearance = d
     const scroll = () => { if (nearby.size || bars.size || lift) schedule(); };
     window.addEventListener('scroll', scroll, { passive: true });
     window.addEventListener('resize', observeRegion);
-    stopMobile = () => { mutations.disconnect(); intersections.disconnect(); window.removeEventListener('scroll', scroll); window.removeEventListener('resize', observeRegion); cancelAnimationFrame(frame); launcher.style.removeProperty('--max-ai-lift'); clearance?.style.removeProperty('--max-ai-bar-inset'); };
+    stopObserving = () => { mutations.disconnect(); intersections.disconnect(); window.removeEventListener('scroll', scroll); window.removeEventListener('resize', observeRegion); cancelAnimationFrame(frame); launcher.style.removeProperty('--max-ai-lift'); clearance?.style.removeProperty('--max-ai-bar-inset'); };
   }
   start();
   mobile.addEventListener('change', start);
-  return () => { mobile.removeEventListener('change', start); stopMobile?.(); };
+  return () => { mobile.removeEventListener('change', start); stopObserving?.(); };
 }

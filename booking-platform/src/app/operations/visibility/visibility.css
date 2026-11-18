@@ -1,16 +1,16 @@
 /* Explicit private-dashboard prefixes avoid global leaks and module-export loss in the CSS loader. */
-.visibility-page{max-width:1200px;width:100%;margin:0 auto;padding:32px 28px 72px;color:#15324b;background:#fff;line-height:1.65}
-.visibility-navigation{display:flex;justify-content:space-between;gap:20px;margin-bottom:34px;font-size:13px}.visibility-page a{color:#125da6;text-underline-offset:4px}.visibility-page a:focus-visible,.visibility-button:focus-visible{outline:3px solid #84bfff;outline-offset:4px}
-.visibility-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}.visibility-heading h1{font-size:36px;line-height:1.15;letter-spacing:-1px;margin-bottom:12px}.visibility-heading p{margin-bottom:0}.visibility-eyebrow{color:#326795;font-size:10px;font-weight:750;letter-spacing:1.4px;margin-bottom:10px!important}.visibility-button{border:1px solid #bad0e4;border-radius:8px;padding:12px 20px;min-height:44px;background:#f5f9ff;white-space:nowrap}.visibility-button:disabled{opacity:.65;cursor:wait}
-.visibility-notice{background:#fff8e7;border:1px solid #ead7a6;border-radius:12px;padding:22px 24px;margin-bottom:30px}.visibility-notice h2{font-size:18px;margin-bottom:10px}.visibility-notice p:last-child{margin-bottom:0}.visibility-section{padding:26px 0;border-top:1px solid #dce5ee}.visibility-section h2{font-size:25px;line-height:1.25;margin-bottom:14px}.visibility-sectionHeading{display:flex;align-items:center;justify-content:space-between;gap:20px}.visibility-badge{display:inline-block;border:1px solid #cbd9e5;color:#3c576b;background:#f4f7fa;padding:5px 10px;font-size:11px;line-height:1.6;border-radius:20px;white-space:nowrap}.visibility-meta{font-size:12px;color:#526b7c;margin-top:15px}.visibility-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.visibility-metric{border:1px solid #dce5ee;border-radius:12px;padding:22px;background:#f8fbfe}.visibility-metric h3{font-size:14px;margin-bottom:18px;line-height:1.5}.visibility-metric strong{display:block;font-size:27px;line-height:1.4;overflow-wrap:anywhere;letter-spacing:-.6px}.visibility-metric p{margin:8px 0 14px;font-size:13px}.visibility-metric small{display:block;color:#526b7c;font-size:12px;line-height:1.7}.visibility-error{background:#fff1f0;color:#9f3030;border:1px solid #ebc7c7;border-radius:8px;padding:16px}
-.visibility-connections{border:1px solid #dce5ee;border-radius:12px;overflow:hidden}.visibility-connections article{padding:20px 22px;border-bottom:1px solid #dce5ee}.visibility-connections article:last-child{border-bottom:0}.visibility-connections article>div{display:flex;align-items:center;justify-content:space-between;gap:16px}.visibility-connections h3{font-size:15px;margin:0}.visibility-connections p{font-size:13px;color:#526b7c;margin:10px 0 0}.visibility-funnel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:0;list-style:none;counter-reset:funnel}.visibility-funnel li{border:1px solid #dce5ee;border-radius:10px;padding:18px;counter-increment:funnel}.visibility-funnel h3{font-size:14px;margin-bottom:8px}.visibility-funnel h3:before{content:counter(funnel) ". ";color:#326795}.visibility-funnel code{font-size:11px;overflow-wrap:anywhere;display:block;color:#526b7c}.visibility-funnel span{display:block;font-weight:700;margin:14px 0 8px}.visibility-funnel small{display:block;font-size:12px;color:#526b7c;line-height:1.7}.visibility-tableWrap{overflow-x:auto;border:1px solid #dce5ee;border-radius:12px}.visibility-table{width:100%;border-collapse:collapse;font-size:12px;text-align:left;min-width:650px}.visibility-table caption{text-align:left;padding:14px 18px;color:#526b7c;background:#f8fbfe}.visibility-table th,.visibility-table td{padding:14px 18px;border-top:1px solid #dce5ee;vertical-align:top}.visibility-table thead{background:#eef4fa}.visibility-table tbody th{font-weight:600;max-width:270px}.visibility-table td:nth-child(3){white-space:nowrap}
+.visibility-page{max-width:1200px;width:100%;margin:0 auto;padding:32px 28px 72px;color:var(--brand-midnight);background:#fff;line-height:1.65}
+.visibility-navigation{display:flex;justify-content:space-between;gap:20px;margin-bottom:34px;font-size:13px}.visibility-page a{color:var(--brand-slate);text-underline-offset:4px}.visibility-page a:focus-visible,.visibility-button:focus-visible{outline:3px solid #edcf96;outline-offset:4px}
+.visibility-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}.visibility-heading h1{font-size:36px;line-height:1.15;letter-spacing:-1px;margin-bottom:12px}.visibility-heading p{margin-bottom:0}.visibility-eyebrow{color:#326795;font-size:10px;font-weight:750;letter-spacing:1.4px;margin-bottom:10px!important}.visibility-button{border:1px solid #bad0e4;border-radius:8px;padding:12px 20px;min-height:44px;background:var(--brand-ivory);white-space:nowrap}.visibility-button:disabled{opacity:.65;cursor:wait}
+.visibility-notice{background:#fff8e7;border:1px solid #ead7a6;border-radius:12px;padding:22px 24px;margin-bottom:30px}.visibility-notice h2{font-size:18px;margin-bottom:10px}.visibility-notice p:last-child{margin-bottom:0}.visibility-section{padding:26px 0;border-top:1px solid var(--brand-line)}.visibility-section h2{font-size:25px;line-height:1.25;margin-bottom:14px}.visibility-sectionHeading{display:flex;align-items:center;justify-content:space-between;gap:20px}.visibility-badge{display:inline-block;border:1px solid #cbd9e5;color:#3c576b;background:#f4f7fa;padding:5px 10px;font-size:11px;line-height:1.6;border-radius:20px;white-space:nowrap}.visibility-meta{font-size:12px;color:#526b7c;margin-top:15px}.visibility-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.visibility-metric{border:1px solid var(--brand-line);border-radius:12px;padding:22px;background:var(--brand-ivory)}.visibility-metric h3{font-size:14px;margin-bottom:18px;line-height:1.5}.visibility-metric strong{display:block;font-size:27px;line-height:1.4;overflow-wrap:anywhere;letter-spacing:-.6px}.visibility-metric p{margin:8px 0 14px;font-size:13px}.visibility-metric small{display:block;color:#526b7c;font-size:12px;line-height:1.7}.visibility-error{background:#fff1f0;color:#9f3030;border:1px solid #ebc7c7;border-radius:8px;padding:16px}
+.visibility-connections{border:1px solid var(--brand-line);border-radius:12px;overflow:hidden}.visibility-connections article{padding:20px 22px;border-bottom:1px solid var(--brand-line)}.visibility-connections article:last-child{border-bottom:0}.visibility-connections article>div{display:flex;align-items:center;justify-content:space-between;gap:16px}.visibility-connections h3{font-size:15px;margin:0}.visibility-connections p{font-size:13px;color:#526b7c;margin:10px 0 0}.visibility-funnel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:0;list-style:none;counter-reset:funnel}.visibility-funnel li{border:1px solid var(--brand-line);border-radius:10px;padding:18px;counter-increment:funnel}.visibility-funnel h3{font-size:14px;margin-bottom:8px}.visibility-funnel h3:before{content:counter(funnel) ". ";color:#326795}.visibility-funnel code{font-size:11px;overflow-wrap:anywhere;display:block;color:#526b7c}.visibility-funnel span{display:block;font-weight:700;margin:14px 0 8px}.visibility-funnel small{display:block;font-size:12px;color:#526b7c;line-height:1.7}.visibility-tableWrap{overflow-x:auto;border:1px solid var(--brand-line);border-radius:12px}.visibility-table{width:100%;border-collapse:collapse;font-size:12px;text-align:left;min-width:650px}.visibility-table caption{text-align:left;padding:14px 18px;color:#526b7c;background:var(--brand-ivory)}.visibility-table th,.visibility-table td{padding:14px 18px;border-top:1px solid var(--brand-line);vertical-align:top}.visibility-table thead{background:#eef4fa}.visibility-table tbody th{font-weight:600;max-width:270px}.visibility-table td:nth-child(3){white-space:nowrap}
 @media(max-width:800px){.visibility-page{padding:22px 18px 48px}.visibility-heading{align-items:flex-start;flex-direction:column;gap:18px}.visibility-heading h1{font-size:30px}.visibility-metrics{grid-template-columns:1fr}.visibility-metric strong{font-size:30px}.visibility-funnel{grid-template-columns:repeat(2,minmax(0,1fr))}.visibility-sectionHeading{align-items:flex-start;flex-direction:column;gap:0;margin-bottom:18px}.visibility-connections article>div{align-items:flex-start;flex-direction:column;gap:8px}.visibility-notice{padding:18px}.visibility-navigation{font-size:12px;flex-wrap:wrap;margin-bottom:28px}}
 @media(max-width:420px){.visibility-funnel{grid-template-columns:1fr}.visibility-table{min-width:620px}.visibility-section h2{font-size:22px}}
 /* A calm, readable reporting desk aligned with the customer-facing travel system. */
-.visibility-page { max-width: 1280px; padding: 34px 40px 72px; color: #10263d; background: #f5f7fa; font-size: 14px; min-height: 100vh; }
+.visibility-page { max-width: 1280px; padding: 34px 40px 72px; color: var(--brand-midnight); background: var(--brand-ivory); font-size: 14px; min-height: 100vh; }
 .visibility-navigation { margin-bottom: 28px; align-items: center; }
 .visibility-navigation a { display: inline-flex; min-height: 44px; align-items: center; padding: 10px 16px; border: 1px solid #d8e3eb; background: white; border-radius: 11px; font-size: 13px; text-decoration: none; color: #31536b; }
-.visibility-heading { background: #10263d; color: white; border-radius: 22px; padding: 34px; margin-bottom: 24px; }
+.visibility-heading { background: var(--brand-midnight); color: white; border-radius: 22px; padding: 34px; margin-bottom: 24px; }
 .visibility-heading h1 { font-size: clamp(30px, 3.8vw, 43px); letter-spacing: -1.2px; margin: 10px 0 15px; }
 .visibility-heading p { color: #c9d9e4; font-size: 15px; line-height: 1.8; }
 .visibility-heading .visibility-eyebrow { color: #a6d5db; font-size: 11px; letter-spacing: 1.3px; }
@@ -19,14 +19,14 @@
 .visibility-notice h2 { color: #685631; font-size: 20px; letter-spacing: -.3px; }
 .visibility-section { border: 1px solid #dfe7ed; border-radius: 20px; background: white; padding: 30px; margin: 25px 0; }
 .visibility-section h2 { font-size: 25px; letter-spacing: -.6px; margin-bottom: 16px; }
-.visibility-eyebrow { color: #1549e6; font-size: 11px; letter-spacing: 1.2px; line-height: 1.7; }
+.visibility-eyebrow { color: var(--brand-slate); font-size: 11px; letter-spacing: 1.2px; line-height: 1.7; }
 .visibility-badge { background: #f1f7f8; border-color: #cfdee2; color: #416976; font-size: 12px; padding: 6px 11px; }
 .visibility-meta { font-size: 13px; line-height: 1.85; color: #5c7283; }
 .visibility-metrics { margin: 23px 0; gap: 16px; }
 .visibility-metric { border-radius: 16px; padding: 23px; background: #f7f9fc; border-color: #dce6ed; }
 .visibility-metric h3 { color: #476375; font-size: 14px; min-height: 42px; }
-.visibility-metric strong { font-size: 30px; font-weight: 700; letter-spacing: -1px; color: #10263d; }
-.visibility-metric p { color: #1549e6; font-size: 14px; line-height: 1.7; }
+.visibility-metric strong { font-size: 30px; font-weight: 700; letter-spacing: -1px; color: var(--brand-midnight); }
+.visibility-metric p { color: var(--brand-slate); font-size: 14px; line-height: 1.7; }
 .visibility-metric small { font-size: 12px; line-height: 1.85; color: #5c7283; }
 .visibility-connections { border-radius: 15px; border-color: #dfe7ed; }
 .visibility-connections article { padding: 22px; border-color: #e2e9ee; }
@@ -36,7 +36,7 @@
 .visibility-funnel { gap: 16px; margin: 23px 0; }
 .visibility-funnel li { padding: 22px; border-radius: 15px; border-color: #dfe7ed; background: #fbfcfd; }
 .visibility-funnel h3 { font-size: 15px; line-height: 1.6; }
-.visibility-funnel h3:before { color: #1549e6; }
+.visibility-funnel h3:before { color: var(--brand-slate); }
 .visibility-funnel code { font-size: 12px; line-height: 1.6; }
 .visibility-funnel span { color: #537183; font-size: 14px; }
 .visibility-funnel small { font-size: 13px; line-height: 1.8; }
@@ -56,21 +56,21 @@
   gap: 30px;
   align-items: start;
 }
-.visibility-jump-nav { position: sticky; top: 24px; display: grid; gap: 4px; border-left: 2px solid #dce1e8; padding-left: 12px; }
+.visibility-jump-nav { position: sticky; top: 24px; display: grid; gap: 4px; border-left: 2px solid var(--brand-line); padding-left: 12px; }
 .visibility-jump-nav a { padding: 13px 12px; border-radius: 8px; min-height: 44px; font-size: 14px; text-decoration: none; }
-.visibility-jump-nav a:hover { background: #e8f4ee; color: #1549e6; }
+.visibility-jump-nav a:hover { background: #e8f4ee; color: var(--brand-slate); }
 .visibility-content { min-width: 0; }
 .visibility-content .visibility-section:first-child { padding-top: 0; border-top: 0; }
 .visibility-content h2[id] { scroll-margin-top: 28px; }
 .visibility-content .visibility-connections { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border: 0; border-radius: 0; }
-.visibility-content .visibility-connections article { border: 1px solid #dce1e8; background: #fff; border-radius: 14px; padding: 20px; }
+.visibility-content .visibility-connections article { border: 1px solid var(--brand-line); background: #fff; border-radius: 14px; padding: 20px; }
 .visibility-content .visibility-connections article > div { align-items: flex-start; flex-direction: column; gap: 10px; }
 .visibility-content .visibility-metric { padding: 20px; }
 .visibility-content .visibility-funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.visibility-content .visibility-funnel li { border-left: 3px solid #1549e6; background: #fff; border-radius: 0 12px 12px 0; }
+.visibility-content .visibility-funnel li { border-left: 3px solid var(--brand-slate); background: #fff; border-radius: 0 12px 12px 0; }
 @media (max-width: 1000px) {
   .visibility-workbench { grid-template-columns: 1fr; gap: 24px; }
-  .visibility-jump-nav { position: static; display: flex; flex-wrap: wrap; padding: 0; border: 0; border-bottom: 1px solid #dce1e8; }
+  .visibility-jump-nav { position: static; display: flex; flex-wrap: wrap; padding: 0; border: 0; border-bottom: 1px solid var(--brand-line); }
 }
 @media (max-width: 600px) {
   .visibility-content .visibility-connections, .visibility-content .visibility-funnel { grid-template-columns: 1fr; }
@@ -78,23 +78,23 @@
   .visibility-jump-nav a { font-size: 13px; padding: 10px; }
 }
 
-body .visibility-page { color: #10263d; background: #f7f6f2; padding-top: 30px; }
-body .visibility-page .visibility-heading { background: #10263d; color: #fff; border-radius: 18px; padding: 32px; }
+body .visibility-page { color: var(--brand-midnight); background: var(--brand-ivory); padding-top: 30px; }
+body .visibility-page .visibility-heading { background: var(--brand-midnight); color: #fff; border-radius: 18px; padding: 32px; }
 .visibility-page .visibility-heading h1 { font-size: clamp(32px, 3.5vw, 44px); line-height: 1.12; letter-spacing: -.045em; font-weight: 650; }
 .visibility-page .visibility-heading .visibility-eyebrow { color: #ffcf94; font-size: 10px; letter-spacing: .12em; }
 .visibility-page .visibility-heading p:not(.visibility-eyebrow) { color: #c8d5e8; font-size: 14px; }
-.visibility-page .visibility-button { background: #fff; color: #1549e6; border-color: #fff; border-radius: 10px; }
+.visibility-page .visibility-button { background: #fff; color: var(--brand-slate); border-color: #fff; border-radius: 10px; }
 .visibility-page .visibility-notice { background: #fff7ec; border-color: #edddc7; border-radius: 14px; }
-.visibility-page .visibility-section { border-color: #dce1e8; border-radius: 16px; }
-.visibility-page .visibility-section h2 { color: #10263d; font-size: 24px; }
-.visibility-page .visibility-eyebrow { color: #1549e6; font-size: 10px; letter-spacing: .12em; }
-.visibility-page .visibility-jump-nav { border-color: #dce1e8; }
+.visibility-page .visibility-section { border-color: var(--brand-line); border-radius: 16px; }
+.visibility-page .visibility-section h2 { color: var(--brand-midnight); font-size: 24px; }
+.visibility-page .visibility-eyebrow { color: var(--brand-slate); font-size: 10px; letter-spacing: .12em; }
+.visibility-page .visibility-jump-nav { border-color: var(--brand-line); }
 .visibility-page .visibility-jump-nav a { color: #526176; font-size: 13px; }
-.visibility-page .visibility-jump-nav a:hover { color: #1549e6; background: #edf2ff; }
-.visibility-page .visibility-metric { border-color: #e1e7f0; background: #f5f7fc; }
-.visibility-page .visibility-metric strong { color: #10263d; font-variant-numeric: tabular-nums; }
-.visibility-page .visibility-metric p { color: #1549e6; }
-.visibility-page .visibility-content .visibility-funnel li { border-left-color: #1549e6; }
-.visibility-page .visibility-table thead { background: #f1f4fa; }
-.visibility-page .visibility-tableWrap { border-color: #dce1e8; }
+.visibility-page .visibility-jump-nav a:hover { color: var(--brand-slate); background: var(--brand-sand); }
+.visibility-page .visibility-metric { border-color: var(--brand-line); background: var(--brand-ivory); }
+.visibility-page .visibility-metric strong { color: var(--brand-midnight); font-variant-numeric: tabular-nums; }
+.visibility-page .visibility-metric p { color: var(--brand-slate); }
+.visibility-page .visibility-content .visibility-funnel li { border-left-color: var(--brand-slate); }
+.visibility-page .visibility-table thead { background: var(--brand-tint); }
+.visibility-page .visibility-tableWrap { border-color: var(--brand-line); }
 @media (max-width: 600px) { body .visibility-page { padding-top: 22px; } body .visibility-page .visibility-heading { padding: 26px 22px; } }

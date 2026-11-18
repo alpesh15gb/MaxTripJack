@@ -2,6 +2,8 @@
 
 These are local copies of the four Unsplash images already referenced by this application's homepage before the redesign. Local assets avoid runtime requests to a third-party image host and make visual regression tests reproducible.
 
+The homepage also uses `paris-evening.webp`, an original ImageGen destination illustration compressed for the website.
+
 ## Source provenance
 
 Verified on 2026-10-21: each official photo page links to the corresponding CDN photo ID below, identifies the photographer and destination, and labels the photo free to use under the [standard Unsplash License](https://unsplash.com/license).

@@ -47,14 +47,21 @@ html,body{overflow-x:clip}
 
 /* Shared visual system for discovery, booking and account workspaces. */
 :root {
-  --brand-ink: #10263d;
-  --brand-action: #1549e6;
-  --brand-tint: #edf2ff;
-  --brand-paper: #f7f6f2;
-  --brand-border: #dce2ea;
-  --brand-muted: #506177;
-  --brand-amber: #ffb45a;
-  --brand-shadow: 0 16px 40px #10263d10;
+  --brand-midnight: #101c2c;
+  --brand-slate: #24364b;
+  --brand-gold: #c6a66b;
+  --brand-sand: #ede5d7;
+  --brand-ivory: #faf9f6;
+  --brand-ink: var(--brand-midnight);
+  --brand-action: var(--brand-slate);
+  --brand-tint: #f3ede2;
+  --brand-paper: var(--brand-ivory);
+  --brand-line: #ded6c8;
+  --brand-border: var(--brand-line);
+  --brand-muted: #526071;
+  --brand-gold-ink: #725520;
+  --brand-amber: var(--brand-gold);
+  --brand-shadow: 0 16px 40px #101c2c11;
   --travel-display: var(--font-travel-display), Georgia, serif;
   --ink: var(--brand-ink);
   --blue: var(--brand-action);
@@ -65,32 +72,41 @@ html,body{overflow-x:clip}
   --travel-navy: var(--brand-ink);
 }
 
-body { font-family: var(--font-geist-sans), system-ui, sans-serif; }
-body .travel-environment { background: #fff1db; color: #61370c; }
-body .travel-header { background: #fff; border-bottom-color: var(--brand-border); }
+body { font-family: var(--font-geist-sans), system-ui, sans-serif; background: var(--brand-ivory); color: var(--brand-ink); }
+body .travel-environment { background: var(--brand-sand); color: #503c1e; }
+body .travel-environment > span:first-child { background: var(--brand-gold-ink); }
+body header.travel-header { max-width: none; background: var(--brand-midnight); border-bottom-color: #c6a66b40; color: var(--brand-ivory); }
+body .travel-header .travel-brand--official .maxtravel-logo--header:not(.maxtravel-logo--custom) { filter: invert(1); mix-blend-mode: screen; }
+body .travel-header .maxtravel-logo--custom { padding: 4px; border-radius: 4px; background: var(--brand-ivory); }
 body .travel-header nav { gap: 8px; }
-body .travel-header nav :is(a, button) { color: var(--brand-ink); }
-body .travel-header nav :is(a, button):hover { background: var(--brand-tint); color: var(--brand-action); }
-body .travel-header nav [aria-current="page"] { color: var(--brand-action); }
+body .travel-header nav :is(a, button) { color: #e6e8eb; }
+body .travel-header nav :is(a, button):hover { background: #ffffff12; color: #f4dcb0; }
+body .travel-header nav [aria-current="page"] { color: #f1d5a3; }
+body .travel-header nav [aria-current="page"]::after { background: var(--brand-gold); }
+body .travel-header :is(.travel-currency, .travel-currency span) { color: #d7c39f; }
 body .travel-header .travel-account {
-  color: var(--brand-action);
-  background: var(--brand-tint);
-  border: 1px solid #d8e2ff;
-  border-radius: 10px;
+  color: #f1d5a3;
+  background: #ffffff08;
+  border: 1px solid #c6a66b7a;
+  border-radius: 6px;
 }
 body .travel-header .travel-account:hover,
-body .travel-header .travel-account[aria-current="page"] { background: var(--brand-action); color: #fff; border-color: var(--brand-action); }
-body .travel-footer.travel-footer--reference { background: var(--brand-ink); color: #dbe5f1; }
+body .travel-header .travel-account[aria-current="page"] { background: var(--brand-gold); color: var(--brand-midnight); border-color: var(--brand-gold); }
+body .travel-header :focus-visible, body .travel-footer :focus-visible { outline: 2px solid #e4c793; outline-offset: 3px; }
+body .travel-footer.travel-footer--reference { background: var(--brand-midnight); color: #e4ddcf; }
 body .travel-footer--reference .travel-footer-inner { max-width: 1360px; padding-top: 44px; }
 body .travel-footer--reference .travel-footer-grid { grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
 body .travel-footer--reference .travel-footer-identity { padding-top: 0; }
 body .travel-footer--reference .travel-footer-brand { margin-bottom: 18px; }
-body .travel-footer--reference .travel-footer-group h2 { font-size: 17px; letter-spacing: -.015em; }
-body .travel-footer--reference .travel-footer-group li > a { color: #dbe5f1; min-height: 40px; }
+body .travel-footer--reference .travel-footer-group h2 { font: 400 25px/1.15 var(--travel-display); letter-spacing: 0; }
+body .travel-footer--reference .travel-footer-group li > a { color: #e4ddcf; min-height: 40px; }
 body .travel-footer--reference .travel-footer-group li > a::before { display: none; }
-body .travel-footer--reference .travel-footer-socials a { background: #fff; color: var(--brand-ink); }
+body .travel-footer--reference .travel-footer-socials a { background: var(--brand-sand); color: var(--brand-ink); }
 body .travel-footer--reference .travel-footer-socials a:hover { background: var(--brand-amber); }
-body .travel-footer--reference .travel-footer-copyright { background: #0b1b2c; color: #e6eef8; }
+body .travel-footer--reference .travel-footer-copyright { background: #0b1521; color: #e4ddcf; }
+body .travel-footer.travel-footer--compact { background: var(--brand-midnight); color: #e4ddcf; }
+body .travel-footer--compact .workflow-footer-content :is(p,a) { color: #e4ddcf; }
+body .travel-footer--compact .workflow-footer-content a:hover { color: #f1d5a3; }
 @media (max-width: 900px) {
   body .travel-footer--reference .travel-footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 25px; }
 }
@@ -107,13 +123,13 @@ body .travel-footer--reference .travel-footer-copyright { background: #0b1b2c; c
 }
 
 body .public-site .public-hero {
-  background: linear-gradient(120deg, var(--brand-ink), #1b3f79);
+  background: linear-gradient(120deg, var(--brand-midnight), var(--brand-slate));
   border: 0;
   border-radius: 24px;
 }
 body .public-site .public-hero :is(h1, .public-intro, .public-cta-note) { color: #fff; }
-body .public-site .public-hero .public-eyebrow { color: #ffdda7; }
-body .public-site .public-button { background: #ffdda7; color: var(--brand-ink); border-color: #ffdda7; }
+body .public-site .public-hero .public-eyebrow { color: var(--brand-gold); }
+body .public-site .public-button { background: var(--brand-gold); color: var(--brand-ink); border-color: var(--brand-gold); }
 body .public-site .public-section :is(p, li), body .public-site .public-questions p { font-size: 16px; line-height: 1.75; }
 body :is(.public-office-card, .public-rail-note, .public-route-card, .package-card, .package-quote) {
   border-color: var(--brand-border);
@@ -168,7 +184,7 @@ body .account-experience .workspace-masthead {
 body .account-experience .workspace-masthead :is(p, span) { color: inherit; }
 body .account-experience .workspace-mark { background: var(--brand-action); }
 body .ops-workspace .operations-sidebar { background: var(--brand-ink); }
-body .ops-workspace .selected-desk { background: #244a91; color: #fff; }
+body .ops-workspace .selected-desk { background: var(--brand-gold); color: var(--brand-ink); }
 body :is(.ops-workspace, .account-experience, .trips-workspace, .journey-flow) .white-card {
   border-color: var(--brand-border);
   border-radius: 16px;
@@ -185,7 +201,7 @@ body :is(.trips-workspace, .reset-experience) .white-card {
   box-shadow: var(--brand-shadow);
 }
 body .reset-experience .primary { background: var(--brand-action); color: #fff; }
-body .travel-footer { border-top-color: var(--brand-action); }
+body .travel-footer { border-top-color: var(--brand-gold); }
 
 body :is(.reports-page, .visibility-page) { background: var(--brand-paper); color: var(--brand-ink); }
 body :is(.reports-page .reports-heading, .visibility-page .visibility-heading) {
@@ -194,7 +210,7 @@ body :is(.reports-page .reports-heading, .visibility-page .visibility-heading) {
   padding: clamp(20px, 4vw, 36px);
   color: #fff;
 }
-body :is(.reports-heading, .visibility-heading) p { color: #dbe5f1; }
+body :is(.reports-heading, .visibility-heading) p { color: #e4ddcf; }
 body :is(.reports-filters, .reports-cards article, .visibility-metric) {
   border-color: var(--brand-border);
   border-radius: 16px;
@@ -213,7 +229,7 @@ body :is(.reports-filters, .reports-cards article, .visibility-metric) {
 }
 .state-page--discovery p { margin-left: 0; }
 .state-page--discovery .state-actions { justify-content: flex-start; }
-.state-page--discovery .state-code { font-size: 72px; color: #b2c4e8; }
+.state-page--discovery .state-code { font-size: 72px; color: var(--brand-gold-ink); }
 .state-photo { position: relative; min-height: 440px; border-radius: 24px; overflow: hidden; }
 .state-photo img { object-fit: cover; }
 .state-page .state-actions .state-primary { background: var(--brand-action); border-color: var(--brand-action); }

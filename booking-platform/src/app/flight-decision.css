@@ -1,15 +1,15 @@
 /* Flight decision surfaces only: no hotel or transaction-state selectors. */
 .fare-options-rail { container-type: inline-size; min-width: 0; }
-.fare-options-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 3px 6px; color: #526877; font-size: 13px; font-weight: 650; }
+.fare-options-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 3px 6px; color: var(--brand-muted, #596675); font-size: 13px; font-weight: 650; }
 .fare-options-nav > div { display: flex; gap: 6px; }
 .fare-options-nav button {
   display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
-  border: 1px solid #cadadf; border-radius: 10px; background: white; color: #0b6154;
+  border: 1px solid var(--brand-line, #d9d4cb); border-radius: 10px; background: white; color: var(--brand-midnight, #101C2C);
   font-size: 25px; line-height: 1; cursor: pointer;
 }
-.fare-options-nav button:hover:not(:disabled) { border-color: #4f9a8f; background: #e6f4ef; }
+.fare-options-nav button:hover:not(:disabled) { border-color: var(--brand-gold-ink, #785A25); background: var(--brand-sand, #EDE5D7); }
 .fare-options-nav button:disabled { opacity: .42; cursor: default; }
-.fare-options-nav button:focus-visible { outline: 2px solid #087361; outline-offset: 2px; }
+.fare-options-nav button:focus-visible { outline: 2px solid var(--brand-midnight, #101C2C); outline-offset: 2px; }
 .fare-decision-grid {
   --fare-card-gap: 12px;
   --fare-card-width: calc(100% - 28px);
@@ -23,7 +23,7 @@
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
-  scrollbar-color: #9dbab7 transparent;
+  scrollbar-color: var(--brand-gold, #C6A66B) transparent;
 }
 @container (min-width: 520px) {
   .fare-decision-grid { --fare-card-width: calc((100% - var(--fare-card-gap)) / 2); }
@@ -35,19 +35,19 @@
 .journey-flow.booking-workflow .fare-decision-grid > .fare-option-compact {
   display: flex; flex-direction: column; align-items: stretch;
   gap: 0; min-width: 0; margin: 0; padding: 14px;
-  border: 1px solid #d6e2e7; border-radius: 13px; background: white;
+  border: 1px solid var(--brand-line, #d9d4cb); border-radius: 13px; background: white;
 }
-.journey-flow.booking-workflow .fare-decision-grid > .is-lowest-fare { border-color: #609d91; box-shadow: inset 0 3px #167965; }
-.journey-flow.booking-workflow .fare-decision-grid > .is-selected { border-color: #2455e7; background: #f4f7ff; }
-.fare-decision-grid .fare-option-heading { display: grid; align-content: start; gap: 5px; padding-bottom: 10px; border-bottom: 1px solid #e0e8ea; }
-.fare-decision-grid .fare-option-heading h4 { margin: 0; color: #173749; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
-.journey-flow .fare-decision-grid .fare-option-heading > strong { color: #132e43; font-size: 23px; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.journey-flow .fare-decision-grid .fare-price-comparison { margin: 0; color: #176044; font-size: 13px; line-height: 1.4; }
+.journey-flow.booking-workflow .fare-decision-grid > .is-lowest-fare { border-color: var(--brand-gold, #C6A66B); box-shadow: inset 0 3px var(--brand-gold, #C6A66B); }
+.journey-flow.booking-workflow .fare-decision-grid > .is-selected { border-color: var(--brand-midnight, #101C2C); background: var(--brand-ivory, #FAF9F6); }
+.fare-decision-grid .fare-option-heading { display: grid; align-content: start; gap: 5px; padding-bottom: 10px; border-bottom: 1px solid var(--brand-line, #d9d4cb); }
+.fare-decision-grid .fare-option-heading h4 { margin: 0; color: var(--brand-midnight, #101C2C); font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.journey-flow .fare-decision-grid .fare-option-heading > strong { color: var(--brand-midnight, #101C2C); font-size: 23px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.journey-flow .fare-decision-grid .fare-price-comparison { margin: 0; color: var(--brand-gold-ink, #785A25); font-size: 13px; line-height: 1.4; }
 .fare-decision-dimensions { display: grid; margin: 0; font-size: 13px; line-height: 1.4; }
-.fare-decision-dimensions > div { display: grid; grid-template-columns: minmax(76px, .85fr) minmax(0, 1.15fr); align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid #e9eff1; }
-.fare-decision-dimensions dt { color: #526571; }
-.fare-decision-dimensions dd { margin: 0; font-weight: 650; color: #193647; overflow-wrap: anywhere; }
-.fare-decision-dimensions > .fare-difference { background: #eaf5ef; box-shadow: inset 2px 0 #478c77; padding-inline: 6px; }
+.fare-decision-dimensions > div { display: grid; grid-template-columns: minmax(76px, .85fr) minmax(0, 1.15fr); align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--brand-line, #d9d4cb); }
+.fare-decision-dimensions dt { color: var(--brand-muted, #596675); }
+.fare-decision-dimensions dd { margin: 0; font-weight: 650; color: var(--brand-slate, #24364B); overflow-wrap: anywhere; }
+.fare-decision-dimensions > .fare-difference { background: var(--brand-sand, #EDE5D7); box-shadow: inset 2px 0 var(--brand-gold, #C6A66B); padding-inline: 6px; }
 .fare-difference-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .journey-flow .fare-decision-grid .fare-option-notes p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; }
 .fare-decision-grid .fare-ineligible { color: #714524; }
@@ -62,28 +62,28 @@
   .fare-decision-grid .fare-option-action { grid-row: 7; }
 }
 .journey-flow .fare-choice-heading .fare-itinerary-dates{font-size:14px;line-height:1.5;margin:4px 0}
-.journey-flow .fare-choice-heading small{font-size:14px;line-height:1.5;color:#52616a}
-.journey-flow .fare-passenger-baggage{border-left:2px solid #91b9af;padding-left:8px}
-.journey-flow .flight-selection-summary h3{margin:0 0 12px;font-size:18px;color:#183747}
+.journey-flow .fare-choice-heading small{font-size:14px;line-height:1.5;color:var(--brand-muted, #596675)}
+.journey-flow .fare-passenger-baggage{border-left:2px solid var(--brand-gold, #C6A66B);padding-left:8px}
+.journey-flow .flight-selection-summary h3{margin:0 0 12px;font-size:18px;color:var(--brand-midnight, #101C2C)}
 .journey-flow .flight-selection-summary ol{gap:12px}
 .journey-flow .flight-selection-summary li{min-width:0;gap:6px;align-content:start}
 .journey-flow .flight-selection-summary li>strong{font-size:15px;line-height:1.45;overflow-wrap:anywhere}
-.journey-flow .flight-selection-summary .selection-leg-dates{font-size:14px;line-height:1.55;margin:0;color:#294654}
+.journey-flow .flight-selection-summary .selection-leg-dates{font-size:14px;line-height:1.55;margin:0;color:var(--brand-slate, #24364B)}
 .journey-flow .flight-selection-summary .selection-leg-duration,.journey-flow .flight-selection-summary .selection-leg-fare{font-size:14px;line-height:1.5}
-.journey-flow .flight-selection-summary .selection-leg-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#52616a}
-.journey-flow .selection-combined-total{display:grid;gap:4px;padding:14px 0 0;border-top:1px solid #cadbd8;margin-top:12px}
-.journey-flow .selection-combined-total>span{font-size:14px;color:#52616a}
-.journey-flow .selection-combined-total>strong{font-size:20px;color:#163f35;font-variant-numeric:tabular-nums}
-.journey-flow .selection-combined-total p{margin:0;font-size:13px;line-height:1.5;color:#52616a;max-width:65ch}
+.journey-flow .flight-selection-summary .selection-leg-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--brand-muted, #596675)}
+.journey-flow .selection-combined-total{display:grid;gap:4px;padding:14px 0 0;border-top:1px solid var(--brand-line, #d9d4cb);margin-top:12px}
+.journey-flow .selection-combined-total>span{font-size:14px;color:var(--brand-muted, #596675)}
+.journey-flow .selection-combined-total>strong{font-size:20px;color:var(--brand-midnight, #101C2C);font-variant-numeric:tabular-nums}
+.journey-flow .selection-combined-total p{margin:0;font-size:13px;line-height:1.5;color:var(--brand-muted, #596675);max-width:65ch}
 .journey-flow .flight-selection-summary #review-selected-journey{margin-top:12px;min-height:48px}
 .journey-flow .selection-combo-segments{display:grid;gap:8px}
-.journey-flow .selection-segment{border-top:1px solid #cadbd8;padding-top:8px}
+.journey-flow .selection-segment{border-top:1px solid var(--brand-line, #d9d4cb);padding-top:8px}
 @media(max-width:600px){
  .journey-flow .flight-selection-summary ol{grid-template-columns:minmax(0,1fr)}
  .journey-flow .flight-selection-summary #review-selected-journey{width:100%}
  .journey-flow .selection-combined-total>strong{font-size:18px}
 }
-.journey-flow .flight-selection-summary .selection-airports{font-size:13px;line-height:1.45;color:#52616a;overflow-wrap:anywhere}
+.journey-flow .flight-selection-summary .selection-airports{font-size:13px;line-height:1.45;color:var(--brand-muted, #596675);overflow-wrap:anywhere}
 .journey-flow .flight-selection-summary ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:600px){.journey-flow .flight-selection-summary ol{grid-template-columns:minmax(0,1fr)}}
 

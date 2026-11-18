@@ -23,7 +23,7 @@ function SectionLinks({ sections, hasQuestions }: { sections: readonly ContentSe
   return <nav className="public-section-links" aria-label="On this page">
     <p>On this page</p>
     <ul>
-      {sections.map((section, index) => <li key={section.heading}><a href={`#section-${index}`}><span className="public-chapter-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><span>{section.heading}</span></a></li>)}
+      {sections.map((section, index) => <li key={section.heading}><a href={`#section-${index}`}>{section.heading}</a></li>)}
       {hasQuestions && <li><a href="#questions-heading">Frequently asked questions</a></li>}
     </ul>
   </nav>;

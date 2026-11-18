@@ -1,50 +1,49 @@
 /* Account and saved-profile surfaces; intentionally scoped away from checkout. */
-.account-experience { background:#f5f7fa; color:#10263d; }
-.account-experience .travel-header { background:#fff; }
+.account-experience { background:var(--brand-ivory, #faf9f6); color:var(--brand-midnight, #101c2c); }
 .account-experience-main { max-width:1240px; margin:auto; padding:26px 36px 60px; }
-.account-experience-nav { display:flex; gap:8px; padding:6px; border:1px solid #e0e7ef; border-radius:16px; width:fit-content; background:#fff; margin-bottom:38px; }
-.account-experience-nav a { display:flex; align-items:center; justify-content:center; gap:9px; min-height:44px; padding:10px 18px; color:#526579; border-radius:11px; font-size:14px; font-weight:600; text-decoration:none; }
-.account-experience-nav a[aria-current=page] { color:#1549e6; background:#edf2ff; }
-.account-experience-nav a:hover { background:#f0f4f8; }
+.account-experience-nav { display:flex; gap:8px; padding:6px; border:1px solid var(--brand-line, #e2dcd2); border-radius:16px; width:fit-content; background:#fff; margin-bottom:38px; }
+.account-experience-nav a { display:flex; align-items:center; justify-content:center; gap:9px; min-height:44px; padding:10px 18px; color:var(--brand-muted, #637080); border-radius:11px; font-size:14px; font-weight:600; text-decoration:none; }
+.account-experience-nav a[aria-current=page] { color:var(--brand-midnight, #101c2c); background:var(--brand-sand, #ede5d7); }
+.account-experience-nav a:hover { background:var(--brand-ivory, #faf9f6); }
 .account-experience .page-shell { max-width:none; width:100%; margin:0; padding:0; }
-.account-experience .back { display:inline-flex; align-items:center; min-height:44px; font-size:13px; color:#526579; text-decoration:none; margin:0 0 18px; }
-.account-experience .eyebrow { color:#1549e6; font-size:11px; font-weight:750; letter-spacing:1.3px; line-height:1.6; }
-.account-experience h1 { font-size:clamp(32px,3.8vw,48px); line-height:1.14; letter-spacing:-1.5px; margin:12px 0 16px; font-weight:650; color:#10263d; }
+.account-experience .back { display:inline-flex; align-items:center; min-height:44px; font-size:13px; color:var(--brand-muted, #637080); text-decoration:none; margin:0 0 18px; }
+.account-experience .eyebrow { color:var(--brand-midnight, #101c2c); font-size:11px; font-weight:750; letter-spacing:1.3px; line-height:1.6; }
+.account-experience h1 { font-size:clamp(32px,3.8vw,48px); line-height:1.14; letter-spacing:-1.5px; margin:12px 0 16px; font-weight:650; color:var(--brand-midnight, #101c2c); }
 .account-experience .page-heading { margin:0 0 32px; }
-.account-experience .page-heading p,.account-experience .muted { color:#5a6d7f; font-size:14px; line-height:1.8; }
+.account-experience .page-heading p,.account-experience .muted { color:var(--brand-muted, #637080); font-size:14px; line-height:1.8; }
 .account-experience-grid { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:32px; align-items:start; }
-.account-benefits { padding:36px; border:1px solid #dbe8eb; border-radius:24px; background:linear-gradient(145deg,#e9f4f3,#edf2fc); }
-.account-benefits-icon { display:grid; place-items:center; width:58px; height:58px; border-radius:18px; background:#fff; color:#1549e6; margin-bottom:28px; }
+.account-benefits { padding:36px; border:1px solid var(--brand-line, #e2dcd2); border-radius:24px; background:linear-gradient(145deg,var(--brand-sand, #ede5d7),var(--brand-sand, #ede5d7)); }
+.account-benefits-icon { display:grid; place-items:center; width:58px; height:58px; border-radius:18px; background:#fff; color:var(--brand-midnight, #101c2c); margin-bottom:28px; }
 .account-benefits h2 { font-size:31px; line-height:1.2; font-weight:600; letter-spacing:-.8px; margin:16px 0; }
-.account-benefits>p:not(.eyebrow) { color:#526b7b; font-size:15px; line-height:1.8; }
+.account-benefits>p:not(.eyebrow) { color:var(--brand-muted, #637080); font-size:15px; line-height:1.8; }
 .account-benefits ul { list-style:none; display:grid; gap:24px; margin:32px 0; padding:0; }
 .account-benefits li { display:flex; gap:13px; }
-.account-benefits li>svg { flex-shrink:0; margin-top:2px; color:#1549e6; }
+.account-benefits li>svg { flex-shrink:0; margin-top:2px; color:var(--brand-midnight, #101c2c); }
 .account-benefits li strong { display:block; font-size:14px; margin-bottom:5px; }
-.account-benefits li span { display:block; color:#526b7b; font-size:13px; line-height:1.7; }
-.account-benefits>a { display:inline-flex; align-items:center; min-height:44px; color:#1549e6; text-underline-offset:5px; font-size:14px; font-weight:600; }
-.account-experience .white-card { background:#fff; border:1px solid #e0e7ef; border-radius:22px; padding:30px; box-shadow:0 8px 28px #18344c04; min-width:0; }
+.account-benefits li span { display:block; color:var(--brand-muted, #637080); font-size:13px; line-height:1.7; }
+.account-benefits>a { display:inline-flex; align-items:center; min-height:44px; color:var(--brand-midnight, #101c2c); text-underline-offset:5px; font-size:14px; font-weight:600; }
+.account-experience .white-card { background:#fff; border:1px solid var(--brand-line, #e2dcd2); border-radius:22px; padding:30px; box-shadow:0 8px 28px #101c2c05; min-width:0; }
 .account-experience .account-card { max-width:none; width:100%; margin:0; }
-.account-experience-main h2 { color:#10263d; }
+.account-experience-main h2 { color:var(--brand-midnight, #101c2c); }
 .account-experience .account-card>h2 { font-size:25px; letter-spacing:-.5px; margin:0 0 10px; }
 .account-experience .account-card h3 { font-size:19px; letter-spacing:-.3px; }
-.account-experience .account-tabs { border:0; border-radius:12px; background:#f2f5f9; padding:5px; gap:4px; flex-wrap:nowrap; margin-bottom:26px; }
-.account-experience .account-tabs button { min-height:44px; padding:10px; border:0; border-radius:9px; font-size:13px; flex:1; color:#526579; }
-.account-experience .account-tabs button[aria-pressed=true] { background:white; color:#1549e6; box-shadow:0 2px 8px #18344c0a; }
-.account-experience form label:not(.checkbox) { display:block; color:#3e566a; font-size:13px; font-weight:600; line-height:1.7; margin-bottom:18px; }
-.account-experience input:not([type=checkbox]),.account-experience select,.account-experience textarea { width:100%; min-width:0; min-height:48px; padding:12px 14px; margin-top:7px; border:1px solid #d6e0ea; border-radius:10px; background:#fff; color:#10263d; font:inherit; font-size:15px; }
+.account-experience .account-tabs { border:0; border-radius:12px; background:var(--brand-ivory, #faf9f6); padding:5px; gap:4px; flex-wrap:nowrap; margin-bottom:26px; }
+.account-experience .account-tabs button { min-height:44px; padding:10px; border:0; border-radius:9px; font-size:13px; flex:1; color:var(--brand-muted, #637080); }
+.account-experience .account-tabs button[aria-pressed=true] { background:white; color:var(--brand-midnight, #101c2c); box-shadow:0 2px 8px #101c2c0d; }
+.account-experience form label:not(.checkbox) { display:block; color:var(--brand-slate, #24364b); font-size:13px; font-weight:600; line-height:1.7; margin-bottom:18px; }
+.account-experience input:not([type=checkbox]),.account-experience select,.account-experience textarea { width:100%; min-width:0; min-height:48px; padding:12px 14px; margin-top:7px; border:1px solid var(--brand-line, #e2dcd2); border-radius:10px; background:#fff; color:var(--brand-midnight, #101c2c); font:inherit; font-size:15px; }
 .account-experience textarea { min-height:110px; overflow-wrap:anywhere; }
 .account-experience .checkbox { display:flex; align-items:center; gap:10px; font-size:14px; }
-.account-experience input[type=checkbox] { width:18px; height:18px; accent-color:#1549e6; }
-.account-experience :is(button,a,input,select,textarea):focus-visible { outline:3px solid #91acff; outline-offset:3px; }
+.account-experience input[type=checkbox] { width:18px; height:18px; accent-color:var(--brand-midnight, #101c2c); }
+.account-experience :is(button,a,input,select,textarea):focus-visible { outline:3px solid var(--brand-slate, #24364b); outline-offset:3px; }
 .account-experience .primary,.account-experience .secondary { min-height:46px; padding:11px 18px; font-size:14px; border-radius:11px; }
 .account-experience .account-card form>.primary { width:100%; margin-top:6px; }
 .account-experience .account-links { gap:10px; margin:20px 0; }
 .account-experience .account-links :is(.primary,.secondary) { margin:0; }
 .account-experience .account-card>.muted { font-size:13px; }
-.account-experience .info-message { border:1px solid #d9e5fa; padding:16px 18px; border-radius:12px; font-size:14px; line-height:1.7; overflow-wrap:anywhere; }
-.account-environment-note { color:#65798b; font-size:12px; text-align:center; margin:26px 0 0; line-height:1.7; }
-.account-session-security { border-top:1px solid #e3eaf1; margin-top:28px; padding-top:12px; }
+.account-experience .info-message { border:1px solid var(--brand-line, #e2dcd2); padding:16px 18px; border-radius:12px; font-size:14px; line-height:1.7; overflow-wrap:anywhere; }
+.account-environment-note { color:var(--brand-muted, #637080); font-size:12px; text-align:center; margin:26px 0 0; line-height:1.7; }
+.account-session-security { border-top:1px solid var(--brand-line, #e2dcd2); margin-top:28px; padding-top:12px; }
 .account-session-security form { margin:22px 0 0; }
 .account-session-security .info-message p { overflow-wrap:anywhere; }
 .account-experience .traveller-experience>.muted { max-width:660px; margin-bottom:30px; }
@@ -56,10 +55,10 @@
 .traveller-list-heading h2 { font-size:23px; letter-spacing:-.5px; margin:0 0 8px; }
 .traveller-list-heading p { margin:0; }
 .account-experience .traveller-empty { text-align:center; padding:40px 28px; }
-.traveller-empty>span { display:grid; place-items:center; background:#eef5f6; width:68px; height:68px; border-radius:20px; margin:0 auto 24px; color:#1549e6; }
+.traveller-empty>span { display:grid; place-items:center; background:var(--brand-sand, #ede5d7); width:68px; height:68px; border-radius:20px; margin:0 auto 24px; color:var(--brand-midnight, #101c2c); }
 .traveller-empty h3 { font-size:23px; font-weight:600; letter-spacing:-.6px; line-height:1.3; margin:0 0 16px; }
-.traveller-empty p { font-size:14px; color:#526b7b; line-height:1.8; }
-.traveller-empty small { display:block; color:#6b7f8f; font-size:12px; line-height:1.7; margin-top:20px; }
+.traveller-empty p { font-size:14px; color:var(--brand-muted, #637080); line-height:1.8; }
+.traveller-empty small { display:block; color:var(--brand-muted, #637080); font-size:12px; line-height:1.7; margin-top:20px; }
 .account-experience .booking-record h2 { font-size:21px; margin:0 0 12px; overflow-wrap:anywhere; }
 .account-experience .booking-record .secondary { margin:8px 8px 0 0; }
 .account-experience .booking-record .secondary:last-child { color:#a34747; border-color:#eddada; }
@@ -80,83 +79,83 @@
 .traveller-edit-fields:disabled { opacity: .65; }
 
 /* Journey Studio — account surfaces. Never style the shared header/footer typography. */
-.account-experience { background: #f7f6f2; }
+.account-experience { background: var(--brand-ivory, #faf9f6); }
 .account-experience-main { width: 100%; padding-top: 24px; }
 .workspace-masthead { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.workspace-mark { display: grid; place-items: center; width: 42px; height: 42px; background: #10263d; color: #f1cf8b; border-radius: 50%; flex-shrink: 0; }
-.workspace-masthead p { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #10263d; margin: 0 0 4px; }
-.workspace-masthead > div > span { font-size: 12px; color: #596b74; }
-.account-experience-nav { width: 100%; border-radius: 0; padding: 0; background: transparent; border: 0; border-bottom: 1px solid #dcded8; gap: 26px; margin-bottom: 34px; }
-.account-experience-nav a { border-radius: 0; padding: 13px 0; position: relative; min-height: 52px; font-size: 13px; color: #596b74; }
-.account-experience-nav a[aria-current=page] { background: transparent; color: #1549e6; }
-.account-experience-nav a[aria-current=page]::after { content: ''; position: absolute; height: 3px; border-radius: 3px 3px 0 0; background: #1549e6; bottom: -1px; left: 0; right: 0; }
-.account-experience-nav a:hover { background: transparent; color: #10263d; }
+.workspace-mark { display: grid; place-items: center; width: 42px; height: 42px; background: var(--brand-midnight, #101c2c); color: var(--brand-gold, #c6a66b); border-radius: 50%; flex-shrink: 0; }
+.workspace-masthead p { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--brand-midnight, #101c2c); margin: 0 0 4px; }
+.workspace-masthead > div > span { font-size: 12px; color: var(--brand-muted, #637080); }
+.account-experience-nav { width: 100%; border-radius: 0; padding: 0; background: transparent; border: 0; border-bottom: 1px solid var(--brand-line, #e2dcd2); gap: 26px; margin-bottom: 34px; }
+.account-experience-nav a { border-radius: 0; padding: 13px 0; position: relative; min-height: 52px; font-size: 13px; color: var(--brand-muted, #637080); }
+.account-experience-nav a[aria-current=page] { background: transparent; color: var(--brand-midnight, #101c2c); }
+.account-experience-nav a[aria-current=page]::after { content: ''; position: absolute; height: 3px; border-radius: 3px 3px 0 0; background: var(--brand-midnight, #101c2c); bottom: -1px; left: 0; right: 0; }
+.account-experience-nav a:hover { background: transparent; color: var(--brand-midnight, #101c2c); }
 .account-experience-main h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; letter-spacing: -.045em; font-size: clamp(36px,4vw,54px); }
 .account-experience-main .back { margin-bottom: 5px; font-size: 12px; }
 .account-experience-main .page-heading { margin-bottom: 30px; }
-.account-experience-main .eyebrow { color: #1549e6; font-size: 10px; letter-spacing: .14em; }
+.account-experience-main .eyebrow { color: var(--brand-midnight, #101c2c); font-size: 10px; letter-spacing: .14em; }
 .account-experience-grid { grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 28px; }
-.account-benefits { background: #10263d; border: 0; color: #fff; padding: 36px; border-radius: 22px; position: relative; overflow: hidden; }
+.account-benefits { background: var(--brand-midnight, #101c2c); border: 0; color: #fff; padding: 36px; border-radius: 22px; position: relative; overflow: hidden; }
 .account-benefits::before { content: ''; position: absolute; height: 240px; width: 240px; border: 1px solid #ffffff18; border-radius: 50%; right: -130px; top: -100px; pointer-events: none; }
 .account-benefits::after { content: ''; position: absolute; height: 300px; width: 300px; border: 1px solid #ffffff10; border-radius: 50%; right: -155px; top: -125px; pointer-events: none; }
-.account-benefits-icon { background: #ffffff12; color: #f1cf8b; border: 1px solid #ffffff20; border-radius: 50%; width: 54px; height: 54px; }
-.account-experience-main .account-benefits .eyebrow { color: #b9ded7; }
+.account-benefits-icon { background: #ffffff12; color: var(--brand-gold, #c6a66b); border: 1px solid #ffffff20; border-radius: 50%; width: 54px; height: 54px; }
+.account-experience-main .account-benefits .eyebrow { color: var(--brand-sand, #ede5d7); }
 .account-experience-main .account-benefits h2 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: #fff; font-size: 34px; max-width: 300px; }
-.account-benefits>p:not(.eyebrow),.account-benefits li span { color: #c2d0da; }
+.account-benefits>p:not(.eyebrow),.account-benefits li span { color: var(--brand-sand, #ede5d7); }
 .account-benefits li strong { color: #fff; }
-.account-benefits li>svg { color: #e3bc77; }
-.account-benefits>a { color: #e6cf9c; text-decoration: underline; }
-.account-experience-main .white-card { border-color: #e3e5df; box-shadow: 0 8px 24px #10263d03; border-radius: 18px; }
+.account-benefits li>svg { color: var(--brand-gold, #c6a66b); }
+.account-benefits>a { color: var(--brand-gold, #c6a66b); text-decoration: underline; }
+.account-experience-main .white-card { border-color: var(--brand-line, #e2dcd2); box-shadow: 0 8px 24px #101c2c05; border-radius: 18px; }
 .account-experience-main .account-card { padding: 32px; }
-.account-experience-main .account-tabs { background: #f4f4ef; border-radius: 11px; }
-.account-experience-main .account-tabs button[aria-pressed=true] { color: #163fb1; }
-.account-experience-main .primary { background: #1549e6; color: #fff; border: 1px solid #1549e6; box-shadow: none; }
-.account-experience-main .secondary { background: #fff; color: #19374e; border: 1px solid #cdd6d7; box-shadow: none; }
-.account-experience-main .primary:hover:not(:disabled) { background: #1b43bd; }
-.account-experience-main .secondary:hover:not(:disabled) { background: #f6f7f5; }
-.account-experience-main :is(button,a,input,select,textarea,summary):focus-visible { outline: 3px solid #1549e6; outline-offset: 4px; }
-.account-experience-main input:not([type=checkbox]),.account-experience-main select,.account-experience-main textarea { border-color: #cbd6d9; background: #fcfdfc; border-radius: 9px; }
+.account-experience-main .account-tabs { background: var(--brand-ivory, #faf9f6); border-radius: 11px; }
+.account-experience-main .account-tabs button[aria-pressed=true] { color: var(--brand-midnight, #101c2c); }
+.account-experience-main .primary { background: var(--brand-midnight, #101c2c); color: #fff; border: 1px solid var(--brand-midnight, #101c2c); box-shadow: none; }
+.account-experience-main .secondary { background: #fff; color: var(--brand-slate, #24364b); border: 1px solid var(--brand-line, #e2dcd2); box-shadow: none; }
+.account-experience-main .primary:hover:not(:disabled) { background: var(--brand-slate, #24364b); }
+.account-experience-main .secondary:hover:not(:disabled) { background: var(--brand-ivory, #faf9f6); }
+.account-experience-main :is(button,a,input,select,textarea,summary):focus-visible { outline: 3px solid var(--brand-midnight, #101c2c); outline-offset: 4px; }
+.account-experience-main input:not([type=checkbox]),.account-experience-main select,.account-experience-main textarea { border-color: var(--brand-line, #e2dcd2); background: var(--brand-ivory, #faf9f6); border-radius: 9px; }
 .account-experience-main button:disabled { cursor: not-allowed; }
-.account-identity { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid #e6e9e2; }
-.account-avatar { width: 62px; height: 62px; flex-shrink: 0; border-radius: 50%; background: #e9eefc; color: #1549e6; display: grid; place-items: center; font-family: Georgia,serif; font-size: 30px; }
+.account-identity { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid var(--brand-line, #e2dcd2); }
+.account-avatar { width: 62px; height: 62px; flex-shrink: 0; border-radius: 50%; background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); display: grid; place-items: center; font-family: Georgia,serif; font-size: 30px; }
 .account-identity > div { min-width: 0; }
 .account-identity h2 { font-size: 23px; margin: 4px 0 3px; letter-spacing: -.03em; overflow-wrap: anywhere; }
 .account-identity .muted { margin: 0; overflow-wrap: anywhere; font-size: 12px; }
 .account-experience-main .account-links { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin: 20px 0; }
 .account-experience-main .account-links a { min-width: 0; text-align: center; }
-.account-experience-main .account-links a:last-child { grid-column: 1/-1; background: transparent; border: 0; color: #5b6d7b; font-size: 12px; min-height: 44px; padding: 7px; }
-.account-experience-main .account-card hr { border: 0; border-top: 1px solid #e6e9e2; margin: 26px 0; }
+.account-experience-main .account-links a:last-child { grid-column: 1/-1; background: transparent; border: 0; color: var(--brand-muted, #637080); font-size: 12px; min-height: 44px; padding: 7px; }
+.account-experience-main .account-card hr { border: 0; border-top: 1px solid var(--brand-line, #e2dcd2); margin: 26px 0; }
 .security-section-heading { display: flex; align-items: center; gap: 12px; margin: 20px 0 12px; }
-.security-section-heading>span { display: grid; place-items: center; height: 42px; width: 42px; border: 1px solid #dce6e1; background: #f1f6f2; color: #1549e6; border-radius: 12px; flex-shrink: 0; }
+.security-section-heading>span { display: grid; place-items: center; height: 42px; width: 42px; border: 1px solid var(--brand-line, #e2dcd2); background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); border-radius: 12px; flex-shrink: 0; }
 .security-section-heading h2,.security-section-heading h3 { margin: 0!important; font-size: 20px!important; line-height: 1.3; }
 .security-section-heading .eyebrow { margin: 0 0 5px; font-size: 9px; }
-.account-session-security { border-color: #e0e5de; padding-top: 0; }
-.account-experience-main .account-session-security form { background: #f8f9f5; border: 1px solid #e4e9df; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-.account-experience-main .device-session { position: relative; padding: 18px 18px 18px 60px; background: #fff; border-color: #dde5e1; }
-.device-session-icon { position: absolute; left: 18px; top: 20px; color: #1549e6; }
+.account-session-security { border-color: var(--brand-line, #e2dcd2); padding-top: 0; }
+.account-experience-main .account-session-security form { background: var(--brand-ivory, #faf9f6); border: 1px solid var(--brand-line, #e2dcd2); padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+.account-experience-main .device-session { position: relative; padding: 18px 18px 18px 60px; background: #fff; border-color: var(--brand-line, #e2dcd2); }
+.device-session-icon { position: absolute; left: 18px; top: 20px; color: var(--brand-midnight, #101c2c); }
 .device-session h4 { font-size: 14px; margin: 0 0 6px; }
-.device-session p { font-size: 12px; color: #596b74; margin: 0 0 12px; }
-.device-session.is-current { border-left: 3px solid #1549e6; background: #f4f8f5; }
+.device-session p { font-size: 12px; color: var(--brand-muted, #637080); margin: 0 0 12px; }
+.device-session.is-current { border-left: 3px solid var(--brand-midnight, #101c2c); background: var(--brand-ivory, #faf9f6); }
 .account-experience-main .device-session button { min-height: 44px; font-size: 12px; padding: 8px 12px; }
-.traveller-private-gate { max-width: 620px; margin: 24px auto 12px; padding: 42px; text-align: center; background: #fff; border: 1px solid #dfe5df; border-radius: 22px; }
-.private-gate-icon { display: grid; place-items: center; height: 78px; width: 78px; border-radius: 50%; background: #edf2ff; color: #1549e6; margin: 0 auto 24px; }
+.traveller-private-gate { max-width: 620px; margin: 24px auto 12px; padding: 42px; text-align: center; background: #fff; border: 1px solid var(--brand-line, #e2dcd2); border-radius: 22px; }
+.private-gate-icon { display: grid; place-items: center; height: 78px; width: 78px; border-radius: 50%; background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); margin: 0 auto 24px; }
 .traveller-private-gate h2 { font-family: Georgia,serif; font-weight: 400; font-size: 30px; letter-spacing: -.03em; margin: 14px 0; }
-.traveller-private-gate>p:not(.eyebrow) { font-size: 14px; color: #526779; line-height: 1.8; margin-bottom: 24px; }
-.traveller-private-gate small { display: block; color: #596b74; margin-top: 18px; font-size: 12px; }
+.traveller-private-gate>p:not(.eyebrow) { font-size: 14px; color: var(--brand-muted, #637080); line-height: 1.8; margin-bottom: 24px; }
+.traveller-private-gate small { display: block; color: var(--brand-muted, #637080); margin-top: 18px; font-size: 12px; }
 .account-experience-main [hidden] { display: none!important; }
-.traveller-form-hint { font-size: 12px; line-height: 1.7; color: #596b74; margin: 0 0 24px; }
+.traveller-form-hint { font-size: 12px; line-height: 1.7; color: var(--brand-muted, #637080); margin: 0 0 24px; }
 .traveller-form-section h3 { font-size: 14px; display: flex; align-items: center; gap: 9px; margin: 24px 0 18px; }
-.traveller-form-section h3>span,.traveller-documents summary>span { font-size: 10px; border-radius: 50%; background: #eaf0ff; color: #1549e6; width: 26px; height: 26px; display: inline-grid; place-items: center; flex-shrink: 0; }
-.traveller-documents { margin: 8px 0 22px; border: 1px solid #dce5df; background: #f9faf7; border-radius: 12px; padding: 0 16px; }
+.traveller-form-section h3>span,.traveller-documents summary>span { font-size: 10px; border-radius: 50%; background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); width: 26px; height: 26px; display: inline-grid; place-items: center; flex-shrink: 0; }
+.traveller-documents { margin: 8px 0 22px; border: 1px solid var(--brand-line, #e2dcd2); background: var(--brand-ivory, #faf9f6); border-radius: 12px; padding: 0 16px; }
 .traveller-documents summary { padding: 16px 0; font-size: 14px; font-weight: 650; cursor: pointer; }
 .traveller-documents summary>span { margin-right: 7px; }
-.traveller-documents summary small { font-size: 10px; color: #5b6d74; margin-left: 7px; font-weight: 400; }
-.traveller-documents>p { font-size: 12px; line-height: 1.7; color: #526779; margin: 0 0 16px; }
+.traveller-documents summary small { font-size: 10px; color: var(--brand-muted, #637080); margin-left: 7px; font-weight: 400; }
+.traveller-documents>p { font-size: 12px; line-height: 1.7; color: var(--brand-muted, #637080); margin: 0 0 16px; }
 .traveller-profile-heading { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
-.traveller-profile-avatar { display: grid; place-items: center; background: #f1ede3; color: #65502b; height: 46px; width: 46px; flex-shrink: 0; border-radius: 50%; font-family: Georgia,serif; font-size: 24px; }
+.traveller-profile-avatar { display: grid; place-items: center; background: var(--brand-sand, #ede5d7); color: var(--brand-gold-ink, #806132); height: 46px; width: 46px; flex-shrink: 0; border-radius: 50%; font-family: Georgia,serif; font-size: 24px; }
 .account-experience-main .traveller-profile-heading .eyebrow { font-size: 9px; margin: 0 0 4px; }
 .account-experience-main .traveller-profile-heading h2 { font-size: 19px; margin: 0; }
-.account-experience-main .traveller-empty { background: #fdfdf9; border-style: dashed; }
+.account-experience-main .traveller-empty { background: var(--brand-ivory, #faf9f6); border-style: dashed; }
 .account-experience-main .traveller-list-heading h2 { font-family: Georgia,serif; font-weight: 400; font-size: 26px; }
 @media(min-width:1000px) { .account-experience-grid.is-signed-in { grid-template-columns: minmax(0,.65fr) minmax(0,1.35fr); } .is-signed-in .account-benefits { position: sticky; top: 24px; } }
 @media(max-width:900px) { .account-experience-grid { grid-template-columns: 1fr; } .account-benefits { order: 2; } .account-benefits ul { grid-template-columns: repeat(3,minmax(0,1fr)); } .account-benefits h2 { max-width: none; } }
@@ -181,7 +180,7 @@
   padding: 0 0 56px;
 }
 .account-workspace-sidebar { position: sticky; top: 24px; min-width: 0; }
-.account-workspace-label { font-size: 12px; color: #5e6b7b; font-weight: 650; margin: 8px 14px 18px; }
+.account-workspace-label { font-size: 12px; color: var(--brand-muted, #637080); font-weight: 650; margin: 8px 14px 18px; }
 .account-workspace-sidebar .account-experience-nav {
   display: grid;
   gap: 6px;
@@ -196,24 +195,24 @@
   border-radius: 12px;
   padding: 12px 14px;
   gap: 11px;
-  color: #5e6b7b;
+  color: var(--brand-muted, #637080);
   font-size: 13px;
   text-decoration: none;
 }
 .account-workspace-sidebar .account-experience-nav a[aria-current="page"] {
-  color: #1549e6;
-  background: #edf2ff;
+  color: var(--brand-midnight, #101c2c);
+  background: var(--brand-sand, #ede5d7);
 }
 .account-workspace-sidebar .account-experience-nav a::after { content: none; }
-.account-workspace-sidebar .account-experience-nav a:hover { background: #ebf0eb; }
+.account-workspace-sidebar .account-experience-nav a:hover { background: var(--brand-sand, #ede5d7); }
 .account-workspace-help {
   display: flex;
   align-items: center;
   gap: 9px;
   margin: 26px 0 0;
-  border-top: 1px solid #dce1e8;
+  border-top: 1px solid var(--brand-line, #e2dcd2);
   padding: 20px 12px;
-  color: #5e6b7b;
+  color: var(--brand-muted, #637080);
   font-size: 12px;
   line-height: 1.5;
   text-decoration: none;
@@ -230,14 +229,14 @@
   letter-spacing: -.045em;
 }
 .account-experience .account-workspace-content .page-heading { margin: 0 0 30px; }
-.account-experience .account-workspace-content .eyebrow { letter-spacing: .08em; color: #5e6b7b; }
+.account-experience .account-workspace-content .eyebrow { letter-spacing: .08em; color: var(--brand-muted, #637080); }
 .account-experience .account-experience-grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 24px; }
 .account-experience .account-experience-grid.is-signed-in { grid-template-columns: minmax(0, 1fr); }
 .account-experience .is-signed-in .account-benefits { display: none; }
 .account-experience .account-benefits {
   isolation: isolate;
   padding: 32px;
-  background: #10263d;
+  background: var(--brand-midnight, #101c2c);
   min-height: 100%;
   border-radius: 20px;
 }
@@ -248,47 +247,47 @@
   width: auto;
   border: 0;
   border-radius: 0;
-  background: linear-gradient(180deg, #10263de8 20%, #10263db8);
+  background: linear-gradient(180deg, #101c2ce8 20%, #101c2cb8);
   z-index: -1;
 }
 .account-experience .account-benefits::after { content: none; }
-.account-experience .account-benefits-icon { color: #ffb45a; margin-bottom: 36px; }
+.account-experience .account-benefits-icon { color: var(--brand-gold, #c6a66b); margin-bottom: 36px; }
 .account-experience .account-benefits h2 { font-size: 36px; max-width: 270px; }
 .account-experience .account-benefits li span,
-.account-experience .account-benefits > p:not(.eyebrow) { color: #edf5ef; }
+.account-experience .account-benefits > p:not(.eyebrow) { color: var(--brand-sand, #ede5d7); }
 .account-experience .account-benefits li > svg,
-.account-experience .account-benefits > a { color: #ffb45a; }
+.account-experience .account-benefits > a { color: var(--brand-gold, #c6a66b); }
 .account-experience .account-benefits ul { gap: 25px; margin-bottom: 20px; }
 .account-experience .account-card { padding: 32px; }
 .account-form-heading { margin-bottom: 26px; }
 .account-form-heading h2 { font-size: 27px; margin-bottom: 9px; letter-spacing: -.04em; }
-.account-form-heading p { color: #5e6b7b; font-size: 14px; line-height: 1.65; margin: 0; }
-.account-experience .account-card .account-tabs { background: #f1f3f8; margin-bottom: 28px; }
+.account-form-heading p { color: var(--brand-muted, #637080); font-size: 14px; line-height: 1.65; margin: 0; }
+.account-experience .account-card .account-tabs { background: var(--brand-ivory, #faf9f6); margin-bottom: 28px; }
 .account-experience .account-card .account-tabs button { font-size: 12px; }
-.account-experience .account-tabs button[aria-pressed="true"] { color: #1549e6; }
+.account-experience .account-tabs button[aria-pressed="true"] { color: var(--brand-midnight, #101c2c); }
 .account-experience .account-card input { min-height: 52px; }
 .account-experience .account-card > form > .primary { min-height: 50px; }
 .account-experience .account-identity { padding: 8px 0 28px; }
-.account-experience .account-avatar { background: #edf2ff; color: #1549e6; }
+.account-experience .account-avatar { background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); }
 .account-experience .account-card .account-links { display: flex; flex-wrap: wrap; }
 .account-experience .account-card .account-links > a { flex: 1; min-width: 150px; }
-.account-experience .account-card .account-links > a:last-child { flex: 0 1 auto; border: 1px solid #dce1e8; font-size: 13px; padding: 11px 18px; }
+.account-experience .account-card .account-links > a:last-child { flex: 0 1 auto; border: 1px solid var(--brand-line, #e2dcd2); font-size: 13px; padding: 11px 18px; }
 .account-experience .account-session-security form { padding: 24px; }
 .account-experience .device-session { border-radius: 12px; }
 .account-experience .traveller-experience .checkout-grid { gap: 26px; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
-.account-experience #traveller-editor { border-top: 4px solid #1549e6; padding-top: 24px; }
+.account-experience #traveller-editor { border-top: 4px solid var(--brand-midnight, #101c2c); padding-top: 24px; }
 .account-experience .traveller-profile-list { padding: 0; min-width: 0; }
 .account-experience .traveller-list-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin: 0 0 20px; }
 .account-experience .traveller-list-heading h2 { font: 650 22px var(--font-geist-sans), sans-serif; }
 .account-experience .traveller-list-heading p { font-size: 12px; }
 .account-experience .traveller-profile-list .booking-record { padding: 22px; margin-bottom: 16px; }
-.account-experience .traveller-profile-list .booking-record.is-editing { outline: 2px solid #1549e6; outline-offset: 2px; }
-.account-experience .traveller-profile-avatar { background: #edf2ff; color: #1549e6; font-family: inherit; font-weight: 650; }
+.account-experience .traveller-profile-list .booking-record.is-editing { outline: 2px solid var(--brand-midnight, #101c2c); outline-offset: 2px; }
+.account-experience .traveller-profile-avatar { background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); font-family: inherit; font-weight: 650; }
 .account-experience .traveller-profile-list .booking-record .secondary { font-size: 12px; padding: 9px 12px; }
-.account-experience .traveller-documents { border-style: dashed; background: #f5f7fc; }
+.account-experience .traveller-documents { border-style: dashed; background: var(--brand-ivory, #faf9f6); }
 .account-experience .reset-experience { max-width: 620px; margin: 22px auto; }
 .reset-heading { padding: 28px 0 12px; }
-.reset-heading > span { display: grid; place-items: center; width: 64px; height: 64px; background: #edf2ff; border-radius: 20px; color: #1549e6; margin-bottom: 24px; }
+.reset-heading > span { display: grid; place-items: center; width: 64px; height: 64px; background: var(--brand-sand, #ede5d7); border-radius: 20px; color: var(--brand-midnight, #101c2c); margin-bottom: 24px; }
 
 @media (max-width: 1100px) {
   .account-workspace-layout { grid-template-columns: 175px minmax(0, 1fr); gap: 24px; width: calc(100% - 40px); }
@@ -302,7 +301,7 @@
   .account-workspace-layout { grid-template-columns: minmax(0, 1fr); gap: 26px; width: calc(100% - 32px); margin-top: 16px; }
   .account-workspace-sidebar { position: static; }
   .account-workspace-label, .account-workspace-help { display: none; }
-  .account-workspace-sidebar .account-experience-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 5px; gap: 4px; background: #fff; border: 1px solid #dce1e8; border-radius: 16px; }
+  .account-workspace-sidebar .account-experience-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 5px; gap: 4px; background: #fff; border: 1px solid var(--brand-line, #e2dcd2); border-radius: 16px; }
   .account-workspace-sidebar .account-experience-nav a { flex-direction: column; justify-content: center; padding: 10px 4px; text-align: center; gap: 6px; min-height: 64px; font-size: 11px; }
   .account-experience .account-card { padding: 24px; }
   .account-experience .account-benefits ul { grid-template-columns: minmax(0, 1fr); }
@@ -313,72 +312,72 @@
   .account-experience .reset-experience { margin-top: 0; }
 }
 
-.account-experience .account-workspace-content .primary { border-color: #1549e6; }
-.account-experience .account-workspace-content .primary:hover:not(:disabled) { background: #1038ba; border-color: #1038ba; }
+.account-experience .account-workspace-content .primary { border-color: var(--brand-midnight, #101c2c); }
+.account-experience .account-workspace-content .primary:hover:not(:disabled) { background: var(--brand-slate, #24364b); border-color: var(--brand-slate, #24364b); }
 
 @media (max-width: 600px) {
   .account-experience .traveller-experience .form-row label:has(input[type="date"]) { grid-column: 1 / -1; }
 }
 
 /* A calm travel desk: editorial introductions, practical forms and clear actions. */
-body .account-experience { background: #f7f6f2; color: #10263d; }
+body .account-experience { background: var(--brand-ivory, #faf9f6); color: var(--brand-midnight, #101c2c); }
 .account-workspace-layout { grid-template-columns: 212px minmax(0, 1fr); gap: 44px; margin-top: 40px; }
-.account-workspace-intro { display: flex; gap: 12px; align-items: center; padding: 4px 10px 23px; margin-bottom: 18px; border-bottom: 1px solid #dce1e8; }
-.account-workspace-intro > span { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; background: #10263d; color: #ffb45a; border-radius: 12px; }
-.account-workspace-intro .account-workspace-label { margin: 0; color: #10263d; font-size: 12px; }
-.account-workspace-label small { display: block; font-size: 10px; font-weight: 400; color: #667489; margin-top: 5px; }
-.account-workspace-sidebar .account-experience-nav a { min-height: 52px; color: #526176; }
-.account-workspace-sidebar .account-experience-nav a[aria-current="page"] { background: #1549e6; color: #fff; box-shadow: 0 5px 16px #1549e615; }
-.account-workspace-sidebar .account-experience-nav a:hover:not([aria-current="page"]) { background: #edf1f8; color: #10263d; }
-.account-workspace-discover { margin: 26px 0 0; padding: 20px 16px; border-radius: 14px; background: #eeece4; }
-.account-workspace-discover p { font: 400 23px/1.2 var(--travel-display, Georgia); letter-spacing: -.035em; color: #10263d; margin: 0 0 8px; }
-.account-workspace-discover > span { display: block; font-size: 12px; line-height: 1.7; color: #637083; }
-.account-workspace-discover > a { display: inline-flex; gap: 9px; align-items: center; min-height: 44px; margin-top: 5px; color: #1549e6; font-size: 11px; font-weight: 650; text-decoration: none; }
+.account-workspace-intro { display: flex; gap: 12px; align-items: center; padding: 4px 10px 23px; margin-bottom: 18px; border-bottom: 1px solid var(--brand-line, #e2dcd2); }
+.account-workspace-intro > span { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; background: var(--brand-midnight, #101c2c); color: var(--brand-gold, #c6a66b); border-radius: 12px; }
+.account-workspace-intro .account-workspace-label { margin: 0; color: var(--brand-midnight, #101c2c); font-size: 12px; }
+.account-workspace-label small { display: block; font-size: 10px; font-weight: 400; color: var(--brand-muted, #637080); margin-top: 5px; }
+.account-workspace-sidebar .account-experience-nav a { min-height: 52px; color: var(--brand-muted, #637080); }
+.account-workspace-sidebar .account-experience-nav a[aria-current="page"] { background: var(--brand-midnight, #101c2c); color: #fff; box-shadow: 0 5px 16px #101c2c0d; }
+.account-workspace-sidebar .account-experience-nav a:hover:not([aria-current="page"]) { background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); }
+.account-workspace-discover { margin: 26px 0 0; padding: 20px 16px; border-radius: 14px; background: var(--brand-sand, #ede5d7); }
+.account-workspace-discover p { font: 400 23px/1.2 var(--travel-display, Georgia); letter-spacing: -.035em; color: var(--brand-midnight, #101c2c); margin: 0 0 8px; }
+.account-workspace-discover > span { display: block; font-size: 12px; line-height: 1.7; color: var(--brand-muted, #637080); }
+.account-workspace-discover > a { display: inline-flex; gap: 9px; align-items: center; min-height: 44px; margin-top: 5px; color: var(--brand-midnight, #101c2c); font-size: 11px; font-weight: 650; text-decoration: none; }
 .account-workspace-help { margin-top: 18px; padding-inline: 10px; }
-.account-experience .account-workspace-content h1 { font: 400 clamp(38px, 4.2vw, 56px)/1.08 var(--travel-display, Georgia); letter-spacing: -.045em; color: #10263d; }
+.account-experience .account-workspace-content h1 { font: 400 clamp(38px, 4.2vw, 56px)/1.08 var(--travel-display, Georgia); letter-spacing: -.045em; color: var(--brand-midnight, #101c2c); }
 .account-experience .account-workspace-content .page-heading { margin-bottom: 32px; }
-.account-experience .account-workspace-content .eyebrow { color: #1549e6; font-size: 10px; letter-spacing: .12em; }
+.account-experience .account-workspace-content .eyebrow { color: var(--brand-midnight, #101c2c); font-size: 10px; letter-spacing: .12em; }
 .account-experience .account-booking-return .page-heading h1 { font-family: var(--font-geist-sans), sans-serif; font-size: clamp(28px, 3vw, 39px); font-weight: 600; }
 .account-experience .account-experience-grid { grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 24px; }
 .account-experience .account-benefits { padding: 34px 30px; border-radius: 22px; }
-.account-experience .account-benefits::before { background: linear-gradient(180deg, #10263dc4, #10263df2 68%); }
-.account-experience .account-benefits-icon { width: 50px; height: 50px; color: #ffb45a; margin-bottom: 60px; background: #ffffff14; border-color: #ffffff40; }
+.account-experience .account-benefits::before { background: linear-gradient(180deg, #101c2cc4, #101c2cf2 68%); }
+.account-experience .account-benefits-icon { width: 50px; height: 50px; color: var(--brand-gold, #c6a66b); margin-bottom: 60px; background: #ffffff14; border-color: #ffffff40; }
 .account-experience .account-benefits h2 { font: 400 clamp(33px, 3.3vw, 44px)/1.08 var(--travel-display, Georgia); max-width: 300px; letter-spacing: -.04em; margin: 0 0 18px; }
-.account-experience .account-benefits > p:not(.eyebrow) { font-size: 13px; color: #dbe2ed; }
+.account-experience .account-benefits > p:not(.eyebrow) { font-size: 13px; color: var(--brand-sand, #ede5d7); }
 .account-experience .account-benefits ul { padding-top: 22px; margin-top: 26px; border-top: 1px solid #ffffff29; gap: 22px; }
 .account-experience .account-benefits li strong { font-size: 13px; }
-.account-experience .account-benefits li span { font-size: 12px; color: #c6d1e0; }
-.account-experience .account-benefits > a { font-size: 12px; color: #ffcf94; }
-body .account-experience .account-card { border: 1px solid #e0e4eb; border-radius: 22px; padding: 34px; box-shadow: 0 15px 48px #10263d05; }
-.account-experience .account-form-heading { padding-bottom: 22px; margin-bottom: 22px; border-bottom: 1px solid #e8ebf0; }
+.account-experience .account-benefits li span { font-size: 12px; color: var(--brand-sand, #ede5d7); }
+.account-experience .account-benefits > a { font-size: 12px; color: var(--brand-gold, #c6a66b); }
+body .account-experience .account-card { border: 1px solid var(--brand-line, #e2dcd2); border-radius: 22px; padding: 34px; box-shadow: 0 15px 48px #101c2c05; }
+.account-experience .account-form-heading { padding-bottom: 22px; margin-bottom: 22px; border-bottom: 1px solid var(--brand-line, #e2dcd2); }
 .account-experience .account-form-heading h2 { font-size: 25px; line-height: 1.25; margin: 0 0 8px; font-weight: 650; }
-.account-experience .account-card .account-tabs { margin-bottom: 24px; border-radius: 12px; background: #f1f3f8; }
+.account-experience .account-card .account-tabs { margin-bottom: 24px; border-radius: 12px; background: var(--brand-ivory, #faf9f6); }
 .account-experience .account-card .account-tabs button { font-size: 11px; padding-inline: 7px; }
-.account-experience .account-card .account-tabs button[aria-pressed="true"] { color: #1549e6; background: #fff; }
-.account-experience .account-workspace-content .primary { background: #1549e6; border-color: #1549e6; color: white; }
-.account-experience .account-workspace-content .primary:hover:not(:disabled) { background: #1038ba; border-color: #1038ba; }
+.account-experience .account-card .account-tabs button[aria-pressed="true"] { color: var(--brand-midnight, #101c2c); background: #fff; }
+.account-experience .account-workspace-content .primary { background: var(--brand-midnight, #101c2c); border-color: var(--brand-midnight, #101c2c); color: white; }
+.account-experience .account-workspace-content .primary:hover:not(:disabled) { background: var(--brand-slate, #24364b); border-color: var(--brand-slate, #24364b); }
 .account-experience .account-card > .secondary { margin-top: 12px; margin-right: 8px; font-size: 12px; }
-.account-experience .account-card input[type="checkbox"] { min-height: 18px; accent-color: #1549e6; }
+.account-experience .account-card input[type="checkbox"] { min-height: 18px; accent-color: var(--brand-midnight, #101c2c); }
 .account-experience .account-identity { padding: 6px 0 26px; }
-.account-experience .account-avatar { width: 64px; height: 64px; background: #10263d; color: #ffcf94; border-radius: 18px; font-family: var(--travel-display, Georgia); }
+.account-experience .account-avatar { width: 64px; height: 64px; background: var(--brand-midnight, #101c2c); color: var(--brand-gold, #c6a66b); border-radius: 18px; font-family: var(--travel-display, Georgia); }
 .account-experience .account-card .account-quick-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0; }
 .account-experience .account-card .account-quick-links > a { display: flex; align-items: center; gap: 12px; text-align: left; justify-content: flex-start; padding: 18px; border-radius: 12px; min-width: 0; min-height: 64px; }
 .account-experience .account-card .account-quick-links > a > svg:last-child { margin-left: auto; }
 .account-experience .account-card .account-quick-links > a:last-child { grid-column: 1 / -1; justify-content: flex-start; padding: 8px 0; min-height: 44px; background: transparent; border: 0; font-size: 12px; }
-.account-experience .security-section-heading > span { background: #edf2ff; color: #1549e6; border-color: #dce4f4; }
-.account-experience .account-session-security form { background: #f5f7fc; border-color: #e1e6ef; }
-.account-experience .device-session.is-current { background: #f5f7fc; border-left-color: #1549e6; }
+.account-experience .security-section-heading > span { background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); border-color: var(--brand-line, #e2dcd2); }
+.account-experience .account-session-security form { background: var(--brand-ivory, #faf9f6); border-color: var(--brand-line, #e2dcd2); }
+.account-experience .device-session.is-current { background: var(--brand-ivory, #faf9f6); border-left-color: var(--brand-midnight, #101c2c); }
 .account-experience #traveller-editor { border-top: 0; padding-top: 28px; }
 .account-experience .traveller-edit-fields > h2 { margin: 0 0 8px; font-size: 24px; letter-spacing: -.035em; }
-.account-experience .traveller-form-section h3 { padding-bottom: 12px; border-bottom: 1px solid #e6eaf1; color: #10263d; }
+.account-experience .traveller-form-section h3 { padding-bottom: 12px; border-bottom: 1px solid var(--brand-line, #e2dcd2); color: var(--brand-midnight, #101c2c); }
 .account-experience .traveller-profile-list .booking-record { border-radius: 16px; }
-.account-experience .traveller-profile-avatar { background: #10263d; color: #ffcf94; border-radius: 13px; }
-.account-experience .traveller-documents { background: #f5f7fc; border-style: solid; border-color: #e1e6ef; }
+.account-experience .traveller-profile-avatar { background: var(--brand-midnight, #101c2c); color: var(--brand-gold, #c6a66b); border-radius: 13px; }
+.account-experience .traveller-documents { background: var(--brand-ivory, #faf9f6); border-style: solid; border-color: var(--brand-line, #e2dcd2); }
 .account-experience .traveller-empty { background: #fff; border-style: solid; padding-block: 38px; }
 .account-experience .traveller-empty h3 { font: 400 29px/1.15 var(--travel-display, Georgia); }
 .account-experience .reset-experience { max-width: 580px; }
 .reset-heading { padding-top: 12px; }
-.reset-heading > span { background: #10263d; color: #ffcf94; border-radius: 18px; }
+.reset-heading > span { background: var(--brand-midnight, #101c2c); color: var(--brand-gold, #c6a66b); border-radius: 18px; }
 .account-experience .reset-experience .white-card > p { line-height: 1.7; margin-block: 14px 24px; }
 @media (max-width: 1100px) {
   .account-workspace-layout { grid-template-columns: 180px minmax(0, 1fr); gap: 28px; }
@@ -398,3 +397,50 @@ body .account-experience .account-card { border: 1px solid #e0e4eb; border-radiu
   .account-experience .account-card .account-quick-links { grid-template-columns: 1fr; }
   .account-experience .account-avatar { width: 54px; height: 54px; }
 }
+
+/* Midnight collection: warm surfaces, discreet champagne details, clear focus. */
+.account-workspace-intro { border-bottom-color: var(--brand-line, #e2dcd2); }
+.account-workspace-intro > span { border: 1px solid #c6a66b38; }
+.account-workspace-sidebar .account-experience-nav a { border: 1px solid transparent; transition: background-color .16s ease, border-color .16s ease; }
+.account-workspace-sidebar .account-experience-nav a[aria-current="page"] { box-shadow: inset 3px 0 0 var(--brand-gold, #c6a66b); }
+.account-workspace-sidebar .account-experience-nav a[aria-current="page"] > svg { color: var(--brand-gold, #c6a66b); }
+.account-workspace-discover { background: var(--brand-sand, #ede5d7); border: 1px solid var(--brand-line, #e2dcd2); }
+.account-workspace-discover > a { color: var(--brand-midnight, #101c2c); }
+.account-workspace-help:hover { color: var(--brand-midnight, #101c2c); }
+.account-experience .account-workspace-content .eyebrow { color: var(--brand-gold-ink, #806132); }
+.account-experience .account-benefits::before { background: linear-gradient(180deg, #101c2cba, #101c2cf5 72%); }
+.account-experience .account-benefits-icon { border-color: #c6a66b66; background: #101c2c33; }
+.account-experience .account-benefits > a { color: var(--brand-sand, #ede5d7); text-decoration-color: var(--brand-gold, #c6a66b); text-underline-offset: 6px; }
+.account-experience .account-benefits li > svg { color: var(--brand-gold, #c6a66b); }
+body .account-experience .account-card { box-shadow: 0 16px 48px #101c2c05; }
+.account-experience .account-card .account-tabs { border: 1px solid var(--brand-line, #e2dcd2); padding: 4px; background: var(--brand-ivory, #faf9f6); }
+.account-experience .account-card .account-tabs button[aria-pressed="true"] { color: var(--brand-midnight, #101c2c); box-shadow: 0 2px 7px #101c2c09; }
+.account-experience .account-workspace-content :is(input:not([type="checkbox"]), select, textarea) { background: var(--brand-ivory, #faf9f6); border-color: var(--brand-line, #e2dcd2); color: var(--brand-ink, #101c2c); }
+.account-experience .account-workspace-content :is(input, select, textarea):focus-visible { border-color: var(--brand-slate, #24364b); background: #fff; }
+.account-experience .account-workspace-content :is(a, button, input, select, textarea, summary):focus-visible,
+.account-workspace-sidebar a:focus-visible { outline: 2px solid var(--brand-slate, #24364b); outline-offset: 4px; }
+.account-experience .account-workspace-content .primary { background: var(--brand-midnight, #101c2c); border-color: var(--brand-midnight, #101c2c); color: var(--brand-ivory, #faf9f6); }
+.account-experience .account-workspace-content .primary:hover:not(:disabled) { background: var(--brand-slate, #24364b); border-color: var(--brand-slate, #24364b); }
+.account-experience .account-workspace-content .secondary { border-color: var(--brand-line, #e2dcd2); color: var(--brand-slate, #24364b); background: #fff; }
+.account-experience .account-workspace-content .secondary:hover:not(:disabled) { background: var(--brand-ivory, #faf9f6); border-color: #c6a66b99; }
+.account-experience .info-message { background: var(--brand-ivory, #faf9f6); color: var(--brand-slate, #24364b); border-color: var(--brand-line, #e2dcd2); }
+.account-experience .account-avatar, .account-experience .traveller-profile-avatar { border: 1px solid #c6a66b40; }
+.account-experience .security-section-heading > span { background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); border-color: var(--brand-line, #e2dcd2); }
+.account-experience .account-session-security { margin-top: 30px; padding-top: 8px; }
+.account-experience .account-whatsapp { margin: 24px 0; padding: 22px; border: 1px solid var(--brand-line, #e2dcd2); border-radius: 14px; background: var(--brand-ivory, #faf9f6); }
+.account-experience .account-whatsapp h3 { margin: 0 0 10px; font-size: 18px; }
+.account-experience .account-whatsapp p { font-size: 13px; line-height: 1.75; color: var(--brand-muted, #637080); margin: 10px 0 16px; }
+.account-experience .device-session.is-current { background: var(--brand-ivory, #faf9f6); border-left: 3px solid var(--brand-gold, #c6a66b); }
+.account-experience .device-session-icon { color: var(--brand-gold-ink, #806132); }
+.account-experience .traveller-profile-list .booking-record.is-editing { outline-color: var(--brand-slate, #24364b); }
+.account-experience .traveller-profile-list .booking-record .secondary:last-child { color: #a34747; border-color: #eddada; }
+.account-experience .traveller-documents { background: var(--brand-ivory, #faf9f6); }
+.account-experience .traveller-documents summary { color: var(--brand-slate, #24364b); }
+.account-experience .traveller-empty > span { background: var(--brand-sand, #ede5d7); color: var(--brand-midnight, #101c2c); }
+.account-experience .reset-heading > span { border: 1px solid #c6a66b40; }
+@media (max-width: 750px) {
+  .account-workspace-sidebar .account-experience-nav { background: #fff; border-color: var(--brand-line, #e2dcd2); }
+  .account-workspace-sidebar .account-experience-nav a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--brand-gold, #c6a66b); }
+  .account-experience .account-whatsapp { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .account-workspace-sidebar .account-experience-nav a { transition: none; } }

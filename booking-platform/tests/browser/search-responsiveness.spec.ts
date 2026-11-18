@@ -86,6 +86,8 @@ test('large flight response mounts fare details only when opened and retains all
  await disclosure.focus();await page.keyboard.press('Tab');
  await expect(first.getByRole('button',{name:'Back to flights',exact:true})).toBeFocused();
  await page.keyboard.press('Tab');
+ await expect(first.getByRole('button',{name:'Next fare options',exact:true})).toBeFocused();
+ await page.keyboard.press('Tab');
  await expect(first.getByRole('button',{name:'Check fare & continue',exact:true}).first()).toBeFocused();
  await page.keyboard.press('Enter');await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['fare-0-0']});
