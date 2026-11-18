@@ -19,6 +19,42 @@ spec.loader.exec_module(update)
 
 
 class SafetyTests(unittest.TestCase):
+    def test_snapshot_enables_declared_profiles_so_running_profiled_workers_are_modelled(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            working, recovery = Path(temporary) / "work", Path(temporary) / "recovery"
+            working.mkdir(); recovery.mkdir()
+            file = working / "compose.yaml"
+            file.write_text("services: {}\n")
+            labels = {"com.docker.compose.project": "max-travel-booking", "com.docker.compose.service": "app",
+                      "com.docker.compose.project.working_dir": str(working), "com.docker.compose.project.config_files": str(file)}
+            app = {"Name": "/max-travel-booking-app-1", "Image": "sha256:app", "State": {"Running": True, "Health": {"Status": "healthy"}},
+                   "Mounts": [], "Config": {"Labels": labels, "Env": []}}
+            worker = {"Name": "/max-travel-booking-catalogue-worker-1", "Image": "sha256:app", "Mounts": [],
+                      "Config": {"Labels": {"com.docker.compose.project": "max-travel-booking", "com.docker.compose.service": "catalogue-worker"}, "Env": []}}
+            rendered = {"name": "max-travel-booking", "services": {"app": {"image": "max-travel-booking:local"},
+                        "catalogue-worker": {"image": "max-travel-booking:local", "profiles": ["catalogue"]}}}
+            state = update.Update.__new__(update.Update)
+            state.directory, state.number, state.stacks = recovery, 0, []
+            state.inspect = lambda kind, identity: {"Config": {"Env": []}} if kind == "image" else (worker if identity == "worker-id" else app)
+            calls = []
+            def run(args, **kwargs):
+                calls.append(args)
+                if args[:3] == ["docker", "ps", "-q"]:
+                    return "app-id\nworker-id\n"
+                if args[-1] == "--profiles":
+                    return "catalogue\n"
+                if args[-3:] == ["config", "--format", "json"]:
+                    if "catalogue" not in args:
+                        return json.dumps({**rendered, "services": {"app": rendered["services"]["app"]}})
+                    return json.dumps(rendered)
+                raise AssertionError(args)
+            state.run = run
+            with contextlib.redirect_stdout(io.StringIO()):
+                stack = state.snapshot("max-travel-booking-app-1", "max-travel-booking")
+            self.assertEqual(sorted(stack["services"]), ["app", "catalogue-worker"])
+            render = next(c for c in calls if c[-3:] == ["config", "--format", "json"])
+            self.assertEqual(render[render.index("--profile") + 1], "catalogue")
+
     def test_pruned_worker_image_uses_app_image_defaults_but_app_and_database_never_do(self):
         images = {"sha256:app": {"Config": {"Env": ["PATH=/usr/bin", "NODE_ENV=production"]}}, "sha256:pg": {"Config": {"Env": ["PGDATA=/data"]}}}
         def inspect(image):
