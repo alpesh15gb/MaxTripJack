@@ -311,6 +311,63 @@ test('reload resumes only the owned server-checked order and stores no traveller
   expect(await page.evaluate('JSON.parse(sessionStorage.getItem("maxtravel.pending-checkout.v1"))')).toEqual({ quoteId, bookingId });
 });
 
+test('an expired previous checkout lets a different hotel booking reach payment and survives its success', async ({ page, provider }, testInfo) => {
+  const previous = { quoteId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', bookingId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
+  await page.addInitScript(marker => sessionStorage.setItem('maxtravel.pending-checkout.v1', JSON.stringify(marker)), previous);
+  provider.overrides['GET /api/payments/status'] = { body: {
+    bookingId: previous.bookingId, canResume: false, checkoutResolved: false, status: 'PAYMENT_PENDING',
+    message: 'This checkout cannot be reopened safely. Check this booking in My trips.',
+  } };
+  const option = { optionId: 'new-stay-room', roomInfo: [{ name: 'Standard room' }], pricing: { totalPrice: 6540, currency: 'INR' }, cancellation: { isRefundable: false, penalties: [] } };
+  provider.search = { searchId, results: { hotels: [{ tjHotelId: '10001', name: 'New stay', customerEstimateMinor: 654000 }] } };
+  provider.overrides['POST /api/travel/hotel-detail'] = { body: { options: [option] } };
+  provider.overrides[`GET /api/bookings/${bookingId}/details`] = { status: 404, body: { error: 'Synthetic fixture has no booking details.' } };
+  provider.quote = reviewedQuote({ product: 'HOTEL', summary: { checkIn: departure, checkOut: returning, adults: 1, rooms: [{ adults: 1, children: 0, childAge: [] }] }, review: { option } });
+  await page.goto('/book?' + new URLSearchParams({ product: 'HOTEL', hotelIds: '10001', city: 'Goa', date: departure, end: returning, adults: '1' }));
+  const recovery = page.getByRole('region', { name: 'Interrupted checkout', exact: true });
+  await expect(recovery).toContainText('This checkout cannot be reopened safely.');
+  await expectNoHorizontalOverflow(page);
+  await capture(page, testInfo, 'previous-checkout-can-start-new-trip');
+  await recovery.getByRole('button', { name: 'Book a different trip', exact: true }).click();
+  await expect(page.locator('#booking-search > summary')).toBeFocused();
+  await page.getByRole('button', { name: 'Search stays', exact: true }).click();
+  await page.getByRole('button', { name: 'Choose room', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Continue with room', exact: true }).first().click();
+  await showPaymentReview(page);
+  await openSyntheticPayment(page);
+  expect(provider.requests('/api/payments/create')[0].body).toMatchObject({ quoteId, interruptedQuoteIds: [previous.quoteId] });
+  expect(await page.evaluate('JSON.parse(sessionStorage.getItem("maxtravel.pending-checkout.v1"))')).toEqual([previous, { quoteId, bookingId }]);
+  await page.evaluate('window.__syntheticGateway.complete()');
+  await expect(page).toHaveURL(new RegExp(`/my-trips/${bookingId}$`));
+  expect(await page.evaluate('JSON.parse(sessionStorage.getItem("maxtravel.pending-checkout.v1"))')).toEqual(previous);
+  expect(provider.requests('/api/payments/create')).toHaveLength(1);
+});
+
+test('starting another trip after dismissing payment cannot charge an overlapping flight on a fresh quote', async ({ page, provider }) => {
+  const newQuoteId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  await openReviewedFlight(page);
+  await showPaymentReview(page);
+  await openSyntheticPayment(page);
+  await page.evaluate('window.__syntheticGateway.dismiss()');
+  await page.getByRole('button', { name: 'Book a different trip', exact: true }).click();
+  const recovery = page.getByRole('region', { name: 'Interrupted checkout', exact: true });
+  await expect(recovery.getByRole('button', { name: /^Resume existing checkout/ })).toBeEnabled();
+  await expect(page.getByRole('form', { name: 'Review and travellers' })).toHaveCount(0);
+  provider.quote = reviewedQuote({ quoteId: newQuoteId });
+  provider.overrides['POST /api/payments/create'] = { status: 409, body: {
+    code: 'CHECKOUT_TRIP_CONFLICT', error: 'A previous checkout may cover this trip. No new payment was started.',
+  } };
+  await page.getByRole('button', { name: 'Search flights', exact: true }).click();
+  await selectVisibleFare(page);
+  await showPaymentReview(page);
+  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
+  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('No new payment was started.');
+  expect(provider.requests('/api/payments/create')[1].body).toMatchObject({ quoteId: newQuoteId, interruptedQuoteIds: [quoteId] });
+  expect(await page.evaluate('window.__syntheticGateway.opens')).toEqual(['order_SYNTHETICONLY']);
+  expect(await page.evaluate('JSON.parse(sessionStorage.getItem("maxtravel.pending-checkout.v1"))')).toEqual({ quoteId, bookingId });
+  expect(provider.requests('/api/payments/verify')).toHaveLength(0);
+});
+
 for (const status of [401, 404]) test(`an inaccessible checkout remains uncertain after ${status} without exposing its references or unlocking payment`, async ({ page, provider }) => {
   provider.overrides['GET /api/payments/status'] = { status, body: { error: status === 404 ? 'Booking not found.' : 'Sign in to continue.' } };
   await page.addInitScript(({ quoteId, bookingId }) => {
@@ -661,7 +718,7 @@ test('same-book Next Link cannot reset unresolved checkout recovery or enable a 
  await openFlightSearch(page,{auto:false});const recovery=page.getByRole('region',{name:'Interrupted checkout',exact:true});await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');
  const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Hotels',exact:true}).click();
- await expect(page.getByRole('alert').filter({hasText:'Finish checking your current payment before starting a different search.'})).toBeVisible();
+ await expect(page.getByRole('alert').filter({hasText:'Choose “Book a different trip” to start a new search and keep your previous checkout.'})).toBeVisible();
  await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Search stays',exact:true})).toHaveCount(0);
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);expect(provider.requests('/api/payments/status')).toHaveLength(1);
 });

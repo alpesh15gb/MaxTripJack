@@ -21,11 +21,30 @@ import { tripjack } from "@/lib/providers/tripjack";
 import { tripjackWalletCovers } from "@/lib/providers/tripjack-wallet";
 import { markGatewayIntentUnknown, persistGatewayOrder } from "@/lib/payment-intent";
 import { FareValidationBlockedError } from "@/lib/fare-validation";
+import { compareCheckoutTrips, MAX_INTERRUPTED_CHECKOUTS, type CheckoutTripRecord } from "@/lib/checkout-trip-comparison";
 export async function POST(request:Request){try{
- sameOrigin(request);const actor=await principal(request);const input=await body(request,z.object({quoteId:z.string().uuid(),guests:guestSchema.optional(),billingData:billingSchema.optional(),returnChannel:z.enum(["WEB","APP"]).optional(),acceptedTotalMinor:z.number().int().nonnegative()}).strict());
+ sameOrigin(request);const actor=await principal(request);const input=await body(request,z.object({quoteId:z.string().uuid(),interruptedQuoteIds:z.array(z.string().uuid()).max(MAX_INTERRUPTED_CHECKOUTS).optional(),guests:guestSchema.optional(),billingData:billingSchema.optional(),returnChannel:z.enum(["WEB","APP"]).optional(),acceptedTotalMinor:z.number().int().nonnegative()}).strict());
  const quote=await owned("supplier_quotes",input.quoteId,actor);assertFresh(quote.expires_at);
  if(Number(quote.total_minor)!==input.acceptedTotalMinor)throw new HttpError(409,"Price changed. Accept the latest review.");
  const search=await owned("supplier_searches",quote.search_id,actor);
+ if(input.interruptedQuoteIds?.length){
+  const interruptedIds=[...new Set(input.interruptedQuoteIds.map(id=>id.toLowerCase()))];
+  const conflict=()=>json({code:"CHECKOUT_TRIP_CONFLICT",error:"A previous checkout may cover this trip. No new payment was started. Verify your earlier checkouts in My trips before paying for this journey again."},409);
+  const unverified=()=>json({code:"CHECKOUT_TRIP_UNVERIFIED",error:"We could not verify that this trip is separate from your earlier checkouts. No new payment was started. Check those payments in My trips or contact support before trying again."},409);
+  if(interruptedIds.includes(String(quote.id).toLowerCase()))return conflict();
+  // Both owners are checked: a quote reference must never reveal another
+  // account's search, or be accepted merely because the quote row is owned.
+  const interrupted=await database().query<CheckoutTripRecord&{id:string}>(
+   `SELECT q.id,q.product,q.selection,q.service_kind,s.product AS search_product,
+    s.criteria,s.service_kind AS search_service_kind,s.parent_order_id
+    FROM supplier_quotes q JOIN supplier_searches s ON s.id=q.search_id
+    WHERE q.id=ANY($1::uuid[]) AND q.user_id=$2 AND q.company_id IS NOT DISTINCT FROM $3::uuid
+      AND s.user_id=$2 AND s.company_id IS NOT DISTINCT FROM $3::uuid`,
+   [interruptedIds,actor.userId,actor.companyId]);
+  if(interrupted.rows.length!==interruptedIds.length)return unverified();
+  const current:CheckoutTripRecord={product:quote.product,search_product:search.product,criteria:search.criteria,selection:quote.selection,service_kind:quote.service_kind,search_service_kind:search.service_kind,parent_order_id:search.parent_order_id};
+  for(const previous of interrupted.rows){const comparison=compareCheckoutTrips(current,previous);if(comparison==='conflict')return conflict();if(comparison==='unverified')return unverified();}
+ }
  let guests=input.guests;
  if(quote.service_kind){const parent=await owned("orders",search.parent_order_id,actor);if(parent.status!=="TICKETED")throw new HttpError(409,"Original booking is no longer active.");const original=guestSchema.parse(unseal(parent.guests_encrypted,parent.id));guests=quote.service_kind==="REISSUE"?{...original,travellers:quote.service_payload.travellerIndexes.map((i:number)=>original.travellers[i])}:original;}
  if(!guests)throw new HttpError(400,"Traveller details are required.");

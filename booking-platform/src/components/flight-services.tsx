@@ -5,7 +5,7 @@ import BillingFields from "./billing-fields";
 import {billingFromForm,billingForProduct,type BillingData} from "@/lib/billing";
 import "./flight-services.css";
 import { serviceConditions } from "@/lib/service-conditions";
-import {CHECKOUT_RECOVERY_KEY,clearCheckoutMarker,parseCheckoutMarker,parseCheckoutRecoveryStatus,isResolvedCheckout,isResumableCheckout,isResumableHostedCheckout,saveCheckoutMarker,type CheckoutMarker} from "@/lib/checkout-recovery";
+import {readCheckoutMarkers,clearCheckoutMarker,parseCheckoutMarker,parseCheckoutRecoveryStatus,isResolvedCheckout,isResumableCheckout,isResumableHostedCheckout,saveCheckoutMarker,type CheckoutMarker} from "@/lib/checkout-recovery";
 import Link from "next/link";
 import useCheckoutRecovery from "./use-checkout-recovery";
 type ServicePayment={bookingId:string;free?:boolean;provider?:"RAZORPAY";orderId:string;keyId:string;amount:number;currency:string}|{bookingId:string;free?:false;provider:"PAYGLOCAL";checkoutUrl:string;amount:number;currency:"INR"};
@@ -86,7 +86,7 @@ export default function FlightServices({bookingId,onUpdate}:{bookingId:string;on
   verificationStarted.current=false;
   const checkout=new window.Razorpay({key:status.keyId,amount:status.amount,currency:status.currency,order_id:status.orderId,name:"Max Travel · Flight services",handler:result=>{
    if(verificationStarted.current||!mounted.current||abandoned.current||generation!==navigationGeneration.current)return;verificationStarted.current=true;releaseCheckout();
-   void run(async()=>{try{const verified=await paymentRequest<{bookingId?:string;status?:string}>("/api/payments/verify",{bookingId:status.bookingId,...result});if(!mounted.current||abandoned.current||generation!==navigationGeneration.current)return;if(verified.bookingId!==status.bookingId||verified.status!=="PAYMENT_VERIFIED")throw Error("Payment verification response could not be confirmed. Check the original order; do not pay again.");clearCheckoutMarker(saved);recovery.clear();attempt.current=null;setStarted(false);setQuote(null);setSearch(null);setKind(null);onUpdate();setMessage("Request received. Check the linked booking for supplier confirmation.");}catch(error){if(mounted.current&&!abandoned.current&&generation===navigationGeneration.current){await recovery.reconcile(saved);throw error;}}});
+   void run(async()=>{try{const verified=await paymentRequest<{bookingId?:string;status?:string}>("/api/payments/verify",{bookingId:status.bookingId,...result});if(!mounted.current||abandoned.current||generation!==navigationGeneration.current)return;if(verified.bookingId!==status.bookingId||verified.status!=="PAYMENT_VERIFIED")throw Error("Payment verification response could not be confirmed. Check the original order; do not pay again.");recovery.clear(saved);attempt.current=null;setStarted(false);setQuote(null);setSearch(null);setKind(null);onUpdate();setMessage("Request received. Check the linked booking for supplier confirmation.");}catch(error){if(mounted.current&&!abandoned.current&&generation===navigationGeneration.current){await recovery.reconcile(saved);throw error;}}});
   },modal:{ondismiss:()=>{if(verificationStarted.current||!mounted.current||abandoned.current||generation!==navigationGeneration.current)return;releaseCheckout();setMessage("Checkout closed. Check payment status before resuming the same order.");void recovery.reconcile(saved);}}});
   checkout.on("payment.failed",()=>{if(verificationStarted.current||!mounted.current||abandoned.current||generation!==navigationGeneration.current)return;releaseCheckout();setMessage("Payment was not confirmed. Check the existing order before continuing.");void recovery.reconcile(saved);});
   checkoutOpen.current=true;checkout.open();
@@ -97,14 +97,14 @@ export default function FlightServices({bookingId,onUpdate}:{bookingId:string;on
   await run(async()=>{
    // Save opaque recovery IDs BEFORE mutation, including zero-value services.
    // Never replace a different unresolved checkout belonging to this tab.
-   const existing=parseCheckoutMarker(sessionStorage.getItem(CHECKOUT_RECOVERY_KEY));
+   const existing=readCheckoutMarkers()[0];
    if(existing){await recovery.reconcile(existing);throw Error("An earlier checkout needs attention. Check its status before starting another payment.");}
    if(!saveCheckoutMarker({quoteId:quote.quoteId}))throw Error("Secure recovery storage is unavailable. Check booking updates before starting payment.");
    const marker={quoteId:quote.quoteId};attempt.current=marker;setStarted(true);
    try{
     const payment=await paymentRequest<ServicePayment>("/api/payments/create",{quoteId:quote.quoteId,acceptedTotalMinor:quote.totalMinor,...(billingData?{billingData}:{})});
     if(!mounted.current||abandoned.current||generation!==navigationGeneration.current)return;
-    if(payment.free===true&&parseCheckoutMarker(JSON.stringify({quoteId:quote.quoteId,bookingId:payment.bookingId}))?.bookingId){clearCheckoutMarker(marker);recovery.clear();attempt.current=null;setStarted(false);setQuote(null);setSearch(null);setKind(null);onUpdate();setMessage("Request received. Check the linked booking for supplier confirmation.");return;}
+    if(payment.free===true&&parseCheckoutMarker(JSON.stringify({quoteId:quote.quoteId,bookingId:payment.bookingId}))?.bookingId){recovery.clear(marker);attempt.current=null;setStarted(false);setQuote(null);setSearch(null);setKind(null);onUpdate();setMessage("Request received. Check the linked booking for supplier confirmation.");return;}
     if(!isResumableCheckout({...payment,canResume:true})&&!isResumableHostedCheckout({...payment,canResume:true}))throw Error("Checkout details could not be verified. Check the original payment status; do not pay again.");
     const saved={...marker,bookingId:payment.bookingId};attempt.current=saved;
     if(!saveCheckoutMarker(saved))throw Error("Checkout recovery could not be saved. Check booking updates before paying again.");

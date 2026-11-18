@@ -282,7 +282,8 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 @keyframes travel-spin { to { transform: rotate(360deg); } }
 .booking-status p { margin: 0 0 8px; }
 .booking-recovery > p { font-size: 14px; line-height: 1.8; color: #657d8f; }
-.booking-recovery > .primary, .booking-recovery > .secondary { margin: 5px 8px 5px 0; }
+.booking-recovery-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin: 8px 0; }
+@media (max-width:600px) { .booking-recovery-actions > :is(.primary,.secondary) { width:100%; } }
 .live-booking .live-flight-card.is-selected { border-color: #8da9f0; }
 .live-booking .airline-identity small { font-size: 12px; line-height: 1.6; }
 .live-booking .flight-route-line small { font-size: 12px; line-height: 1.5; }
@@ -426,6 +427,5 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 @media (prefers-reduced-motion: reduce) { .booking-spinner { animation: none; } }
 .live-booking .booking-traveller-fields[hidden] { display: none !important; }
 .live-booking .booking-recovery { border-color: #e5d7aa; background: #fffdf4; margin-bottom: 25px; }
-.live-booking .booking-recovery .eyebrow { color: #9b8342; }
 .live-booking .booking-recovery h2 { font-size: 24px; margin: 12px 0 17px; }
 .live-booking .booking-recovery .secondary { background: #fffefa; border-color: #e6ddc2; }

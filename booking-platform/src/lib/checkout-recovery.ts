@@ -6,10 +6,54 @@ export function parseCheckoutMarker(value:string|null):CheckoutMarker|null{
   if(!value)return null;
   try{const data=JSON.parse(value);if(!data||typeof data.quoteId!=='string'||!uuid.test(data.quoteId))return null;return {quoteId:data.quoteId,...(typeof data.bookingId==='string'&&uuid.test(data.bookingId)?{bookingId:data.bookingId}:{})};}catch{return null;}
 }
-export function saveCheckoutMarker(marker:CheckoutMarker){
-  try{const safe=parseCheckoutMarker(JSON.stringify(marker));if(!safe)return false;const existing=parseCheckoutMarker(sessionStorage.getItem(CHECKOUT_RECOVERY_KEY));if(existing&&existing.quoteId!==safe.quoteId)return false;sessionStorage.setItem(CHECKOUT_RECOVERY_KEY,JSON.stringify(safe));return true;}catch{return false;}
+const markerLimit=20;
+function validStoredMarker(value:unknown):CheckoutMarker{
+  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Checkout recovery storage is invalid.');
+  const row=value as Record<string,unknown>;
+  if(typeof row.quoteId!=='string'||!uuid.test(row.quoteId)||
+    (row.bookingId!==undefined&&(typeof row.bookingId!=='string'||!uuid.test(row.bookingId))))throw Error('Checkout recovery storage is invalid.');
+  return {quoteId:row.quoteId,...(typeof row.bookingId==='string'?{bookingId:row.bookingId}:{})};
 }
-export function clearCheckoutMarker(expected?:Partial<CheckoutMarker>){try{const existing=parseCheckoutMarker(sessionStorage.getItem(CHECKOUT_RECOVERY_KEY));if(expected&&existing&&((expected.quoteId&&existing.quoteId!==expected.quoteId)||(expected.bookingId&&existing.bookingId!==expected.bookingId)))return;sessionStorage.removeItem(CHECKOUT_RECOVERY_KEY);}catch{/* The in-memory guard remains active if browser storage is unavailable. */}}
+/** Read failures are deliberately observable: unreadable recovery is not an empty history. */
+export function readCheckoutMarkers():CheckoutMarker[]{
+  const stored=sessionStorage.getItem(CHECKOUT_RECOVERY_KEY);
+  if(stored===null)return [];
+  const value:unknown=JSON.parse(stored);
+  const rows=Array.isArray(value)?value:[value];
+  if(rows.length>markerLimit)throw Error('Checkout recovery storage is full.');
+  const markers=rows.map(validStoredMarker);
+  if(new Set(markers.map(marker=>marker.quoteId)).size!==markers.length)throw Error('Checkout recovery storage has duplicate quote references.');
+  return markers;
+}
+function writeCheckoutMarkers(markers:CheckoutMarker[]){
+  if(!markers.length)sessionStorage.removeItem(CHECKOUT_RECOVERY_KEY);
+  else sessionStorage.setItem(CHECKOUT_RECOVERY_KEY,JSON.stringify(markers.length===1?markers[0]:markers));
+}
+export function saveCheckoutMarker(marker:CheckoutMarker){
+  try{
+    const safe=validStoredMarker(marker),markers=readCheckoutMarkers();
+    const index=markers.findIndex(existing=>existing.quoteId===safe.quoteId);
+    if(index>=0){
+      const existing=markers[index];
+      if(existing.bookingId&&safe.bookingId&&existing.bookingId!==safe.bookingId)return false;
+      markers[index]={...existing,...safe};
+    }else{
+      if(markers.length>=markerLimit)return false;
+      markers.push(safe);
+    }
+    writeCheckoutMarkers(markers);return true;
+  }catch{return false;}
+}
+export function clearCheckoutMarker(expected?:Partial<CheckoutMarker>){
+  if(!expected||(!expected.quoteId&&!expected.bookingId)||
+    (expected.quoteId!==undefined&&(typeof expected.quoteId!=='string'||!uuid.test(expected.quoteId)))||
+    (expected.bookingId!==undefined&&(typeof expected.bookingId!=='string'||!uuid.test(expected.bookingId))))return;
+  try{
+    const markers=readCheckoutMarkers();
+    const remaining=markers.filter(marker=>!((!expected.quoteId||marker.quoteId===expected.quoteId)&&(!expected.bookingId||marker.bookingId===expected.bookingId)));
+    if(remaining.length!==markers.length)writeCheckoutMarkers(remaining);
+  }catch{/* Preserve unresolved markers and the in-memory guard when storage is unavailable. */}
+}
 export type CheckoutRecoveryStatus={provider?:string;checkoutUrl?:string;bookingId?:string;status?:string;paymentStatus?:string;intentState?:string;canResume:boolean;checkoutResolved?:boolean;quoteExpiresAt?:string;message?:string;orderId?:string;keyId?:string;amount?:number;currency?:string};
 export function isResumableCheckout(value:CheckoutRecoveryStatus):value is CheckoutRecoveryStatus&{bookingId:string;orderId:string;keyId:string;amount:number;currency:string}{
   return (value.provider===undefined||value.provider==='RAZORPAY')&&value.canResume===true&&typeof value.bookingId==='string'&&uuid.test(value.bookingId)&&typeof value.orderId==='string'&&Boolean(value.orderId)&&typeof value.keyId==='string'&&Boolean(value.keyId)&&typeof value.amount==='number'&&Number.isSafeInteger(value.amount)&&value.amount>0&&value.currency==='INR';
