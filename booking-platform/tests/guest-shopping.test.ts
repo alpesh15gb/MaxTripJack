@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { issueShoppingToken, renewShoppingToken, shoppingIdentity, shoppingCookieToken, shoppingCookie, SHOPPING_LIFETIME_SECONDS } from "../src/lib/guest-shopping-identity";
+import { issueShoppingToken, renewShoppingToken, shoppingIdentity, shoppingCookieToken, shoppingCookie, SHOPPING_LIFETIME_SECONDS, legacyShoppingCookieExpiry } from "../src/lib/guest-shopping-identity";
 import { enforceShoppingLimits, shoppingPeer } from "../src/lib/guest-shopping-policy";
 import { claimShoppingSearch, CLAIM_GUEST_SEARCH_SQL } from "../src/lib/guest-search-claim";
 const secret = "test-only-signing-secret-with-more-than-thirty-two-characters";
@@ -20,12 +20,13 @@ test("anonymous ownership is unpredictable, signed, isolated and expires server-
  assert.equal(shoppingIdentity(first, "short", now), null);
  assert.throws(() => issueShoppingToken("short", now));
 });
-test("cookie is host-only, limited to travel API and unavailable to scripts", () => {
+test("cookie is host-only, limited to the API and unavailable to scripts", () => {
  const token = issueShoppingToken(secret, now);
  assert.equal(shoppingCookieToken(`unrelated=x; maxtravel-shopping=${token}`), token);
  assert.equal(shoppingCookieToken(`maxtravel-shopping=${token}; maxtravel-shopping=other`), undefined);
  const cookie = shoppingCookie(token, true);
- for (const flag of ["Path=/api/travel", "HttpOnly", "SameSite=Lax", "Max-Age=1800", "Secure"]) assert.ok(cookie.includes(flag));
+ for (const flag of ["Path=/api;", "HttpOnly", "SameSite=Lax", "Max-Age=3600", "Secure"]) assert.ok(cookie.includes(flag));
+ assert.ok(legacyShoppingCookieExpiry(true).includes("Path=/api/travel") && legacyShoppingCookieExpiry(true).includes("Max-Age=0"));
  assert.equal(cookie.includes("Domain="), false);
  assert.equal(shoppingCookie(token, false).includes("Secure"), false);
 });
@@ -38,24 +39,34 @@ test("claim only accepts a guest namespace and an authenticated actor", async ()
  assert.equal(calls, 1);
  for (const predicate of ["id=$3", "user_id=$4", "company_id IS NULL", "expires_at>now()", "service_kind IS NULL"]) assert.ok(CLAIM_GUEST_SEARCH_SQL.includes(predicate));
 });
-test("review remains authenticated and origin checked; private routes keep principal", () => {
+test("checkout routes use guest-capable access; account-only routes keep principal", () => {
  const review = readFileSync(new URL("../src/app/api/travel/review/route.ts",import.meta.url),"utf8");
  assert.ok(review.includes("sameOrigin(request)"));
- assert.ok(review.indexOf("await principal(request)") < review.indexOf("await claimGuestSearch(request"));
- for (const route of ["payments/create", "bookings"]) {
+ assert.ok(review.indexOf("await checkoutAccess(request)") < review.indexOf("await claimGuestSearch(request"));
+ assert.ok(review.includes("if(!isGuestActor(actor))await claimGuestSearch"));
+ for (const route of ["payments/create", "payments/verify", "payments/status", "travel/promo", "travel/checkout-extras", "bookings/[id]/details"]) {
   const source=readFileSync(new URL(`../src/app/api/${route}/route.ts`,import.meta.url),"utf8");
-  assert.ok(source.includes("principal(request)"));
+  assert.ok(source.includes("checkoutAccess(request)"), route);
+  assert.equal(source.includes("principal(request)"), false, route);
  }
+ for (const route of ["bookings", "bookings/[id]/cancellation", "travellers"]) {
+  const source=readFileSync(new URL(`../src/app/api/${route}/route.ts`,import.meta.url),"utf8");
+  assert.ok(source.includes("principal(request)"), route);
+ }
+ const shopping = readFileSync(new URL("../src/lib/guest-shopping.ts",import.meta.url),"utf8");
+ const access = shopping.slice(shopping.indexOf("export async function checkoutAccess"));
+ assert.ok(access.includes("error.status !== 401) throw error"), "unverified or suspended sessions never fall back to guest");
+ assert.ok(access.includes("if (!identity) throw new HttpError(401"), "checkout never issues a new guest identity");
 });
 
 test("search near cookie expiry renews the same owner without orphaning older searches", () => {
- const first=issueShoppingToken(secret,now), late=now+29*60*1000;
+ const first=issueShoppingToken(secret,now), late=now+59*60*1000;
  const renewed=renewShoppingToken(first,secret,late);
  assert.equal(shoppingIdentity(renewed,secret,late),shoppingIdentity(first,secret,late));
- assert.equal(shoppingIdentity(first,secret,now+31*60*1000),null);
- assert.ok(shoppingIdentity(renewed,secret,now+43*60*1000));
- assert.equal(shoppingIdentity(renewed,secret,now+59*60*1000),null);
- assert.throws(()=>renewShoppingToken(first,secret,now+31*60*1000));
+ assert.equal(shoppingIdentity(first,secret,now+61*60*1000),null);
+ assert.ok(shoppingIdentity(renewed,secret,now+100*60*1000));
+ assert.equal(shoppingIdentity(renewed,secret,now+119*60*1000),null);
+ assert.throws(()=>renewShoppingToken(first,secret,now+61*60*1000));
 });
 test("IP headers cannot rotate anonymous limits unless trusted and well formed", () => {
  const request=new Request("https://example.test",{headers:{"x-forwarded-for":"198.51.100.1"}});

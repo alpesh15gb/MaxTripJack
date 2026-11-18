@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { principal } from '@/lib/access';
+import { checkoutAccess, shoppingResponse } from '@/lib/guest-shopping';
 import { database, transaction } from '@/lib/db';
 import { body, failure, HttpError, json, sameOrigin } from '@/lib/http';
 import { assertFresh } from '@/lib/supplier-flow';
@@ -9,7 +9,7 @@ import { checkoutPromoOffers, type DiscoverablePromoRule } from '@/lib/promo-off
 
 export async function GET(request: Request) {
  try {
-  const actor = await principal(request);
+  const access = await checkoutAccess(request), actor = access.actor;
   const quoteId = z.string().uuid().parse(new URL(request.url).searchParams.get('quoteId'));
   await requestLimit(actor.userId, 'promo-offers', 20);
   const db = database();
@@ -28,12 +28,12 @@ export async function GET(request: Request) {
    FROM promo_codes WHERE discoverable=true AND active=true AND expires_at>now()
     AND (product='ALL' OR product=$1) AND minimum_minor<=$2
   `, [quote.product, original]);
-  return json({offers: checkoutPromoOffers(result.rows, quote.product, original, Number(quote.supplier_minor))});
+  return shoppingResponse(json({offers: checkoutPromoOffers(result.rows, quote.product, original, Number(quote.supplier_minor))}), access);
  } catch (error) { return failure(error); }
 }
 
 export async function POST(request:Request){try{
- sameOrigin(request);const actor=await principal(request);
+ sameOrigin(request);const access=await checkoutAccess(request),actor=access.actor;
  await requestLimit(actor.userId,'promo-apply',20);
  const input=await body(request,z.object({quoteId:z.string().uuid(),code:z.string().trim().max(32)}).strict());
  const result=await transaction(async tx=>{
@@ -46,5 +46,5 @@ export async function POST(request:Request){try{
    try{discount=promoDiscount(promo,quote.product,original,Number(quote.supplier_minor));}catch(e){throw new HttpError(400,e instanceof Error?e.message:'Promo code is unavailable.');}}
   await tx.query('UPDATE supplier_quotes SET promo_code_id=$2,undiscounted_minor=$3,discount_minor=$4,total_minor=$5 WHERE id=$1',[quote.id,promo?.id??null,promo?original:null,discount,original-discount]);
   return {quoteId:quote.id,totalMinor:original-discount,discountMinor:discount,originalTotalMinor:original,code:promo?.code??null};
- });return json(result);
+ });return shoppingResponse(json(result),access);
 }catch(e){return failure(e);}}

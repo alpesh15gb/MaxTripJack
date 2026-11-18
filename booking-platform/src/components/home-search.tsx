@@ -5,13 +5,17 @@ import { HomePackages } from "./home-packages";
 import "@/app/home-packages.css";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useRef, useState, useTransition, type ReactNode } from "react";
 import AirportPicker from "@/components/airport-picker";
 import HotelDestination from "@/components/hotel-destination";
 import { indiaToday } from "@/lib/booking-presentation";
 import {bookingSearchInput,searchFormIsValid} from '@/lib/booking-search-input';
 import {invalidateBackgroundSearch} from '@/lib/background-search';
 import useBackgroundSearch from './use-background-search';
+import FareDatePicker from './fare-date-picker';
+import TravellersPicker from './travellers-picker';
+import useFareCalendar from './use-fare-calendar';
+import "@/app/search-pickers.css";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
 
 type Product = "FLIGHT" | "HOTEL";
@@ -25,6 +29,10 @@ const heroDestinations = [
   { name: "Paris", image: "/travel/paris-evening.webp", alt: "The Eiffel Tower and the Seine at blue hour" },
   ...destinations,
 ];
+
+function shiftDate(value: string, days: number) {
+  return new Date(Date.parse(`${value}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
+}
 
 function dateAfter(days: number) {
   const date = new Date();
@@ -48,6 +56,11 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   const [cabin, setCabin] = useState("ECONOMY");
   const [roundTrip, setRoundTrip] = useState(false);
   const [notice, setNotice] = useState("");
+  const [codes, setCodes] = useState({ from: "BOM", to: "DEL" });
+  const setFromCode = useCallback((code: string) => setCodes(current => current.from === code ? current : { ...current, from: code }), []);
+  const setToCode = useCallback((code: string) => setCodes(current => current.to === code ? current : { ...current, to: code }), []);
+  const outbound = useFareCalendar(codes.from, codes.to, cabin, date, product === "FLIGHT");
+  const inbound = useFareCalendar(codes.to, codes.from, cabin, end, product === "FLIGHT" && roundTrip);
   const [navigating, startNavigation] = useTransition();
   const nights = Math.round((Date.parse(end) - Date.parse(date)) / 86400000);
   function currentSearchInput(data:FormData){
@@ -167,13 +180,12 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
           <div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div>
         </div>
         <form ref={form} className="home-search-form" aria-describedby={notice?'home-search-error':undefined} onChange={event=>{const target=event.target;if(target instanceof HTMLInputElement&&['From airport','To airport'].includes(target.getAttribute('aria-label')??'')&&['Choose different departure and arrival airports.','Select a departure and arrival airport, or enter their three-letter airport codes.'].includes(notice))setNotice('');}} onSubmit={submit}>
-          <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><span className="home-economy">{cabin.replaceAll("_", " ").toLowerCase()}</span></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
-          {product === "FLIGHT" && <details className="home-party-options"><summary>Children, infants & cabin <span>{childCount||infants||cabin!=="ECONOMY"?`${childCount} children · ${infants} infants · ${cabin.replaceAll("_", " ").toLowerCase()}`:""}</span></summary><div><label>Children · age 2–11<select aria-label="Children · age 2–11" value={childCount} onChange={event => setChildCount(Number(event.target.value))}>{Array.from({length: 10 - adults}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Infants · under 2<select aria-label="Infants · under 2" value={infants} onChange={event => setInfants(Number(event.target.value))}>{Array.from({length: adults + 1}, (_, n) => <option key={n} value={n}>{n}</option>)}</select></label><label>Cabin<select aria-label="Cabin" value={cabin} onChange={event => setCabin(event.target.value)}><option value="ECONOMY">Economy</option><option value="PREMIUM_ECONOMY">Premium economy</option><option value="BUSINESS">Business</option><option value="FIRST">First</option></select></label></div><p>Up to 9 adults and children. Each infant travels with an adult. Ages apply on the travel date.</p></details>}
+          <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
-            {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
-            <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Departure" : "Check-in"}</span><input aria-label={product === "FLIGHT" ? "Departure" : "Check-in"} type="date" name="date" value={date} required min={dateAfter(0)} onChange={event => setDate(event.target.value)} /></label>
-            {(product === "HOTEL" || roundTrip) && <label className="home-search-input home-date-label"><span>{product === "FLIGHT" ? "Return" : "Check-out"}</span><input aria-label={product === "FLIGHT" ? "Return" : "Check-out"} type="date" name="end" value={end} required min={date} onChange={event => setEnd(event.target.value)} />{product === "HOTEL" && nights > 0 && <small>{nights} night{nights === 1 ? "" : "s"}</small>}</label>}
-            <label className="home-search-input home-guests"><span>{product === "FLIGHT" ? "Travellers" : "Guests"}</span><select aria-label={product === "FLIGHT" ? "Travellers" : "Guests"} value={adults} onChange={event => { const count = Number(event.target.value); setAdults(count); setChildCount(value => Math.min(value, 9 - count)); setInfants(value => Math.min(value, count)); }}>{Array.from({ length: product === "FLIGHT" ? 9 : 4 }, (_, index) => index + 1).map(value => <option key={value} value={value}>{value} adult{value === 1 ? "" : "s"}</option>)}</select><small>{product === "FLIGHT" ? "12 years & above" : "1 room"}</small></label>
+            {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode onCodeChange={setFromCode} /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode onCodeChange={setToCode} /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
+            <FareDatePicker name="date" label={product === "FLIGHT" ? "Departure" : "Check-in"} value={date} min={dateAfter(0)} fares={product === "FLIGHT" ? outbound : undefined} onChange={value => { setDate(value); if (end <= value) setEnd(shiftDate(value, product === "HOTEL" ? 1 : 3)); backgroundSearch.interact(); }} />
+            {(product === "HOTEL" || roundTrip) && <FareDatePicker name="end" label={product === "FLIGHT" ? "Return" : "Check-out"} value={end} min={product === "HOTEL" ? shiftDate(date, 1) : date} rangeStart={date} fares={product === "FLIGHT" ? inbound : undefined} helper={product === "HOTEL" && nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : undefined} onChange={value => { setEnd(value); backgroundSearch.interact(); }} />}
+            <TravellersPicker product={product} adults={adults} childCount={childCount} infants={infants} cabin={cabin} onChange={next => { setAdults(next.adults); setChildCount(next.children); setInfants(next.infants); setCabin(next.cabin); backgroundSearch.interact(); }} />
             <button className="home-search-submit" disabled={navigating} type="submit"><TravelIcon name="search" size={19} /><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
           </div>
           {navigating&&<p role="status" className="home-navigation-status">Opening your search… Live availability will load on the next screen.</p>}

@@ -17,7 +17,7 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  const offers=card.locator('.fare-option');await expect(offers).toHaveCount(4);
  await expect(offers.nth(0)).toContainText('Standard fare');await expect(offers.nth(0)).toContainText('₹3,248.50');
  await expect(offers.nth(1)).toContainText('₹3,261.50');await expect(offers.nth(2)).toContainText('₹7,799.50');await expect(offers.nth(3)).toContainText('Price at review');
- await expect(offers.nth(1)).toContainText('+₹13.00 vs lowest shown fare');
+ await expect(offers.nth(1)).toContainText('+₹13 vs lowest shown fare');
  await expect(offers.nth(1).locator('.fare-difference').first()).toContainText('25 Kg');
  await expect(card.locator('.fare-comparison-guidance')).toContainText('Lowest INR estimates first; unpriced offers last.');
  await expect(card.locator('.fare-shared-terms')).toHaveText('Totals are estimates for all travellers. Check the final price, cancellation and change fees, seat inclusions and eligibility at review.');
@@ -86,7 +86,7 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
  // Keyboard navigation must reveal each offscreen action without selecting it.
  const actions=offers.getByRole('button',{name:'Check fare & continue',exact:true});await actions.first().focus();
  for(let index=0;index<15;index++){await expect(actions.nth(index)).toBeFocused();await expect(actions.nth(index)).toBeInViewport({ratio:.95});if(index<14)await page.keyboard.press('Tab');}
- await expect(offers.last()).toContainText('₹6,400.00');await expectNoHorizontalOverflow(page);await capture(page,info,'last-fare-keyboard-reachable');
+ await expect(offers.last()).toContainText('₹6,400');await expectNoHorizontalOverflow(page);await capture(page,info,'last-fare-keyboard-reachable');
  let release!:()=>void;const pending=new Promise<void>(resolve=>{release=resolve;}),submitted:unknown[]=[];
  await page.route('**/api/travel/review',async route=>{submitted.push(route.request().postDataJSON());await pending;await route.fallback();});
  try{

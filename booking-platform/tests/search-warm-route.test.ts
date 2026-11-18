@@ -52,9 +52,10 @@ test('actual hotel submit joins in-progress warm and an out-of-order late warm m
 test('mismatched occupancy/owner and failed speculative budget fall back to normal search',async()=>{
  const h=await harness();try{
   let intent=randomUUID();await h.warm(criteria,intent);await h.search({...criteria,rooms:[{adults:2,children:1,childAge:[8]}]},intent);assert.equal(h.state.calls.length,2);
-  intent=randomUUID();h.state.warmActor={userId:'account-a',companyId:null};await h.warm(criteria,intent);await h.search(criteria,intent);assert.equal(h.state.calls.length,4);
+  // A different owner never adopts the warm entry; its normal search reuses the shared five-minute listing cache.
+  intent=randomUUID();h.state.warmActor={userId:'account-a',companyId:null};await h.warm(criteria,intent);const owned=await h.search(criteria,intent);assert.doesNotMatch(owned.headers.get('Server-Timing')??'',/search_warm;desc="(hit|joined)"/);assert.equal(h.state.calls.length,2);
   h.state.blocked=true;intent=randomUUID();assert.deepEqual(await(await h.warm(criteria,intent)).json(),{status:'skipped'});const count=h.state.calls.length;
-  assert.equal((await h.search(criteria,intent)).status,200);assert.equal(h.state.calls.length,count+1);
+  assert.equal((await h.search(criteria,intent)).status,200);assert.equal(h.state.calls.length,count);
   assert.equal((await h.warm(criteria,randomUUID(),'https://other.example')).status,204);assert.equal((await h.warm(criteria,'invalid')).status,204);
  }finally{h.cleanup();}
 });

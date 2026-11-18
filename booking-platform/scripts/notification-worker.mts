@@ -24,7 +24,7 @@ try {
           const order = result.rows[0];
           const guests = unseal(order.guests_encrypted, item.order_id);
           const status = item.status.replaceAll("_", " ");
-          return () => sendMail(guests.email, `Max Travel ${order.reference}: ${status}`, `Your booking ${order.reference} has an update: ${status}.\n\nView your latest booking status, documents and cancellation/refund updates:\n${new URL("/my-trips", process.env.BETTER_AUTH_URL).toString()}\n\nSupplier confirmation and customer refund are separate steps. Contact Max Travel if you need help.\n\nMax Travel`);
+          return () => sendMail(guests.email, `Max Travel ${order.reference}: ${status}`, `Your booking ${order.reference} has an update: ${status}.\n\nView your latest booking status, documents and cancellation/refund updates:\n${new URL("/my-trips", process.env.BETTER_AUTH_URL).toString()}\n\nBooked as a guest? Sign in with this email address (we send a one-time code) and the booking appears in My trips.\n\nSupplier confirmation and customer refund are separate steps. Contact Max Travel if you need help.\n\nMax Travel`);
         },
         renewLease: async () => {
           if (stopping) return false;

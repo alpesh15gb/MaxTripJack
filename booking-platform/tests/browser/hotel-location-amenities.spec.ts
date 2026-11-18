@@ -25,7 +25,7 @@ test('hotel location and supplied amenities survive property/back and refresh, w
  await page.getByRole('checkbox',{name:'Parking',exact:true}).check();
  await closeFilters();
  await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('Synthetic Mira Road Stay');
- await expect(cards.first()).toContainText('₹8,000.00');await expect(cards.first()).toContainText('2 rooms · 3 guests');
+ await expect(cards.first()).toContainText('₹8,000');await expect(cards.first()).toContainText('2 rooms · 3 guests');
  await cards.first().getByRole('button',{name:'Choose room',exact:true}).click();
  await expect(page.locator('#hotel-detail-title')).toHaveText('Synthetic Mira Road Stay');
  await page.getByRole('button',{name:'Back to stays',exact:true}).click();

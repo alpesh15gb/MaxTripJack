@@ -50,7 +50,7 @@ test('rates retain exact IDs, complete multi-room composition and customer total
  assert.match(html,/data-room-option-id="exact-option-A"/);assert.match(html,/data-room-option-id="exact-option-B"/);
  assert.match(html,/Twin \+ Double/);assert.match(html,/Selected room rate/);
  assert.match(html,/<div class="stay-preview-price"><small>Estimated full stay total from<\/small><strong>₹8,765\.43<\/strong><span>2 nights · 2 rooms · 4 guests<\/span><\/div>/);
- for(const total of ['₹8,765.43','₹9,000.00'])assert.ok(html.includes(`<small>Estimated full stay total</small><strong>${total}</strong><p>2 nights · 2 rooms · 4 guests</p>`));
+ for(const total of ['₹8,765.43','₹9,000'])assert.ok(html.includes(`<small>Estimated full stay total</small><strong>${total}</strong><p>2 nights · 2 rooms · 4 guests</p>`));
  assert.match(html,/Cancellation terms require review/);assert.match(html,/ROOM ONLY/);assert.match(html,/Wi-Fi/);
  assert.equal((html.match(/>Continue with room<\/button>/g)??[]).length,2);
  assert.doesNotMatch(html,/<button[^>]*aria-pressed=[^>]*>Continue with room<\/button>/);

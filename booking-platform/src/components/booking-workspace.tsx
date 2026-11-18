@@ -1,4 +1,5 @@
 "use client";
+import { displayMoney } from "@/lib/display-money";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -53,6 +54,7 @@ function statusInfo(status: string): StatusInfo {
 function money(value: string, currency: string) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return "Amount unavailable";
+  if (currency === "INR" && Number.isSafeInteger(amount)) return displayMoney(amount);
   try { return new Intl.NumberFormat("en-IN", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount / 100); }
   catch { return `${currency} ${(amount / 100).toFixed(2)}`; }
 }

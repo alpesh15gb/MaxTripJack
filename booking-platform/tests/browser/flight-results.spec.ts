@@ -53,7 +53,7 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await expect(cards.first()).toContainText('IndiGo');await expect(cards.last()).toContainText('Price at review');
  await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(departure));
  await expect(page.locator('#booking-search>summary')).not.toContainText(departure);
- await expect(page.locator('#booking-search>summary')).toContainText('4 travellers');await expect(page.locator('#booking-search>summary')).toContainText('ECONOMY');
+ await expect(page.locator('#booking-search>summary')).toContainText('4 travellers');await expect(page.locator('#booking-search>summary')).toContainText('Economy');
  await page.locator('#flight-results-title').evaluate(node=>(node as HTMLElement).focus({preventScroll:true}));
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
  const geometry=await cards.first().evaluate(node=>{const r=node.getBoundingClientRect();return {scrollY,viewportHeight:innerHeight,cardTop:r.top,cardBottom:r.bottom};});
@@ -162,8 +162,8 @@ test('return headlines, ordering and budget use fares compatible with the select
  await expect(cards).toHaveCount(2);
  await expect(cards.first()).toContainText('Compatible return fixture');
  const mixedCard = cards.filter({hasText: 'Mixed return fixture'});
- await expect(mixedCard.locator('.fare-comparison > summary')).toContainText('From ₹9,000.00');
- await expect(mixedCard.locator('.fare-comparison > summary')).not.toContainText('₹1,000.00');
+ await expect(mixedCard.locator('.fare-comparison > summary')).toContainText('From ₹9,000');
+ await expect(mixedCard.locator('.fare-comparison > summary')).not.toContainText('₹1,000');
  await expectNoHorizontalOverflow(page);
  await capture(page, testInfo, 'compatible-return-results');
  await filters(page,true);

@@ -13,7 +13,7 @@ test('submitted multi-city shape survives refresh, but unsubmitted edits do not 
  const submitted=page.url();
  const searchSummary=page.locator('#booking-search > summary');
  await expect(searchSummary.locator('.booking-criteria-destination strong')).toHaveText('BOM → DEL · DEL → GOI');
- await expect(searchSummary.locator('.booking-criteria-party')).toContainText('4 travellers · BUSINESS');
+ await expect(searchSummary.locator('.booking-criteria-party')).toContainText('4 travellers · Business');
  await page.locator('#booking-search > summary').click();
  await page.locator('[name="leg-date-1"]').fill(departure);
  expect(page.url()).toBe(submitted);
@@ -79,7 +79,7 @@ test('round-trip auto-search refresh preserves the return date and searches once
  await expect(page.locator('#booking-results')).toBeVisible();
  const searchSummary=page.locator('#booking-search > summary');
  await expect(searchSummary.locator('.booking-criteria-dates')).toContainText(`${travelDateLabel(departure)} – ${travelDateLabel(returning)}`);
- await expect(searchSummary.locator('.booking-criteria-party')).toContainText('2 travellers · FIRST');
+ await expect(searchSummary.locator('.booking-criteria-party')).toContainText('2 travellers · First');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  await page.reload();
  await expect(page.locator('#booking-results')).toBeVisible();

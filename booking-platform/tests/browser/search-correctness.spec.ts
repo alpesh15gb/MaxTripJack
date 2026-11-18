@@ -1,4 +1,4 @@
-import {test,expect,departure,returning,searchId} from './fixtures';
+import {test,expect,departure,returning,searchId, setHomeTravellers } from './fixtures';
 
 test('correcting airport clears only stale local validation and preserves return date blocking',async({page,provider})=>{
  await page.goto(`/book?product=FLIGHT&from=BOM&to=BOM&date=${departure}`);
@@ -48,11 +48,13 @@ test('homepage clears corrected airport feedback before native return-date valid
  await form.getByLabel('To airport',{exact:true}).fill('BOM');await form.getByRole('button',{name:'Search flights',exact:true}).click();
  await expect(form.getByRole('alert')).toContainText('different departure and arrival');
  await expect(form.getByLabel('To airport',{exact:true})).toBeFocused();
- await form.getByLabel('Travellers',{exact:true}).selectOption('2');await expect(form.getByRole('alert')).toContainText('different departure and arrival');
+ await setHomeTravellers(form,{adults:2});await expect(form.getByRole('alert')).toContainText('different departure and arrival');
  await form.getByLabel('To airport',{exact:true}).fill('DEL');await expect(form.getByRole('alert')).toHaveCount(0);
- await form.getByLabel('Round trip',{exact:true}).check();await form.getByLabel('Return',{exact:true}).fill('2020-01-01');
- await form.getByRole('button',{name:'Search flights',exact:true}).click();
- await expect(page).toHaveURL('/');await expect(form.getByRole('alert')).toHaveCount(0);expect(provider.requests('/api/travel/search')).toHaveLength(0);
+ await form.getByLabel('Round trip',{exact:true}).check();
+ // The return calendar cannot select a day before departure.
+ await form.getByRole('button',{name:/^Return /}).click();const calendar=form.getByRole('dialog',{name:'Choose return'});
+ await expect(calendar.locator('[data-date]:disabled').first()).toBeVisible();await page.keyboard.press('Escape');await expect(calendar).toHaveCount(0);
+ expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
 
 test('new review failure is not misclassified as previous local search validation',async({page,provider})=>{

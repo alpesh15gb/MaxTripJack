@@ -3,6 +3,12 @@
 const inr = new Intl.NumberFormat('en-IN', {
   style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2,
 });
+// Whole-rupee amounts read cleaner without ".00" (as on the major OTAs); any
+// paise are still shown exactly.
+const wholeInr = new Intl.NumberFormat('en-IN', {
+  style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0,
+});
 export function displayMoney(minor: number): string {
-  return Number.isSafeInteger(minor) ? inr.format(minor / 100) : 'Price unavailable';
+  if (!Number.isSafeInteger(minor)) return 'Price unavailable';
+  return minor % 100 === 0 ? wholeInr.format(minor / 100) : inr.format(minor / 100);
 }

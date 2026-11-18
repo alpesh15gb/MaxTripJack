@@ -39,7 +39,7 @@ test('pending hotel details are distinct from absence and never replace rates or
   await expect(card).toContainText('Property photos loading…');
   await expect(card).toContainText('Property details loading…');
   await expect(card).not.toContainText('not supplied');
-  await expect(card).toContainText('₹8,000.00');
+  await expect(card).toContainText('₹8,000');
   await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
   await expect(page.locator('#booking-pending')).toHaveCount(0);
   await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>((resolve,reject)=>{let last=scrollY,stable=0,frames=0;const tick=()=>{stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8)resolve();else if(++frames>=180)reject(new Error('Search scroll did not settle'));else requestAnimationFrame(tick);};requestAnimationFrame(tick);});});
@@ -53,7 +53,7 @@ test('pending hotel details are distinct from absence and never replace rates or
  await expect(page.locator('.hotel-content-status')).toHaveCount(0);
  await expect.poll(()=>card.locator('img').evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
  expect(Math.abs((await card.locator('.hotel-card-photo').boundingBox())!.height-photoHeight)).toBeLessThanOrEqual(1);
- await expect(card).toContainText('₹8,000.00');
+ await expect(card).toContainText('₹8,000');
  await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
  await expectNoHorizontalOverflow(page);
  await testInfo.attach('metadata-loaded-layout',{body:JSON.stringify(await card.evaluate(node=>({scrollY,viewport:innerHeight,card:node.getBoundingClientRect().toJSON()}))),contentType:'application/json'});
@@ -72,7 +72,7 @@ for(const outcome of ['absent','failure','supplier failure','missing status','mi
   await expect(card).toContainText(outcome==='absent'?'Property photos not available':'Property photos unavailable right now');
   await expect(card).toContainText(outcome==='absent'?'Address details not supplied':'Property details unavailable right now');
   await expect(card).not.toContainText('loading…');
-  await expect(card).toContainText('₹8,000.00');
+  await expect(card).toContainText('₹8,000');
   await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
   await expect(page.locator('#booking-feedback')).toBeEmpty();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -120,7 +120,7 @@ test('a cached unavailable outcome stays distinct from genuine absence without a
  const card=page.getByRole('article',{name:'Unavailable details Stay'});
  await expect(card).toContainText('Property details unavailable right now');
  await expect(card).not.toContainText('not supplied');
- await expect(card).toContainText('₹8,000.00');
+ await expect(card).toContainText('₹8,000');
  await expect(card.getByRole('button',{name:/Choose room/})).toBeEnabled();
  expect(contentCalls).toBe(0);
 });

@@ -9,8 +9,9 @@ import { isDeepStrictEqual } from "node:util";
 import { validateInitialExtras } from "@/lib/checkout-extras";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { principal } from "@/lib/access";
-import { body,sameOrigin,json,failure,HttpError } from "@/lib/http";
+import { checkoutAccess, shoppingResponse } from "@/lib/guest-shopping";
+import { guestContactHash, isGuestActor } from "@/lib/guest-checkout";
+import { body,sameOrigin,json as jsonResponse,failure,HttpError } from "@/lib/http";
 import { transaction,database } from "@/lib/db";
 import { owned,assertFresh } from "@/lib/supplier-flow";
 import { guestSchema } from "@/lib/providers/contracts";
@@ -23,7 +24,7 @@ import { markGatewayIntentUnknown, persistGatewayOrder } from "@/lib/payment-int
 import { FareValidationBlockedError } from "@/lib/fare-validation";
 import { compareCheckoutTrips, MAX_INTERRUPTED_CHECKOUTS, type CheckoutTripRecord } from "@/lib/checkout-trip-comparison";
 export async function POST(request:Request){try{
- sameOrigin(request);const actor=await principal(request);const input=await body(request,z.object({quoteId:z.string().uuid(),interruptedQuoteIds:z.array(z.string().uuid()).max(MAX_INTERRUPTED_CHECKOUTS).optional(),guests:guestSchema.optional(),billingData:billingSchema.optional(),returnChannel:z.enum(["WEB","APP"]).optional(),acceptedTotalMinor:z.number().int().nonnegative()}).strict());
+ sameOrigin(request);const access=await checkoutAccess(request),actor=access.actor;const json=(data:unknown,status?:number)=>shoppingResponse(jsonResponse(data,status),access);const input=await body(request,z.object({quoteId:z.string().uuid(),interruptedQuoteIds:z.array(z.string().uuid()).max(MAX_INTERRUPTED_CHECKOUTS).optional(),guests:guestSchema.optional(),billingData:billingSchema.optional(),returnChannel:z.enum(["WEB","APP"]).optional(),acceptedTotalMinor:z.number().int().nonnegative()}).strict());
  const quote=await owned("supplier_quotes",input.quoteId,actor);assertFresh(quote.expires_at);
  if(Number(quote.total_minor)!==input.acceptedTotalMinor)throw new HttpError(409,"Price changed. Accept the latest review.");
  const search=await owned("supplier_searches",quote.search_id,actor);
@@ -46,6 +47,8 @@ export async function POST(request:Request){try{
   for(const previous of interrupted.rows){const comparison=compareCheckoutTrips(current,previous);if(comparison==='conflict')return conflict();if(comparison==='unverified')return unverified();}
  }
  let guests=input.guests;
+ // Guests book new trips only; amendments act on an owned booking after sign-in.
+ if(isGuestActor(actor)&&quote.service_kind)throw new HttpError(401,"Sign in with your booking email to change this booking.");
  if(quote.service_kind){const parent=await owned("orders",search.parent_order_id,actor);if(parent.status!=="TICKETED")throw new HttpError(409,"Original booking is no longer active.");const original=guestSchema.parse(unseal(parent.guests_encrypted,parent.id));guests=quote.service_kind==="REISSUE"?{...original,travellers:quote.service_payload.travellerIndexes.map((i:number)=>original.travellers[i])}:original;}
  if(!guests)throw new HttpError(400,"Traveller details are required.");
  if(input.billingData)guests={...guests,billingData:input.billingData};
@@ -84,6 +87,7 @@ export async function POST(request:Request){try{
   const promoSnapshot=await validateQuotePromo(tx,currentQuote.rows[0]);
   const id=randomUUID();await tx.query("INSERT INTO orders(id,reference,user_id,company_id,product,status,total_minor,supplier_minor,quote_id,guests_encrypted,policy_snapshot,itinerary_summary,parent_order_id,service_kind) VALUES($1,$2,$3,$4,$5,'PAYMENT_PENDING',$6,$7,$8,$9,$10,$11,$12,$13)",[id,`MT-${id.slice(0,8).toUpperCase()}`,actor.userId,actor.companyId,quote.product,quote.total_minor,quote.supplier_minor,quote.id,seal(guests,id),quote.product==="HOTEL"?quote.review.option?.cancellation??{}:{conditions:quote.review.conditions??{},fareRules:quote.review.fareRules??{}},{...search.criteria,...(quote.selection.checkoutExtras?{checkoutExtras:quote.selection.checkoutExtras.summary}:{})},search.parent_order_id??null,quote.service_kind??null]);
   if(promoSnapshot)await tx.query("UPDATE orders SET promo_snapshot=$2 WHERE id=$1",[id,promoSnapshot]);
+  if(isGuestActor(actor))await tx.query("UPDATE orders SET guest_contact_hash=$2 WHERE id=$1",[id,guestContactHash(guests.email)]);
   if(Number(quote.total_minor)===0){if(!quote.service_kind)throw new HttpError(400,"Zero-price checkout is restricted to flight services.");await tx.query("UPDATE orders SET status='PAID' WHERE id=$1",[id]);await tx.query("INSERT INTO booking_jobs(order_id) VALUES($1)",[id]);return {id,created:true,free:true,gateway_order_id:null};}
   await tx.query("INSERT INTO gateway_intents(order_id,provider) VALUES($1,$2)",[id,provider]);return {id,created:true,gateway_order_id:null};
  });
@@ -95,4 +99,4 @@ export async function POST(request:Request){try{
   await transaction(tx=>persistGatewayOrder(tx,intent.id,gateway,"CREATE"));
   return json({bookingId:intent.id,orderId:gateway.id,keyId:key!.id,amount:gateway.amount,currency:"INR"});
  }catch(e){await transaction(tx=>markGatewayIntentUnknown(tx,intent.id));throw e;}
-}catch(e){if(e instanceof PromoReviewRequired)return json({code:"PROMO_REVIEW_REQUIRED",error:e.message},409);return failure(e);}}
+}catch(e){if(e instanceof PromoReviewRequired)return jsonResponse({code:"PROMO_REVIEW_REQUIRED",error:e.message},409);return failure(e);}}

@@ -57,7 +57,7 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
  await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
  await page.route('**/api/travel/promo',route=>{const applied=Boolean(route.request().postDataJSON().code);return route.fulfill({json:{quoteId,totalMinor:applied?644000:654000,originalTotalMinor:654000,discountMinor:applied?10000:0,code:applied?'SAVE100':null}});});
  const promo=page.getByRole('region',{name:'Promo code',exact:true});await promo.getByLabel('Promo code',{exact:true}).fill('SAVE100');await promo.getByLabel('Promo code',{exact:true}).press('Enter');
- await expect(promo).toContainText('You save ₹100.00');await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toContainText('6,440');
+ await expect(promo).toContainText('You save ₹100');await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toContainText('6,440');
  await expectNoHorizontalOverflow(page);await capture(page,info,`${product.toLowerCase()}-promo-applied`);
  await promo.getByRole('button',{name:'Remove code',exact:true}).click();await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toContainText('6,540');
  await page.unroute('**/api/travel/promo');

@@ -52,7 +52,7 @@ test('hotel search shows the chosen stay criteria during mapping before checking
   await expect(status).toContainText('Waiting for live supplier availability');
   await expect.poll(()=>rateCalls).toBe(1);
   releaseRates();
-  await expect(page.getByRole('article',{name:'Fixture Stay'})).toContainText('₹8,000.00');
+  await expect(page.getByRole('article',{name:'Fixture Stay'})).toContainText('₹8,000');
   await expect(pending).toHaveCount(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
  } finally { releaseMapping(); releaseRates(); }
@@ -99,15 +99,15 @@ test('hotel rates and room actions render before optional content; stale content
  provider.search={searchId,propertyContentPending:true,results:{hotels:[{tjHotelId:'10001',name:'Initial Stay',customerEstimateMinor:800000}]}};
  try{
   await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
-  await expect(page.getByRole('article',{name:'Initial Stay'})).toContainText('₹8,000.00');
+  await expect(page.getByRole('article',{name:'Initial Stay'})).toContainText('₹8,000');
   await expect(page.getByRole('button',{name:/Choose room/})).toBeEnabled();
   await expect.poll(()=>contentRequested).toBe(true);await expect(page.locator('#booking-pending')).toHaveCount(0);
   provider.search={searchId:'11111111-1111-4111-8111-111111111119',results:{hotels:[{tjHotelId:'10001',name:'New Stay',customerEstimateMinor:900000}]}};
   await page.locator('#booking-search>summary').click();await page.getByRole('button',{name:'Search stays',exact:true}).click();
-  await expect(page.getByRole('article',{name:'New Stay'})).toContainText('₹9,000.00');
+  await expect(page.getByRole('article',{name:'New Stay'})).toContainText('₹9,000');
  }finally{release();}
  await expect(page.getByText('Old search address',{exact:true})).toHaveCount(0);
- await expect(page.getByRole('article',{name:'New Stay'})).toContainText('₹9,000.00');
+ await expect(page.getByRole('article',{name:'New Stay'})).toContainText('₹9,000');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
@@ -115,7 +115,7 @@ test('optional hotel content failure leaves rates and room actions usable withou
  await page.route('**/api/travel/hotel-content',route=>route.fulfill({status:503,json:{error:'Static content temporarily unavailable'}}));
  provider.search={searchId,propertyContentPending:true,results:{hotels:[{tjHotelId:'10001',name:'Available Stay',customerEstimateMinor:800000}]}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
- await expect(page.getByRole('article',{name:'Available Stay'})).toContainText('₹8,000.00');
+ await expect(page.getByRole('article',{name:'Available Stay'})).toContainText('₹8,000');
  await expect(page.getByRole('button',{name:/Choose room/})).toBeEnabled();
  await expect(page.locator('#booking-feedback')).toBeEmpty();
 });
@@ -126,12 +126,12 @@ test('optional hotel details enrich matching results without changing rate or fi
  provider.search={searchId,propertyContentPending:true,results:{hotels:[{tjHotelId:'10001',name:'Available Stay',customerEstimateMinor:800000}]}};
  try{
   await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
-  await expect(page.getByRole('article',{name:'Available Stay'})).toContainText('₹8,000.00');
+  await expect(page.getByRole('article',{name:'Available Stay'})).toContainText('₹8,000');
   const toggle=page.getByRole('button',{name:/^Filters/});if(await toggle.isVisible())await toggle.click();
   await page.getByRole('searchbox',{name:'Property name'}).fill('Available');
  }finally{release();}
  await expect(page.getByRole('article',{name:'Available Stay'})).toContainText('Confirmed fixture address');
- await expect(page.getByRole('article',{name:'Available Stay'})).toContainText('₹8,000.00');
+ await expect(page.getByRole('article',{name:'Available Stay'})).toContainText('₹8,000');
  await expect(page.getByRole('searchbox',{name:'Property name'})).toHaveValue('Available');
 });
 
@@ -159,7 +159,7 @@ for(const metadataFirst of [false,true]){
    const rooms=page.locator('#booking-rooms');
    await expect(rooms).toBeVisible();
    const option=rooms.locator('.room-option-card');
-   await expect(option).toContainText('₹18,400.00');
+   await expect(option).toContainText('₹18,400');
    await option.locator('.stay-room-conditions>summary').click();
    await option.getByText('Supported supplier policy details',{exact:true}).click();
    await expect(option).toContainText('Cancellation charges apply after the displayed deadline.');
@@ -191,7 +191,7 @@ test('late property content cannot follow a traveller into a different hotel roo
   release();
   await expect(rooms).toContainText('Second hotel verified address');
   await expect(rooms).not.toContainText('First hotel only address');
-  await expect(rooms.locator('.room-option-card')).toContainText('₹18,400.00');
+  await expect(rooms.locator('.room-option-card')).toContainText('₹18,400');
  }finally{release();}
 });
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cachedFlightSearch, clearFlightSearchCache, flightSearchCacheTtl, type FlightSearchCacheStatus } from "../src/lib/flight-search-cache";
+import { cachedFlightSearch, cachedHotelSearch, clearFlightSearchCache, flightSearchCacheTtl, hotelSearchCacheTtl, type FlightSearchCacheStatus } from "../src/lib/flight-search-cache";
 
 function deferred<T>() {
  let resolve!: (value: T) => void, reject!: (error: Error) => void;
@@ -39,7 +39,10 @@ test("ttl zero disables caching and the env value is bounded", async () => {
  assert.equal(calls, 2);
  assert.equal(flightSearchCacheTtl({ FLIGHT_SEARCH_CACHE_TTL_MS: "0" }), 0);
  assert.equal(flightSearchCacheTtl({ FLIGHT_SEARCH_CACHE_TTL_MS: "99999999" }), 300000);
- assert.equal(flightSearchCacheTtl({ FLIGHT_SEARCH_CACHE_TTL_MS: "abc" }), 90000);
+ assert.equal(flightSearchCacheTtl({ FLIGHT_SEARCH_CACHE_TTL_MS: "abc" }), 300000);
+ assert.equal(flightSearchCacheTtl({}), 300000, "listings stay valid for five minutes by default");
+ assert.equal(hotelSearchCacheTtl({}), 300000);
+ assert.equal(hotelSearchCacheTtl({ HOTEL_SEARCH_CACHE_TTL_MS: "0" }), 0);
 });
 
 test("a slow in-flight request is shared past a short TTL without extending settled fare freshness", async () => {
@@ -102,4 +105,17 @@ test("route, passenger, cabin and travel-date changes never share availability",
  for (const request of variants) await cachedFlightSearch(request, async () => ++calls, 1000, 0);
  assert.equal(calls, variants.length);
  assert.equal(await cachedFlightSearch(base, async () => ++calls, 1000, 10), 1);
+});
+
+test("hotel listings are cached without the request correlation ID and keep the producing one", async () => {
+ clearFlightSearchCache();
+ const used: string[] = [];
+ const load = async (id: string) => { used.push(id); return { hotels: [id] }; };
+ const first = await cachedHotelSearch({ hids: [1], correlationId: "a" }, "a", load, 1000);
+ const second = await cachedHotelSearch({ hids: [1], correlationId: "b" }, "b", load, 1000);
+ assert.deepEqual(used, ["a"]);
+ assert.equal(second.correlationId, "a");
+ assert.equal(first.data, second.data);
+ await cachedHotelSearch({ hids: [2], correlationId: "c" }, "c", load, 1000);
+ assert.deepEqual(used, ["a", "c"]);
 });

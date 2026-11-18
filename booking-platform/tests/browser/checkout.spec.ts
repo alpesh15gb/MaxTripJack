@@ -46,7 +46,7 @@ test('fare comparison selects a server fare id and shows a reviewed party total'
   expect(provider.requests('/api/travel/review')[0].body).toEqual({ searchId, priceIds: ['onward-standard'] });
   const summary = page.getByRole('complementary', { name: 'Your journey summary' });
   await summary.getByText('Price breakdown', { exact: true }).click();
-  await expect(summary.locator('.booking-total').getByText('₹6,540.00', { exact: true })).toBeVisible();
+  await expect(summary.locator('.booking-total').getByText('₹6,540', { exact: true })).toBeVisible();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'traveller-review');

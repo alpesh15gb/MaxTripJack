@@ -1,0 +1,69 @@
+/* Site-wide polish, loaded last. One palette (midnight navy + champagne) and
+   one rhythm across the shared shells, so every page reads as the same brand. */
+
+/* Footer: the public (reference) footer was charcoal; match the navy shell. */
+html body .travel-footer.travel-footer--reference{background:var(--brand-midnight,#101c2c)}
+body .travel-footer--reference .travel-footer-copyright{background:#0b1521}
+body .travel-footer :is(h2,h3){letter-spacing:-.2px}
+body .travel-footer a{transition:color .15s ease}
+body .travel-footer a:hover{color:var(--home-light-gold,#f0d7a8)}
+
+/* Policy links: even spacing that wraps cleanly on phones (no dangling "|"). */
+html body .travel-footer .travel-footer-policies{display:flex;flex-wrap:wrap;align-items:center;gap:0 22px}
+html body .travel-footer .travel-footer-policies a:not(:last-child)::after,html body .travel-footer .travel-footer-policies a::before{content:none}
+
+/* Packages: hero on the brand navy instead of teal; real button for the CTA. */
+html body .package-main.package-main--catalogue .package-heading{background:linear-gradient(135deg,var(--brand-midnight,#101c2c) 0%,#1b2e45 100%)}
+body .package-state>a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin-top:16px;padding:10px 20px;border-radius:8px;background:var(--brand-midnight,#101c2c);color:var(--brand-ivory,#faf9f6);font-weight:650;text-decoration:none;transition:background .15s ease}
+body .package-state>a:hover{background:var(--brand-slate,#24364b)}
+body .package-state>button{min-height:44px;margin:16px 10px 0 0}
+
+/* Flight results: the options count is plain supporting text, not a boxed chip. */
+body .booking-workflow .results-heading .results-count{border:0;outline:0;box-shadow:none;text-decoration:none;background:transparent;color:var(--brand-muted,#526071);font-weight:550}
+
+/* Checkout: section titles share the display face used for "Traveller details". */
+body .booking-workflow #booking-summary :is(h2,h3):first-of-type,
+body .booking-workflow .booking-contact>h3{font-family:var(--travel-display,Georgia,serif);font-weight:400;letter-spacing:-.3px}
+body .booking-workflow #booking-summary :is(h2,h3):first-of-type{font-size:28px;line-height:1.1}
+body .booking-workflow .booking-contact>h3{font-size:24px;line-height:1.15;margin-bottom:6px}
+
+/* Prices read as tabular figures everywhere, so columns of fares line up. */
+body :is(.booking-total,.hotel-stay-price strong,.flight-price,.fare-decision-price,.booking-summary-lines dd,.flight-date-fare){font-variant-numeric:tabular-nums}
+
+/* Calmer, consistent focus ring across the site (keyboard users). */
+body :is(a,button,summary,select,input,textarea):focus-visible{outline:2px solid var(--brand-gold,#c6a66b);outline-offset:2px}
+
+/* Primary buttons: subtle lift on hover for a more finished feel. */
+@media (hover:hover){
+  body .booking-workflow button.primary:not(:disabled),body .home-search-submit:not(:disabled){transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+  body .booking-workflow button.primary:not(:disabled):hover,body .home-search-submit:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 6px 18px #101c2c26}
+}
+@media (prefers-reduced-motion:reduce){body *{transition:none!important}}
+
+/* --- UI/UX audit pass (accessibility, touch, type scale) --- */
+
+/* Readable minimum: supporting text never below 12px. */
+html body :is(.travel-environment,.travel-environment-detail,.airport-hint,.airport-code-badge,.public-route-codes,.public-route-action,.travel-footer-testing){font-size:12px}
+html body .trip-home .home-search-input>small,html body .trip-home .home-search-input small{font-size:12px}
+html body .fare-calendar-days button small{font-size:11.5px}
+html body .flight-date-day>span,html body .flight-date-day time{font-size:12px}
+
+/* Headings wrap in balanced lines instead of leaving a lone last word. */
+h1,h2,h3{text-wrap:balance}
+p{text-wrap:pretty}
+
+/* Touch targets: 44px for steppers and calendar navigation. */
+html body :is(.travellers-stepper button,.fare-calendar-head button){width:44px;height:44px}
+html body .travellers-stepper{gap:8px}
+
+/* Cheapest days are marked by shape as well as colour. */
+html body :is(.fare-calendar-days small,.flight-date-fare).fare-band-low::before{content:"";display:inline-block;width:5px;height:5px;margin:0 3px 1px 0;border-radius:50%;background:currentColor;vertical-align:middle}
+
+/* Clickable things look clickable. */
+html body :is(button,summary,[role=button],label:has(input[type=radio]),label:has(input[type=checkbox])):not(:disabled){cursor:pointer}
+html body .booking-workflow :is(.booking-progress li,.booking-criteria-field small,.flight-shortcut-label,.flight-shortcut-metrics,.flight-shortcut-metrics small,.flight-headline-facts span,.flight-headline-facts li,.mobile-action-total small,.flight-date-day .flight-date-fare),html body .booking-workflow .airport-hint{font-size:12px}
+html body .booking-workflow .booking-progress li>span{font-size:11px}
+html body .booking-workflow.journey-flow.has-journey .booking-progress li,html body .booking-workflow.journey-flow .booking-progress li,html body .booking-progress li{font-size:12px}
+html body .booking-progress li>:is(span:first-child,b){font-size:11px}
+/* Floor for supporting copy in the booking journey and home search. */
+html body :is(.booking-workflow,.trip-home) small{font-size:max(12px,.8em)}

@@ -32,9 +32,28 @@ function evictSettled(needsSlot = false) {
  }
 }
 
+const DEFAULT_TTL_MS = 300_000;
+function boundedTtl(value: string | undefined) {
+ const raw = Number(value ?? DEFAULT_TTL_MS);
+ return Number.isFinite(raw) && raw >= 0 ? Math.min(raw, 300_000) : DEFAULT_TTL_MS;
+}
+/** Listings stay valid for five minutes by default; review always re-prices. */
 export function flightSearchCacheTtl(env: Record<string, string | undefined> = process.env) {
- const raw = Number(env.FLIGHT_SEARCH_CACHE_TTL_MS ?? 90_000);
- return Number.isFinite(raw) && raw >= 0 ? Math.min(raw, 300_000) : 90_000;
+ return boundedTtl(env.FLIGHT_SEARCH_CACHE_TTL_MS);
+}
+export function hotelSearchCacheTtl(env: Record<string, string | undefined> = process.env) {
+ return boundedTtl(env.HOTEL_SEARCH_CACHE_TTL_MS);
+}
+
+type HotelListing<T> = { data: T; correlationId: string };
+/** Hotel listings are bound to the supplier correlation ID that produced them,
+ * so the cached value keeps that ID and later room pricing uses the same one. */
+export function cachedHotelSearch<T>(
+ payload: Record<string, unknown>, correlationId: string, load: (correlationId: string) => Promise<T>,
+ ttl = hotelSearchCacheTtl(), onLookup?: (status: FlightSearchCacheStatus, freshUntil?: number) => void,
+): Promise<HotelListing<T>> {
+ const { correlationId: _ignored, ...criteria } = payload; void _ignored;
+ return cachedFlightSearch({ hotelListing: criteria }, async () => ({ data: await load(correlationId), correlationId }), ttl, undefined, onLookup);
 }
 
 export async function cachedFlightSearch<T>(

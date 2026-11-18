@@ -11,13 +11,16 @@ import { TravelFooter, TravelHeader, TravelIcon } from "./travel-shell";
 export default function BookingStatusPage({ bookingId }: { bookingId: string }) {
   const { data: session, isPending, isRefetching, error, refetch } = authClient.useSession();
   const checking = isPending || isRefetching;
-  const ready = !isPending && error?.status !== 401 && error?.status !== 403 && Boolean(session);
-  const paused = checking || Boolean(error);
+  // Guest checkout: a signed-out visitor still sees a booking owned by their
+  // current guest session; the details API decides access (401 shows sign-in).
+  const guest = !checking && !session && (!error || error.status === 401);
+  const ready = !isPending && error?.status !== 401 && error?.status !== 403 && Boolean(session) || guest;
+  const paused = checking || Boolean(error) && error?.status !== 401;
   const signedOut = !error && !session || error?.status === 401;
   return <>
     <TravelHeader active="trips" />
     {(!ready || paused) && <main className="page-shell booking-status-page" id="main-content"><section className="booking-status-card booking-status-access"><p className="eyebrow">YOUR PRIVATE BOOKING</p><h1>Your booking updates are here.</h1>{checking ? <p role="status">Checking secure account access…</p> : signedOut ? <><p>Sign in to check this booking. Signing in does not change its payment or confirmation status.</p><Link className="primary" href={accountHref(`/my-trips/${bookingId}`)}>Sign in to view booking</Link></> : <><p role="alert">We couldn’t verify access to this booking. Your private details are hidden until access is confirmed.</p><button className="primary" onClick={() => void refetch()}>Check account access</button></>}</section></main>}
-    {ready && <div hidden={paused} inert={paused}><PrivateBookingStatus key={`${bookingId}:${session!.user.id}:${session!.session.id}:${session!.user.emailVerified}:${session!.user.phoneNumberVerified}`} bookingId={bookingId} paused={paused} /></div>}
+    {ready && <div hidden={paused} inert={paused}><PrivateBookingStatus key={session?`${bookingId}:${session.user.id}:${session.session.id}:${session.user.emailVerified}:${session.user.phoneNumberVerified}`:`${bookingId}:guest`} bookingId={bookingId} paused={paused} /></div>}
     <TravelFooter compact />
   </>;
 }
@@ -46,7 +49,7 @@ function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused
         if ([401, 403, 404].includes(response.status)) {
           accessLost = true;
           setBooking(null); setAccessStatus(response.status); setCheckedAt(null);
-          setError(response.status === 404 ? "This booking is unavailable for this account. Check My trips or contact support if you have a reference." : response.status === 401 ? "Sign in again to view this booking. This does not change its payment or booking status." : "Access to this booking is unavailable. Check your account or contact support.");
+          setError(response.status === 404 ? "This booking is unavailable for this account. Check My trips or contact support if you have a reference." : response.status === 401 ? "Sign in with the email used for this booking to view it. This does not change its payment or booking status." : "Access to this booking is unavailable. Check your account or contact support.");
           return;
         }
         if (!response.ok) throw Error("Status unavailable");
@@ -75,7 +78,7 @@ function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused
   const view = booking ? bookingStatusView(booking) : null;
   return <main className="page-shell booking-status-page" id={paused ? undefined : "main-content"}>
     <Link className="booking-status-back" href="/my-trips">← My trips</Link>
-    {!booking ? <section className="booking-status-card booking-status-access"><p className="eyebrow">YOUR BOOKING UPDATE</p><h1>{loading ? "Checking your booking…" : accessStatus === 404 ? "We couldn’t find this booking." : "Let’s check your booking."}</h1><p role={error ? "alert" : "status"}>{loading ? "Checking payment and supplier confirmation separately." : error}</p><div className="booking-status-actions">{accessStatus === 401 || accessStatus === 403 ? <Link className="primary" href={accountHref(`/my-trips/${bookingId}`)}>Open account</Link> : !loading && accessStatus !== 404 ? <button className="primary" onClick={retry}>Check status again</button> : null}<Link className="secondary" href="/customer-support">Get booking support</Link></div></section> : <>
+    {!booking ? <section className="booking-status-card booking-status-access"><p className="eyebrow">YOUR BOOKING UPDATE</p><h1>{loading ? "Checking your booking…" : accessStatus === 404 ? "We couldn’t find this booking." : "Let’s check your booking."}</h1><p role={error ? "alert" : "status"}>{loading ? "Checking payment and supplier confirmation separately." : error}</p><div className="booking-status-actions">{accessStatus === 401 || accessStatus === 403 ? <Link className="primary" href={accountHref(`/my-trips/${bookingId}`)}>{accessStatus === 401 ? "Sign in to view booking" : "Open account"}</Link> : !loading && accessStatus !== 404 ? <button className="primary" onClick={retry}>Check status again</button> : null}<Link className="secondary" href="/customer-support">Get booking support</Link></div></section> : <>
       <header className={`booking-status-header is-${view!.tone}`}>
         <span className="booking-status-icon"><TravelIcon name={view!.confirmed ? "check" : view!.tone === "pending" ? "clock" : "receipt"} size={30} /></span>
         <div><p className="eyebrow">BOOKING {booking.reference}</p><h1 aria-live="polite">{view!.title}</h1><p>{view!.description}</p></div>

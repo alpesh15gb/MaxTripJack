@@ -60,7 +60,7 @@ test('selected summary renders exact local dates, known duration, day change and
   assert.match(html, /Arrives 2 Jan 2027 · 01:30/);
   assert.match(html, /\+1 calendar day/);
   assert.match(html, /2h 0m · Non-stop/);
-  assert.match(html, /₹13,080.00 estimated total/);
+  assert.match(html, /₹13,080 estimated total/);
   assert.match(html, /Change outbound/); assert.match(html, /Change return/);
   assert.match(html, /id="review-selected-journey"/); assert.match(html, /Review selected journey \(2\/2\)/);
   assert.match(html, /aria-label="Selected flight context"/);

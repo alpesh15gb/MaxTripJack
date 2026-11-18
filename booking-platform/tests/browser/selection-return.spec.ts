@@ -181,6 +181,8 @@ test('same return URL in a separate tab cannot invent a saved selection or call 
   // Restored search controls may resolve public airport names; these are not
   // availability, review or payment requests and cannot recover a selection.
   if(url.pathname==='/api/travel/airports'&&route.request().method()==='GET'){await route.fulfill({json:{airports:[]}});return;}
+  // Indicative fare-calendar reads are public route prices, not a selection or availability.
+  if(url.pathname==='/api/travel/fare-calendar'){await route.fulfill({json:{days:{}}});return;}
   if(url.pathname.startsWith('/api/')){unexpected.push(url.pathname);await route.fulfill({status:501,json:{error:'Unmocked separate-tab request'}});return;}
   await route.continue();
  });

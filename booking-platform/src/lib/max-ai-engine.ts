@@ -7,6 +7,7 @@ import type {MaxAiAction,MaxAiCard} from './max-ai-contract';
 import {isMaxAiActionHref} from './max-ai-contract';
 import {indiaToday} from './booking-presentation';
 import {maxAiFastPath} from './max-ai-fast-path';
+import {maxAiFlightIntent} from './max-ai-flight-intent';
 import {enquiryDraftSchema,enquiryServiceLabels,type EnquiryDraft} from './travel-enquiry-contract';
 export {maxAiSensitiveMessage} from './max-ai-sensitive';
 
@@ -53,6 +54,21 @@ export async function runMaxAiTurn(input:{message:string;history:MaxAiMessage[];
     messages.push({role:'tool',tool_call_id:call.id,content:JSON.stringify(result.model)});
     fastPath='owned_trips';
     return finalize(terminalReply(fast.tool,result)??'Use the booking or account options below to continue. I could not verify your booking status in this reply.');
+  }
+  // Clear first-turn flight requests skip both model round trips (airport lookup
+  // and search planning). Results come from the same validated tool and cache.
+  const intent=allowed.has('search_flights')?maxAiFlightIntent(input.message,input.history.length>0,options.today??indiaToday()):null;
+  if(intent){
+    signal.throwIfAborted();toolCount++;
+    const call={id:'app_flight_search',type:'function' as const,function:{name:'search_flights',arguments:JSON.stringify(intent)}};
+    messages.push({role:'assistant',content:null,tool_calls:[call]});
+    const at=performance.now(),result=await options.runner.run('search_flights',intent);toolMs+=performance.now()-at;
+    cards.push(...result.cards);actions.push(...result.actions);
+    const evidence=JSON.stringify(result.model);
+    messages.push({role:'tool',tool_call_id:call.id,content:Buffer.byteLength(evidence,'utf8')<=4000?evidence:JSON.stringify({status:'Results are shown in the app cards. Detailed tool output was too large to summarize.'})});
+    const reply=terminalReply('search_flights',result);
+    if(reply){fastPath='flight_intent';return finalize(reply);}
+    // Not a terminal result (e.g. needs input): let the model continue from here.
   }
   for(let round=0;round<4;round++){
     signal.throwIfAborted();

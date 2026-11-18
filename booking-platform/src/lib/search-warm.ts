@@ -2,7 +2,7 @@ import 'server-only';
 import {randomUUID} from 'node:crypto';
 import {flightSearch,hotelSearch,type Search} from './providers/contracts';
 import {tripjack,paths} from './providers/tripjack';
-import {cachedFlightSearch,flightSearchCacheTtl} from './flight-search-cache';
+import {cachedFlightSearch,cachedHotelSearch,flightSearchCacheTtl} from './flight-search-cache';
 import {requestLimit} from './request-limit';
 import {searchWarmCache,type WarmScope} from './search-warm-cache';
 import {validateSearchCriteria} from './search-validation';
@@ -17,11 +17,14 @@ export async function warmSupplierSearch(criteria:Search,scope:WarmScope,intent:
   await requestLimit('search-warm:global','search-warm',12);
   await requestLimit(`search-warm:peer:${scope.peer}`,'search-warm',6);
   await requestLimit(scope.sessionFingerprint?`search-warm:session:${scope.sessionFingerprint}`:scope.actor?.userId??`search-warm:anonymous:${scope.peer}`,'search-warm',3);
-  const correlationId=randomUUID();
-  const payload=criteria.product==='FLIGHT'?flightSearch(criteria):hotelSearch(criteria,correlationId);
-  const load=()=>tripjack(criteria.product,paths[criteria.product].search,payload);
   let freshUntil:number|undefined;
-  const data=criteria.product==='FLIGHT'?await cachedFlightSearch(payload,load,undefined,undefined,(_status,until)=>{freshUntil=until;}):await load();
-  return {data,correlationId,...(freshUntil!==undefined?{freshUntil}:{})};
+  const track=(_status:unknown,until?:number)=>{freshUntil=until;};
+  if(criteria.product==='FLIGHT'){
+   const payload=flightSearch(criteria);
+   const data=await cachedFlightSearch(payload,()=>tripjack('FLIGHT',paths.FLIGHT.search,payload),undefined,undefined,track);
+   return {data,correlationId:randomUUID(),...(freshUntil!==undefined?{freshUntil}:{})};
+  }
+  const listing=await cachedHotelSearch(hotelSearch(criteria,randomUUID()),randomUUID(),id=>tripjack('HOTEL',paths.HOTEL.search,hotelSearch(criteria,id)),undefined,track);
+  return {data:listing.data,correlationId:listing.correlationId,...(freshUntil!==undefined?{freshUntil}:{})};
  });
 }

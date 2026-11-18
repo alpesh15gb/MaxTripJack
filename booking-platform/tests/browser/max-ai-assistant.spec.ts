@@ -48,7 +48,7 @@ test('Max AI shows real-result contracts and only server-authored local handoffs
   await message(page, 'Compare flights and hotels for my trip.');
   const flightCard = panel(page).getByRole('article', {name: 'IndiGo · Mumbai to New Delhi', exact: true});
   const hotelCard = panel(page).getByRole('article', {name: 'Garden Stay', exact: true});
-  await expect(flightCard).toContainText('₹6,540.00');
+  await expect(flightCard).toContainText('₹6,540');
   await expect(flightCard).toContainText('Estimated total for 1 traveller');
   await expect(flightCard.getByRole('link')).toHaveAttribute('href', `/book?product=FLIGHT&flightSearch=${searchId}`);
   await expect(hotelCard).toContainText('₹11,205.89');

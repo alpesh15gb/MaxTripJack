@@ -38,7 +38,7 @@ for(const unknown of [false,true])test(`complete return selection shows exact da
  await page.goto(query(true));await chooseLeg(page);await chooseLeg(page);
  const summary=page.getByRole('region',{name:'Selected flight context'});
  await expect(summary).toContainText(travelDateTimeLabel(outbound.sI[0].dt));await expect(summary).toContainText(travelDateTimeLabel(back.sI[0].at));await expect(summary).toContainText('+1 calendar day');
- await expect(summary.locator('.selection-combined-total')).toContainText(unknown?'Complete total checked at review':'₹13,080.00 estimated total');
+ await expect(summary.locator('.selection-combined-total')).toContainText(unknown?'Complete total checked at review':'₹13,080 estimated total');
  await expect(summary).toContainText('Search estimates are not a quote');
  const reviewAction=summary.getByRole('button',{name:'Review selected journey (2/2)'});
  await expect(reviewAction).toBeFocused();

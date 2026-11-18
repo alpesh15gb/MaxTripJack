@@ -1,0 +1,89 @@
+'use client';
+import {useEffect,useId,useRef,useState,type KeyboardEvent} from 'react';
+import {compactRupees,type FareCalendarDay} from '@/lib/fare-calendar-core';
+
+const monthName=new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
+const fullDate=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'});
+const shortDay=new Intl.DateTimeFormat('en-GB',{weekday:'short',timeZone:'UTC'});
+const dayMonth=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
+const iso=(time:number)=>new Date(time).toISOString().slice(0,10);
+const at=(date:string)=>Date.parse(`${date}T00:00:00Z`);
+const shift=(date:string,days:number)=>iso(at(date)+days*86_400_000);
+function monthStart(date:string){return `${date.slice(0,7)}-01`;}
+function nextMonth(start:string,count=1){const d=new Date(at(start));d.setUTCMonth(d.getUTCMonth()+count);return iso(d.getTime());}
+
+/** Date field with an inline two-month calendar. Prices are indicative "from"
+ * fares per adult; the hidden input keeps native form submission unchanged. */
+export default function FareDatePicker({name,label,value,min,max,onChange,fares={},rangeStart,helper}:{
+ name:string;label:string;value:string;min:string;max?:string;onChange:(value:string)=>void;
+ fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;
+}){
+ const id=useId(),root=useRef<HTMLDivElement>(null),grid=useRef<HTMLDivElement>(null);
+ const [open,setOpen]=useState(false);
+ const [view,setView]=useState(()=>monthStart(value||min));
+ const [focus,setFocus]=useState(value||min);
+ const hasFares=Object.keys(fares).length>0;
+ useEffect(()=>{
+  if(!open)return;
+  const away=(event:PointerEvent)=>{if(root.current&&!root.current.contains(event.target as Node))setOpen(false);};
+  document.addEventListener('pointerdown',away);
+  return()=>document.removeEventListener('pointerdown',away);
+ },[open]);
+ useEffect(()=>{if(open)grid.current?.querySelector<HTMLButtonElement>(`[data-date="${focus}"]`)?.focus();},[open,focus,view]);
+
+ function toggle(){setView(monthStart(value||min));setFocus(value||min);setOpen(current=>!current);}
+ function pick(date:string){onChange(date);setOpen(false);root.current?.querySelector<HTMLButtonElement>('.fare-date-trigger')?.focus();}
+ function allowed(date:string){return date>=min&&(!max||date<=max);}
+ function move(date:string){
+  if(!allowed(date))return;
+  setFocus(date);
+  const second=nextMonth(view);
+  if(date<view)setView(monthStart(date));else if(date>=nextMonth(second))setView(nextMonth(monthStart(date),-1));
+ }
+ function keys(event:KeyboardEvent<HTMLDivElement>){
+  const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[event.key];
+  if(step){event.preventDefault();move(shift(focus,step));return;}
+  if(event.key==='Escape'){event.preventDefault();setOpen(false);root.current?.querySelector<HTMLButtonElement>('.fare-date-trigger')?.focus();}
+ }
+ const months=[view,nextMonth(view)];
+ const canBack=view>monthStart(min);
+ const fare=fares[value];
+ return <div className="home-search-input fare-date" ref={root}>
+  <span id={`${id}-label`}>{label}</span>
+  <button type="button" className="fare-date-trigger" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${id}-label ${id}-value`} onClick={toggle}>
+   <span id={`${id}-value`} className="fare-date-value">{value?<><strong>{dayMonth.format(at(value))}</strong><em>{shortDay.format(at(value))}</em></>:'Choose a date'}</span>
+  </button>
+  <input type="hidden" name={name} value={value}/>
+  <small>{fare?<>from <b className={`fare-band-${fare.band}`}>₹{compactRupees(fare.minor)}</b></>:helper??' '}</small>
+  {open&&<div className="fare-calendar" role="dialog" aria-modal="false" aria-label={`Choose ${label.toLowerCase()}`}>
+   <div className="fare-calendar-head">
+    <button type="button" aria-label="Previous month" disabled={!canBack} onClick={()=>setView(nextMonth(view,-1))}>‹</button>
+    <button type="button" aria-label="Next month" onClick={()=>setView(nextMonth(view))}>›</button>
+   </div>
+   <div className="fare-calendar-months" ref={grid} onKeyDown={keys}>
+    {months.map(start=>{
+     const first=new Date(at(start)).getUTCDay(),days=Math.round((at(nextMonth(start))-at(start))/86_400_000);
+     return <div className="fare-calendar-month" key={start} role="grid" aria-label={monthName.format(at(start))}>
+      <h3>{monthName.format(at(start))}</h3>
+      <div className="fare-calendar-weekdays" aria-hidden="true">{['Su','Mo','Tu','We','Th','Fr','Sa'].map(day=><span key={day}>{day}</span>)}</div>
+      <div className="fare-calendar-days" role="row">
+       {Array.from({length:first},(_,index)=><span key={`gap-${index}`} aria-hidden="true"/>)}
+       {Array.from({length:days},(_,index)=>{
+        const date=shift(start,index),price=fares[date],enabled=allowed(date);
+        const inRange=rangeStart&&value&&date>rangeStart&&date<value;
+        return <button type="button" role="gridcell" key={date} data-date={date} disabled={!enabled} tabIndex={date===focus?0:-1}
+         aria-selected={date===value} aria-label={`${fullDate.format(at(date))}${price?`, from ₹${Math.round(price.minor/100).toLocaleString('en-IN')}${price.band==='low'?', one of the lowest fares':''}`:''}`}
+         className={[date===value?'is-selected':'',date===rangeStart?'is-range-start':'',inRange?'is-in-range':''].filter(Boolean).join(' ')||undefined}
+         onClick={()=>pick(date)} onFocus={()=>setFocus(date)}>
+         <span>{Number(date.slice(8))}</span>
+         {enabled&&price&&<small className={`fare-band-${price.band}`}>{compactRupees(price.minor)}</small>}
+        </button>;
+       })}
+      </div>
+     </div>;
+    })}
+   </div>
+   <p className="fare-calendar-note">{hasFares?<><i className="fare-band-low"/>Lowest seen fares per adult in ₹, refreshed every few minutes. The final price is confirmed at review.</>:'Pick a date. Fares appear here once we have recent prices for this route.'}</p>
+  </div>}
+ </div>;
+}

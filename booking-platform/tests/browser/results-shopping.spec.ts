@@ -38,10 +38,10 @@ test('flight shortcuts compare the displayed itinerary estimates and refine with
  const choices=page.getByRole('group',{name:'Compare flight options',exact:true});
  const cards=page.locator('.live-flight-card');
  await expect(cards).toHaveCount(3);
- await expect(choices.getByRole('button',{name:'Lowest estimated price',exact:true})).toContainText('₹4,000.00');
- await expect(choices.getByRole('button',{name:'Lowest non-stop',exact:true})).toContainText('₹6,000.00');
+ await expect(choices.getByRole('button',{name:'Lowest estimated price',exact:true})).toContainText('₹4,000');
+ await expect(choices.getByRole('button',{name:'Lowest non-stop',exact:true})).toContainText('₹6,000');
  const fastest=choices.getByRole('button',{name:'Fastest',exact:true});
- await expect(fastest).toContainText('₹9,000.00');
+ await expect(fastest).toContainText('₹9,000');
  await expect(fastest).toContainText('1h 30m');
  await fastest.click();
  await expect(cards.first().locator('.airline-identity')).toContainText('Quick Air');
@@ -53,7 +53,7 @@ test('flight shortcuts compare the displayed itinerary estimates and refine with
  await expect(cards).toHaveCount(2);
  await expect(cards.first().locator('.airline-identity')).toContainText('Direct Air');
  await expect(nonstop).toHaveAttribute('aria-pressed','true');
- await expect(choices.getByRole('button',{name:'Lowest estimated price',exact:true})).toContainText('₹6,000.00');
+ await expect(choices.getByRole('button',{name:'Lowest estimated price',exact:true})).toContainText('₹6,000');
  await nonstop.click();
  await expect(cards).toHaveCount(3);
  await expect(cards.first().locator('.airline-identity')).toContainText('Connector Air');

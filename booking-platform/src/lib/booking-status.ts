@@ -1,3 +1,4 @@
+import { displayMoney } from "./display-money";
 export type BookingItinerary = {
   from?: string; to?: string; date?: string; returnDate?: string;
   legs?: { from: string; to: string; date: string }[];
@@ -70,6 +71,7 @@ export function bookingStatusDate(value?: string) {
 export function bookingStatusMoney(value: string, currency: string) {
   const amount = Number(value);
   if (!Number.isSafeInteger(amount) || amount < 0) return "Amount unavailable";
+  if (currency === "INR") return displayMoney(amount);
   try { return new Intl.NumberFormat("en-IN", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount / 100); }
   catch { return "Amount unavailable"; }
 }

@@ -1,4 +1,4 @@
-import { test, expect, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, openFlightSearch, reviewedQuote, searchId } from './fixtures';
+import { test, expect, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, openFlightSearch, reviewedQuote, searchId, pickHomeDate, setHomeTravellers } from './fixtures';
 
 test('homepage carries canonical airports and selected adults into exactly one search', async ({ page, provider }, testInfo) => {
   await page.goto('/');
@@ -8,8 +8,8 @@ test('homepage carries canonical airports and selected adults into exactly one s
   const form = page.locator('.home-search-form');
   await form.getByLabel('From airport', { exact: true }).fill('Mumbai (BOM)');
   await form.getByLabel('To airport', { exact: true }).fill('del');
-  await form.getByLabel(/^Departure/).fill(departure);
-  await form.getByRole('combobox', { name: /^Travellers/ }).selectOption('3');
+  await pickHomeDate(form, 'Departure', departure);
+  await setHomeTravellers(form, { adults: 3 });
   await form.getByRole('button', { name: 'Search flights', exact: true }).click();
   await page.waitForURL(url => url.pathname === '/book');
   const query = new URL(page.url()).searchParams;
@@ -42,9 +42,9 @@ test('homepage hotel selection preserves selected destination and one-room adult
   const form = page.locator('.home-search-form');
   await form.getByLabel('Destination', { exact: true }).fill('Goa');
   await form.getByRole('button', { name: 'Goa, India', exact: true }).click();
-  await form.getByLabel(/^Check-in/).fill(departure);
-  await form.getByLabel(/^Check-out/).fill(returning);
-  await form.getByRole('combobox', { name: /^Guests/ }).selectOption('3');
+  await pickHomeDate(form, 'Check-in', departure);
+  await pickHomeDate(form, 'Check-out', returning);
+  await setHomeTravellers(form, { adults: 3 });
   await form.getByRole('button', { name: 'Search stays', exact: true }).click();
   await page.waitForURL(url => url.pathname === '/book');
   expect(Object.fromEntries(new URL(page.url()).searchParams)).toMatchObject({

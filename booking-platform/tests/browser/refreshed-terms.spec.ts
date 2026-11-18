@@ -176,11 +176,11 @@ test('expired Pay refreshes the total and waits for a second explicit Agree & pa
  provider.quote={...flightQuote([fare('ONWARD',0,'No allowance')],renewedId),totalMinor:724000};
  await page.clock.fastForward(120_000);
  await form(page).getByRole('button',{name:'Check latest price & continue',exact:true}).click();
- await expect(pay(page)).toHaveText('Agree & pay ₹7,240.00');
- await expect(disclosure(page)).toContainText('Total changed from ₹6,540.00 to ₹7,240.00');
+ await expect(pay(page)).toHaveText('Agree & pay ₹7,240');
+ await expect(disclosure(page)).toContainText('Total changed from ₹6,540 to ₹7,240');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.goBack();await expect(page.locator('.flight-shopping-list')).toBeVisible();await expect(form(page)).toHaveCount(0);
- await page.goForward();await retainedTraveller(page);await expect(pay(page)).toHaveText('Agree & pay ₹7,240.00');
+ await page.goForward();await retainedTraveller(page);await expect(pay(page)).toHaveText('Agree & pay ₹7,240');
  expect(provider.requests('/api/travel/review')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await pay(page).click();await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);
  expect(provider.requests('/api/payments/create')[0].body).toMatchObject({quoteId:renewedId,acceptedTotalMinor:724000});
@@ -237,6 +237,6 @@ for(const applied of [false,true])test(`expired checkout resets ${applied?'appli
  await expect(form(page).locator('.booking-traveller-fields').getByRole('status')).toContainText('Flight extras were reset');
  await expect(page.getByRole('button',{name:'Choose flight extras',exact:true})).toBeEnabled();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await reviewPayment(page);await expect(pay(page)).toHaveText('Agree & pay ₹6,540.00');
+ await reviewPayment(page);await expect(pay(page)).toHaveText('Agree & pay ₹6,540');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, flight, departure, returning, searchId, expectNoHorizontalOverflow, capture } from './fixtures';
+import { test, expect, flight, departure, returning, searchId, expectNoHorizontalOverflow, capture, pickHomeDate, setHomeTravellers } from './fixtures';
 import {travelDateLabel} from '../../src/lib/travel-date';
 
 const warmPath = '/api/travel/search/warm';
@@ -70,13 +70,13 @@ test('flight warmups follow exact route and date edits without displaying specul
  const observed = observeSearches(page);
  await page.goto('/');
  const form = page.locator('.home-search-form');
- await form.getByLabel(/^Departure/).fill(departure);
+ await pickHomeDate(form, 'Departure', departure);
  await warmAfterEdit(page, observed, 1);
  expect(observed.warm[0].body).toEqual({ product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: 1, children: 0, infants: 0, cabin: 'ECONOMY' });
  await form.getByLabel('To airport', { exact: true }).fill('HYD');
  await warmAfterEdit(page, observed, 2);
  expect(observed.warm[1].body).toMatchObject({ from: 'BOM', to: 'HYD', date: departure });
- await form.getByLabel(/^Departure/).fill(returning);
+ await pickHomeDate(form, 'Departure', returning);
  await warmAfterEdit(page, observed, 3);
  expect(observed.warm[2].body).toMatchObject({ from: 'BOM', to: 'HYD', date: returning });
  expect(new Set(observed.warm.map(call => call.intent)).size).toBe(3);
@@ -249,9 +249,9 @@ test('homepage hotel warmup carries the selected property batch into Search acro
   await page.goto('/');
   await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Hotels', exact: true }).click();
   const form = page.locator('.home-search-form');
-  await form.getByLabel(/^Check-in/).fill(departure);
-  await form.getByLabel(/^Check-out/).fill(returning);
-  await form.getByRole('combobox', { name: /^Guests/ }).selectOption('2');
+  await pickHomeDate(form, 'Check-in', departure);
+  await pickHomeDate(form, 'Check-out', returning);
+  await setHomeTravellers(form, { adults: 2 });
   await form.getByLabel('Destination', { exact: true }).fill('Goa');
   await form.getByRole('button', { name: 'Goa, India', exact: true }).click();
   await warmAfterEdit(page, observed, 1, false);

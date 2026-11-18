@@ -20,7 +20,7 @@ export default function BookingSearchSummary({ criteria, stay }: {
   const party = isStay && stay
     ? `${countLabel(stay.rooms, 'room')} · ${countLabel(stay.guests, 'guest')}`
     : countLabel(guests, isStay ? 'guest' : 'traveller');
-  const cabin = (criteria.cabin || 'ECONOMY').replaceAll('_', ' ');
+  const cabin = ((criteria.cabin || 'ECONOMY').replaceAll('_', ' ').toLowerCase()).replace(/^\w/, letter => letter.toUpperCase());
 
   return <>
     <span className="booking-criteria-field booking-criteria-destination">

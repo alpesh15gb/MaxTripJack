@@ -23,6 +23,8 @@ async function harness() {
     '@/lib/providers/payglocal-config': 'export function payGlocalConfig(){throw Error("Unexpected PayGlocal");}',
     '@/lib/checkout-extras': 'export function validateInitialExtras(){throw Error("Unexpected extras");}',
     '@/lib/access': 'export const principal=async()=>({userId:"synthetic-user",companyId:null});',
+    '@/lib/guest-shopping': 'export const checkoutAccess=async()=>({actor:{userId:"synthetic-user",companyId:null}}); export const shoppingResponse=r=>r;',
+    '@/lib/guest-checkout': 'export const isGuestActor=a=>a.userId.startsWith("guest:"); export const guestContactHash=()=>"0".repeat(64);',
     '@/lib/http': `export class HttpError extends Error{constructor(status,message){super(message);this.status=status;}} export const json=(data,status=200)=>Response.json(data,{status}); export const failure=e=>json({error:e.message},e.status||500); export const body=async(request,schema)=>schema.parse(await request.json()); export function sameOrigin(){}`,
     '@/lib/supplier-flow': `${scope} export const owned=async(table)=>table==='supplier_quotes'?{...state.quote,product:state.product}:{criteria:{},parent_order_id:null}; export function assertFresh(value){if(Date.parse(value)<=Date.now())throw Error('Expired');}`,
     '@/lib/guest-validation': 'export function validateParty(){} export function validateGuestReview(){}',

@@ -12,7 +12,8 @@ import { hotelContentForSearch } from "./hotel-content";
 import { mergeHotelPropertyDetails } from "./hotel-property-merge";
 import { hotelPropertyDetails } from "./hotel-presentation";
 import { SearchTiming } from "./search-timing";
-import { cachedFlightSearch } from "./flight-search-cache";
+import { cachedFlightSearch, cachedHotelSearch } from "./flight-search-cache";
+import { observeSearchFare } from "./fare-calendar";
 import { exactAirportGroups } from "./flight-airport-scope";
 import { orderedFlightSelection } from "./flight-selection";
 import { createHotelReviewSnapshot,hotelReviewHash,SAVE_HOTEL_REVIEW_SNAPSHOT_SQL,HOTEL_REVIEW_SNAPSHOT_KEY } from "./hotel-review-snapshot";
@@ -32,14 +33,15 @@ export async function searchSupplier(criteria:Search,actor:Actor,timing=new Sear
    const prepared=await adoption.result;timing.warmCache(prepared?adoption.status:'miss');
    if(prepared){correlationId=prepared.correlationId;return prepared.data as Awaited<ReturnType<typeof tripjack>>;}
   }
-  const supplierRequest=criteria.product==='FLIGHT'?flightSearch(criteria):hotelSearch(criteria,correlationId);
-  return criteria.product==='FLIGHT'?cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest),undefined,undefined,status=>timing.flightCache(status)):tripjack(criteria.product,paths[criteria.product].search,supplierRequest);
+  if(criteria.product==='FLIGHT'){const supplierRequest=flightSearch(criteria);return cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest),undefined,undefined,status=>timing.flightCache(status));}
+  const listing=await cachedHotelSearch(hotelSearch(criteria,correlationId),correlationId,id=>tripjack('HOTEL',paths.HOTEL.search,hotelSearch(criteria,id)));
+  correlationId=listing.correlationId;return listing.data;
  }),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
  // The provider host is currently hardcoded UAT. Record provenance at creation;
  // later catalogue settings must never relabel historical test results as production.
  await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at,provider_environment) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes','uat')",[id,actor.userId,actor.companyId,criteria.product,criteria,criteria.product==="HOTEL"?{...data,[HOTEL_REVIEW_SNAPSHOT_KEY]:{}}:data,correlationId]));
  return timing.sync("projection",()=>{
- if(criteria.product==="FLIGHT")return {searchId:id,product:criteria.product,results:customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule)};
+ if(criteria.product==="FLIGHT"){const results=customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule);observeSearchFare(criteria,results,actor.companyId);return {searchId:id,product:criteria.product,results};}
  const results=customerHotelResults(data,rule);
  results.hotels=results.hotels.filter(hotel=>criteria.hotelIds.includes(hotel.tjHotelId));
  const properties=hotelContentForSearch.peek(results.hotels.map(hotel=>hotel.tjHotelId),criteria.hotelIds);

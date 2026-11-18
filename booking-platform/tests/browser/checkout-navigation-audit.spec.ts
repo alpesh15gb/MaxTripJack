@@ -20,7 +20,8 @@ test('nearby departure dates use submitted criteria and never move the return',a
  expect(request.date).toBe(previous);
  await expect(dates.locator(`[data-flight-date="${previous}"]`)).toHaveAttribute('aria-current','date');
  await expect(dates.locator('button[aria-current="date"]')).toHaveCount(1);
- await expect(dates).not.toContainText('₹');expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ // Day fares are indicative calendar prices, never a selectable fare or a payment.
+ await expect(dates.locator(`[data-flight-date="${departure}"] .flight-date-fare`)).toHaveText('₹5,620');expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 test('15-day flight timeline fits desktop and scrolls inside the mobile strip without searching',async({page,provider,isMobile},info)=>{
@@ -157,7 +158,7 @@ test('mismatched later-batch metadata settles unavailable without replacing base
  await page.getByRole('button',{name:'Load more stays',exact:true}).click();
  const later=page.getByRole('article',{name:'Later metadata stay'});
  await expect(later).toContainText('Property photos unavailable right now');await expect(later).not.toContainText('loading…');
- await expect(later).toContainText('₹8,100.00');await expect(later).not.toContainText('Unowned metadata');
+ await expect(later).toContainText('₹8,100');await expect(later).not.toContainText('Unowned metadata');
  await expect(page.getByRole('article',{name:'Cached base stay'})).toContainText('Verified base address');
  await expect(later.getByRole('button',{name:'Choose room',exact:true})).toBeEnabled();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);

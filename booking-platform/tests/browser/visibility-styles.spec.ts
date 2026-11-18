@@ -55,7 +55,7 @@ test('actual visibility client shows responsive cards and removes stale values w
   await expect(metrics).toHaveCSS('display', 'grid');
   await expect(metrics).toHaveCSS('gap', '16px');
   await expect(metrics.locator('.visibility-metric')).toHaveCount(3);
-  await expect(metrics).toContainText('₹12,500.00');
+  await expect(metrics).toContainText('₹12,500');
   const cards = await metrics.locator('.visibility-metric').evaluateAll(nodes => nodes.map(node => { const b = node.getBoundingClientRect(); return { x: b.x, y: b.y, right: b.right, bottom: b.bottom }; }));
   if (page.viewportSize()!.width <= 900) {
     expect(cards[1].y - cards[0].bottom).toBeGreaterThanOrEqual(15.5);
@@ -74,5 +74,5 @@ test('actual visibility client shows responsive cards and removes stale values w
   await expect(page.getByRole('alert')).toContainText('Values are unknown, not zero.');
   await expect(metrics).toHaveCount(0);
   await expect(page.locator('.visibility-error')).toHaveCSS('background-color', 'rgb(255, 241, 240)');
-  await expect(page.getByText('₹12,500.00', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('₹12,500', { exact: false })).toHaveCount(0);
 });

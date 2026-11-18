@@ -1,7 +1,8 @@
+import {displayMoney} from '@/lib/display-money';
 import {compareReviewedTerms,type ReviewTerm} from '@/lib/review-term-changes';
 import SupplierPolicy from './supplier-policy';
 type Review={totalMinor:number;review:{terms?:ReviewTerm[];fareRules?:unknown;option?:{cancellation?:unknown}}};
-const money=(minor:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(minor/100);
+const money=(minor:number)=>displayMoney(minor);
 export default function RefreshedTerms({before,after}:{before:Review;after:Review}){
  const changes=compareReviewedTerms(before.review.terms,after.review.terms);
  const incomplete=!before.review.terms?.length||!after.review.terms?.length||[...before.review.terms,...after.review.terms].some(term=>term.value===null);

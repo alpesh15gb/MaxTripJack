@@ -1,4 +1,4 @@
-import { test as base, expect, type Page, type TestInfo } from '@playwright/test';
+import { test as base, expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 export const departure = futureDate(14);
 export const returning = futureDate(18);
@@ -135,6 +135,8 @@ export const test = base.extend<{ provider: ProviderFixture }>({
         case 'POST /api/travel/destination-hotels': reply = { body: { hotelIds: ['10001', '10002'], hasMore: false } }; break;
         case 'GET /api/travel/nationalities': reply = { body: { nationalities: [{ countryId: '106', name: 'India' }] } }; break;
         case 'POST /api/travel/search/warm': reply = { body: { status: 'ready' } }; break;
+        case 'GET /api/travel/fare-calendar': reply = { body: { days: { [departure]: { minor: 562000, band: 'low' }, [returning]: { minor: 918000, band: 'high' } } } }; break;
+        case 'POST /api/travel/fare-calendar': reply = { status: 202, body: {} }; break;
         case 'POST /api/travel/search':
           if (provider.searchDelay) await new Promise(resolve => setTimeout(resolve, provider.searchDelay));
           reply = { body: provider.search }; break;
@@ -220,4 +222,32 @@ export async function expectFlightToolbarValuesFit(page: Page) {
   if(await filters.isVisible())await filters.click();
   for(const label of ['Airline (any segment)','Stops'])await assertFits(label);
   if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();
+}
+
+/** Choose a day in the homepage fare calendar (label: Departure, Return, Check-in, Check-out). */
+export async function pickHomeDate(scope: Locator, label: string, date: string) {
+  await scope.getByRole('button', { name: new RegExp('^' + label + '\\b') }).click();
+  const calendar = scope.getByRole('dialog', { name: `Choose ${label.toLowerCase()}` });
+  for (let step = 0; step < 14 && !(await calendar.locator(`[data-date="${date}"]`).count()); step++) await calendar.getByRole('button', { name: 'Next month' }).click();
+  await calendar.locator(`[data-date="${date}"]`).click();
+  await expect(calendar).toHaveCount(0);
+}
+
+/** Set the homepage "Travellers & class" (or hotel "Guests") panel. */
+export async function setHomeTravellers(scope: Locator, party: { adults?: number; children?: number; infants?: number; cabin?: string }) {
+  await scope.locator('.travellers-trigger').click();
+  const panel = scope.locator('.travellers-panel');
+  const set = async (label: string, target: number | undefined) => {
+    if (target === undefined) return;
+    const group = panel.getByRole('group', { name: label, exact: true });
+    for (let guard = 0; guard < 12; guard++) {
+      const value = Number(await group.locator('output').textContent());
+      if (value === target) return;
+      await group.getByRole('button', { name: value < target ? `More ${label.toLowerCase()}` : `Fewer ${label.toLowerCase()}` }).click();
+    }
+    throw new Error(`Could not set ${label} to ${target}`);
+  };
+  await set('Adults', party.adults); await set('Children', party.children); await set('Infants', party.infants);
+  if (party.cabin) await panel.getByRole('radio', { name: party.cabin, exact: true }).check({ force: true });
+  await panel.getByRole('button', { name: 'Done', exact: true }).click();
 }

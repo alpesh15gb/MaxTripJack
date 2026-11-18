@@ -3,11 +3,13 @@
 import {useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent} from 'react';
 import type {FlightTimelineDay} from '@/lib/nearby-flight-dates';
 import {travelDateLabel} from '@/lib/travel-date';
+import {compactRupees,type FareCalendarDay} from '@/lib/fare-calendar-core';
 
 const weekday = new Intl.DateTimeFormat('en-GB', {weekday: 'short', timeZone: 'UTC'});
 const month = new Intl.DateTimeFormat('en-GB', {month: 'short', timeZone: 'UTC'});
 
-export default function FlightDateTimeline({days, selectedDate, returnDate, pendingDate, disabled, onPrepare, onSelect}: {
+export default function FlightDateTimeline({days, selectedDate, returnDate, pendingDate, disabled, onPrepare, onSelect, fares = {}}: {
+  fares?: Record<string, FareCalendarDay>;
   days: FlightTimelineDay[];
   selectedDate: string;
   returnDate?: string;
@@ -100,9 +102,10 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
         const pending = day.date === pendingDate;
         const value = new Date(`${day.date}T00:00:00Z`);
         const week = weekday.format(value);
+        const fare = fares[day.date];
         return <button key={day.date} type="button" className="flight-date-day"
           data-flight-date={day.date} data-pending={pending || undefined}
-          aria-label={`${travelDateLabel(day.date)}, ${week}`}
+          aria-label={`${travelDateLabel(day.date)}, ${week}${fare ? `, from ₹${Math.round(fare.minor / 100).toLocaleString('en-IN')}${fare.band === 'low' ? ', one of the lowest fares' : ''}` : ''}`}
           aria-current={current ? 'date' : undefined} aria-disabled={current || undefined}
           disabled={disabled || (!current && !day.search)} tabIndex={day.date === tabDate ? 0 : -1}
           onPointerEnter={event => { if (event.pointerType === 'mouse') prepare(day); }} onPointerLeave={cancelWarm}
@@ -115,6 +118,7 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
           }}>
           <span>{week}</span>
           <time dateTime={day.date}><strong>{value.getUTCDate()}</strong> {month.format(value)}</time>
+          <small className={fare ? `flight-date-fare fare-band-${fare.band}` : 'flight-date-fare'} aria-hidden="true">{fare ? `₹${compactRupees(fare.minor)}` : ' '}</small>
         </button>;
       })}
     </div>

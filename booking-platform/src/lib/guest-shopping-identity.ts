@@ -1,7 +1,8 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const SHOPPING_COOKIE = "maxtravel-shopping";
-export const SHOPPING_LIFETIME_SECONDS = 30 * 60;
+// Sliding: every search and guest-checkout call renews it. Long enough for a hosted payment page.
+export const SHOPPING_LIFETIME_SECONDS = 60 * 60;
 const signature = (payload: string, secret: string) => createHmac("sha256", secret).update(`maxtravel-shopping-v1:${payload}`).digest("base64url");
 export function issueShoppingToken(secret: string, now = Date.now()) {
   if (secret.length < 32) throw new Error("Shopping session is not configured.");
@@ -33,5 +34,10 @@ export function shoppingCookieToken(header: string | null): string | undefined {
   return matches.length === 1 ? matches[0].slice(SHOPPING_COOKIE.length + 1) : undefined;
 }
 export function shoppingCookie(token: string, secure: boolean) {
-  return `${SHOPPING_COOKIE}=${token}; Path=/api/travel; HttpOnly; SameSite=Lax; Max-Age=${SHOPPING_LIFETIME_SECONDS}${secure ? "; Secure" : ""}`;
+  return `${SHOPPING_COOKIE}=${token}; Path=/api; HttpOnly; SameSite=Lax; Max-Age=${SHOPPING_LIFETIME_SECONDS}${secure ? "; Secure" : ""}`;
+}
+/** Older releases scoped the cookie to /api/travel. Expire that copy so the
+ * browser never sends two (ambiguous) shopping cookies to /api/travel. */
+export function legacyShoppingCookieExpiry(secure: boolean) {
+  return `${SHOPPING_COOKIE}=; Path=/api/travel; HttpOnly; SameSite=Lax; Max-Age=0${secure ? "; Secure" : ""}`;
 }

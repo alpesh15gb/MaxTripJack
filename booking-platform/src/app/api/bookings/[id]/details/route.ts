@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { principal } from "@/lib/access";
+import { checkoutAccess, shoppingResponse } from "@/lib/guest-shopping";
+import { claimGuestBookings } from "@/lib/guest-checkout";
 import { owned } from "@/lib/supplier-flow";
 import { database } from "@/lib/db";
 import { unseal } from "@/lib/vault";
@@ -7,7 +8,10 @@ import { json, failure } from "@/lib/http";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await principal(request);
+    // A guest sees its own booking for the session; a verified account first claims
+    // guest bookings made with the same email.
+    const access = await checkoutAccess(request), actor = access.actor;
+    await claimGuestBookings(actor, access.user);
     const id = z.string().uuid().parse((await context.params).id);
     // Establish ownership before reading payment, traveller or supplier data.
     const order = await owned("orders", id, actor);
@@ -30,7 +34,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     }
     visit(source);
     const service = order.service_kind ? (await database().query("SELECT service_payload FROM supplier_quotes WHERE id=$1", [order.quote_id])).rows[0]?.service_payload : null;
-    return json({
+    return shoppingResponse(json({
       id, reference: order.reference, product: order.product, status: order.status,
       currency: order.currency, totalMinor: String(order.total_minor),
       createdAt: order.created_at, itinerary: order.itinerary_summary ?? {},
@@ -42,6 +46,6 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         return { ...extra, passenger: guest ? guest.fN + " " + guest.lN : "Traveller " + (extra.travellerIndex + 1) };
       }),
       passengers, hotelName: source.itemInfos?.HOTEL?.hInfo?.name ?? null,
-    });
+    }), access);
   } catch (error) { return failure(error); }
 }

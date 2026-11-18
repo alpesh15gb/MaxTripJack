@@ -210,3 +210,8 @@ body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-
   .booking-status-card, .booking-status-summary { padding: 20px; }
   .booking-status-actions a, .booking-status-actions button { flex: 1 1 auto; text-align: center; }
 }
+
+/* Guest checkout: contact step explains that no account or code is needed. */
+.guest-checkout-note{display:block;margin:4px 0 14px;padding:11px 14px;border:1px solid var(--brand-line,#ded6c8);border-left:3px solid var(--brand-gold,#c6a66b);border-radius:10px;background:var(--brand-tint,#f3ede2);color:var(--brand-ink,#101c2c);font-size:13px;line-height:1.55}
+.guest-checkout-note strong{font-weight:700}
+.guest-checkout-note a{margin-left:4px;color:var(--brand-gold-ink,#725520);font-weight:650;text-decoration:underline;text-underline-offset:3px}

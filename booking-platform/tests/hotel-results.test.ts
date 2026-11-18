@@ -15,7 +15,7 @@ test('result cards retain originating search navigation, complete stay totals an
  const searchId='11111111-1111-4111-8111-111111111111',originSearchId='22222222-2222-4222-8222-222222222222';
  const html=renderToStaticMarkup(createElement(HotelResults,{searchId,hotels:[{...hotels[0],originSearchId,property:{amenities:['Wi-Fi','Parking','Restaurant','Gym'],city:'Delhi',address:'Supplied locality'}}],context:{checkIn:'2026-11-24',checkOut:'2026-11-26',rooms:2,guests:4},busy:false,onChoose:()=>{},hasMore:true,onLoadMore:()=>{}}));
  assert.match(html,new RegExp(`browseSearch=${originSearchId}`));assert.doesNotMatch(html,new RegExp(`browseSearch=${searchId}`));
- assert.match(html,/1 of 1 loaded stays/);assert.match(html,/2 nights · 2 rooms · 4 guests/);assert.match(html,/₹8,000\.00/);
+ assert.match(html,/1 of 1 loaded stays/);assert.match(html,/2 nights · 2 rooms · 4 guests/);assert.match(html,/₹8,000</);
  assert.match(html,/Supplied locality/);assert.match(html,/Load more stays/);assert.match(html,/Choose room/);
  assert.equal((html.match(/<li>/g)??[]).length,3);assert.doesNotMatch(html,/>Gym</);
  assert.match(html,/aria-haspopup="dialog" aria-expanded="false" aria-controls="hotel-filter-dialog"/);

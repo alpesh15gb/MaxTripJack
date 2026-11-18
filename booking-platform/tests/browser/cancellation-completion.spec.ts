@@ -37,7 +37,7 @@ test('ticketed trip requests terms, requires consent, accepts once and shows onl
   await page.getByRole('button', { name: 'Request cancellation terms', exact: true }).click();
   await expect(page.locator('.cancellation-progress')).toContainText('AWAITING ACCEPTANCE');
   expect(provider.requests(submit).filter(call => call.method === 'POST')).toHaveLength(1);
-  await expect(page.locator('.cancellation-progress')).toContainText('Estimated refund: ₹5000.00');
+  await expect(page.locator('.cancellation-progress')).toContainText('Estimated refund: ₹5000');
   const accept = page.getByRole('button', { name: 'Accept cancellation terms', exact: true });
   await accept.click();
   expect(provider.requests(history).filter(call => call.method === 'POST')).toHaveLength(0);

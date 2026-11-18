@@ -26,6 +26,8 @@ async function harness(){
     '@/lib/providers/payglocal-config':'export function payGlocalConfig(){throw Error("Unexpected provider work");}',
     '@/lib/checkout-extras':'export function validateInitialExtras(){throw Error("Unexpected fare mutation");}',
     '@/lib/access':`${scope} export const principal=async()=>state.actor;`,
+    '@/lib/guest-shopping':`${scope} export const checkoutAccess=async()=>({actor:state.actor}); export const shoppingResponse=r=>r;`,
+    '@/lib/guest-checkout':`export const isGuestActor=a=>a.userId.startsWith('guest:'); export const guestContactHash=()=>'0'.repeat(64);`,
     '@/lib/http':'export class HttpError extends Error{constructor(status,message){super(message);this.status=status;}} export const json=(data,status=200)=>Response.json(data,{status});export const failure=e=>json({error:e.message},e.status||(e.name==="ZodError"?400:500));export const body=async(request,schema)=>schema.parse(await request.json());export function sameOrigin(){}',
     '@/lib/supplier-flow':`${scope} export const owned=async(table)=>table==='supplier_quotes'?{id:${JSON.stringify(quoteId)},search_id:'synthetic-search',product:state.current.product,total_minor:10000,supplier_minor:9000,expires_at:new Date(Date.now()+60000).toISOString(),selection:state.current.selection,review:{},service_kind:state.current.service_kind}:{product:state.current.search_product,criteria:state.current.criteria,service_kind:state.current.search_service_kind,parent_order_id:state.current.parent_order_id};export function assertFresh(){}`,
     '@/lib/guest-validation':'export function validateParty(){} export function validateGuestReview(){}',

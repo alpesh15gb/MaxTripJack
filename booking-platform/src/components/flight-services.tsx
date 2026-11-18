@@ -1,4 +1,5 @@
 "use client";
+import {displayMoney} from "@/lib/display-money";
 import { useEffect,useRef,useState } from "react";
 import Script from "next/script";
 import BillingFields from "./billing-fields";
@@ -14,7 +15,7 @@ type Segment={id:string;label:string;pax:{id:string;name:string;type:string;bloc
 type Fare={sI:{da:{code:string};aa:{code:string};dt:string;at:string;fD:{aI:{name:string}}}[];totalPriceList:{id:string;fareIdentifier:string;customerEstimateMinor:number|null}[]};
 type Search={searchId:string;kind:string;results:{segments?:Segment[];searchResult?:{tripInfos:Record<string,Fare[]>}}};
 type Quote={quoteId:string;kind:string;parentReference:string;totalMinor:number;expiresAt:string;review:unknown};
-const money=(n:number)=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR"}).format(n/100);
+const money=(n:number)=>displayMoney(n);
 async function request<T>(path:string,body?:unknown):Promise<T>{const r=await fetch(path,{method:body===undefined?"GET":"POST",headers:{"Content-Type":"application/json"},body:body===undefined?undefined:JSON.stringify(body),cache:"no-store"});const data=await r.json();if(!r.ok)throw Error(data.error||"Request failed.");return data;}
 export default function FlightServices({bookingId,onUpdate}:{bookingId:string;onUpdate:()=>void}){
  const [kind,setKind]=useState<"ANCILLARY"|"REISSUE"|null>(null),[options,setOptions]=useState<Options|null>(null),[search,setSearch]=useState<Search|null>(null),[quote,setQuote]=useState<Quote|null>(null),[tripIndex,setTripIndex]=useState(0),[passengers,setPassengers]=useState<number[]>([]),[choices,setChoices]=useState<Record<string,string>>({}),[busy,setBusy]=useState(false),[message,setMessage]=useState("");

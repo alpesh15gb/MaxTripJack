@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { principal } from "@/lib/access";
+import { checkoutAccess, shoppingResponse } from "@/lib/guest-shopping";
 import { database } from "@/lib/db";
-import { failure, HttpError, json } from "@/lib/http";
+import { failure, HttpError, json as jsonResponse } from "@/lib/http";
 import { razorpayKey } from "@/lib/providers/razorpay";
 import { paymentResumeStatus, type PaymentResumeRecord } from "@/lib/payment-resume";
 import { owned } from "@/lib/supplier-flow";
@@ -10,7 +10,8 @@ import {validatePayGlocalUrl} from '@/lib/providers/payglocal';
 
 export async function GET(request: Request) {
   try {
-    const actor = await principal(request);
+    const access = await checkoutAccess(request), actor = access.actor;
+    const json = (data: unknown, status?: number) => shoppingResponse(jsonResponse(data, status), access);
     const params = new URL(request.url).searchParams;
     const input = z.object({ bookingId: z.string().uuid().optional(), quoteId: z.string().uuid().optional() })
       .refine(value => Boolean(value.bookingId) !== Boolean(value.quoteId), "Supply one booking or quote reference.")

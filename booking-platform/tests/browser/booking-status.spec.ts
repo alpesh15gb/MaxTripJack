@@ -97,8 +97,9 @@ for (const status of [401, 403]) {
     await expect(page.getByRole("complementary", { name: "Your booking summary" })).toContainText("MT-SYNTHETIC-STATUS");
     provider.overrides[detailsKey] = { status, body: { error: "Synthetic access revoked" } };
     await page.clock.fastForward(5_000);
-    await expect(page.getByRole("link", { name: "Open account", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Open account", exact: true })).toHaveAttribute("href", `/account?returnTo=${encodeURIComponent(statusPath)}`);
+    const accessLink = page.getByRole("link", { name: status === 401 ? "Sign in to view booking" : "Open account", exact: true });
+    await expect(accessLink).toBeVisible();
+    await expect(accessLink).toHaveAttribute("href", `/account?returnTo=${encodeURIComponent(statusPath)}`);
     await expect(page.getByRole("complementary", { name: "Your booking summary" })).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("MT-SYNTHETIC-STATUS");
     await expect(page.locator("main")).not.toContainText("6,540");
@@ -124,11 +125,21 @@ test("an unavailable or foreign booking gets a generic private response without 
   await expectNoHorizontalOverflow(page);
 });
 
-test("signed-out access preserves this booking as the sign-in return and fetches no private details", async ({ page, provider }) => {
+test("signed-out access without a guest booking offers sign-in with this booking as the return", async ({ page, provider }) => {
   provider.session = null;
+  // Not owned by this browser's guest session: the server refuses and nothing private is shown.
+  provider.overrides[detailsKey] = { status: 401, body: { error: "Sign in to continue." } };
   await page.goto(statusPath);
   await expect(page.getByRole("link", { name: "Sign in to view booking", exact: true })).toHaveAttribute("href", `/account?returnTo=${encodeURIComponent(statusPath)}`);
   await expect(page.getByRole("complementary", { name: "Your booking summary" })).toHaveCount(0);
-  expect(provider.requests(detailsPath)).toHaveLength(0);
+  expect(provider.requests(detailsPath)).toHaveLength(1);
   await expectNoHorizontalOverflow(page);
+});
+
+test("a guest who booked in this browser sees the booking status without signing in", async ({ page, provider }) => {
+  provider.session = null;
+  provider.overrides[detailsKey] = { body: details() };
+  await page.goto(statusPath);
+  await expect(page.getByRole("link", { name: "Sign in to view booking", exact: true })).toHaveCount(0);
+  await expect(page.getByText(details().reference, { exact: false }).first()).toBeVisible();
 });

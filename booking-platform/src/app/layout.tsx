@@ -24,6 +24,7 @@ import "./flight-decision.css";
 import "./visual-polish.css";
 import "./checkout-flow.css";
 import "./homepage-design.css";
+import "./site-polish.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

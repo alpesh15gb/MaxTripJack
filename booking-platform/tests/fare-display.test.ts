@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {displayMoney} from '../src/lib/display-money';
 import {comparableFareEstimate,haveComparableCurrency,orderFareOffers} from '../src/lib/fare-display';
 
-test('transactional INR uses two decimal places without changing paise',()=>{
- for(const [amount,label] of [[324850,'₹3,248.50'],[3056704,'₹30,567.04'],[3962230,'₹39,622.30'],[10000,'₹100.00'],[0,'₹0.00']] as const)assert.equal(displayMoney(amount),label);
+test('transactional INR shows paise exactly and drops .00 for whole rupees',()=>{
+ for(const [amount,label] of [[324850,'₹3,248.50'],[3056704,'₹30,567.04'],[3962230,'₹39,622.30'],[10000,'₹100'],[0,'₹0']] as const)assert.equal(displayMoney(amount),label);
  for(const amount of [NaN,Infinity,1.2,Number.MAX_SAFE_INTEGER+1])assert.equal(displayMoney(amount),'Price unavailable');
 });
 test('offers sort stably by comparable INR estimates, retain every identity and never mutate source',()=>{
