@@ -6,14 +6,15 @@ function after(date:string,days:number){return new Date(Date.parse(`${date}T00:0
 async function selectFare(page:Page){await page.locator('.flight-shopping-list .fare-comparison').first().locator(':scope > summary').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();}
 async function openPartyFlightSearch(page:Page,children:number,infants:number){await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',children:String(children),infants:String(infants),autoSearch:'1'}));}
 async function fillParty(page:Page,count:number){const form=page.getByRole('form',{name:'Review and travellers'});for(let i=0;i<count;i++){await form.locator(`[name="first-${i}"]`).fill(`Traveller ${i+1}`);await form.locator(`[name="last-${i}"]`).fill('Example');}await form.locator('[name="email"]').fill('traveller@example.test');await form.locator('[name="phone"]').fill('9876543210');}
-async function review(page:Page){await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();}
+async function attemptPayment(page:Page){await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();}
+async function inlineReview(page:Page){await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(page.locator('[name="first-0"]')).toBeVisible();}
 async function noPrivateStorage(page:Page){expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBeNull();}
 
-test('child and infant age errors focus each field, retain corrections and never start payment on review',async({page,provider},testInfo)=>{
+test('child and infant age errors retain corrections and block payment until the submitted details are valid',async({page,provider},testInfo)=>{
  provider.quote=reviewedQuote({summary:{from:'BOM',to:'DEL',date:departure,adults:1,children:1,infants:1}});
  await openPartyFlightSearch(page,1,1);await selectFare(page);await fillParty(page,3);
  await page.locator('[name="dob-1"]').fill(birthForAge(13));await page.locator('[name="dob-2"]').fill(birthForAge(3));
- await review(page);
+ await attemptPayment(page);
  const summary=page.locator('#traveller-errors');
  await expect(summary).toContainText('Child 2 · Date of birth: Children must be age 2–11');
  await expect(summary).toContainText('Infant 3 · Date of birth: Infants must be under 2');
@@ -21,25 +22,25 @@ test('child and infant age errors focus each field, retain corrections and never
  await expect(page.locator('[name="dob-1"]')).toHaveAttribute('aria-invalid','true');
  await expect(page.locator('[name="dob-1"]')).toHaveAccessibleDescription(/Children must be age 2–11/);
  await summary.getByRole('button',{name:/Infant 3 · Date of birth/}).click();await expect(page.locator('[name="dob-2"]')).toBeFocused();
- await review(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await attemptPayment(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.locator('[name="dob-1"]').fill(birthForAge(5));await page.locator('[name="dob-2"]').fill(birthForAge(1));
- await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
- await expect(summary).toHaveCount(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
- // Review does not create a payment. Consent belongs to the explicit payment action.
+ await inlineReview(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ // Editing the live review never creates a payment. Consent belongs to Pay.
  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
  await expect(page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- // Revalidate the exact payload at payment too, even if a browser autofill or
- // extension changes an offscreen field after the first review.
+ // Revalidate the exact payload, including a DOM change made outside React.
  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
  await page.locator('[name="dob-1"]').evaluate((element,value)=>{(element as HTMLInputElement).value=value;},birthForAge(13));
  await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();
  await expect(page.locator('[name="dob-1"]')).toBeFocused();expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await page.locator('[name="dob-1"]').fill(birthForAge(5));await review(page);
+ await page.locator('[name="dob-1"]').fill(birthForAge(5));
  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
- await page.getByRole('button',{name:'Back to travellers',exact:true}).click();
+ await page.getByRole('button',{name:'Edit traveller details',exact:true}).click();await expect(page.locator('[name="first-0"]')).toBeFocused();
  await expect(page.locator('[name="dob-1"]')).toHaveValue(birthForAge(5));await expect(page.locator('[name="first-0"]')).toHaveValue('Traveller 1');
- await noPrivateStorage(page);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'traveller-correction-no-payment');
+ await noPrivateStorage(page);await attemptPayment(page);await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);
+ await expect(summary).toHaveCount(0);expect(provider.requests('/api/payments/create')[0].body).toMatchObject({guests:{travellers:[{fN:'Traveller 1'},{dob:birthForAge(5)},{dob:birthForAge(1)}]}});
+ await expectNoHorizontalOverflow(page);await capture(page,testInfo,'traveller-correction-explicit-payment');
 });
 
 test('passport validation uses final travel in saved quote, not an edited unsubmitted search',async({page,provider})=>{
@@ -52,11 +53,11 @@ test('passport validation uses final travel in saved quote, not an edited unsubm
  await page.locator('#booking-search > summary').click();await selectFare(page);await fillParty(page,1);
  const documents=page.locator('.traveller-card details').filter({hasText:'Travel documents'});
  await documents.locator('summary').click();await page.locator('[name="expiry-0"]').fill(returning);await documents.locator('summary').click();
- await review(page);await expect(documents).toHaveAttribute('open','');await expect(page.locator('[name="expiry-0"]')).toBeFocused();
+ await attemptPayment(page);await expect(documents).toHaveAttribute('open','');await expect(page.locator('[name="expiry-0"]')).toBeFocused();
  await expect(page.locator('#guest-error-expiry-0')).toContainText(`final travel date (${returning})`);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);expect(provider.requests('/api/travel/search')).toHaveLength(1);
- await page.locator('[name="expiry-0"]').fill(after(returning,1));await review(page);
- await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await page.locator('[name="expiry-0"]').fill(after(returning,1));await inlineReview(page);await noPrivateStorage(page);await attemptPayment(page);
+ await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);await expect(page.locator('#traveller-errors')).toHaveCount(0);
 });
 
 test('optional DOB and document sections open for field-level adult age and PAN errors',async({page,provider})=>{
@@ -64,18 +65,18 @@ test('optional DOB and document sections open for field-level adult age and PAN 
  const dobSection=page.locator('.traveller-card details').filter({hasText:'Add date of birth'});
  const documents=page.locator('.traveller-card details').filter({hasText:'Travel documents'});
  await dobSection.locator('summary').click();await page.locator('[name="dob-0"]').fill(birthForAge(10));await dobSection.locator('summary').click();
- await review(page);await expect(dobSection).toHaveAttribute('open','');await expect(page.locator('[name="dob-0"]')).toBeFocused();
+ await attemptPayment(page);await expect(dobSection).toHaveAttribute('open','');await expect(page.locator('[name="dob-0"]')).toBeFocused();
  await page.locator('[name="dob-0"]').fill('1990-01-01');
  await documents.locator('summary').click();await page.locator('[name="pan-0"]').fill('123');await documents.locator('summary').click();
  const gst=page.locator('#booking-review details').filter({has:page.locator('[name="gstNumber"]')});
  await gst.locator('summary').click();await page.locator('[name="gstNumber"]').fill('short');await gst.locator('summary').click();
- await review(page);
+ await attemptPayment(page);
  await expect(page.locator('[name="pan-0"]')).toBeFocused();await expect(documents).toHaveAttribute('open','');await expect(gst).toHaveAttribute('open','');
  await expect(page.locator('[name="gstNumber"]')).toHaveAttribute('aria-invalid','true');
  await expect(page.locator('#traveller-errors')).toContainText('Registered business name');
  await page.locator('[name="pan-0"]').fill('abcde1234f');await page.locator('[name="gstNumber"]').fill('123456789012345');await page.locator('[name="gstName"]').fill('Synthetic Business');
- await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
- expect(provider.requests('/api/payments/create')).toHaveLength(0);await noPrivateStorage(page);await expectNoHorizontalOverflow(page);
+ await inlineReview(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);await noPrivateStorage(page);
+ await attemptPayment(page);await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);await expect(page.locator('#traveller-errors')).toHaveCount(0);await expectNoHorizontalOverflow(page);
 });
 
 test('hotel child ages are checked in their own reviewed room and can be corrected without losing guests',async({page,provider})=>{
@@ -86,23 +87,24 @@ test('hotel child ages are checked in their own reviewed room and can be correct
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Delhi',hotelIds:'10001',date:departure,end:returning,adults:'1',rooms:JSON.stringify(rooms),autoSearch:'1'}));
  await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Continue with room',exact:true}).click();await fillParty(page,4);
  await page.locator('[name="dob-1"]').fill(birthForAge(5));await page.locator('[name="dob-3"]').fill(birthForAge(8));
- await review(page);await expect(page.locator('[name="dob-3"]')).toBeFocused();
+ await attemptPayment(page);await expect(page.locator('[name="dob-3"]')).toBeFocused();
  await expect(page.locator('#traveller-errors')).toContainText('Room 2 · Child 4 · Date of birth');await expect(page.locator('#guest-error-dob-3')).toContainText('room 2 (9)');
  await expect(page.locator('[name="dob-1"]')).not.toHaveAttribute('aria-invalid','true');
- await page.locator('[name="dob-3"]').fill(birthForAge(9));await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
- expect(provider.requests('/api/payments/create')).toHaveLength(0);await expectNoHorizontalOverflow(page);
+ await page.locator('[name="dob-3"]').fill(birthForAge(9));await inlineReview(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);await noPrivateStorage(page);
+ await attemptPayment(page);await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);await expect(page.locator('#traveller-errors')).toHaveCount(0);
+ expect(provider.requests('/api/payments/create')[0].body).toMatchObject({guests:{travellers:[{roomIndex:0},{roomIndex:0,dob:birthForAge(5)},{roomIndex:1},{roomIndex:1,dob:birthForAge(9)}]}});await expectNoHorizontalOverflow(page);
 });
 
 test('authoritative server field errors survive API decoding and return focus to optional fields',async({page,provider})=>{
  provider.overrides['POST /api/payments/create']={status:400,body:{error:'Invalid request fields.',fields:[{path:'guests.travellers.0.dob',message:'Supplier requires a corrected date of birth.'}]}};
- await openFlightSearch(page);await selectFare(page);await fillParty(page,1);await review(page);
+ await openFlightSearch(page);await selectFare(page);await fillParty(page,1);await inlineReview(page);
  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();
  await expect(page.locator('[name="dob-0"]')).toBeFocused();await expect(page.locator('[name="dob-0"]')).toBeVisible();
  await expect(page.locator('[name="dob-0"]')).toHaveAccessibleDescription('Supplier requires a corrected date of birth.');
  await expect(page.locator('#traveller-errors')).toContainText('Adult 1 · Date of birth');
  await expect(page.locator('[name="first-0"]')).toHaveValue('Traveller 1');await noPrivateStorage(page);
  expect(provider.requests('/api/payments/create')).toHaveLength(1);expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(0);
- await page.locator('[name="dob-0"]').fill('1990-01-01');await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+ await page.locator('[name="dob-0"]').fill('1990-01-01');await inlineReview(page);await expect(page.locator('[name="dob-0"]')).toHaveValue('1990-01-01');
  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);expect(provider.requests('/api/payments/create')).toHaveLength(1);
  await page.getByRole('button',{name:'Change selection',exact:true}).click();
  await expect(page.locator('.flight-shopping-list')).toBeVisible();
@@ -111,7 +113,7 @@ test('authoritative server field errors survive API decoding and return focus to
 
 test('required supplier documents collect all missing fields before any payment attempt',async({page,provider})=>{
  provider.quote=reviewedQuote({review:{conditions:{pcs:{pm:true},dob:{adobr:true},ipa:true,gst:{igm:true},iecr:true}}});
- await openFlightSearch(page);await selectFare(page);await fillParty(page,1);await review(page);
+ await openFlightSearch(page);await selectFare(page);await fillParty(page,1);await attemptPayment(page);
  const summary=page.locator('#traveller-errors');
  for(const label of ['Passport number','Passport nationality','Passport expiry','Date of birth','PAN','GST number','Emergency contact name'])await expect(summary).toContainText(label);
  await expect(page.locator('[name="passport-0"]')).toBeFocused();
@@ -135,10 +137,10 @@ for(const product of ['FLIGHT','HOTEL'] as const){
   const dob=page.locator('[name="dob-1"]'),today=(await dob.getAttribute('max'))!;
   const future=after(today,1);await dob.fill(future);
   expect(await dob.evaluate(element=>(element as HTMLInputElement).validity.rangeOverflow)).toBe(true);
-  await review(page);await expect(dob).toBeFocused();await expect(dob).toHaveAccessibleDescription(`Date of birth cannot be after today (${today}).`);
+  await attemptPayment(page);await expect(dob).toBeFocused();await expect(dob).toHaveAccessibleDescription(`Date of birth cannot be after today (${today}).`);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);await expectNoHorizontalOverflow(page);
   await dob.fill(today);expect(await dob.evaluate(element=>(element as HTMLInputElement).validity.valid)).toBe(true);
-  await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+  await inlineReview(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);await dob.evaluate((element,value)=>{(element as HTMLInputElement).value=value;},future);
   await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();await expect(dob).toBeFocused();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);await noPrivateStorage(page);
@@ -150,21 +152,19 @@ test('optional emergency-only entries still obey native type and length constrai
  const section=page.locator('#booking-review details').filter({has:page.locator('[name="emergencyEmail"]')});
  await section.locator('summary').click();await page.locator('[name="emergencyEmail"]').fill('not-an-email');await page.locator('[name="emergencyPhone"]').fill('123');
  await expect(page.locator('[name="emergencyName"]')).toBeEmpty();await section.locator('summary').click();
- await review(page);await expect(section).toHaveAttribute('open','');await expect(page.locator('[name="emergencyEmail"]')).toBeFocused();
+ await attemptPayment(page);await expect(section).toHaveAttribute('open','');await expect(page.locator('[name="emergencyEmail"]')).toBeFocused();
  await expect(page.locator('[name="emergencyEmail"]')).toHaveAttribute('aria-invalid','true');await expect(page.locator('[name="emergencyPhone"]')).toHaveAttribute('aria-invalid','true');
  await expect(page.locator('#traveller-errors')).toContainText('Emergency contact email');await expect(page.locator('#traveller-errors')).toContainText('Emergency contact phone');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.locator('[name="emergencyEmail"]').fill('contact@example.test');await page.locator('[name="emergencyPhone"]').fill('9876543210');
- await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
- expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await inlineReview(page);await noPrivateStorage(page);await attemptPayment(page);await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);await expect(page.locator('#traveller-errors')).toHaveCount(0);
 });
 
 test('a native custom-validity failure keeps its indexed field focus and cannot start payment',async({page,provider})=>{
  await openFlightSearch(page);await selectFare(page);await fillParty(page,1);
  await page.locator('[name="first-0"]').evaluate(element=>(element as HTMLInputElement).setCustomValidity('Check the traveller spelling.'));
- await review(page);await expect(page.locator('[name="first-0"]')).toBeFocused();await expect(page.locator('[name="first-0"]')).toHaveAccessibleDescription('Check the traveller spelling.');
+ await attemptPayment(page);await expect(page.locator('[name="first-0"]')).toBeFocused();await expect(page.locator('[name="first-0"]')).toHaveAccessibleDescription('Check the traveller spelling.');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.locator('[name="first-0"]').evaluate(element=>(element as HTMLInputElement).setCustomValidity(''));
- await review(page);await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
- expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await inlineReview(page);await noPrivateStorage(page);await attemptPayment(page);await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);await expect(page.locator('#traveller-errors')).toHaveCount(0);
 });

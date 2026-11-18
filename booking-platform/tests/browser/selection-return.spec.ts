@@ -402,20 +402,16 @@ for(const product of ['FLIGHT','HOTEL'] as const){
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('draft@example.test');
   await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
-  await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
-  await page.goBack();
-  await expect(form.getByLabel('First name',{exact:true})).toBeVisible();
-  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
-  await page.goForward();
   await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
   await expect(page.locator('.final-traveller-summary')).toContainText('draft@example.test');
-  await page.goBack();await page.goBack();
+  await page.goBack();
   await expect(product==='FLIGHT'?page.locator('#booking-results'):page.locator('#booking-rooms')).toBeVisible();
   await expect(form).toHaveCount(0);
   await page.goForward();
+  await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
   await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
   await expect(form.getByLabel('Email',{exact:true})).toHaveValue('draft@example.test');
+  await expect(page.locator('.final-traveller-summary')).toContainText('draft@example.test');
   const stored=await page.evaluate(()=>JSON.stringify({history:history.state,session:{...sessionStorage}}));
   expect(stored).not.toContain('draft@example.test');expect(stored).not.toContain('9876543210');
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -425,32 +421,38 @@ for(const product of ['FLIGHT','HOTEL'] as const){
 }
 
 for(const incomplete of [false,true]){
- test(`browser Forward requires a new review after ${incomplete?'incomplete':'valid'} traveller edits`,async({page,provider})=>{
+ test(`inline review and browser return retain ${incomplete?'incomplete':'valid'} edits without restoring old traveller details`,async({page,provider})=>{
   await openFlightSearch(page);await chooseFlight(page);
   const form=page.getByRole('form',{name:'Review and travellers'});
   await form.getByLabel('First name',{exact:true}).fill('Aarav');
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('original@example.test');
   await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
-  await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();
   await expect(page.locator('.final-traveller-summary')).toContainText('original@example.test');
-  await page.goBack();
   await form.getByLabel('First name',{exact:true}).fill(incomplete?'':'Isha');
   await form.getByLabel('Email',{exact:true}).fill('updated@example.test');
+  await expect(page.locator('.final-traveller-summary')).toContainText('updated@example.test');
+  await expect(page.locator('.final-traveller-summary')).not.toContainText('Aarav');
+  await expect(page.locator('.final-traveller-summary')).not.toContainText('original@example.test');
+  await page.goBack();await expect(page.locator('#booking-results')).toBeVisible();await expect(form).toHaveCount(0);
   await page.goForward();
   await expect(form.getByLabel('First name',{exact:true})).toBeVisible();
   await expect(form.getByLabel('First name',{exact:true})).toHaveValue(incomplete?'':'Isha');
-  await expect(page.locator('.final-traveller-summary')).not.toBeVisible();
-  await expect(page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /})).toHaveCount(0);
-  await page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true}).click();
+  await expect(form.getByLabel('Email',{exact:true})).toHaveValue('updated@example.test');
+  await expect(page.locator('.final-traveller-summary')).toContainText('updated@example.test');
+  await expect(page.locator('.final-traveller-summary')).not.toContainText('original@example.test');
+  await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeVisible();
   if(incomplete){
+   await form.getByRole('button',{name:/^Agree & pay /}).click();
    await expect(page.locator('#traveller-errors')).toBeVisible();
-   await expect(page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /})).toHaveCount(0);
+   await expect(form.getByRole('textbox',{name:'First name',exact:true})).toBeFocused();
+   await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeVisible();
   }else{
    await expect(page.locator('.final-traveller-summary')).toContainText('Isha');
    await expect(page.locator('.final-traveller-summary')).toContainText('updated@example.test');
    await expect(page.locator('.final-traveller-summary')).not.toContainText('original@example.test');
   }
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(1);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
  });
 }

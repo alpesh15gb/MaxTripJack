@@ -24,8 +24,8 @@ async function fillDomesticTraveller(page: Page) {
 
 async function showPaymentReview(page: Page) {
   await fillDomesticTraveller(page);
-  await page.locator('#booking-review').getByRole('button', { name: 'Continue to review', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Review your booking', exact: true })).toBeVisible();
+  await expect(page.locator('#booking-summary').getByRole('heading', { name: 'Review your booking', exact: true })).toBeVisible();
+  await expect(page.locator('#booking-review').getByLabel('First name', { exact: true })).toBeVisible();
 }
 
 async function openSyntheticPayment(page: Page) {
@@ -77,9 +77,10 @@ test('domestic adult documents remain optional rather than blocking checkout', a
   await expect(form.locator('[name="passport-0"]')).not.toHaveAttribute('required');
   await showPaymentReview(page);
   await expect(page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / })).toBeEnabled();
-  // Reaching payment review must not itself create a gateway order.
+  // Filling the inline review must not itself create a gateway order.
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
-  await page.getByRole('button', { name: 'Back to travellers', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit traveller details', exact: true }).click();
+  await expect(form.getByLabel('First name', { exact: true })).toBeFocused();
   await expect(form.getByLabel('First name', { exact: true })).toHaveValue('Aarav');
   await expect(form.getByLabel('Email', { exact: true })).toHaveValue('traveller@example.test');
 });
@@ -104,31 +105,36 @@ test('supplier-required documents, GST and emergency details are visible and req
     'Emergency contact name, email address and phone number.',
   ]);
   await fillDomesticTraveller(page);
-  await page.locator('#booking-review').getByRole('button', { name: 'Continue to review', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Review your booking', exact: true })).toHaveCount(0);
+  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
+  await expect(page.locator('#traveller-errors')).toBeVisible();
+  await expect(form.locator('[name="passport-0"]')).toBeFocused();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'supplier-required-documents');
 });
 
-test('expired Continue refreshes before review, preserves guests and Back/Forward, and never creates payment', async ({ page, provider }, testInfo) => {
+test('expired payment action refreshes in place, preserves guests and Back/Forward, and never creates payment', async ({ page, provider }, testInfo) => {
   provider.quote = reviewedQuote({ expiresAt: new Date(Date.now() - 60_000).toISOString() });
   await openReviewedFlight(page);await fillDomesticTraveller(page);
   const review=page.locator('#booking-review');
-  await expect(review.getByRole('button',{name:'Continue to review',exact:true})).toBeEnabled();
+  await expect(review.getByRole('button',{name:'Check latest price & continue',exact:true})).toBeEnabled();
   await capture(page,testInfo,'expired-quote');
   provider.quote=reviewedQuote({quoteId:'44444444-4444-4444-8444-444444444444',totalMinor:724000});
-  await review.getByRole('button',{name:'Continue to review',exact:true}).click();
+  await review.getByRole('button',{name:'Check latest price & continue',exact:true}).click();
   await expect(review.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
   await expect(review.getByRole('button',{name:/^Agree & pay ₹7,240/})).toBeEnabled();
   await expect(review.getByRole('checkbox')).toHaveCount(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(2);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
-  await page.getByRole('button',{name:'Back to travellers',exact:true}).click();
   await expect(review.getByLabel('First name',{exact:true})).toBeVisible();
   await expect(review.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
   await expect(review.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
+  await page.goBack();await expect(page.locator('.flight-shopping-list')).toBeVisible();await expect(review).toHaveCount(0);
   await page.goForward();await expect(review.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+  await expect(review.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+  await expect(review.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
+  await expect(review.getByRole('button',{name:/^Agree & pay ₹7,240/})).toBeEnabled();
+  expect(provider.requests('/api/travel/review')).toHaveLength(2);
   await page.getByRole('button',{name:'Change selection',exact:true}).click();
   await expect(page.locator('.flight-shopping-list')).toBeVisible();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -463,13 +469,25 @@ test('party selected in the collapsed search picker reaches traveller review int
 });
 
 
-test('final review displays selected flight and exact traveller contact before payment',async({page})=>{
+test('flight review updates beside the editable details without a new step or an implicit payment',async({page,provider},testInfo)=>{
  await openReviewedFlight(page);
+ const launch=await page.evaluate(()=>({url:location.href,history:history.length}));
  await showPaymentReview(page);
+ const phone=page.getByLabel('Indian mobile number',{exact:true});
+ await phone.press('Enter');
+ await expect(phone).toBeFocused();
+ expect(await page.evaluate(()=>({url:location.href,history:history.length}))).toEqual(launch);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ const details=await page.locator('.booking-details-column').boundingBox();
+ const review=await page.locator('#booking-summary').boundingBox();
+ expect(details).not.toBeNull();expect(review).not.toBeNull();
+ if(page.viewportSize()!.width>1000)expect(review!.x).toBeGreaterThanOrEqual(details!.x+details!.width);
+ else expect(review!.y).toBeGreaterThanOrEqual(details!.y+details!.height);
  await expect(page.getByRole('region',{name:'Selected itinerary'})).toContainText('IndiGo');
  await expect(page.locator('.final-traveller-summary')).toContainText('Mr Aarav Example');
  await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
  await expect(page.locator('.final-traveller-summary')).toContainText('9876543210');
+ await capture(page,testInfo,'flight-inline-checkout');
  await page.getByText('Original search details & fare',{exact:true}).click();
  const fareSummary=await page.locator('.selected-itinerary .fare-comparison > summary').boundingBox();
  expect(fareSummary?.height).toBeLessThan(160);

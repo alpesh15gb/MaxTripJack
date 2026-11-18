@@ -21,7 +21,7 @@ for(const panRequired of [false,true,'false'] as const)test(`hotel PAN ${JSON.st
   await expect(form.locator('[name="pan-0"]')).toBeVisible();
   await expect(form.locator('[name="pan-0"]')).toHaveAttribute('required');
   await expect(form.locator('#pan-hint-0')).toHaveText('This room rate requires PAN for the primary guest only.');
-  await form.getByRole('button',{name:'Continue to review',exact:true}).click();
+  await page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /}).click();
   await expect(form.locator('[name="pan-0"]')).toBeFocused();
   await expect(form.locator('[name="pan-0"]')).toHaveAttribute('aria-describedby','pan-hint-0 guest-error-pan-0');
   const panIsUncovered=()=>form.locator('[name="pan-0"]').evaluate(node=>{const r=node.getBoundingClientRect(),sticky=document.querySelector('.mobile-booking-action')?.getBoundingClientRect();return r.top>=0&&r.bottom<=(sticky?.height?sticky.top:innerHeight)&&document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===node;});
@@ -39,10 +39,10 @@ for(const panRequired of [false,true,'false'] as const)test(`hotel PAN ${JSON.st
  }
  await expectNoHorizontalOverflow(page);
  await capture(page,testInfo,`hotel-pan-${String(panRequired)}-guests`);
- await form.getByRole('button',{name:'Continue to review',exact:true}).click();
- await expect(form.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+ await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+ await expect(form.getByLabel('First name',{exact:true}).first()).toBeVisible();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await form.getByRole('button',{name:/^Agree & pay /}).click();
+ await page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /}).click();
  await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);
  const payload=provider.requests('/api/payments/create')[0].body as {guests:{travellers:{pan?:string}[]}};
  expect(payload.guests.travellers[0].pan).toBe(panRequired===true?'ABCDE1234F':undefined);

@@ -11,9 +11,8 @@ async function readyToPay(page: Page) {
   await form.getByLabel('Last name', { exact: true }).fill('Example');
   await form.getByLabel('Email', { exact: true }).fill('traveller@example.test');
   await form.getByLabel('Indian mobile number', { exact: true }).fill('9876543210');
-  await page.locator('#booking-review').getByRole('button', { name: 'Continue to review', exact: true }).click();
   await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
-  await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
+  await page.locator('#booking-summary').getByRole('button', { name: /^Agree & pay / }).click();
 }
 
 async function expectExistingOrderRetry(page: Page, provider: ProviderFixture) {

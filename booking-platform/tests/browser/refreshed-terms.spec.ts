@@ -45,7 +45,7 @@ async function retainedTraveller(page:Page){
  await expect(form(page).getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');await expect(form(page).getByLabel('Indian mobile number',{exact:true})).toHaveValue('9876543210');
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
 }
-async function reviewPayment(page:Page){await form(page).getByRole('button',{name:'Continue to review',exact:true}).click();await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();}
+async function reviewPayment(page:Page){await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(form(page).getByLabel('First name',{exact:true})).toBeVisible();}
 async function refresh(page:Page){await page.getByRole('button',{name:'Refresh reviewed price',exact:true}).click();await expect(disclosure(page)).toBeVisible();await expect(form(page).locator('.booking-continue')).toBeEnabled();await expect(page.locator('#refreshed-terms-title')).toBeFocused();await expect(page.locator('.travel-skip')).not.toBeFocused();await expect(page.locator('.travel-skip')).toHaveCSS('clip-path','inset(50%)');}
 async function prepareRefreshedFlight(page:Page,provider:ProviderFixture){
  provider.quote=flightQuote([fare()]);await openFlight(page);await fillTraveller(page);
@@ -63,7 +63,7 @@ test('same-price flight baggage/refund changes retain travellers, require explic
  await retainedTraveller(page);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'same-price-flight-terms-before-after');
  await expect(pay(page)).toBeEnabled();await expect(form(page).getByRole('checkbox')).toHaveCount(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await page.getByRole('button',{name:'Back to travellers',exact:true}).click();await retainedTraveller(page);await expect(disclosure(page)).toBeVisible();
+ await page.getByRole('button',{name:'Edit traveller details',exact:true}).click();await expect(form(page).getByLabel('First name',{exact:true})).toBeFocused();await retainedTraveller(page);await expect(disclosure(page)).toBeVisible();
  await reviewPayment(page);await expect(form(page).getByRole('checkbox')).toHaveCount(0);expect(provider.requests('/api/travel/review')).toHaveLength(2);
  await capture(page,testInfo,'refreshed-flight-explicit-payment');
  // Changing selection returns to real results, then a new non-renewal clears the old comparison.
@@ -138,7 +138,10 @@ test('malformed refreshed room/inclusion/policy details disclose unknown rather 
  await disclosure(page).getByText('Compare supported previous and latest cancellation / fare policies',{exact:true}).click();
  await expect(disclosure(page).getByRole('region',{name:'Latest supplier policy',exact:true})).toContainText('Comparable policy details unavailable');
  await expect(disclosure(page)).toContainText('Missing details do not mean no restrictions or no allowance');
- await expect(page.locator('body')).not.toContainText('SYNTHETIC_PRIVATE_TOKEN');await expect(page.locator('body')).not.toContainText('987654321');
+ await expect(page.locator('body')).not.toContainText('SYNTHETIC_PRIVATE_TOKEN');
+ // The live contact summary contains the traveller's legitimate phone number.
+ // Assert that the unsupported amount is absent from policy surfaces themselves.
+ await expect(disclosure(page)).not.toContainText('987654321');await expect(page.locator('#booking-fare-conditions')).not.toContainText('987654321');
  await retainedTraveller(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'refreshed-terms-unknown-coverage');
 });
 
@@ -148,7 +151,7 @@ for(const status of [409,503])test(`refreshed terms cannot bypass uncertain paym
  await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Payment order creation is pending reconciliation');
  await expect(page.getByRole('link',{name:'Check payment status in My trips',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Refresh reviewed price',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Change selection',exact:true})).toBeDisabled();
- await expect(page.getByRole('button',{name:'Back to travellers',exact:true})).toBeDisabled();await expect(pay(page)).toHaveCount(0);
+ await expect(form(page).getByLabel('First name',{exact:true})).toBeDisabled();await expect(pay(page)).toHaveCount(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(1);expect(provider.requests('/api/payments/create')[0].body).toMatchObject({quoteId:renewedId,acceptedTotalMinor:654000});
  expect(provider.requests('/api/travel/review')).toHaveLength(2);expect(provider.requests('/api/payments/verify')).toHaveLength(0);expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(0);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,`refreshed-terms-uncertain-${status}`);
@@ -176,8 +179,9 @@ test('expired Pay refreshes the total and waits for a second explicit Agree & pa
  await expect(pay(page)).toHaveText('Agree & pay ₹7,240.00');
  await expect(disclosure(page)).toContainText('Total changed from ₹6,540.00 to ₹7,240.00');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await page.getByRole('button',{name:'Back to travellers',exact:true}).click();await retainedTraveller(page);
- await page.goForward();await expect(pay(page)).toBeVisible();
+ await page.goBack();await expect(page.locator('.flight-shopping-list')).toBeVisible();await expect(form(page)).toHaveCount(0);
+ await page.goForward();await retainedTraveller(page);await expect(pay(page)).toHaveText('Agree & pay ₹7,240.00');
+ expect(provider.requests('/api/travel/review')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await pay(page).click();await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);
  expect(provider.requests('/api/payments/create')[0].body).toMatchObject({quoteId:renewedId,acceptedTotalMinor:724000});
 });
@@ -186,10 +190,12 @@ test('fresh supplier requirements reveal PAN and GST before allowing payment and
  provider.quote=flightQuote([fare()]);await openFlight(page);await fillTraveller(page);await reviewPayment(page);
  provider.quote=reviewedQuote({quoteId:renewedId,review:{conditions:{ipa:true,gst:{igm:true}}}});
  await page.getByRole('button',{name:'Refresh reviewed price',exact:true}).click();
- await expect(form(page).locator('[name="pan-0"]')).toBeFocused();
+ await expect(form(page).locator('[name="pan-0"]')).toBeVisible();await expect(form(page).locator('[name="pan-0"]')).toHaveAttribute('required');
  await expect(form(page).locator('[name="passport-0"]')).not.toBeVisible();
  await expect(form(page).locator('[name="gstNumber"]')).toBeVisible();
- await expect(pay(page)).toHaveCount(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expect(form(page).locator('[name="gstNumber"]')).toHaveAttribute('required');await expect(page.locator('#traveller-errors')).toHaveCount(0);
+ await expect(pay(page)).toBeVisible();expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await pay(page).click();await expect(form(page).locator('[name="pan-0"]')).toBeFocused();await expect(page.locator('#traveller-errors')).toContainText('PAN');expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await form(page).locator('[name="pan-0"]').fill('ABCDE1234F');
  await form(page).locator('[name="gstNumber"]').fill('27ABCDE1234F1Z5');
  await form(page).locator('[name="gstName"]').fill('Synthetic Travel');
@@ -211,7 +217,7 @@ test('typed optional documents survive becoming required and becoming optional a
  provider.quote=flightQuote([fare()],'66666666-6666-4666-8666-666666666666');
  await refresh(page);await expect(pay(page)).toBeVisible();
  for(const [name,value] of Object.entries(entered))await expect(form(page).locator(`[name="${name}"]`)).toHaveValue(value);
- await page.getByRole('button',{name:'Back to travellers',exact:true}).click();
+ await page.getByRole('button',{name:'Edit traveller details',exact:true}).click();
  await expect(form(page).locator('[name="passport-0"]')).not.toHaveAttribute('required');
  await retainedTraveller(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
@@ -225,9 +231,9 @@ for(const applied of [false,true])test(`expired checkout resets ${applied?'appli
  await form(page).getByRole('combobox',{name:'Meal',exact:true}).selectOption('MEAL1');
  if(applied){await page.getByRole('button',{name:'Apply extras and update total',exact:true}).click();await expect(page.getByRole('button',{name:'Extras applied',exact:true})).toBeVisible();await reviewPayment(page);}
  provider.quote=flightQuote([fare()],renewedId);await page.clock.fastForward(120_000);
- await form(page).getByRole('button',{name:applied?'Check latest price & continue':'Continue to review',exact:true}).click();
+ await form(page).getByRole('button',{name:'Check latest price & continue',exact:true}).click();
  await expect(form(page).getByLabel('First name',{exact:true})).toBeVisible();
- await expect.poll(()=>page.evaluate(()=>window.history.state?.bookingCheckout?.step)).toBe('travellers');
+ await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
  await expect(form(page).locator('.booking-traveller-fields').getByRole('status')).toContainText('Flight extras were reset');
  await expect(page.getByRole('button',{name:'Choose flight extras',exact:true})).toBeEnabled();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);

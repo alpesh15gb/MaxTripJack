@@ -33,7 +33,7 @@ test(`hotel policy windows are readable and positive amount meaning stays unveri
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-policy-windows-synthetic');expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.getByRole('button',{name:'Continue with room',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();
- await expect(page.locator('#booking-review-title')).toHaveText('Who’s coming along?');
+ await expect(page.locator('#booking-review-title')).toHaveText('Guest details');
  await page.getByText('Fare conditions, cancellation & documents',{exact:true}).click();
  const reviewed=page.getByRole('region',{name:'Hotel cancellation windows'});await expect(reviewed).toContainText('The exact charge cannot be confirmed: the supplier has not specified the currency, units or calculation basis.');
  expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toMatchObject({optionId:'exact-policy-room'});

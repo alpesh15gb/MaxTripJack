@@ -99,7 +99,7 @@ test('checkout has one submit action on phones and keeps private details through
  await page.setViewportSize({width:390,height:844});await openFlightSearch(page);
  await page.locator('.fare-comparison > summary').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  const form=page.getByRole('form',{name:'Review and travellers'});
- await expect(form.getByRole('button',{name:'Continue to review',exact:true})).toHaveCount(1);
+ await expect(form.getByRole('button',{name:/^Agree & pay /})).toHaveCount(1);
  await expect(form.getByRole('button',{name:'Choose flight extras',exact:true})).toBeHidden();
  await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');
  await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
@@ -108,8 +108,8 @@ test('checkout has one submit action on phones and keeps private details through
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
  await expect(form.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
- await form.getByRole('button',{name:'Continue to review',exact:true}).click();
- const action=form.getByRole('button',{name:/^Agree & pay /});await expect(action).toHaveCount(1);await expect(action).toBeInViewport();
+ await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+ const action=form.getByRole('button',{name:/^Agree & pay /});await expect(action).toHaveCount(1);await action.scrollIntoViewIfNeeded();await expect(action).toBeInViewport();
  await page.locator('.checkout-price-breakdown > summary').click();await expect(page.locator('.checkout-price-breakdown')).toContainText('Reviewed fare');
  await expectNoHorizontalOverflow(page);await capture(page,info,'single-mobile-checkout-action');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);

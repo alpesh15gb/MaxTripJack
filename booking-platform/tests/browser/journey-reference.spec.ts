@@ -51,7 +51,8 @@ test('flight decision has an explicit next action and reversible fare choice',as
  await summary.press('Space');
  await card.locator('.fare-option').filter({has:page.getByRole('heading',{name:'Flexible fare',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();
- await expect(page.locator('#booking-review').getByRole('button',{name:'Continue to review',exact:true})).toBeVisible();
+ await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toBeVisible();
+ await expect(page.locator('#booking-review').getByLabel('First name',{exact:true})).toBeVisible();
  await expect(page.locator('#booking-review')).toContainText(travelDateLabel(departure));
  await expect(page.locator('.selected-journey-recap')).toContainText(travelDateLabel(departure));
  await expect(page.locator('.selected-journey-recap')).toContainText('BOM → DEL');

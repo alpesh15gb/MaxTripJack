@@ -203,6 +203,6 @@ test('320px assistant stays within the viewport and its launcher clears the chec
   await expectNoHorizontalOverflow(page);
   await capture(page, info, 'max-ai-320px-checkout-help');
   await panel(page).getByRole('button', {name: 'Close Max AI', exact: true}).click();
-  await expect(bar.getByRole('button', {name: 'Continue to review', exact: true})).toBeEnabled();
+  await expect(bar.getByRole('button', {name: /^Agree & pay /})).toBeEnabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

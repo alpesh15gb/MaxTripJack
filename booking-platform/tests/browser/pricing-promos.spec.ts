@@ -55,28 +55,27 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
  const form=page.getByRole('form',{name:'Review and travellers'});
  await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');
  await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
- await form.getByRole('button',{name:'Continue to review',exact:true}).click();
  await page.route('**/api/travel/promo',route=>{const applied=Boolean(route.request().postDataJSON().code);return route.fulfill({json:{quoteId,totalMinor:applied?644000:654000,originalTotalMinor:654000,discountMinor:applied?10000:0,code:applied?'SAVE100':null}});});
  const promo=page.getByRole('region',{name:'Promo code',exact:true});await promo.getByLabel('Promo code',{exact:true}).fill('SAVE100');await promo.getByLabel('Promo code',{exact:true}).press('Enter');
- await expect(promo).toContainText('You save ₹100.00');await expect(form.getByRole('button',{name:/^Agree & pay /})).toContainText('6,440');
+ await expect(promo).toContainText('You save ₹100.00');await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toContainText('6,440');
  await expectNoHorizontalOverflow(page);await capture(page,info,`${product.toLowerCase()}-promo-applied`);
- await promo.getByRole('button',{name:'Remove code',exact:true}).click();await expect(form.getByRole('button',{name:/^Agree & pay /})).toContainText('6,540');
+ await promo.getByRole('button',{name:'Remove code',exact:true}).click();await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toContainText('6,540');
  await page.unroute('**/api/travel/promo');
  await page.route('**/api/travel/promo',route=>route.fulfill({status:404,json:{error:'Promo code is unavailable.'}}));
  await promo.getByLabel('Promo code',{exact:true}).fill('INVALID');await promo.getByRole('button',{name:'Apply code',exact:true}).click();
  await expect(promo).toContainText('Try another code or continue without this discount.');
- await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
+ await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
  await page.unroute('**/api/travel/promo');
  await page.route('**/api/travel/promo',route=>route.fulfill({status:503,json:{error:'Service unavailable.'}}));
  await promo.getByRole('button',{name:'Apply code',exact:true}).click();
  await expect(promo).toContainText('Payment is paused');
- await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeDisabled();
+ await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toBeDisabled();
  await capture(page,info,`${product.toLowerCase()}-promo-recovery`);
- // A promo outage must not strand a customer who returns to edit their details.
- await form.getByRole('button',{name:product==='HOTEL'?'Back to guests':'Back to travellers',exact:true}).click();
- await expect(form.getByRole('button',{name:'Continue to review',exact:true})).toBeEnabled();
+ // A promo outage pauses payment while traveller fields remain editable.
+ await page.locator('#booking-summary').getByRole('button',{name:product==='HOTEL'?'Edit guest details':'Edit traveller details',exact:true}).click();
+ await expect(form.getByLabel('First name',{exact:true})).toBeFocused();
  await form.getByLabel('First name',{exact:true}).fill('Aarav Updated');
- await expect(form.getByRole('status',{name:'Promo total confirmation',exact:true})).toContainText('continue to review');
+ await expect(page.locator('#booking-summary').getByRole('status',{name:'Promo total confirmation',exact:true})).toContainText('Payment is paused');
  if(product==='FLIGHT'){
   provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'extra-segment',tripIndex:0,label:'BOM to DEL',options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:10000}]}],travellerTypes:['ADULT'],choices:[]}};
   provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:664000}};
@@ -85,19 +84,19 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
   await form.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
   await expect(form.getByRole('button',{name:'Extras applied',exact:true})).toBeVisible();
  }
- await form.getByRole('button',{name:'Continue to review',exact:true}).click();
- await expect(promo).toBeVisible();await expect(form.getByRole('status',{name:'Promo total confirmation',exact:true})).toContainText('Payment is paused');
- await form.getByRole('button',{name:'Review promo code',exact:true}).click();await expect(promo.getByLabel('Promo code',{exact:true})).toBeFocused();
- await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeDisabled();
+ await expect(promo).toBeVisible();await expect(page.locator('#booking-summary').getByRole('status',{name:'Promo total confirmation',exact:true})).toContainText('Payment is paused');
+ await promo.getByLabel('Promo code',{exact:true}).focus();await expect(promo.getByLabel('Promo code',{exact:true})).toBeFocused();
+ await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toBeDisabled();
  // Even a direct form submission must not create a payment against an uncertain total.
  await form.evaluate(node=>(node as HTMLFormElement).requestSubmit());
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await expect(form).toContainText('Aarav Updated');
+ await expect(page.locator('#booking-summary .final-traveller-summary')).toContainText('Aarav Updated');
+ await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav Updated');
  await page.unroute('**/api/travel/promo');
  await page.route('**/api/travel/promo',route=>route.fulfill({json:{quoteId,totalMinor:product==='FLIGHT'?664000:654000,originalTotalMinor:product==='FLIGHT'?664000:654000,discountMinor:0,code:null}}));
  await promo.getByRole('button',{name:'Remove code',exact:true}).click();
- await expect(form.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
- await expect(form.getByRole('status',{name:'Promo total confirmation',exact:true})).toHaveCount(0);
+ await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
+ await expect(page.locator('#booking-summary').getByRole('status',{name:'Promo total confirmation',exact:true})).toHaveCount(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

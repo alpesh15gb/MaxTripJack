@@ -10,7 +10,6 @@ async function reviewedCheckout(page: Page) {
   await form.getByLabel('Last name', {exact: true}).fill('Example');
   await form.getByLabel('Email', {exact: true}).fill('traveller@example.test');
   await form.getByLabel('Indian mobile number', {exact: true}).fill('9876543210');
-  await form.getByRole('button', {name: 'Continue to review', exact: true}).click();
   return form;
 }
 
@@ -19,8 +18,8 @@ test('checkout discovers public offers on demand and uses the existing apply pat
     {code: 'FLY75', discountMinor: 7500, minimumMinor: 500000, expiresAt: '2030-01-01T00:00:00.000Z'},
   ]}};
   provider.overrides['POST /api/travel/promo'] = {body: {quoteId, totalMinor: 646500, discountMinor: 7500, originalTotalMinor: 654000, code: 'FLY75'}};
-  const form = await reviewedCheckout(page);
-  const promo = form.getByRole('region', {name: 'Promo code', exact: true});
+  await reviewedCheckout(page);
+  const promo = page.locator('#booking-summary').getByRole('region', {name: 'Promo code', exact: true});
   await expect(promo).toBeVisible();
   await expect(promo.getByRole('button', {name: 'Remove code', exact: true})).toHaveCount(0);
   const alignment = await promo.locator('.checkout-promo-entry').evaluate(node => {
@@ -43,7 +42,7 @@ test('checkout discovers public offers on demand and uses the existing apply pat
   await expect(promo.getByRole('status')).toContainText('FLY75 applied. You save ₹75.00.');
   await expect(promo.getByLabel('Promo code', {exact: true})).toHaveValue('FLY75');
   await expect(promo.getByRole('button', {name: 'Remove code', exact: true})).toBeVisible();
-  await expect(form.getByRole('button', {name: /^Agree & pay /})).toContainText('₹6,465.00');
+  await expect(page.locator('#booking-summary').getByRole('button', {name: /^Agree & pay /})).toContainText('₹6,465.00');
   expect(provider.requests('/api/travel/promo').find(request => request.method === 'POST')?.body).toEqual({quoteId, code: 'FLY75'});
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
@@ -52,14 +51,14 @@ test('an invalid offers response leaves manual entry and the confirmed total ava
   provider.overrides['GET /api/travel/promo'] = {body: {offers: [
     {code: 'FLY75', discountMinor: 7500, minimumMinor: 500000, expiresAt: 'invalid date'},
   ]}};
-  const form = await reviewedCheckout(page);
-  const promo = form.getByRole('region', {name: 'Promo code', exact: true});
+  await reviewedCheckout(page);
+  const promo = page.locator('#booking-summary').getByRole('region', {name: 'Promo code', exact: true});
   await promo.getByRole('button', {name: 'Available offers', exact: true}).click();
   await expect(promo.getByRole('status')).toContainText('Available offers could not be loaded.');
   await expect(promo.getByRole('button', {name: 'Apply FLY75', exact: true})).toHaveCount(0);
   await promo.getByLabel('Promo code', {exact: true}).fill('PRIVATE75');
   await expect(promo.getByRole('button', {name: 'Apply code', exact: true})).toBeEnabled();
-  await expect(form.getByRole('button', {name: /^Agree & pay /})).toBeEnabled();
+  await expect(page.locator('#booking-summary').getByRole('button', {name: /^Agree & pay /})).toBeEnabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

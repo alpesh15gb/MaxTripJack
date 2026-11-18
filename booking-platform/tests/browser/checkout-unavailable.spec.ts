@@ -8,7 +8,7 @@ test('hard-gated PayGlocal is disclosed before traveller collection while compar
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  await expect(page.getByLabel('First name',{exact:true})).not.toBeVisible();
- await expect(page.getByRole('button',{name:'Online payment unavailable',exact:true})).toBeDisabled();
+ await expect(page.getByRole('button',{name:/^Agree & pay /})).toHaveCount(0);
  await expect(page.getByRole('region',{name:'Payment unavailable'})).toContainText('no booking has been made');
  await page.getByRole('button',{name:'Back to results',exact:true}).click();
  await expect(page.locator('#booking-results')).toBeVisible();

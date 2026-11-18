@@ -460,7 +460,7 @@ body .booking-workflow.journey-flow .booking-progress {
   box-shadow: none;
   margin: 0 0 28px;
 }
-body .booking-workflow.journey-flow .booking-progress:has(li:last-child:nth-child(3)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body .booking-workflow.journey-flow .booking-progress:has(li:last-child:nth-child(2)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 body .booking-workflow.journey-flow .booking-progress li {
   padding: 12px 8px;
   border-bottom: 3px solid #dce7e1;
@@ -643,12 +643,8 @@ body .booking-workflow.journey-flow .hotel-shopping-card .primary { padding-inli
   .booking-workflow .flight-policy-route h5,.booking-workflow .flight-policy-category { padding:14px; }
   .booking-workflow .flight-policy-band { padding:12px; }
 }
-.booking-workflow .booking-review.is-payment-review .booking-payment-heading { padding:16px; margin-bottom:16px; }
-.booking-workflow .booking-review.is-payment-review .booking-payment-heading h3 { font-size:20px; }
-.booking-workflow .booking-review.is-payment-review .final-traveller-summary { padding:0; background:transparent; }
 @media (max-width: 900px) {
   .booking-workflow .mobile-booking-action .primary { padding:12px 15px; font-size:13px; }
-  .booking-workflow .booking-review.is-payment-review .booking-payment-review { padding:16px; }
 }
 
 .hotel-review-recovery .secondary { margin: 4px 8px 4px 0; }

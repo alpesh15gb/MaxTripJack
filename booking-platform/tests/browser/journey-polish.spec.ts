@@ -75,7 +75,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   const expiryWidth=await page.locator('.booking-expiry').evaluate(node=>{const content=node.firstElementChild!.getBoundingClientRect(),box=node.getBoundingClientRect();return {content:content.width,available:box.width-22};});
   if((page.viewportSize()?.width??1440)<=600)expect(expiryWidth.content).toBeGreaterThanOrEqual(expiryWidth.available-1);
   const mobileAction=page.locator('.mobile-booking-action'),mobile=(page.viewportSize()?.width??1440)<=700;
-  await expect(mobileAction.getByRole('button',{name:'Continue to review',exact:true})).toBeEnabled();
+  await expect(mobileAction.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
   if(mobile){
    await expect(mobileAction).toBeVisible();
    await expect(mobileAction).toHaveCSS('position','fixed');

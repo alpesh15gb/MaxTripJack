@@ -36,8 +36,8 @@ async function reviewRoundTrip(page:Page,provider:ProviderFixture){
  await expect(form(page)).toBeVisible();
  await form(page).getByLabel('First name',{exact:true}).fill('Aarav');await form(page).getByLabel('Last name',{exact:true}).fill('Example');
  await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
- await form(page).getByRole('button',{name:'Continue to review',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+ await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
+ await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
 }
 async function showConditions(page:Page){
  const details=page.locator('.review-conditions');
