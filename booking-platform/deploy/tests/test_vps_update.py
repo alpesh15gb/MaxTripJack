@@ -19,6 +19,23 @@ spec.loader.exec_module(update)
 
 
 class SafetyTests(unittest.TestCase):
+    def test_pruned_worker_image_uses_app_image_defaults_but_app_and_database_never_do(self):
+        images = {"sha256:app": {"Config": {"Env": ["PATH=/usr/bin", "NODE_ENV=production"]}}, "sha256:pg": {"Config": {"Env": ["PGDATA=/data"]}}}
+        def inspect(image):
+            if image not in images:
+                raise update.StopUpdate("No such image")
+            return images[image]
+        container = lambda image, service: {"Image": image, "Config": {"Labels": {"com.docker.compose.service": service}}}
+        fallbacks = []
+        defaults = update.image_environment_defaults([container("sha256:app", "app"), container("sha256:pruned", "catalogue-worker"), container("sha256:pg", "postgres")], "sha256:app", inspect, fallbacks.append)
+        self.assertEqual(defaults["sha256:pruned"], ["PATH=/usr/bin", "NODE_ENV=production"])
+        self.assertEqual(defaults["sha256:pg"], ["PGDATA=/data"])
+        self.assertEqual(fallbacks, ["catalogue-worker"])
+        with self.assertRaises(update.StopUpdate):
+            update.image_environment_defaults([container("sha256:gone", "postgres")], "sha256:app", inspect)
+        with self.assertRaises(update.StopUpdate):
+            update.image_environment_defaults([container("sha256:gone", "app")], "sha256:gone", inspect)
+
     def test_crm_messaging_retirement_preserves_storage_auth_and_other_jobs(self):
         secret = "synthetic-worker-" + "a" * 40
         before = {"services": {"app": {"environment": {"WA_WORKER_SECRET": secret, "WA_CLOUD_ACCESS_TOKEN": "retired", "CRM_DATA_ENCRYPTION_KEY": "stable", "SMTP_HOST": "retained"}, "networks": {"default": {}, "messaging": {}}}, "worker": {"entrypoint": ["node", "scripts/whatsapp-worker.mjs"], "environment": {"WA_WORKER_SECRET": secret, "WA_WORKER_URL": "old"}, "volumes": [{"source": "original", "target": "/data"}], "read_only": True}}, "networks": {"messaging": {"name": "max-travel-messaging", "external": True}}}

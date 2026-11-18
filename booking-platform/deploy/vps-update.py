@@ -20,13 +20,37 @@ import time
 from datetime import datetime, timezone
 from urllib.parse import quote, urlsplit, urlunsplit
 
-BOOKING_REF = "01762eef1f0b1eb32421d36058d39c1d9fa73c9f"
+BOOKING_REF = "5fb9cc43e27868b9d52e71875fdaed0aeb058df8"
 CRM_REF = "8c8c32d3c297864bbd6a77a633c3b9659cc00896"
 ROOT = Path("/opt/maxtravel-deployments")
 
 
 class StopUpdate(Exception):
     pass
+
+
+def image_environment_defaults(containers, app_image, inspect_image, on_fallback=None):
+    """Image default Env per running container image. A worker can keep running
+    after its image was pruned; workers are built from the app image, so their
+    defaults fall back to the app image. App/infrastructure images never do."""
+    defaults = {}
+    for container in containers:
+        image = container["Image"]
+        if image in defaults:
+            continue
+        try:
+            defaults[image] = inspect_image(image)["Config"].get("Env", [])
+        except StopUpdate:
+            service = (container["Config"].get("Labels") or {}).get("com.docker.compose.service", "")
+            if "worker" not in service or image == app_image:
+                raise
+            if app_image not in defaults:
+                defaults[app_image] = inspect_image(app_image)["Config"].get("Env", [])
+            defaults[image] = defaults[app_image]
+            if on_fallback:
+                on_fallback(service)
+    return defaults
+
 
 def retire_crm_messaging(config, active_services):
     """Prepare the CRM-only worker/config transition; leave rollback and other stacks intact."""
@@ -449,7 +473,8 @@ class Update:
             interpolation_names.update(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)", Path(file).read_text()))
         compose_env = compose_interpolation_environment(interpolation_names, containers, project, os.environ)
         normalized = resolved_compose(json.loads(self.run(command + ["config", "--format", "json"], cwd=working, env=compose_env)))
-        defaults = {c["Image"]: self.inspect("image", c["Image"])["Config"].get("Env", []) for c in containers}
+        defaults = image_environment_defaults(containers, app["Image"], lambda image: self.inspect("image", image),
+            lambda service: print(f"Worker {service} image is no longer stored locally; using the app image defaults (same build).", flush=True))
         frozen = freeze_config(normalized, containers, defaults,
             lambda mount: print("Preserved live mount in private configuration: " + json.dumps(mount), flush=True))
         stack = {"project": project, "working": working, "app": app_name,
