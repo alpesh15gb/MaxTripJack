@@ -10,14 +10,26 @@ export const HOTEL_DIRECTORY_PAGE_SIZE = 24;
 export const HOTEL_SITEMAP_PAGE_SIZE = 10_000;
 export const HOTEL_SITEMAP_INDEX_PATH = '/hotel-sitemap.xml';
 
-export function hotelPageDescription(hotel: HotelCatalogueRecord): string {
-  const location = hotel.city && !hotel.name.toLowerCase().includes(hotel.city.toLowerCase()) ? ` in ${hotel.city}` : '';
-  return `Explore ${hotel.name}${location}: property photos, address and supplied amenities. Check room availability and conditions for your travel dates.`.slice(0, 300);
+/** Trim at a word boundary so snippets never end mid-word. */
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).replace(/[\s,;:–-]+$/, '')}…`;
 }
 
+function hotelLocation(hotel: HotelCatalogueRecord, separator: string): string {
+  return hotel.city && !hotel.name.toLowerCase().includes(hotel.city.toLowerCase()) ? `${separator}${hotel.city}` : '';
+}
+
+/** Search snippets show about 155 characters; keep the useful part inside that. */
+export function hotelPageDescription(hotel: HotelCatalogueRecord): string {
+  return clip(`${hotel.name}${hotelLocation(hotel, ' in ')}: see photos, address and amenities, then check room availability for your dates.`, 158);
+}
+
+/** The layout appends " | MaxTravel"; keep the whole title near 60 characters. */
 export function hotelPageTitle(hotel: HotelCatalogueRecord): string {
-  const location = hotel.city && !hotel.name.toLowerCase().includes(hotel.city.toLowerCase()) ? `, ${hotel.city}` : '';
-  return `${hotel.name}${location} – Photos, Amenities & Stay Details`;
+  const base = `${hotel.name}${hotelLocation(hotel, ', ')}`;
+  return base.length <= 30 ? `${base} – Photos & Amenities` : clip(base, 50);
 }
 
 export function hotelPageMetadata(hotel: HotelCatalogueRecord, environment: SeoEnvironment = process.env, now = Date.now()): Metadata {
@@ -33,7 +45,7 @@ export function hotelPageMetadata(hotel: HotelCatalogueRecord, environment: SeoE
 }
 
 export function hotelDirectoryMetadata(page: number, hotels: HotelCatalogueRecord[], query = '', environment: SeoEnvironment = process.env, now = Date.now()): Metadata {
-  const title = query ? `Hotel search: ${query}` : page > 1 ? `Browse hotels – Page ${page}` : 'Hotels – Explore Places to Stay';
+  const title = query ? `Hotel search: ${query}` : page > 1 ? `Browse hotels – Page ${page}` : 'Hotels: Photos, Amenities & Availability';
   const description = 'Explore hotel addresses, property photos and supplied amenities with MaxTravel. Find a stay and check availability for your dates.';
   return { ...pageMetadata(hotelDirectoryPath(page), title, description), robots: { index: !query && indexingEnabled(environment) && hotels.some(hotel => isCatalogueHotelIndexable(hotel, now)), follow: indexingEnabled(environment) } };
 }

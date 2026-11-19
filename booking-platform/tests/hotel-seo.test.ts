@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
 import { proxy } from '../src/proxy';
 import type { HotelCatalogueRecord } from '../src/lib/hotel-catalogue';
 import { hotelDirectoryPath, hotelIdFromSlug, hotelPropertyPath, isHotelPublicPath } from '../src/lib/hotel-public-path';
-import { hotelContactHref, hotelDirectoryMetadata, hotelDirectoryStructuredData, hotelPageMetadata, hotelSitemapIndexXml, hotelSitemapXml, hotelStructuredData, hotelTestAvailabilityHref } from '../src/lib/hotel-seo';
+import { hotelContactHref, hotelDirectoryMetadata, hotelDirectoryStructuredData, hotelPageDescription, hotelPageMetadata, hotelPageTitle, hotelSitemapIndexXml, hotelSitemapXml, hotelStructuredData, hotelTestAvailabilityHref } from '../src/lib/hotel-seo';
 import { requestMayBeIndexed, serializeJsonLd, SITE_ORIGIN } from '../src/lib/seo';
 import { bookingSearchPrefill } from '../src/lib/booking-search-state';
 
@@ -110,4 +110,14 @@ test('sitemap index is bounded and shards exclude UAT, inactive, thin and stale 
   assert.match(xml, new RegExp(hotelFixture.contentUpdatedAt.replaceAll('.', '\\.')));
   for (const match of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) assert.doesNotMatch(match[1], /\?|token|\/book/);
   assert.throws(() => hotelSitemapXml(Array.from({ length: 10_001 }, () => hotelFixture), now));
+});
+
+test('hotel titles and descriptions fit search snippets without cutting words', () => {
+  const long = { ...hotelFixture, name: '"27" Spathodea- Oasis in the City, a Boutique Garden Residence', city: 'COLOMBO 05' };
+  for (const hotel of [hotelFixture, long]) {
+    assert.ok(hotelPageTitle(hotel).length <= 50, hotelPageTitle(hotel));
+    assert.ok(hotelPageDescription(hotel).length <= 158, hotelPageDescription(hotel));
+  }
+  assert.match(hotelPageTitle(long), /\S…$/);
+  assert.ok(hotelPageTitle(hotelFixture).startsWith(hotelFixture.name));
 });

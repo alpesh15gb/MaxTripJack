@@ -37,7 +37,7 @@ This package adds a public editorial and office-identity layer to the existing b
 7. Use owner access to update the existing GBP Sunday hours and, only after successful cutover, its intended website/booking links. Preserve correct `.us` email; domain migration is a separate deliberate decision.
 8. Monitor real data before declaring growth. LCP ≤2.5 s, INP ≤200 ms and CLS ≤0.1 are targets, not measured achievements in this implementation. Capture field data once the site has traffic; label laboratory samples separately.
 
-`SEO_AI_TRAINING_ENABLED` controls the named GPTBot/Google-Extended rules only; it is not a universal training ban or a recommendation guarantee. Google-Extended also affects certain Gemini grounding/training uses, separately from Google Search AI features. Review that trade-off before changing it.
+`SEO_AI_TRAINING_ENABLED` controls the named GPTBot/Google-Extended rules only; it is not a universal training ban or a recommendation guarantee. Google-Extended also affects certain Gemini grounding/training uses, separately from Google Search AI features. Owner decision 2026-11-18: allow them (`SEO_AI_TRAINING_ENABLED=true`) for ChatGPT/Gemini visibility. Current audit and go-live steps: [maxtravel.in-audit/ACTION-PLAN.md](maxtravel.in-audit/ACTION-PLAN.md).
 
 ## Reproducible checks
 

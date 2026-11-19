@@ -4,6 +4,8 @@ import {TravelHeader,TravelFooter,TravelIcon} from './travel-shell';
 import {flightGuides} from '@/lib/flight-guides';
 import {listFlightRoutes} from '@/lib/flight-route-store';
 import {flightRoutePath,routeAirport} from '@/lib/flight-route-catalogue';
+import SeoJsonLd from './seo-json-ld';
+import {canonicalUrl} from '@/lib/seo';
 import './public-content.css';
 import './flight-route-catalogue.css';
 import './public-refresh.css';
@@ -19,6 +21,13 @@ export default async function FlightRouteDirectory({page=1,query=''}:{page?:numb
   const words=q.toLowerCase().split(/\s+/).filter(Boolean);
   const guides=page===1?flightGuides.filter(g=>words.every(word=>`${g.origin.city} ${g.origin.code} ${g.destination.city} ${g.destination.code}`.toLowerCase().includes(word))):[];
   const querySuffix=q?`?q=${encodeURIComponent(q)}`:'';
+  const pageUrl=canonicalUrl(flightDirectoryPath(page));
+  const listed=[...guides.map(g=>({name:`${g.origin.city} to ${g.destination.city} flights`,path:`/flights/${g.slug}`})),...catalogue.routes.map(r=>({name:`${routeAirport(r.from)!.city} to ${routeAirport(r.to)!.city} flights`,path:flightRoutePath(r)}))];
+  const schema=q?null:[
+    {'@context':'https://schema.org','@type':'CollectionPage','@id':`${pageUrl}#webpage`,url:pageUrl,name:`Flight routes${page>1?` · Page ${page}`:''}`,isPartOf:{'@id':`${canonicalUrl('/')}#website`},breadcrumb:{'@id':`${pageUrl}#breadcrumb`},...(listed.length?{mainEntity:{'@id':`${pageUrl}#routes`}}:{})},
+    {'@context':'https://schema.org','@type':'BreadcrumbList','@id':`${pageUrl}#breadcrumb`,itemListElement:[{name:'Home',path:'/'},{name:'Flights',path:'/flights'},{name:'Flight routes',path:'/flights/routes'}].map((item,index)=>({'@type':'ListItem',position:index+1,name:item.name,item:canonicalUrl(item.path)}))},
+    ...(listed.length?[{'@context':'https://schema.org','@type':'ItemList','@id':`${pageUrl}#routes`,numberOfItems:listed.length,itemListElement:listed.map((item,index)=>({'@type':'ListItem',position:(page-1)*FLIGHT_DIRECTORY_PAGE_SIZE+index+1,name:item.name,url:canonicalUrl(item.path)}))}]:[]),
+  ];
   return <div className="public-site route-directory public-refresh"><TravelHeader active="flights"/><main id="main-content" className="public-main">
     <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol><li><Link href="/">Home</Link></li><li><Link href="/flights">Flights</Link></li><li aria-current="page">Route directory{page>1?` · Page ${page}`:''}</li></ol></nav>
     <header className="public-hero public-hero--editorial"><div className="public-hero-copy"><p className="public-eyebrow">FROM YOUR CITY TO YOUR NEXT CHAPTER</p><h1>Explore flight routes{page>1?` · Page ${page}`:''}</h1><p className="public-intro">Find the right airports, plan the onward journey and compare fares for your own dates. Start with a city or airport code.</p><Link className="public-button" href="/book?product=FLIGHT">Search flights <TravelIcon name="arrow" size={18}/></Link></div></header>
@@ -29,5 +38,5 @@ export default async function FlightRouteDirectory({page=1,query=''}:{page?:numb
     {!guides.length&&!catalogue.routes.length&&available&&<section className="route-catalogue-notice"><h2>No matching published route guide</h2><p>You can still search flights for your dates. A missing guide does not establish whether a flight is available.</p><Link href="/book?product=FLIGHT">Choose airports and search →</Link></section>}
     <nav className="route-directory-pagination" aria-label="Route directory pages">{page>1&&<Link href={flightDirectoryPath(page-1)+querySuffix}>← Previous page</Link>}<span>Page {page}</span>{page*FLIGHT_DIRECTORY_PAGE_SIZE<catalogue.total&&<Link href={flightDirectoryPath(page+1)+querySuffix}>Next page →</Link>}</nav>
     <p className="public-fineprint">Planning information is separate from live flight availability. Choose dates and travellers to check current prices and conditions.</p>
-  </main><TravelFooter/></div>;
+  </main>{schema&&<SeoJsonLd id="flight-route-directory-schema" data={schema}/>}<TravelFooter/></div>;
 }
