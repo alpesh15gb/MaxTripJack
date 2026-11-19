@@ -4,8 +4,8 @@
 and `crm.maxtravel.in`. It is not a generic installer. Python 3.8+, Git, Docker
 and Docker Compose v2 are required; run as root on that VPS.
 
-The source pins are booking `5fb9cc43e27868b9d52e71875fdaed0aeb058df8` and CRM
-`8c8c32d3c297864bbd6a77a633c3b9659cc00896`. This release (booking pin includes the speed and UI update; WhatsApp removal unchanged) removes WhatsApp from both
+The source pins are booking `9721de07c83afe6d2edd1305803dd8df30a2beb0` and CRM
+`8c8c32d3c297864bbd6a77a633c3b9659cc00896`. This release (booking pin includes the speed and UI update plus the 2026-11-18 SEO metadata polish; WhatsApp removal unchanged) removes WhatsApp from both
 applications. The CRM migration removes retired conversations, queues and configuration
 while preserving customer documents, imported PDFs, audit history, internal chat and email.
 The existing CRM worker is converted to authenticated general maintenance; its shared key,
