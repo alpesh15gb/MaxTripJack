@@ -4,6 +4,7 @@ import { isCatalogueHotelIndexable } from './hotel-catalogue';
 import { bookingSearchUrl } from './booking-search-state';
 import { hotelDirectoryPath, hotelPropertyPath } from './hotel-public-path';
 import { safeHotelPhotoUrl } from './hotel-presentation';
+import { businessProfile } from './business-profile';
 import { canonicalUrl, indexingEnabled, pageMetadata, SITE_NAME, type SeoEnvironment } from './seo';
 
 export const HOTEL_DIRECTORY_PAGE_SIZE = 24;
@@ -88,7 +89,7 @@ export function hotelStructuredData(hotel: HotelCatalogueRecord) {
   }, {
     '@context': 'https://schema.org', '@type': 'WebSite', '@id': `${canonicalUrl('/')}#website`, name: SITE_NAME, url: canonicalUrl('/'),
     publisher: { '@id': `${canonicalUrl('/')}#organization` },
-  }, { '@context': 'https://schema.org', '@type': 'Organization', '@id': `${canonicalUrl('/')}#organization`, name: SITE_NAME, url: canonicalUrl('/') }];
+  }, { '@context': 'https://schema.org', '@type': 'Organization', '@id': `${canonicalUrl('/')}#organization`, name: SITE_NAME, alternateName: businessProfile.alternateName, url: canonicalUrl('/') }];
 }
 
 export function hotelDirectoryStructuredData(hotels: HotelCatalogueRecord[], page: number) {

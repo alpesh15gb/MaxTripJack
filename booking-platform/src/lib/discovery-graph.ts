@@ -43,7 +43,7 @@ export function editorialDiscoveryGraph(page: EditorialPage, breadcrumbs: readon
   });
   const publisher = options.fullBusinessProfile ? businessStructuredData(businessProfile) : {
     "@context": "https://schema.org", "@type": "Organization", "@id": `${canonicalUrl("/")}#organization`,
-    name: businessProfile.name, url: businessProfile.website,
+    name: businessProfile.name, alternateName: businessProfile.alternateName, url: businessProfile.website,
     telephone: businessProfile.phoneE164, email: businessProfile.email,
   };
   return [

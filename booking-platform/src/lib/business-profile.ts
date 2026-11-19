@@ -10,6 +10,8 @@ export const officeServices = ["Flights", "Hotels", "Visas", "Cruises", "Luxury 
 
 export const businessProfile = {
   name: "MaxTravel",
+  /** Name on the verified Google Business Profile and Bing Places listing (owner decision 2026-11-19: keep it). */
+  alternateName: "Max Travel",
   locationName: "MaxTravel Secunderabad",
   website: "https://maxtravel.in",
   positioning: "Competitive online travel prices. Real people. A real office. Reliable booking support.",
@@ -54,6 +56,7 @@ export function businessStructuredData(profile:PublicBusinessProfile=businessPro
     "@type": ["Organization", "TravelAgency"],
     "@id": `${businessProfile.website}/#organization`,
     name: businessProfile.name,
+    ...(businessProfile.alternateName !== businessProfile.name ? { alternateName: businessProfile.alternateName } : {}),
     url: businessProfile.website,
     telephone: businessProfile.phoneE164,
     email: businessProfile.email,
