@@ -73,7 +73,6 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
    <footer><p role="status">{shown.length} of {hotels.length} loaded stays match</p><button type="button" className="primary" onClick={()=>drawer.current?.close()}>Show {shown.length} stay{shown.length===1?'':'s'}</button></footer>
   </dialog>
   <div className="hotel-shopping-results">
-   <p className="hotel-comparison-guidance">Choose a stay to see meal plans and cancellation terms.</p>
    {activeFilterCount>0&&<div className="hotel-active-filters" aria-label="Active hotel filters">{activeFilters.map(([key,value])=><button className="hotel-filter-chip" key={key} type="button" aria-label={`Remove ${key} filter`} onClick={()=>{update(key as keyof typeof filters,'');focusResults();}}>{key==='budget'?`Up to ₹${value} / stay`:key==='category'?`${value} stars`:key==='area'?`Area: ${value}`:value}<span aria-hidden="true"> ×</span></button>)}{amenities.filter(item=>selectedAmenities.includes(item.id)).map(item=><button className="hotel-filter-chip" key={item.id} type="button" aria-label={`Remove ${item.label} filter`} onClick={()=>{toggleAmenity(item.id);focusResults();}}>{item.label}<span aria-hidden="true"> ×</span></button>)}</div>}
    <div className="booking-hotel-list">{shown.map(hotel=>{
     const contentState=hotel.propertyContentStatus==='resolved'?'ready':hotel.propertyContentStatus==='unavailable'?'unavailable':hotel.propertyContentStatus==='pending'?'loading':metadataStatus;

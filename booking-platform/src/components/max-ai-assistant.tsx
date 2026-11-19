@@ -258,10 +258,11 @@ function AssistantDialog({open, onClosed, launcher}: {open: boolean; onClosed: (
 function MaxAiWidget() {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
-  const homePage = usePathname() === '/';
+  const pathname = usePathname();
+  const desktopScope = pathname === '/' ? '.trip-home' : pathname === '/book' ? '.booking-review-column' : null;
   const launcher = useRef<HTMLButtonElement>(null);
   const onClosed = useCallback(() => setOpen(false), []);
-  useEffect(() => { if (launcher.current) return observeLauncherPlacement(launcher.current, homePage); }, [homePage]);
+  useEffect(() => { if (launcher.current) return observeLauncherPlacement(launcher.current, desktopScope); }, [desktopScope]);
   return <>
     <button ref={launcher} className="max-ai-launcher" type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}><span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></button>
     {hasOpened && <AssistantDialog open={open} onClosed={onClosed} launcher={launcher}/>}

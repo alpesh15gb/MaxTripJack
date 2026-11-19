@@ -18,14 +18,14 @@ export function mobileLauncherLift(resting: Rectangle, obstacles: Rectangle[]): 
 }
 
 /** Observe nearby actions; scrolling only reads this bounded set, never scans the page. */
-export function observeLauncherPlacement(launcher: HTMLButtonElement, homePage: boolean): () => void {
+export function observeLauncherPlacement(launcher: HTMLButtonElement, desktopScope: string | null): () => void {
   const mobile = window.matchMedia('(max-width: 760px)');
   const clearance = document.querySelector<HTMLElement>('.max-ai-mobile-clearance');
   let stopObserving: (() => void) | undefined;
   function start() {
     stopObserving?.();
     stopObserving = undefined;
-    if (!mobile.matches && !homePage) return;
+    if (!mobile.matches && !desktopScope) return;
     let frame = 0, lift = 0, barInset = 0, controlsChanged = true;
     let intersections: IntersectionObserver;
     const observed = new Set<HTMLElement>(), nearby = new Set<HTMLElement>(), bars = new Set<HTMLElement>();
@@ -52,12 +52,13 @@ export function observeLauncherPlacement(launcher: HTMLButtonElement, homePage: 
         obstacles.push(rect);
       }
       if (nextBarInset !== barInset) { barInset = nextBarInset; clearance?.style.setProperty('--max-ai-bar-inset', `${barInset}px`); }
-      const next = mobileLauncherLift(resting, obstacles);
+      const next = Math.min(mobileLauncherLift(resting, obstacles), Math.max(0, resting.top - GAP));
       if (next !== lift) { lift = next; launcher.style.setProperty('--max-ai-lift', `${lift}px`); }
     }
     function refresh() {
-      const root = mobile.matches ? document : document.querySelector('.trip-home');
-      const controls = new Set(Array.from(root?.querySelectorAll<HTMLElement>(CONTROL_SELECTOR) ?? []).filter(node => !node.closest('.max-ai-dialog,.max-ai-launcher,dialog')).slice(0, 600));
+      const root = mobile.matches ? document : desktopScope ? document.querySelector(desktopScope) : null;
+      const selector = desktopScope === '.booking-review-column' && !mobile.matches ? `${CONTROL_SELECTOR},.checkout-acknowledgement,.final-traveller-summary p` : CONTROL_SELECTOR;
+      const controls = new Set(Array.from(root?.querySelectorAll<HTMLElement>(selector) ?? []).filter(node => !node.closest('.max-ai-dialog,.max-ai-launcher,dialog')).slice(0, 600));
       for (const node of observed) if (!controls.has(node)) { intersections.unobserve(node); observed.delete(node); nearby.delete(node); bars.delete(node); }
       for (const node of controls) if (!observed.has(node)) { observed.add(node); intersections.observe(node); if (node.matches(BAR_SELECTOR)) bars.add(node); }
     }

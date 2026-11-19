@@ -45,7 +45,7 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-for(const width of [null,320])test(`15 fare cards stay aligned and every exact offer is reachable${width?' at 320px':''}`,async({page,provider,isMobile},info)=>{
+for(const width of [null,320])test(`15 fare cards stay aligned and every exact offer is reachable${width?' at 320px':''}`,async({page,provider,isMobile,browserName},info)=>{
  if(width)await page.setViewportSize({width,height:844});
  const journey:Flight=flight(),base=journey.totalPriceList[0];
  journey.totalPriceList=Array.from({length:15},(_,index)=>({...base,id:`rail-offer-${index+1}`,fareIdentifier:'CORPORATE',customerEstimateMinor:500000+index*10000,fD:{
@@ -71,7 +71,7 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
  await expect(previous).toBeVisible();await expect(next).toBeVisible();
  const start=await track.evaluate(node=>node.scrollLeft);await next.click();await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeGreaterThan(start);
  const advanced=await track.evaluate(node=>node.scrollLeft);await previous.click();await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeLessThan(advanced);
- if(isMobile){
+ if(isMobile&&browserName==='chromium'){
   await track.evaluate(node=>node.scrollTo({left:0,behavior:'instant'}));await track.scrollIntoViewIfNeeded();
   const bounds=await track.boundingBox();expect(bounds).not.toBeNull();const session=await page.context().newCDPSession(page);
   try{

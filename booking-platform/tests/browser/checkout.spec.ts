@@ -488,6 +488,17 @@ test('flight review updates beside the editable details without a new step or an
  await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
  await expect(page.locator('.final-traveller-summary')).toContainText('9876543210');
  await capture(page,testInfo,'flight-inline-checkout');
+ const viewSummary=page.getByRole('button',{name:'View booking summary',exact:true});
+ if(page.viewportSize()!.width<=700){
+  await viewSummary.click();
+  await expect(page.locator('#checkout-summary-heading')).toBeFocused();
+  await expect(page.locator('#checkout-summary-heading')).toBeInViewport();
+ }
+ await page.getByRole('button',{name:'View cancellation rules',exact:true}).click();
+ await expect(page.locator('#booking-fare-conditions')).toHaveAttribute('open','');
+ await expect(page.locator('#booking-fare-conditions > summary')).toBeFocused();
+ expect(await page.evaluate(()=>({url:location.href,history:history.length}))).toEqual(launch);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.getByText('Original search details & fare',{exact:true}).click();
  const fareSummary=await page.locator('.selected-itinerary .fare-comparison > summary').boundingBox();
  expect(fareSummary?.height).toBeLessThan(160);
