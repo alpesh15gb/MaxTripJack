@@ -38,6 +38,11 @@ const heroDestinations = [
   { name: "Paris", image: "/travel/paris-evening.webp", alt: "The Eiffel Tower and the Seine at blue hour" },
   ...destinations,
 ];
+const quickRoutes = [
+  { label: "Mumbai → New Delhi", from: "Mumbai (BOM)", to: "New Delhi (DEL)", fromCode: "BOM", toCode: "DEL" },
+  { label: "Hyderabad → Goa", from: "Hyderabad (HYD)", to: "Goa (GOI)", fromCode: "HYD", toCode: "GOI" },
+  { label: "Mumbai → Dubai", from: "Mumbai (BOM)", to: "Dubai (DXB)", fromCode: "BOM", toCode: "DXB" },
+];
 
 function shiftDate(value: string, days: number) {
   return new Date(Date.parse(`${value}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
@@ -130,6 +135,14 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     setAirportRevision(value => value + 1);
   }
 
+  function applyQuickRoute(route: typeof quickRoutes[number]) {
+    setAirports({ from: route.from, to: route.to });
+    setCodes({ from: route.fromCode, to: route.toCode });
+    setAirportRevision(value => value + 1);
+    setNotice("");
+    backgroundSearch.interact();
+  }
+
   function advancedSearch() {
     backgroundSearch.pause();
     const data = form.current ? new FormData(form.current) : new FormData();
@@ -198,7 +211,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       <section className="home-intro" aria-labelledby="home-title">
         <div className="studio-hero-copy">
           <h1 id="home-title">Find your <em>next escape.</em></h1>
-          <p>Flights, distinctive stays and holidays from Goa to Paris.</p>
+          <p>Compare verified fares across 15 days, pick handpicked stays, and book with transparent rules.</p>
           <div className="home-hero-actions">
             <a className="hero-explore-link" href="#discover">Explore destinations <TravelIcon name="arrow" size={17} /></a>
             <a className="hero-search-link" href="#trip-search">Plan a trip</a>
@@ -224,6 +237,12 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
         </div>
         <form ref={form} className="home-search-form" aria-describedby={notice ? "home-search-error" : undefined} onChange={clearCorrectableNotice} onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
+          {product === "FLIGHT" && (
+            <p className={`home-fare-hint ${showFlightFares ? "" : "is-muted"}`}>
+              <TravelIcon name="check" size={13} />
+              <span>{showFlightFares ? "15-day lowest fare calendar active on departure dates" : "Live fares will load on results (calendar hints apply to one-way adult searches)"}</span>
+            </p>
+          )}
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
             {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode onCodeChange={setFromCode} /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode onCodeChange={setToCode} /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
             <FareDatePicker name="date" label={product === "FLIGHT" ? "Departure" : "Check-in"} value={date} min={today} fares={showFlightFares ? outbound.days : undefined} onChange={value => {
@@ -234,6 +253,14 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
             <TravellersPicker product={product} adults={adults} childCount={childCount} infants={infants} cabin={cabin} onChange={updateDraft} />
             <button className="home-search-submit" disabled={navigating} type="submit"><TravelIcon name="search" size={19} /><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
           </div>
+          {product === "FLIGHT" && (
+            <div className="home-quick-routes" aria-label="Popular flight routes">
+              <span>Popular routes:</span>
+              {quickRoutes.map(route => (
+                <button key={route.label} type="button" onClick={() => applyQuickRoute(route)}>{route.label}</button>
+              ))}
+            </div>
+          )}
           {navigating&&<p role="status" className="home-navigation-status">Opening your search… Live availability will load on the next screen.</p>}
           {notice && <p id="home-search-error" className="home-search-error" role="alert">{notice}</p>}
         </form>
@@ -241,6 +268,33 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       </section>
 
       <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Review the total and supplier rules</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Updates and documents in My trips</small></span></div></section>
+
+      <section className="home-offers-strip" aria-labelledby="offers-heading">
+        <div className="home-offers-head">
+          <h2 id="offers-heading">Travel smarter with MaxTravel</h2>
+          <p>Quick entry points for flights, verified stays, and curated holidays</p>
+        </div>
+        <div className="home-offers-grid">
+          <Link className="home-offer-card" href="/book?product=FLIGHT">
+            <span className="home-offer-badge">Flights</span>
+            <h3>15-Day Lowest Fare Calendar</h3>
+            <p>Spot cheaper departure dates before locking in domestic or international flights.</p>
+            <span className="home-offer-cta">Compare flights <TravelIcon name="arrow" size={15} /></span>
+          </Link>
+          <Link className="home-offer-card is-emerald" href="/book?product=HOTEL">
+            <span className="home-offer-badge">Hotels</span>
+            <h3>Verified Cancellation Timelines</h3>
+            <p>See exact free-cancellation cutoffs and room inclusions upfront on every property.</p>
+            <span className="home-offer-cta">Explore stays <TravelIcon name="arrow" size={15} /></span>
+          </Link>
+          <Link className="home-offer-card is-amber" href="/packages">
+            <span className="home-offer-badge">Holidays</span>
+            <h3>Curated Getaways &amp; Concierge</h3>
+            <p>End-to-end itineraries for Goa, Maldives, Dubai &amp; Bali backed by our Secunderabad desk.</p>
+            <span className="home-offer-cta">View packages <TravelIcon name="arrow" size={15} /></span>
+          </Link>
+        </div>
+      </section>
 
       <section id="discover" className="home-discover" aria-labelledby="discover-heading">
         <div className="home-section-heading">
