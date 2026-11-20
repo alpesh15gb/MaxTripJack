@@ -1,38 +1,226 @@
-/* Site-wide polish, loaded last. One palette (midnight navy + champagne) and
-   one rhythm across the shared shells, so every page reads as the same brand. */
+/* Site-wide polish, loaded last. Unified MakeMyTrip & Yatra-inspired modern OTA
+   palette (crisp white cards, airy slate canvas, cobalt blue CTAs, emerald lowest-fare accents)
+   across discovery, /book flights & hotels, checkout, packages, My Trips, and account. */
 
-body .travel-footer--reference .travel-footer-copyright{background:#0b1521}
+body .travel-footer--reference .travel-footer-copyright{background:#061529}
 body .travel-footer :is(h2,h3){letter-spacing:-.2px}
 body .travel-footer a{transition:color .15s ease}
-body .travel-footer a:hover{color:var(--home-light-gold,#f0d7a8)}
+body .travel-footer a:hover{color:#93c5fd}
 
 /* Policy links: even spacing that wraps cleanly on phones (no dangling "|"). */
 html body .travel-footer .travel-footer-policies{display:flex;flex-wrap:wrap;align-items:center;gap:0 22px}
 html body .travel-footer .travel-footer-policies a:not(:last-child)::after,html body .travel-footer .travel-footer-policies a::before{content:none}
 
-body .package-state>a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin-top:16px;padding:10px 20px;border-radius:8px;background:var(--brand-midnight,#101c2c) var(--brand-night-sheen);color:var(--brand-ivory,#faf9f6);font-weight:650;text-decoration:none;transition:filter .15s ease}
-body .package-state>a:hover{filter:brightness(1.12)}
+body .package-state>a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin-top:16px;padding:10px 20px;border-radius:12px;background:linear-gradient(135deg,#006ce4,#0052cc);color:#ffffff;font-weight:700;text-decoration:none;transition:filter .15s ease,transform .15s ease}
+body .package-state>a:hover{filter:brightness(1.06);transform:translateY(-1px)}
 body .package-state>button{min-height:44px;margin:16px 10px 0 0}
 
-/* Flight results: the options count is plain supporting text, not a boxed chip. */
-body .booking-workflow .results-heading .results-count{border:0;outline:0;box-shadow:none;text-decoration:none;background:transparent;color:var(--brand-muted,#526071);font-weight:550}
+/* ==================== /BOOK FLIGHT RESULTS REVAMP ==================== */
+body .booking-workflow.journey-flow {
+  padding-bottom: 96px;
+}
 
-/* Checkout: section titles share the display face used for "Traveller details". */
+body .booking-workflow .results-heading h2 {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -.03em;
+}
+
+body .booking-workflow .results-heading .results-count {
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: #eff6ff;
+  color: #0052cc;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+/* 15-Day Departure Dates Strip */
+body .booking-workflow .flight-date-strip,
+body .booking-workflow [class*="date-strip"] {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(10, 37, 64, 0.05);
+}
+
+body .booking-workflow .flight-date-day {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #0f172a;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+body .booking-workflow .flight-date-day:hover:not([aria-pressed="true"]):not(.is-selected) {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+}
+
+body .booking-workflow .flight-date-day:is([aria-pressed="true"], [aria-current="date"], .is-selected, .active) {
+  background: linear-gradient(135deg, #006ce4 0%, #0052cc 100%);
+  border-color: #0052cc;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 108, 228, 0.25);
+}
+
+body .booking-workflow .flight-date-day:is([aria-pressed="true"], [aria-current="date"], .is-selected, .active) :is(span, time, small, .flight-date-fare) {
+  color: #ffffff;
+}
+
+body .booking-workflow .flight-date-fare.fare-band-low {
+  color: #059669;
+  font-weight: 700;
+}
+
+/* Sort Cards (Cheapest / Fastest / Earliest) */
+body .booking-workflow .flight-sort-tabs button,
+body .booking-workflow .sort-options button,
+body .booking-workflow [role="tablist"] button[role="tab"] {
+  border-radius: 14px;
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+body .booking-workflow .flight-sort-tabs button:hover,
+body .booking-workflow .sort-options button:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 12px rgba(0, 108, 228, 0.08);
+}
+
+body .booking-workflow .flight-sort-tabs button:is([aria-pressed="true"], .is-active, .active),
+body .booking-workflow .sort-options button:is([aria-pressed="true"], .is-active, .active) {
+  background: linear-gradient(135deg, #006ce4 0%, #0052cc 100%);
+  border-color: #0052cc;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(0, 108, 228, 0.24);
+}
+
+body .booking-workflow .flight-sort-tabs button:is([aria-pressed="true"], .is-active, .active) *,
+body .booking-workflow .sort-options button:is([aria-pressed="true"], .is-active, .active) * {
+  color: #ffffff;
+}
+
+/* Filter Sidebar & Controls */
+body .booking-workflow .flight-shopping-controls,
+body .booking-workflow .filters {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(10, 37, 64, 0.05);
+}
+
+body .booking-workflow :is(.flight-shopping-controls, .filters) select,
+body .booking-workflow :is(.flight-shopping-controls, .filters) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+body .booking-workflow :is(.flight-shopping-controls, .filters) select:focus,
+body .booking-workflow :is(.flight-shopping-controls, .filters) input:focus {
+  border-color: #006ce4;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 108, 228, 0.14);
+}
+
+/* Flight Result Cards */
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(10, 37, 64, 0.05);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 12px 28px rgba(0, 108, 228, 0.1);
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .fare-comparison {
+  background: #f8fafc;
+  border-left: 1px solid #e2e8f0;
+  border-radius: 0 15px 15px 0;
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .choose-fare-label {
+  background: linear-gradient(135deg, #006ce4 0%, #0052cc 100%);
+  color: #ffffff;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(0, 108, 228, 0.22);
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .choose-fare-label:hover {
+  filter: brightness(1.06);
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-segment-details > summary {
+  color: #006ce4;
+  font-weight: 700;
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-route-track > span::before {
+  background: #cbd5e1;
+}
+
+body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-route-track > span::after {
+  color: #006ce4;
+}
+
+/* ==================== /HOTELS & /BOOK HOTEL CARDS REVAMP ==================== */
+body .booking-workflow .hotel-card,
+body .hotel-catalogue-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(10, 37, 64, 0.05);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+body .booking-workflow .hotel-card:hover,
+body .hotel-catalogue-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 14px 32px rgba(0, 108, 228, 0.1);
+}
+
+/* ==================== CHECKOUT & PROGRESS STEPPER ==================== */
+body .booking-workflow .booking-progress li.is-current,
+body .booking-workflow .booking-progress li[aria-current="step"] {
+  color: #006ce4;
+  border-color: #006ce4;
+  background: #eff6ff;
+}
+
 body .booking-workflow #booking-summary :is(h2,h3):first-of-type,
-body .booking-workflow .booking-contact>h3{font-family:var(--travel-display,Georgia,serif);font-weight:400;letter-spacing:-.3px}
-body .booking-workflow #booking-summary :is(h2,h3):first-of-type{font-size:28px;line-height:1.1}
-body .booking-workflow .booking-contact>h3{font-size:24px;line-height:1.15;margin-bottom:6px}
+body .booking-workflow .booking-contact>h3{font-family:var(--font-geist-sans),system-ui,sans-serif;font-weight:800;letter-spacing:-.025em;color:#0f172a}
+body .booking-workflow #booking-summary :is(h2,h3):first-of-type{font-size:22px;line-height:1.2}
+body .booking-workflow .booking-contact>h3{font-size:20px;line-height:1.2;margin-bottom:6px}
 
 /* Prices read as tabular figures everywhere, so columns of fares line up. */
 body :is(.booking-total,.hotel-stay-price strong,.flight-price,.fare-decision-price,.booking-summary-lines dd,.flight-date-fare){font-variant-numeric:tabular-nums}
 
-/* Calmer, consistent focus ring across the site (keyboard users). */
-body :is(a,button,summary,select,input,textarea):focus-visible{outline:2px solid var(--brand-gold,#c6a66b);outline-offset:2px}
+/* Consistent focus ring across the site (keyboard users). */
+body :is(a,button,summary,select,input,textarea):focus-visible{outline:2px solid #006ce4;outline-offset:2px}
 
-/* Primary buttons: subtle lift on hover for a more finished feel. */
+/* Primary buttons: crisp cobalt lift on hover across the whole app. */
 @media (hover:hover){
-  body .booking-workflow button.primary:not(:disabled),body .home-search-submit:not(:disabled){transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
-  body .booking-workflow button.primary:not(:disabled):hover,body .home-search-submit:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 6px 18px #101c2c26}
+  body .booking-workflow button.primary:not(:disabled),body .home-search-submit:not(:disabled){transition:transform .15s ease,box-shadow .15s ease,background .15s ease,filter .15s ease}
+  body .booking-workflow button.primary:not(:disabled):hover,body .home-search-submit:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,108,228,.28);filter:brightness(1.05)}
 }
 @media (prefers-reduced-motion:reduce){body *{transition:none!important}}
 

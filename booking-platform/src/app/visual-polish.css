@@ -1,14 +1,14 @@
 /* Shared typography, focus treatment and site chrome. */
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-::selection{background:#dce6ff;color:#10263d}
+::selection{background:#dbeafe;color:#0a2540}
 img{max-width:100%}
 
 /* One consistent, clearly visible keyboard focus treatment. */
-a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,textarea:focus-visible{outline:3px solid #2f6fd8;outline-offset:3px;border-radius:8px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid #006ce4;outline-offset:3px;border-radius:8px}
 
 /* Buttons feel responsive: gentle lift on hover, press on click. */
 .home-search-submit,.package-button,.package-state a:first-of-type{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
-.home-search-submit:hover{transform:translateY(-1px);box-shadow:0 10px 22px #2458a638;filter:none}
+.home-search-submit:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(0,108,228,.32);filter:none}
 .home-search-submit:active{transform:translateY(0);box-shadow:none}
 
 .studio-hero-photo>img{transition:transform .8s ease}
@@ -16,16 +16,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Branded not-found and error pages. */
 .state-page{max-width:760px;margin:0 auto;padding:64px 24px 96px;text-align:center}
-.state-page .state-code{display:block;font-size:clamp(72px,16vw,128px);line-height:1;font-weight:700;letter-spacing:-.06em;color:#d9e4df;margin-bottom:8px}
-.state-page h1{font-size:clamp(28px,5vw,42px);line-height:1.15;letter-spacing:-.03em;color:#142d40;margin:8px 0 14px}
-.state-page p{font-size:17px;line-height:1.65;color:#536860;max-width:520px;margin:0 auto 28px}
+.state-page .state-code{display:block;font-size:clamp(72px,16vw,128px);line-height:1;font-weight:700;letter-spacing:-.06em;color:#cbd5e1;margin-bottom:8px}
+.state-page h1{font-size:clamp(28px,5vw,42px);line-height:1.15;letter-spacing:-.03em;color:#0f172a;margin:8px 0 14px}
+.state-page p{font-size:17px;line-height:1.65;color:#475569;max-width:520px;margin:0 auto 28px}
 .state-page .state-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-.state-page .state-actions a,.state-page .state-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;border:1px solid #2458a6;color:#2458a6;background:white;cursor:pointer}
-.state-page .state-actions .state-primary{background:#2458a6;color:white}
-.state-page .state-actions a:hover,.state-page .state-actions button:hover{filter:brightness(.95)}
+.state-page .state-actions a,.state-page .state-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;border-radius:12px;font-size:15px;font-weight:700;text-decoration:none;border:1px solid #006ce4;color:#006ce4;background:white;cursor:pointer}
+.state-page .state-actions .state-primary{background:linear-gradient(135deg,#006ce4,#0052cc);color:white}
+.state-page .state-actions a:hover,.state-page .state-actions button:hover{filter:brightness(.96)}
 
 @media(max-width:700px){
-  .studio-hero-photo{min-height:170px;aspect-ratio:16/9;border-radius:4px 48px 4px 4px;box-shadow:6px 6px 0 #e8e9dc}
+  .studio-hero-photo{min-height:170px;aspect-ratio:16/9;border-radius:4px 48px 4px 4px;box-shadow:6px 6px 0 #e2e8f0}
   .studio-hero-photo>span,.studio-hero-photo .studio-photo-note{font-size:12px;left:10px;bottom:10px;right:auto;max-width:calc(100% - 20px)}
   /* Keep the airport hint on one tidy line. */
   .trip-home .home-search-input .airport-hint{white-space:normal}
@@ -34,9 +34,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.studio-hero-photo>img,.home-search-submit{transition:none}.studio-hero-photo:hover>img{transform:none}}
 
 /* Destination cards use optimised, lazy-loaded images instead of eager CSS backgrounds. */
-.trip-home .home-destination{position:relative;isolation:isolate;overflow:hidden;background-color:#78a8b1}
+.trip-home .home-destination{position:relative;isolation:isolate;overflow:hidden;background-color:#0a2540}
 .trip-home .home-destination-photo{object-fit:cover;z-index:-2}
-.trip-home .home-destination-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(8,26,37,.88),transparent 75%)}
+.trip-home .home-destination-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(6,21,41,.9),transparent 75%)}
 
 .flight-load-more{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0 8px}
 .flight-load-more p{margin:0}
@@ -45,84 +45,80 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 /* Stray overflow never produces a sideways page scroll; clip keeps sticky headers working. */
 html,body{overflow-x:clip}
 
-/* Shared visual system for discovery, booking and account workspaces. */
+/* Shared visual system for discovery, booking and account workspaces (MakeMyTrip & Yatra inspired modern OTA palette). */
 :root {
-  --brand-midnight: #101c2c;
-  --brand-slate: #24364b;
-  --brand-gold: #c6a66b;
-  --brand-sand: #ede5d7;
-  --brand-ivory: #faf9f6;
-  --brand-ink: var(--brand-midnight);
-  --brand-action: var(--brand-slate);
-  --brand-tint: #f3ede2;
-  --brand-paper: var(--brand-ivory);
-  --brand-line: #ded6c8;
-  --brand-border: var(--brand-line);
-  --brand-muted: #526071;
-  --brand-gold-ink: #725520;
+  --brand-midnight: #0a2540;
+  --brand-slate: #133a63;
+  --brand-gold: #d4a853;
+  --brand-sand: #eff6ff;
+  --brand-ivory: #ffffff;
+  --brand-ink: #0f172a;
+  --brand-action: #006ce4;
+  --brand-action-dark: #0052cc;
+  --brand-action-sheen: linear-gradient(135deg, #006ce4 0%, #0052cc 100%);
+  --brand-tint: #f0f7ff;
+  --brand-paper: #f4f7fb;
+  --brand-line: #e2e8f0;
+  --brand-border: #e2e8f0;
+  --brand-muted: #475569;
+  --brand-gold-ink: #92610a;
   --brand-amber: var(--brand-gold);
-  --brand-gold-sheen: linear-gradient(112deg, #edd6a3, #d8b775 55%, #c39d61);
-  --brand-night-sheen: linear-gradient(117deg, #101c2c 16%, #253b52 69%, #17283b);
-  --brand-paper-sheen: linear-gradient(145deg, #fffefa 16%, #f2eadc);
-  --brand-sand-sheen: linear-gradient(125deg, #fffbf0 8%, #eadbc0);
-  --brand-page-sheen: radial-gradient(ellipse 78% 34rem at 92% 0%, #eadbc2 0%, transparent 100%),
-    linear-gradient(155deg, #faf9f6 18%, #f6f0e6 100%);
-  --brand-shadow: 0 16px 40px #101c2c11;
-  --travel-display: var(--font-travel-display), Georgia, serif;
+  --brand-gold-sheen: linear-gradient(135deg, #f3d9a4, #d4a853);
+  --brand-night-sheen: linear-gradient(125deg, #0a2540 0%, #133a63 65%, #0d2f52 100%);
+  --brand-paper-sheen: none;
+  --brand-sand-sheen: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  --brand-page-sheen: linear-gradient(180deg, #eaf2fd 0%, #f4f7fb 260px, #f4f7fb 100%);
+  --brand-shadow: 0 10px 30px rgba(10, 37, 64, 0.06), 0 2px 6px rgba(10, 37, 64, 0.04);
+  --travel-display: var(--font-geist-sans), system-ui, sans-serif;
   --ink: var(--brand-ink);
   --blue: var(--brand-action);
   --line: var(--brand-border);
   --studio-paper: var(--brand-paper);
   --studio-ink: var(--brand-ink);
   --studio-teal: var(--brand-action);
-  --travel-navy: var(--brand-ink);
+  --travel-navy: var(--brand-midnight);
 }
 
-body { font-family: var(--font-geist-sans), system-ui, sans-serif; background: var(--brand-page-sheen) var(--brand-ivory); color: var(--brand-ink); }
-body .travel-environment { background: var(--brand-sand) var(--brand-sand-sheen); color: #503c1e; }
-body .travel-environment > span:first-child { background: var(--brand-gold-ink); }
-body header.travel-header { max-width: none; background: var(--brand-midnight) var(--brand-night-sheen); border-bottom-color: #c6a66b4d; color: var(--brand-ivory); }
+body { font-family: var(--font-geist-sans), system-ui, sans-serif; background: var(--brand-page-sheen) var(--brand-paper); color: var(--brand-ink); }
+body .travel-environment { background: #eff6ff; color: #1e3a8a; border-bottom: 1px solid #dbeafe; }
+body .travel-environment > span:first-child { background: #006ce4; }
+body header.travel-header { max-width: none; background: var(--brand-midnight) var(--brand-night-sheen); border-bottom: 1px solid rgba(255, 255, 255, 0.12); color: #ffffff; }
 body .travel-header .travel-brand--official .maxtravel-logo--header:not(.maxtravel-logo--custom) { filter: invert(1); mix-blend-mode: screen; }
-body .travel-header .maxtravel-logo--custom { padding: 4px; border-radius: 4px; background: var(--brand-ivory); }
-body .travel-header nav { gap: 8px; }
-body .travel-header nav :is(a, button) { color: #e6e8eb; }
-body .travel-header nav :is(a, button):hover { background: #ffffff12; color: #f4dcb0; }
-body .travel-header nav [aria-current="page"] { color: #f1d5a3; }
-body .travel-header nav [aria-current="page"]::after { background: var(--brand-gold) var(--brand-gold-sheen); }
-body .travel-header :is(.travel-currency, .travel-currency span) { color: #d7c39f; }
+body .travel-header .maxtravel-logo--custom { padding: 4px; border-radius: 6px; background: #ffffff; }
+body .travel-header nav { gap: 6px; }
+body .travel-header nav :is(a, button) { color: #e2e8f0; border-radius: 10px; font-weight: 600; }
+body .travel-header nav :is(a, button):hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+body .travel-header nav [aria-current="page"] { color: #ffffff; font-weight: 700; }
+body .travel-header nav [aria-current="page"]::after { background: var(--brand-gold) var(--brand-gold-sheen); height: 3px; }
+body .travel-header :is(.travel-currency, .travel-currency span) { color: #cbd5e1; }
 body .travel-header .travel-account {
-  color: #f1d5a3;
-  background: #ffffff08;
-  border: 1px solid #c6a66b7a;
-  border-radius: 6px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
 }
 body .travel-header .travel-account:hover,
-body .travel-header .travel-account[aria-current="page"] { background: var(--brand-gold) var(--brand-gold-sheen); color: var(--brand-midnight); border-color: var(--brand-gold); }
-body .travel-header :focus-visible, body .travel-footer :focus-visible { outline: 2px solid #e4c793; outline-offset: 3px; }
-body .travel-footer.travel-footer--reference, body .travel-footer.travel-footer--compact { background: var(--brand-midnight) var(--brand-night-sheen); color: #e4ddcf; }
+body .travel-header .travel-account[aria-current="page"] { background: #ffffff; color: var(--brand-midnight); border-color: #ffffff; }
+body .travel-header :focus-visible, body .travel-footer :focus-visible { outline: 2px solid #93c5fd; outline-offset: 3px; }
+body .travel-footer.travel-footer--reference, body .travel-footer.travel-footer--compact { background: var(--brand-midnight) var(--brand-night-sheen); color: #cbd5e1; }
 body .travel-footer--reference .travel-footer-inner { max-width: 1360px; padding-top: 44px; }
 body .travel-footer--reference .travel-footer-grid { grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
 body .travel-footer--reference .travel-footer-identity { padding-top: 0; }
 body .travel-footer--reference .travel-footer-brand { margin-bottom: 18px; }
-body .travel-footer--reference .travel-footer-group h2 { font: 400 25px/1.15 var(--travel-display); letter-spacing: 0; }
-body .travel-footer--reference .travel-footer-group li > a { color: #e4ddcf; min-height: 40px; }
+body .travel-footer--reference .travel-footer-group h2 { font: 700 16px/1.25 var(--travel-display); letter-spacing: -.01em; color: #ffffff; }
+body .travel-footer--reference .travel-footer-group li > a { color: #cbd5e1; min-height: 40px; }
 body .travel-footer--reference .travel-footer-group li > a::before { display: none; }
-body .travel-footer--reference .travel-footer-socials a { background: var(--brand-sand) var(--brand-sand-sheen); color: var(--brand-ink); }
-body .travel-footer--reference .travel-footer-socials a:hover { background: var(--brand-amber) var(--brand-gold-sheen); }
-body .travel-footer--reference .travel-footer-copyright { background: #0b1521; color: #e4ddcf; }
-body .travel-footer--compact .workflow-footer-content :is(p,a) { color: #e4ddcf; }
-body .travel-footer--compact .workflow-footer-content a:hover { color: #f1d5a3; }
+body .travel-footer--reference .travel-footer-socials a { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+body .travel-footer--reference .travel-footer-socials a:hover { background: var(--brand-action); color: #ffffff; }
+body .travel-footer--reference .travel-footer-copyright { background: #061529; color: #94a3b8; }
+body .travel-footer--compact .workflow-footer-content :is(p,a) { color: #cbd5e1; }
+body .travel-footer--compact .workflow-footer-content a:hover { color: #ffffff; }
 @media (max-width: 900px) {
   body .travel-footer--reference .travel-footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 25px; }
 }
-@media (max-width: 760px) {
-  body .travel-header nav { gap: 0; }
-  body .travel-header nav [aria-current="page"]::after { inset-inline: 7px; }
-  body .travel-footer--reference .travel-footer-group li > a { min-height: 44px; }
-}
 @media (max-width: 700px) {
   body .travel-environment { min-height: 24px; }
-  body .travel-header { min-height: 96px; padding-top: 4px; }
+  body .travel-header { min-height: 92px; padding-top: 4px; }
   body .travel-header nav { height: 44px; }
   body .travel-header nav :is(a, button) { min-height: 44px; }
 }
@@ -132,29 +128,32 @@ body .public-site .public-hero {
   border: 0;
   border-radius: 24px;
 }
-body .public-site .public-hero :is(h1, .public-intro, .public-cta-note) { color: #fff; }
+body .public-site .public-hero :is(h1, .public-intro, .public-cta-note) { color: #ffffff; }
 body .public-site .public-hero .public-eyebrow { color: var(--brand-gold); }
-body .public-site .public-button { background: var(--brand-gold) var(--brand-gold-sheen); color: var(--brand-ink); border-color: var(--brand-gold); }
+body .public-site .public-button { background: var(--brand-action-sheen); color: #ffffff; border-color: transparent; }
 body .public-site .public-section :is(p, li), body .public-site .public-questions p { font-size: 16px; line-height: 1.75; }
 body :is(.public-office-card, .public-rail-note, .public-route-card, .package-card, .package-quote) {
   border-color: var(--brand-border);
-  border-radius: 20px;
+  border-radius: 18px;
+  background: #ffffff;
   box-shadow: var(--brand-shadow);
 }
-body :is(.package-quote, .public-office-card, .public-rail-note) { background: var(--brand-paper) var(--brand-paper-sheen); }
 body .package-heading {
   max-width: none;
-  padding: clamp(22px, 4vw, 54px);
-  border-radius: 24px;
-  background: var(--brand-tint) var(--brand-sand-sheen);
+  padding: clamp(22px, 4vw, 48px);
+  border-radius: 22px;
+  background: var(--brand-sand-sheen);
+  border: 1px solid #dbeafe;
 }
 body .package-heading p { max-width: 65ch; }
 body .package-button:not(.secondary), body .package-state button {
-  background: var(--brand-action) var(--brand-night-sheen);
-  border-color: var(--brand-action);
+  background: var(--brand-action-sheen);
+  border-color: transparent;
+  color: #ffffff;
 }
 body :is(.journey-flow, .account-page, .operations-access) { color: var(--brand-ink); }
 body :is(.journey-flow, .account-page) :is(.white-card, .booking-pending, .filters) {
+  background: #ffffff;
   border-color: var(--brand-border);
   border-radius: 18px;
   box-shadow: var(--brand-shadow);
@@ -163,7 +162,8 @@ body :is(.journey-flow, .account-page) :is(.white-card, .booking-pending, .filte
 .public-section-links {
   margin: 24px 0 8px;
   padding: 20px 24px;
-  background: var(--brand-tint);
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
   border-radius: 16px;
 }
 .public-section-links p { font-weight: 700; margin-bottom: 8px; }
@@ -177,50 +177,54 @@ body :is(.journey-flow, .account-page) :is(.white-card, .booking-pending, .filte
 .public-section, #questions-heading { scroll-margin-top: 96px; }
 
 body :is(.journey-flow, .account-experience, .trips-workspace, .ops-workspace) {
-  background-color: var(--brand-paper);
+  background-color: transparent;
   color: var(--brand-ink);
 }
 body .account-experience .workspace-masthead {
-  background-color: var(--brand-ink);
-  border-color: var(--brand-ink);
+  background: var(--brand-midnight) var(--brand-night-sheen);
+  border-color: transparent;
   border-radius: 20px;
-  color: #fff;
+  color: #ffffff;
 }
 body .account-experience .workspace-masthead :is(p, span) { color: inherit; }
-body .account-experience .workspace-mark { background: var(--brand-action) var(--brand-night-sheen); }
-body .ops-workspace .operations-sidebar { background-color: var(--brand-ink); }
-body .ops-workspace .selected-desk { background-color: var(--brand-gold); color: var(--brand-ink); }
+body .account-experience .workspace-mark { background: var(--brand-action-sheen); }
+body .ops-workspace .operations-sidebar { background: var(--brand-midnight) var(--brand-night-sheen); }
+body .ops-workspace .selected-desk { background: var(--brand-action); color: #ffffff; }
 body :is(.ops-workspace, .account-experience, .trips-workspace, .journey-flow) .white-card {
+  background: #ffffff;
   border-color: var(--brand-border);
   border-radius: 16px;
 }
 body :is(.ops-workspace, .account-experience, .trips-workspace, .journey-flow) .primary {
   background-color: var(--brand-action);
-  background-image: var(--brand-night-sheen);
-  color: #fff;
+  background-image: var(--brand-action-sheen);
+  border-color: transparent;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 body .journey-flow :is(.live-flight-card, .hotel-card, .room-workspace, .summary),
 body :is(.trips-workspace, .reset-experience) .white-card {
+  background: #ffffff;
   border-color: var(--brand-border);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: var(--brand-shadow);
 }
-body .reset-experience .primary { background: var(--brand-action) var(--brand-night-sheen); color: #fff; }
-body .travel-footer { border-top-color: var(--brand-gold); }
+body .reset-experience .primary { background: var(--brand-action-sheen); color: #ffffff; }
+body .travel-footer { border-top: 2px solid var(--brand-gold); }
 
 body :is(.reports-page, .visibility-page) { background-color: var(--brand-paper); color: var(--brand-ink); }
 body :is(.reports-page .reports-heading, .visibility-page .visibility-heading) {
-  background-color: var(--brand-ink);
+  background: var(--brand-midnight) var(--brand-night-sheen);
   border-radius: 20px;
   padding: clamp(20px, 4vw, 36px);
-  color: #fff;
+  color: #ffffff;
 }
-body :is(.reports-heading, .visibility-heading) p { color: #e4ddcf; }
+body :is(.reports-heading, .visibility-heading) p { color: #cbd5e1; }
 body :is(.reports-filters, .reports-cards article, .visibility-metric) {
   border-color: var(--brand-border);
   border-radius: 16px;
-  background-color: #fff;
+  background-color: #ffffff;
 }
 
 .state-page--discovery {
@@ -235,12 +239,12 @@ body :is(.reports-filters, .reports-cards article, .visibility-metric) {
 }
 .state-page--discovery p { margin-left: 0; }
 .state-page--discovery .state-actions { justify-content: flex-start; }
-.state-page--discovery .state-code { font-size: 72px; color: var(--brand-gold-ink); }
+.state-page--discovery .state-code { font-size: 72px; color: var(--brand-action); }
 .state-photo { position: relative; min-height: 440px; border-radius: 24px; overflow: hidden; }
 .state-photo img { object-fit: cover; }
-.state-page .state-actions .state-primary { background: var(--brand-action); border-color: var(--brand-action); }
+.state-page .state-actions .state-primary { background: var(--brand-action-sheen); border-color: transparent; color: #ffffff; }
 .state-page .state-actions a, .state-page .state-actions button { border-color: var(--brand-action); color: var(--brand-action); }
-.state-page .state-actions .state-primary { color: #fff; }
+.state-page .state-actions .state-primary { color: #ffffff; }
 @media (max-width: 700px) {
   .state-page--discovery { grid-template-columns: 1fr; gap: 28px; width: calc(100% - 32px); padding: 36px 0; }
   .state-photo { min-height: 220px; }
