@@ -182,4 +182,9 @@ body .booking-workflow.journey-flow .stay-detail .stay-room-rate .primary { back
 .stay-room-filters label { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; cursor: pointer; }
 .stay-room-filters input[type=checkbox] { width: 18px; height: 18px; min-height: 18px; margin: 0; accent-color: #006756; }
 .stay-room-filters small { flex-basis: 100%; font-size: 12px; color: #63766b; }
+.stay-room-recovery-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.stay-room-state .stay-room-recovery-actions button { min-height:44px; margin-top:0; }
+.stay-room-state + .stay-room-groups { margin-top:16px; }
+body .booking-workflow .stay-rate-comparison .stay-room-state:not(.stay-room-error) { background: linear-gradient(148deg, #fff 35%, var(--brand-tint)); }
+body .booking-workflow .stay-rate-comparison .stay-room-error { background: linear-gradient(145deg, #fffdf7, #f9edd9); border-color: #e4d1ae; }
 @media (max-width: 520px) { .stay-room-filters { align-items: flex-start; flex-direction: column; gap: 16px; } }

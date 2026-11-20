@@ -52,17 +52,17 @@
   margin: 0;
   padding: 10px 16px;
   border: 1px solid #c6a66b9e;
-  border-radius: 5px;
+  border-radius: 8px;
   color: var(--brand-midnight);
-  background: var(--brand-gold);
+  background: var(--brand-gold) var(--brand-gold-sheen);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
   text-decoration: none;
   transition: background .18s ease, border-color .18s ease;
 }
-.trip-home .home-hero-actions .hero-explore-link:hover { background: #e0c48c; border-color: #e0c48c; }
-.trip-home .home-hero-actions .hero-search-link { color: #fff; background: #101c2c91; }
+.trip-home .home-hero-actions .hero-explore-link:hover { background-color: #e0c48c; border-color: #e0c48c; filter: brightness(1.07); }
+.trip-home .home-hero-actions .hero-search-link { color: #fff; background: linear-gradient(125deg, #293e57c7, #101c2ce0); }
 .trip-home .home-hero-actions .hero-search-link:hover { background: var(--brand-slate); }
 
 .trip-home .studio-hero-photo {
@@ -115,7 +115,7 @@
   font-weight: 650;
 }
 .trip-home .hero-destination-picker button:hover { background: #ffffff22; }
-.trip-home .hero-destination-picker button[aria-pressed="true"] { background: var(--brand-gold); color: var(--brand-midnight); }
+.trip-home .hero-destination-picker button[aria-pressed="true"] { background: var(--brand-gold) var(--brand-gold-sheen); color: var(--brand-midnight); }
 .trip-home :is(.home-intro, .home-search-card) :focus-visible,
 .trip-home .home-search-card:focus-visible { outline: 2px solid var(--home-light-gold); outline-offset: 3px; }
 
@@ -125,11 +125,12 @@
   margin: -88px auto 0;
   padding: 0 22px 15px;
   scroll-margin-top: 18px;
-  border: 1px solid #c6a66b8a;
-  border-radius: 14px;
-  background: var(--brand-midnight);
+  border: 1px solid #c6a66b9c;
+  border-radius: 16px;
+  background-color: var(--brand-midnight);
+  background-image: radial-gradient(ellipse at 94% 0, #3c4e652e, transparent 59%), linear-gradient(132deg, #253c56 0%, #17273a 46%, #101c2c 86%);
   color: var(--home-on-dark);
-  box-shadow: 0 24px 53px #101c2c35;
+  box-shadow: 0 24px 48px #101c2c42, inset 0 1px 0 #f0d7a82b;
 }
 .trip-home .home-search-top {
   flex-wrap: wrap;
@@ -145,7 +146,7 @@
   height: 39px;
   border: 1px solid #c6a66b85;
   border-radius: 50%;
-  background: #c6a66b1a;
+  background: linear-gradient(145deg, #cab07930, #cab07908);
   color: var(--home-light-gold);
 }
 .trip-home .home-search-heading h2 { margin: 0; color: var(--brand-ivory); font: 400 34px/1 var(--travel-display); }
@@ -158,7 +159,7 @@
   color: var(--home-on-dark);
 }
 .trip-home .home-product-tabs button:hover { background: var(--brand-slate); }
-.trip-home .home-product-tabs button[aria-pressed="true"] { background: #c6a66b24; border-color: #c6a66b87; color: var(--home-light-gold); box-shadow: none; }
+.trip-home .home-product-tabs button[aria-pressed="true"] { background: linear-gradient(135deg, #c6a66b36, #c6a66b12); border-color: #c6a66b96; color: var(--home-light-gold); box-shadow: inset 0 1px 0 #f0d7a827; }
 .trip-home .home-search-options { padding-block: 5px; }
 .trip-home .home-search-options input { accent-color: var(--brand-gold); }
 .trip-home :is(.home-economy, .home-stay-note) { color: var(--home-on-dark); border-color: #c6a66b60; }
@@ -167,12 +168,13 @@
 .trip-home .home-party-options :is(summary, label) { color: var(--brand-ivory); }
 .trip-home .home-party-options :is(summary span, p) { color: var(--home-on-dark); }
 .trip-home .home-party-options select { color: var(--brand-ivory); background: var(--brand-slate); border-color: var(--home-search-line); color-scheme: dark; }
-.trip-home .home-search-input { min-width: 0; border-color: var(--home-search-line); border-radius: 7px; background: var(--brand-slate); }
+.trip-home .home-search-input { min-width: 0; border-color: var(--home-search-line); border-radius: 7px; background: var(--brand-slate) linear-gradient(145deg, #30465f, #22364d); }
 .trip-home .home-search-input:focus-within { border-color: var(--brand-gold); background: #2c4057; box-shadow: 0 0 0 2px #c6a66b32; }
 .trip-home .home-search-input :is(label, span) { color: var(--home-light-gold); }
 .trip-home .home-search-input :is(select, input:not([hidden]):not([type=hidden])) { color: var(--brand-ivory); color-scheme: dark; }
 .trip-home .home-search-input input::placeholder, .trip-home .home-search-input small { color: var(--home-on-dark); }
 .trip-home .home-search-input .airport-code-badge { background: #101c2c; color: var(--home-light-gold); }
+.trip-home .home-search-input .airport-selection-label { color: inherit; }
 .trip-home .home-swap { background: #172639; border-color: #c6a66b95; color: var(--home-light-gold); }
 .trip-home .home-swap:hover { background: var(--brand-slate); }
 .trip-home .home-hotel-destination [role="group"] { top: calc(100% + 6px); background: var(--brand-ivory); color: var(--brand-ink); border-color: var(--brand-line); }
@@ -184,12 +186,12 @@
   min-height: 48px;
   padding-block: 11px;
   border: 1px solid #c6a66b;
-  border-radius: 5px;
-  background: var(--brand-gold);
+  border-radius: 8px;
+  background: var(--brand-gold) var(--brand-gold-sheen);
   color: var(--brand-midnight);
-  box-shadow: none;
+  box-shadow: 0 4px 14px #101c2c40, inset 0 1px 0 #fff3d5aa;
 }
-.trip-home .home-search-submit:hover { background: #e0c48c; border-color: #e0c48c; }
+.trip-home .home-search-submit:not(:disabled):hover { border-color: #e0c48c; filter: brightness(1.07); }
 .trip-home .home-search-footnote, .trip-home .home-navigation-status { color: var(--home-on-dark); }
 .trip-home .home-search-footnote { margin-top: 10px; }
 .trip-home .home-search-footnote svg { color: var(--home-light-gold); }
@@ -266,16 +268,28 @@
 .trip-home .home-package-detail { color: var(--brand-action); }
 .trip-home .home-package-empty { border: 1px solid var(--brand-border); border-radius: 14px; background: var(--brand-tint); }
 .trip-home .home-package-empty > svg, .trip-home .home-package-empty > a { color: var(--brand-action); }
-.trip-home .studio-concierge-band { border-radius: 20px 56px 20px 20px; background: var(--brand-ink); }
+.trip-home .studio-concierge-band { border-radius: 20px 56px 20px 20px; background: var(--brand-ink) var(--brand-night-sheen); }
 .trip-home .studio-concierge-band :is(.public-eyebrow, .studio-office-note > svg) { color: var(--brand-amber); }
 .trip-home .studio-concierge-band h2, .trip-home .home-public-routes-heading { font-family: var(--travel-display); font-weight: 400; }
-.trip-home .studio-concierge-actions > a:first-child { background: var(--brand-amber); border-color: var(--brand-amber); }
+.trip-home .studio-concierge-actions > a:first-child { background: var(--brand-amber) var(--brand-gold-sheen); border-color: var(--brand-amber); }
 .trip-home .home-public-links a { color: var(--brand-action); }
 .trip-home .public-route-card { border-color: var(--brand-border); background: #fff; }
 
 @media (max-width: 1050px) {
   .trip-home .home-intro h1 { font-size: clamp(57px, 8.8vw, 88px); }
   .trip-home .home-search-card, .trip-home .home-confidence { width: calc(100% - 64px); }
+}
+
+@media (761px <= width <= 900px) {
+  .trip-home .home-search-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .trip-home .home-search-fields:is(.is-return, .is-hotel) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .trip-home :is(.home-airports, .home-hotel-destination) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 760px) {
@@ -335,6 +349,29 @@
   .trip-home .home-intro h1 { font-size: 49px; }
   .trip-home .home-product-tabs svg { display: none; }
   .trip-home .hero-destination-picker button { font-size: 11px; }
+  .trip-home .home-airports { grid-template-columns: 1fr; }
+  .trip-home .home-airports > .home-search-input:first-child {
+    margin: 0;
+    padding-inline: 11px 60px;
+    border-radius: 7px 7px 0 0;
+  }
+  .trip-home .home-airports > .home-search-input:last-child {
+    margin: -1px 0 0;
+    padding-inline: 11px 60px;
+    border-radius: 0 0 7px 7px;
+  }
+  .trip-home .home-airports .home-search-input > div { position: relative; }
+  .trip-home .home-airports .airport-hint:has(.airport-code-badge) {
+    position: absolute;
+    inset: 0 0 auto auto;
+    margin: 0;
+    pointer-events: none;
+  }
+  .trip-home .home-airports .airport-selection-label { display: none; }
+  .trip-home .home-airports .home-swap {
+    inset: 50% 10px auto auto;
+    transform: translateY(-50%) rotate(90deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

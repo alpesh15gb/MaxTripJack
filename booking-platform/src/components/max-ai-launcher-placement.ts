@@ -57,7 +57,7 @@ export function observeLauncherPlacement(launcher: HTMLButtonElement, desktopSco
     }
     function refresh() {
       const root = mobile.matches ? document : desktopScope ? document.querySelector(desktopScope) : null;
-      const selector = desktopScope === '.booking-review-column' && !mobile.matches ? `${CONTROL_SELECTOR},.checkout-acknowledgement,.final-traveller-summary p` : CONTROL_SELECTOR;
+      const selector = !mobile.matches ? `${CONTROL_SELECTOR},.checkout-acknowledgement,.final-traveller-summary p` : CONTROL_SELECTOR;
       const controls = new Set(Array.from(root?.querySelectorAll<HTMLElement>(selector) ?? []).filter(node => !node.closest('.max-ai-dialog,.max-ai-launcher,dialog')).slice(0, 600));
       for (const node of observed) if (!controls.has(node)) { intersections.unobserve(node); observed.delete(node); nearby.delete(node); bars.delete(node); }
       for (const node of controls) if (!observed.has(node)) { observed.add(node); intersections.observe(node); if (node.matches(BAR_SELECTOR)) bars.add(node); }

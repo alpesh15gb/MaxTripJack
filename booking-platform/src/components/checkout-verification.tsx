@@ -10,6 +10,16 @@ type Channel = "email" | "whatsapp";
 export type VerifiedContact = { email: string; phoneNumber?: string };
 type Props = { onVerified: (contact: VerifiedContact) => void | Promise<void>; initialEmail?: string; initialPhoneNumber?: string; expectedUserId?: string; mode?: "signin" | "link-phone" };
 
+async function verificationRequest<T>(request: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  try {
+    return await request(controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Authentication stays in the mounted workspace; contact ownership is checked server-side. */
 export default function CheckoutVerification({ onVerified, initialEmail = "", initialPhoneNumber = "", expectedUserId, mode = "signin" }: Props) {
   const id = useId(), linking = mode === "link-phone";
@@ -22,6 +32,8 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
   const [message, setMessage] = useState(""), [error, setError] = useState(""), [finished, setFinished] = useState(false);
   const mounted = useRef(false), inFlight = useRef(false), complete = useRef(false), linkUserId = useRef<string | null>(null);
   const codeInput = useRef<HTMLInputElement>(null);
+  const submitButton = useRef<HTMLButtonElement>(null);
+  const lastVerificationStage = useRef<"code" | "mfa">("code");
   const normalizedEmail = email.trim().toLowerCase(), normalizedPhone = normalizeWhatsAppPhone(phone);
   const destination = channel === "email" ? normalizedEmail : normalizedPhone || phone.trim();
   const cooldownKey = `${channel}:${destination}`;
@@ -41,21 +53,34 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
     const timer = setTimeout(() => setNow(Date.now()), 1000);
     return () => clearTimeout(timer);
   }, [cooldowns, now]);
-  useEffect(() => { if (stage === "code" || stage === "mfa") codeInput.current?.focus(); }, [stage, recovery]);
+  useEffect(() => {
+    if (busy || finished) return;
+    if (stage === "check") submitButton.current?.focus();
+    if (stage === "code" || stage === "mfa") codeInput.current?.focus();
+  }, [stage, recovery, busy, finished]);
   function startCooldown() { const current = Date.now(); setNow(current); setCooldowns(previous => ({ ...previous, [cooldownKey]: current + 60000 })); }
 
+  function readSession() {
+    return verificationRequest(signal => authClient.getSession({ fetchOptions: { cache: "no-store", signal } }));
+  }
+
   async function confirmSession() {
-    const response = await authClient.getSession({ fetchOptions: { cache: "no-store" } });
+    const response = await readSession().catch(() => null);
     if (!mounted.current) return;
-    if (response.error) throw Error("We couldn’t check your sign-in. Please check again; your selection is still here.");
+    if (!response || response.error) {
+      setError(linking ? "We couldn’t check your number. Try checking its status again." : "We couldn’t check your sign-in. Check again to continue with this selection.");
+      return;
+    }
     const user = response.data?.user;
     const matchingContact = user && hasVerifiedCustomerIdentity(user) && (channel === "email"
       ? user.emailVerified && customerEmail(user).toLowerCase() === normalizedEmail
       : user.phoneNumberVerified === true && user.phoneNumber === normalizedPhone);
     if (!matchingContact || (linking && (!linkUserId.current || user?.id !== linkUserId.current || (expectedUserId && user?.id !== expectedUserId)))) {
-      setStage("code");
-      throw Error(linking ? "We couldn’t confirm this number for your account. Check your sign-in and request a new code."
+      setStage(lastVerificationStage.current);
+      setError(lastVerificationStage.current === "mfa" ? "Your security check is still needed. Enter a current authenticator code or use a saved recovery code."
+        : linking ? "We couldn’t confirm this number for your account. Check your sign-in and request a new code."
         : `Your ${channel === "email" ? "email" : "WhatsApp number"} has not been verified for this sign-in. Enter your code or request a new one.`);
+      return;
     }
     if (complete.current) return;
     complete.current = true; setFinished(true); setCode("");
@@ -68,26 +93,28 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
     try {
       if (channel === "whatsapp" && !normalizedPhone) throw Error("Enter a 10-digit Indian mobile number, or include + and the country code for another country.");
       if (linking) {
-        const current = await authClient.getSession({ fetchOptions: { cache: "no-store" } });
+        const current = await readSession().catch(() => null);
         if (!mounted.current) return;
-        const user = current.data?.user;
-        if (current.error || !user?.emailVerified || !customerEmail(user) || (expectedUserId && user.id !== expectedUserId) || (initialEmail && customerEmail(user).toLowerCase() !== initialEmail.trim().toLowerCase()) || (linkUserId.current && linkUserId.current !== user.id))
+        const user = current?.data?.user;
+        if (!current || current.error || !user?.emailVerified || !customerEmail(user) || (expectedUserId && user.id !== expectedUserId) || (initialEmail && customerEmail(user).toLowerCase() !== initialEmail.trim().toLowerCase()) || (linkUserId.current && linkUserId.current !== user.id))
           throw Error("Sign in to your verified email account again before connecting WhatsApp.");
         linkUserId.current = user.id;
       }
-      const result = channel === "email"
-        ? await authClient.emailOtp.sendVerificationOtp({ email: normalizedEmail, type: "sign-in" })
-        : await authClient.$fetch("/phone-number/send-otp", { method: "POST", body: { phoneNumber: normalizedPhone!, purpose: linking ? "link" : "signin" } });
+      const result = await (channel === "email"
+        ? verificationRequest(signal => authClient.emailOtp.sendVerificationOtp({ email: normalizedEmail, type: "sign-in", fetchOptions: { signal } }))
+        : verificationRequest(signal => authClient.$fetch("/phone-number/send-otp", { method: "POST", body: { phoneNumber: normalizedPhone!, purpose: linking ? "link" : "signin" }, signal }))).catch(() => null);
       if (!mounted.current) return;
-      if (result.error) {
+      if (result?.error) {
         if (result.error.status === 429) startCooldown();
         throw Error(result.error.status === 429 ? "Please wait a minute before requesting another code."
           : channel === "whatsapp" ? linking ? "We couldn’t request a WhatsApp code right now. Please try again later." : "We couldn’t request a WhatsApp code right now. Try again or choose Email."
           : "We couldn’t request a code right now. Please try again or contact support.");
       }
       if (channel === "email") setEmail(normalizedEmail); else setPhone(normalizedPhone!);
+      lastVerificationStage.current = "code";
       setCode(""); setStage("code"); startCooldown();
-      setMessage(channel === "email" ? "Code requested. Check your inbox and spam folder. Use the latest code within 5 minutes."
+      setMessage(!result ? "We couldn’t confirm delivery. If your code arrives, enter it below. You can resend after the countdown."
+        : channel === "email" ? "Code requested. Check your inbox and spam folder. Use the latest code within 5 minutes."
         : "Code requested. Check WhatsApp on this number. Use the latest code within 5 minutes.");
     } catch (failure) { if (mounted.current) setError(failure instanceof Error ? failure.message : "We couldn’t request a code. Please try again."); }
     finally { inFlight.current = false; if (mounted.current) setBusy(false); }
@@ -98,11 +125,19 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
     inFlight.current = true; setBusy(true); setError(""); setMessage("");
     try {
       if (stage === "check") { await confirmSession(); return; }
-      const result = stage === "mfa"
-        ? recovery ? await authClient.twoFactor.verifyBackupCode({ code: code.trim() }) : await authClient.twoFactor.verifyTotp({ code: code.trim() })
-        : channel === "email" ? await authClient.signIn.emailOtp({ email: normalizedEmail, otp: code.trim() })
-        : await authClient.phoneNumber.verify({ phoneNumber: normalizedPhone!, code: code.trim(), ...(linking ? { updatePhoneNumber: true } : {}) });
+      if (stage === "contact") return;
+      lastVerificationStage.current = stage;
+      const result = await (stage === "mfa"
+        ? recovery ? verificationRequest(signal => authClient.twoFactor.verifyBackupCode({ code: code.trim(), fetchOptions: { signal } }))
+          : verificationRequest(signal => authClient.twoFactor.verifyTotp({ code: code.trim(), fetchOptions: { signal } }))
+        : channel === "email" ? verificationRequest(signal => authClient.signIn.emailOtp({ email: normalizedEmail, otp: code.trim(), fetchOptions: { signal } }))
+        : verificationRequest(signal => authClient.phoneNumber.verify({ phoneNumber: normalizedPhone!, code: code.trim(), ...(linking ? { updatePhoneNumber: true } : {}), fetchOptions: { signal } }))).catch(() => null);
       if (!mounted.current) return;
+      if (!result || (result.error && result.error.status >= 500)) {
+        setStage("check"); setCode("");
+        setError(linking ? "We couldn’t confirm the code check. Check whether your number was verified." : "We couldn’t confirm the code check. Check your sign-in to continue with this selection.");
+        return;
+      }
       if (result.error) throw Error(result.error.status === 429 ? "Too many attempts. Please wait a minute before trying again."
         : stage === "mfa" ? "That security code could not be verified. Please try again."
         : `That code is invalid or has expired. Check the latest ${channel === "email" ? "email" : "WhatsApp message"} or request a new code.`);
@@ -113,7 +148,6 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
       setStage("check"); await confirmSession();
     } catch (failure) {
       if (mounted.current) {
-        if (!(failure instanceof Error)) setStage("check");
         setError(failure instanceof Error ? failure.message : "We couldn’t confirm your sign-in. Check its status before trying again.");
       }
     } finally { inFlight.current = false; if (mounted.current) setBusy(false); }
@@ -121,6 +155,7 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
 
   function changeContact(nextChannel = channel) {
     if (busy || finished) return;
+    lastVerificationStage.current = "code";
     setChannel(nextChannel); setStage("contact"); setCode(""); setRecovery(false); setMessage(""); setError("");
   }
 
@@ -137,6 +172,8 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
     </header>
     {channelUnavailable && <p role="status">{channel === "whatsapp" ? channels === null ? "Checking WhatsApp availability…" : "WhatsApp verification is unavailable right now. Please try again later."
       : "Email verification is unavailable right now. Choose WhatsApp or try again later."}</p>}
+    {message && <p className="info-message" role="status">{message}</p>}
+    {error && <p id={`${id}-error`} className="info-message" role="alert">{error}</p>}
     <form className="checkout-verification-form" onSubmit={event => { event.preventDefault(); void (stage === "contact" ? sendCode() : verify()); }}>
       {stage === "contact" ? channel === "email" ? <label htmlFor={`${id}-email`}>Email address
         <input id={`${id}-email`} name="email" type="email" autoComplete="email" maxLength={254} required value={email} onChange={event => setEmail(event.target.value)} disabled={busy} />
@@ -147,15 +184,13 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
         <input ref={codeInput} className="checkout-verification-code" id={`${id}-code`} name="code" type="text" inputMode={recovery ? "text" : "numeric"} autoComplete="one-time-code" pattern={recovery ? undefined : "[0-9]{6}"} maxLength={recovery ? 80 : 6} required value={code} onChange={event => setCode(recovery ? event.target.value : event.target.value.replace(/\D/g, "").slice(0, 6))} disabled={busy} aria-describedby={error ? `${id}-error` : undefined} aria-invalid={Boolean(error)} />
       </label> : null}
       {stage === "mfa" && <label className="checkbox"><input type="checkbox" checked={recovery} onChange={event => { setRecovery(event.target.checked); setCode(""); setError(""); }} disabled={busy} />Use a saved recovery code</label>}
-      <button className="primary" disabled={busy || finished || (stage === "contact" && (cooldown > 0 || channelUnavailable))}>{busy ? "Please wait…" : stage === "contact" ? cooldown > 0 ? `Send code in ${cooldown}s` : channel === "email" ? "Send verification code" : "Send WhatsApp code" : stage === "check" ? "Check sign-in status" : "Verify & continue"}</button>
+      <button ref={submitButton} className="primary" disabled={busy || finished || (stage === "contact" && (cooldown > 0 || channelUnavailable))}>{busy ? stage === "contact" ? "Requesting code…" : stage === "check" ? "Checking sign-in…" : "Checking code…" : stage === "contact" ? cooldown > 0 ? `Send code in ${cooldown}s` : channel === "email" ? "Send verification code" : "Send WhatsApp code" : stage === "check" ? linking ? "Check number status" : "Check sign-in status" : "Verify & continue"}</button>
     </form>
     {stage !== "contact" && <div className="checkout-verification-actions">
       {stage === "code" && <button type="button" className="secondary" disabled={busy || cooldown > 0} onClick={() => void sendCode()}>{cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}</button>}
       <button type="button" className="secondary" disabled={busy} onClick={() => changeContact()}>{channel === "email" ? "Use a different email" : "Use a different number"}</button>
       {stage === "code" && error && <button type="button" className="secondary" disabled={busy} onClick={() => { setStage("check"); setError(""); }}>Already verified? Check sign-in</button>}
     </div>}
-    {message && <p className="info-message" role="status">{message}</p>}
-    {error && <p id={`${id}-error`} className="info-message" role="alert">{error}</p>}
     <p className="checkout-verification-note">{linking ? "Your trips stay in this account." : channel === "whatsapp" ? "Use this verified number to return to your trips." : "Your email gives you secure access to your trips."} <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</Link> · <Link href="/customer-support" target="_blank" rel="noopener noreferrer">Need help?</Link></p>
   </section>;
 }

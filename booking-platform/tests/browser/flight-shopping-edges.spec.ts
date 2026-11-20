@@ -55,6 +55,32 @@ test('the incompatible fare notice fits above its expanded comparison and close 
   await comparison.getByRole('button', {name: 'Back to flights', exact: true}).click();
   await expect(disclosure).toBeFocused();
   await expect(comparison.locator('.fare-comparison-options')).toHaveCount(0);
+  await disclosure.click();
+  await comparison.getByRole('button', {name: 'Edit flight search', exact: true}).click();
+  await expect(page.getByLabel('Departure', {exact: true})).toBeFocused();
+  await expect(page.getByLabel('Return date, optional', {exact: true})).toHaveValue(returning);
+  await comparison.getByRole('button', {name: 'Change outbound fare', exact: true}).click();
+  await expect(page.getByRole('heading', {name: 'Choose your outbound flight'})).toBeFocused();
+  await expect(page.getByRole('region', {name: 'Selected flight context'})).toContainText('Standard fare');
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('when there are no flights, edit search opens the retained dates without submitting', async ({page, provider}) => {
+  provider.search = {searchId, results: {searchResult: {tripInfos: {ONWARD: []}}}};
+  await openFlightSearch(page);
+  await expect(page.getByRole('heading', {name: 'No flights found for these airports'})).toBeVisible();
+  await page.getByRole('button', {name: 'Edit flight search', exact: true}).click();
+
+  const search = page.locator('#booking-search');
+  await expect(search).toHaveAttribute('open', '');
+  await expect(search.getByLabel('From airport', {exact: true})).toHaveValue('BOM');
+  await expect(search.getByLabel('To airport', {exact: true})).toHaveValue('DEL');
+  const date = search.getByLabel('Departure', {exact: true});
+  await expect(date).toHaveValue(departure);
+  await expect(date).toBeFocused();
+  await expect(date).toBeInViewport();
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+  expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });

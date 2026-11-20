@@ -62,6 +62,21 @@ test("zero cost services do not invent a captured payment", () => {
   assert.match(view.title, /extras/);
 });
 
+test("flight extras finish at confirmed while original and replacement flights still need ticketing", () => {
+  for (const status of ["CONFIRMED", "TICKETED"]) {
+    const extras = bookingStatusView({ ...flight, status, serviceKind: "ANCILLARY" });
+    assert.equal(extras.confirmed, true);
+    assert.equal(extras.poll, false);
+    assert.equal(extras.title, "Your flight extras are confirmed.");
+  }
+  for (const serviceKind of [null, "REISSUE"]) {
+    const reservation = bookingStatusView({ ...flight, status: "CONFIRMED", serviceKind });
+    assert.equal(reservation.confirmed, false);
+    assert.equal(reservation.poll, true);
+    assert.match(reservation.title, /waiting for your ticket/);
+  }
+});
+
 test("summary preserves multi-city and hotel identity and rejects invalid money", () => {
   assert.equal(bookingStatusTitle({ product: "FLIGHT", itinerary: { legs: [{ from: "BOM", to: "DEL", date: "2026-11-22" }, { from: "DEL", to: "GOI", date: "2026-11-25" }] } }), "BOM → GOI");
   assert.equal(bookingStatusTitle({ product: "HOTEL", hotelName: "Confirmed hotel", itinerary: { hotelName: "Search name" } }), "Confirmed hotel");

@@ -20,7 +20,7 @@ function details(product: "FLIGHT" | "HOTEL" = "FLIGHT", status = "BOOKING_PENDI
       : { from: "BOM", to: "DEL", date: departure, adults: 1 },
     supplierBookingId: "SUPPLIER-SYNTHETIC-STATUS",
     hotelName: product === "HOTEL" ? "Synthetic Goa Stay" : null,
-    passengers: product === "FLIGHT" ? [{ name: "Synthetic Traveller", pnrs: ["TESTPNR"], tickets: ["TEST-TICKET"] }] : [{ name: "Synthetic Guest", pnrs: [], tickets: [] }],
+    passengers: product === "FLIGHT" ? [{ name: "Synthetic Traveller", pnrs: ["TESTPNR"], tickets: ["TEST-TICKET"] }] : [{ name: "Synthetic Guest", pnrs: [], tickets: [], roomIndex: 1 }],
     refunds: [],
   };
 }
@@ -57,6 +57,7 @@ for (const product of ["FLIGHT", "HOTEL"] as const) {
     }
     if (product === "HOTEL") {
       await expect(confirmation).toContainText("Synthetic Guest");
+      await expect(confirmation).toContainText("Room 2 · Guest on this stay");
       await expect(confirmation).toContainText("2 rooms · 5 guests");
       await expect(confirmation).not.toContainText(/PNR:|Ticket:|Awaiting supplier reference/);
     }

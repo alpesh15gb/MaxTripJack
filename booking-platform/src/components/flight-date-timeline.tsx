@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent} from 'react';
+import {useCallback, useId, useLayoutEffect, useRef, useState, type KeyboardEvent} from 'react';
 import type {FlightTimelineDay} from '@/lib/nearby-flight-dates';
 import {travelDateLabel} from '@/lib/travel-date';
 import {compactRupees,type FareCalendarDay} from '@/lib/fare-calendar-core';
@@ -19,10 +19,12 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
   onSelect: (criteria: Record<string, string>) => void;
 }) {
   const track = useRef<HTMLDivElement>(null);
+  const priceNoteId = useId();
   const warmTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
   const restoreFocus = useRef(false);
   const [focusedDate, setFocusedDate] = useState(selectedDate);
   const [scroll, setScroll] = useState({earlier: false, later: false});
+  const hasIndicativeFares = days.some(day => Boolean(fares[day.date]));
   const tabDate = days.some(day => day.date === focusedDate && (day.search || day.date === selectedDate)) ? focusedDate : selectedDate;
 
   const cancelWarm = useCallback(() => {
@@ -85,10 +87,11 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
     buttons[target]?.focus();
   }
 
-  return <nav className="flight-date-timeline" aria-label="Nearby departure dates">
+  return <nav className="flight-date-timeline" aria-label="Nearby departure dates" aria-describedby={hasIndicativeFares ? priceNoteId : undefined}>
     <div className="flight-date-header">
       <div>
         <h3>Departure dates</h3>
+        {hasIndicativeFares && <p id={priceNoteId} className="flight-date-price-note">Recent from fares · per adult</p>}
         {returnDate && <p>Return stays {travelDateLabel(returnDate)}</p>}
       </div>
       {(scroll.earlier || scroll.later) && <div className="flight-date-arrows">
@@ -105,7 +108,7 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
         const fare = fares[day.date];
         return <button key={day.date} type="button" className="flight-date-day"
           data-flight-date={day.date} data-pending={pending || undefined}
-          aria-label={`${travelDateLabel(day.date)}, ${week}${fare ? `, from ₹${Math.round(fare.minor / 100).toLocaleString('en-IN')}${fare.band === 'low' ? ', one of the lowest fares' : ''}` : ''}`}
+          aria-label={`${travelDateLabel(day.date)}, ${week}${fare ? `, indicative fare from ₹${Math.round(fare.minor / 100).toLocaleString('en-IN')} per adult${fare.band === 'low' ? ', one of the lowest fares' : ''}` : ''}`}
           aria-current={current ? 'date' : undefined} aria-disabled={current || undefined}
           disabled={disabled || (!current && !day.search)} tabIndex={day.date === tabDate ? 0 : -1}
           onPointerEnter={event => { if (event.pointerType === 'mouse') prepare(day); }} onPointerLeave={cancelWarm}

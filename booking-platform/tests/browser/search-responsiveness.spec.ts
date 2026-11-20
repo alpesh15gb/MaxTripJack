@@ -74,6 +74,9 @@ test('large flight response mounts fare details only when opened and retains all
   const additional = Math.min(25, flights.length - visible);
   await page.getByRole('button', { name: `Show ${additional} more flights` }).click();
   await expect(cards).toHaveCount(visible + additional);
+  const nextFare = cards.nth(visible).locator('.fare-comparison > summary');
+  await expect(nextFare).toBeFocused();
+  await expect(nextFare).toBeInViewport();
  }
  await expect(page.locator('.flight-load-more')).toHaveCount(0);
  await expect(page.locator('.fare-comparison-options')).toHaveCount(0);

@@ -189,12 +189,14 @@ await withServer({ SEO_INDEXING_ENABLED: "false", SEO_SITE_ORIGIN: origin }, asy
     check(!/(?:₹|INR\s*)\s*[0-9][0-9,]*(?:\.[0-9]+)?/.test(cleanText(html)), `${path}: no invented public fare`);
     check(!/guaranteed (?:lowest|cheapest|first.place)|\b\d[\d,]*\s+(?:happy customers|verified reviews)\b/i.test(cleanText(html)), `${path}: no unsupported superlatives/testimonials`);
     if (path === "/") {
-      const hero = tags(html, "img").find(tag => tag.alt === "Turquoise lagoon and overwater villas in the Maldives");
+      const hero = tags(html, "img").find(tag => tag.alt === "The Eiffel Tower and the Seine at blue hour");
       check(Boolean(hero), "Homepage editorial hero is an actual accessible responsive image");
-      check(Boolean(hero.srcset) && hero.sizes === "(max-width: 1288px) 100vw, 1240px", "Full-width hero declares responsive candidates and its actual layout sizes");
+      check(Boolean(hero.srcset) && hero.sizes === "100vw", "Full-bleed hero declares responsive candidates across the viewport");
       check(hero.loading !== "lazy", "Above-fold editorial hero is not deferred as a below-fold image");
       const imagePreloads = tags(html, "link").filter(tag => tag.rel === "preload" && tag.as === "image");
       check(imagePreloads.length === 1 && imagePreloads[0].imagesrcset === hero.srcset && imagePreloads[0].imagesizes === hero.sizes, "Only the above-fold responsive hero receives an image preload");
+      const socialImage = tags(html, "meta").find(tag => tag.property === "og:image");
+      equal(socialImage?.content, origin + "/travel/paris-evening.webp", "Homepage share preview uses the current editorial hero");
     }
     if (["/contact", "/office", "/about"].includes(path)) {
       check(cleanText(html).includes("Secunderabad"), `${path}: correct India office identity`);

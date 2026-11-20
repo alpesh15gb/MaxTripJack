@@ -16,6 +16,7 @@
 .flight-date-header h3 { margin: 0; color: var(--brand-midnight, #101C2C); font-size: 15px; line-height: 1.3; }
 .flight-date-header > div:first-child { min-width: 0; }
 .flight-date-header p { margin: 4px 0 0; color: var(--brand-muted, #596675); font-size: 13px; line-height: 1.45; }
+.flight-date-header .flight-date-price-note { font-size: 12px; line-height: 1.4; }
 .flight-date-arrows { display: flex; flex-shrink: 0; gap: 6px; }
 .flight-date-arrows button {
   display: grid;
@@ -95,6 +96,22 @@ body .booking-workflow .flight-date-timeline .flight-date-day .flight-date-fare 
 }
 .flight-date-progress > div { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 .flight-date-progress .booking-spinner { width: 18px; height: 18px; margin: 0; flex: 0 0 18px; border-width: 2px; }
+
+.flight-fare-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--brand-line, #d9d4cb);
+  border-inline-start: 3px solid var(--brand-gold, #C6A66B);
+  border-radius: 8px;
+  background: var(--brand-ivory, #FAF9F6);
+  color: var(--brand-midnight, #101C2C);
+}
+.flight-fare-recovery p { flex: 1 1 16rem; margin: 0; line-height: 1.5; }
+.flight-fare-recovery button { min-height: 44px; }
 
 .flight-results-page .flight-shopping-list {
   --flight-carrier-width: 170px;
@@ -273,4 +290,67 @@ body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .f
     text-align: right;
   }
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .choose-fare-label { grid-area: 2 / 1 / 3 / -1; }
+}
+
+/* Emphasize the traveller's current choice and primary action. Keep the
+   comparison rows white so times, baggage and prices stay easy to scan. */
+.flight-results-page .live-results {
+  --flight-navy-gradient: linear-gradient(115deg, var(--brand-midnight, #101C2C) 15%, #304760);
+  --flight-paper-gradient: linear-gradient(125deg, #fff 25%, var(--brand-ivory, #FAF9F6) 75%, #f3ecdd);
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results .results-heading h2 {
+  font-family: var(--travel-display, Georgia), serif;
+  font-size: clamp(26px, 2.25vw, 34px);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+.flight-results-page .live-results .flight-date-timeline {
+  background: var(--flight-paper-gradient);
+  box-shadow: 0 4px 16px #101c2c09;
+}
+.flight-results-page .live-results .flight-date-day[aria-current="date"] {
+  background: var(--flight-navy-gradient);
+  box-shadow: inset 0 3px var(--brand-gold, #C6A66B), 0 3px 7px #101c2c24;
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results .flight-result-shortcuts button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--flight-navy-gradient);
+  border-color: var(--brand-midnight, #101C2C);
+  box-shadow: inset 0 3px var(--brand-gold, #C6A66B), 0 3px 9px #101c2c20;
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results .flight-result-shortcuts button[aria-pressed="true"] :is(strong, small, .flight-shortcut-unavailable) {
+  color: var(--brand-sand, #EDE5D7);
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results .flight-shopping-list .fare-comparison-options {
+  background: linear-gradient(180deg, var(--brand-ivory, #FAF9F6), #fff 60%);
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results .fare-choice-heading h3 {
+  font-family: var(--travel-display, Georgia), serif;
+  font-size: clamp(23px, 1.9vw, 29px);
+  font-weight: 500;
+  line-height: 1.12;
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results :is(.choose-fare-label, .fare-option-action > .primary, .flight-selection-summary > .primary) {
+  background-image: var(--flight-navy-gradient);
+  box-shadow: 0 3px 9px #101c2c1a;
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results :is(summary:hover:not([aria-disabled="true"]) .choose-fare-label, .fare-option-action > .primary:hover:not(:disabled), .flight-selection-summary > .primary:hover:not(:disabled)) {
+  background-image: linear-gradient(115deg, #1b2d42 15%, #3a526b);
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results :is(.flight-selection-summary, .flight-fare-recovery, .empty-results) {
+  background: var(--flight-paper-gradient);
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results .flight-selection-summary {
+  box-shadow: inset 0 3px var(--brand-gold, #C6A66B), 0 5px 18px #101c2c0b;
+}
+body .booking-workflow.journey-flow.flight-results-page .live-results .flight-selection-summary li.is-current {
+  border-color: var(--brand-gold, #C6A66B);
+}
+.flight-results-page .live-results .flight-fare-recovery:has(button:focus-visible) {
+  border-color: var(--brand-gold, #C6A66B);
+}
+@media (max-width: 600px) {
+  body .booking-workflow.journey-flow.flight-results-page .live-results .results-heading h2 { font-size: 24px; }
+  .flight-results-page .live-results .flight-fare-recovery button { flex: 1 1 11rem; }
 }

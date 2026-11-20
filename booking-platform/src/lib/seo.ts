@@ -35,7 +35,7 @@ export function pageMetadata(path: string, title: string, description: string): 
   const canonical = canonicalUrl(path);
   const publicPage = isPublicSeoPath(new URL(canonical).pathname);
   const images = path === "/"
-    ? [{ url: "/travel/maldives.jpg", alt: "Overwater villas in the Maldives" }]
+    ? [{ url: "/travel/paris-evening.webp", alt: "The Eiffel Tower and the Seine at blue hour" }]
     : [{ url: "/brand/maxtravel-logo.jpg", alt: SITE_NAME }];
   return {
     title,

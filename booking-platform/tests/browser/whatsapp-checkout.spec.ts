@@ -103,6 +103,64 @@ test('WhatsApp delivery failure offers email without losing the fare or leaking 
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
+test('a stalled WhatsApp delivery lets arriving codes continue the same flight', async ({ page, provider }) => {
+  guest(provider);
+  await chooseFlight(page);
+  await page.clock.install({ time: new Date() });
+  let sends = 0;
+  await page.route(`**${sendPath}`, async () => { sends++; });
+  const verification = page.locator('.checkout-verification');
+  await verification.getByRole('button', { name: 'WhatsApp', exact: true }).click();
+  await verification.getByLabel('WhatsApp number', { exact: true }).fill('9876543210');
+  await verification.getByRole('button', { name: 'Send WhatsApp code', exact: true }).click();
+  await expect.poll(() => sends).toBe(1);
+  await page.clock.fastForward(20_001);
+  await expect(verification.getByRole('status')).toContainText('If your code arrives, enter it below.');
+  await expect(verification.getByRole('button', { name: /Resend in/ })).toBeDisabled();
+  await expect(verification.getByRole('button', { name: 'Email', exact: true })).toBeEnabled();
+  await expect(page.locator('.booking-verification-summary')).toContainText('Standard fare');
+  await verification.getByLabel('Verification code', { exact: true }).fill('123456');
+  signedIn(provider);
+  await verification.getByRole('button', { name: 'Verify & continue', exact: true }).click();
+  await expect(page.getByRole('form', { name: 'Review and travellers' })).toBeVisible();
+  expect(sends).toBe(1);
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+  expect(provider.requests('/api/travel/review')).toHaveLength(2);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('a stalled email code check offers session recovery before sending another code', async ({ page, provider }) => {
+  guest(provider);
+  const sendEmail = '/api/auth/email-otp/send-verification-otp';
+  const verifyEmail = '/api/auth/sign-in/email-otp';
+  provider.overrides[`POST ${sendEmail}`] = { body: { success: true } };
+  await chooseFlight(page);
+  const verification = page.locator('.checkout-verification');
+  await verification.getByLabel('Email address', { exact: true }).fill(syntheticSession().user.email);
+  await verification.getByRole('button', { name: 'Send verification code', exact: true }).click();
+  await expect(verification.getByLabel('Verification code', { exact: true })).toBeVisible();
+  await page.clock.install({ time: new Date() });
+  let codeChecks = 0;
+  await page.route(`**${verifyEmail}`, async () => { codeChecks++; });
+  await verification.getByLabel('Verification code', { exact: true }).fill('123456');
+  await verification.getByRole('button', { name: 'Verify & continue', exact: true }).click();
+  await expect.poll(() => codeChecks).toBe(1);
+  await page.clock.fastForward(20_001);
+  const checkSession = verification.getByRole('button', { name: 'Check sign-in status', exact: true });
+  await expect(checkSession).toBeFocused();
+  await expect(verification.getByRole('alert')).toContainText('Check your sign-in to continue with this selection.');
+  await expect(page.getByRole('form', { name: 'Review and travellers' })).toHaveCount(0);
+  provider.session = syntheticSession();
+  delete provider.overrides['POST /api/travel/review'];
+  await checkSession.click();
+  await expect(page.getByRole('form', { name: 'Review and travellers' })).toBeVisible();
+  expect(codeChecks).toBe(1);
+  expect(provider.requests(sendEmail)).toHaveLength(1);
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+  expect(provider.requests('/api/travel/review')).toHaveLength(2);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 test('switching verification channel clears entered codes and preserves separate resend cooldowns', async ({ page, provider }) => {
   guest(provider);
   provider.overrides['POST /api/auth/email-otp/send-verification-otp'] = { body: { success: true } };

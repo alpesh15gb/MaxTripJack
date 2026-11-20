@@ -259,7 +259,7 @@ function MaxAiWidget() {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
   const pathname = usePathname();
-  const desktopScope = pathname === '/' ? '.trip-home' : pathname === '/book' ? '.booking-review-column' : null;
+  const desktopScope = pathname === '/' ? '.trip-home' : pathname === '/book' ? '.booking-workflow' : null;
   const launcher = useRef<HTMLButtonElement>(null);
   const onClosed = useCallback(() => setOpen(false), []);
   useEffect(() => { if (launcher.current) return observeLauncherPlacement(launcher.current, desktopScope); }, [desktopScope]);
@@ -271,5 +271,7 @@ function MaxAiWidget() {
 }
 
 export default function MaxAiAssistant({enabled}: {enabled: boolean}) {
-  return enabled ? <MaxAiWidget/> : null;
+  const pathname = usePathname();
+  const inStaffWorkspace = pathname === '/operations' || pathname.startsWith('/operations/');
+  return enabled && !inStaffWorkspace ? <MaxAiWidget/> : null;
 }

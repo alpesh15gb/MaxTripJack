@@ -7,10 +7,20 @@ import HotelResults from '../src/components/hotel-results';
 import HotelRoomView from '../src/components/hotel-room-view';
 import HotelPropertyMedia from '../src/components/hotel-property-media';
 import HotelCancellationTimeline from '../src/components/hotel-cancellation-timeline';
+import FlightDateTimeline from '../src/components/flight-date-timeline';
 
 const flightProps:ComponentProps<typeof BookingFlightCard>={flight:{sI:[{dt:'2026-10-31T10:00:00',at:'2026-10-31T12:00:00',da:{code:'BOM'},aa:{code:'DEL'},fD:{aI:{name:'Test airline'},fN:'1'}}],totalPriceList:[{id:'fare-1',fareIdentifier:'STANDARD',customerEstimateMinor:500000,fD:{}}]},group:'ONWARD',selectedFareId:'fare-1',busy:false,onSelect:()=>{}};
 const roomProps:ComponentProps<typeof HotelRoomView>={name:'Test hotel',options:[{optionId:'room-1',roomInfo:[{name:'Twin room'}],pricing:{totalPrice:4000}}],context:{checkIn:'2026-10-31',checkOut:'2026-11-02',rooms:2,guests:3},busy:false,now:0,onBack:()=>{},onReview:()=>{}};
 const hotelProps:ComponentProps<typeof HotelResults>={searchId:'11111111-1111-4111-8111-111111111111',hotels:[{tjHotelId:'h-1',name:'Test stay',customerEstimateMinor:400000,property:{amenities:['No Accessible Shuttle','Parking']}}],context:null,busy:false,onChoose:()=>{}};
+
+test('nearby date prices expose their indicative per-adult basis only when a displayed fare exists',()=>{
+ const props:ComponentProps<typeof FlightDateTimeline>={days:[{date:'2026-10-31',search:null}],selectedDate:'2026-10-31',pendingDate:null,disabled:false,onPrepare:()=>{},onSelect:()=>{}};
+ const priced=renderToStaticMarkup(createElement(FlightDateTimeline,{...props,fares:{'2026-10-31':{minor:562000,band:'low'}}}));
+ assert.match(priced,/Recent from fares · per adult/);assert.match(priced,/indicative fare from ₹5,620 per adult/);
+ assert.match(priced,/aria-describedby="[^"]+"/);
+ const missing=renderToStaticMarkup(createElement(FlightDateTimeline,{...props,fares:{'2026-11-01':{minor:600000,band:'mid'}}}));
+ assert.doesNotMatch(missing,/Recent from fares|indicative fare|aria-describedby/);
+});
 
 test('flight card uses readable local dates and truthful total scope without invented duration',()=>{
  const html=renderToStaticMarkup(createElement(BookingFlightCard,flightProps));

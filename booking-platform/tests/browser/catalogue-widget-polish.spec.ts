@@ -26,7 +26,7 @@ for(const width of [320,390,760])test(`compact Max AI avoids scrolling availabil
   await page.setViewportSize({width,height:844});
   await page.setContent(`${viewportMeta}<style>*{box-sizing:border-box}body{margin:0}main{height:1800px}#availability{position:absolute;left:18px;right:18px;top:764px;display:flex;align-items:center;justify-content:center;min-height:46px;background:#ddd}#pay{position:fixed;bottom:0;left:0;right:0;height:110px;background:white}#pay[hidden]{display:none}</style><main><a id="availability" href="#test">Check test availability</a></main><div id="pay" class="mobile-booking-action" hidden><button>Agree &amp; pay</button></div>${launcherMarkup}`);
   await page.addStyleTag({path:'src/app/max-ai.css'});
-  await page.addScriptTag({content:`${await placement}\nwindow.stopPlacement=LauncherPlacement.observeMobileLauncher(document.querySelector('.max-ai-launcher'));`});
+  await page.addScriptTag({content:`${await placement}\nwindow.stopPlacement=LauncherPlacement.observeLauncherPlacement(document.querySelector('.max-ai-launcher'), null);`});
   const launcher=page.getByRole('button',{name:'Open Max AI travel assistant'}),action=page.locator('#availability'),bar=page.locator('#pay');
   await expect(launcher).toHaveCSS('width','52px');await expect(launcher).toHaveCSS('height','52px');
   const clears=async(target:typeof action)=>{const launch=await launcher.boundingBox(),obstacle=await target.boundingBox();return Boolean(launch&&obstacle&&(launch.y+launch.height<=obstacle.y-9||launch.y>=obstacle.y+obstacle.height+9||launch.x+launch.width<=obstacle.x-9||launch.x>=obstacle.x+obstacle.width+9));};

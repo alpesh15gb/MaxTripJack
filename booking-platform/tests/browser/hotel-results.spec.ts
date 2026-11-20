@@ -17,6 +17,19 @@ test.beforeEach(async({page})=>{
  await page.route(photo,route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"><rect width="480" height="320" fill="#a7c8c5"/><text x="20" y="80">Synthetic property fixture</text></svg>'}));
 });
 
+test('hotel search with no stays opens the existing search criteria from the empty state',async({page,provider})=>{
+ provider.search={searchId,results:{hotels:[]}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
+ const empty=page.locator('#booking-results .empty-results');
+ await expect(empty.getByRole('heading',{name:'No stays found',exact:true})).toBeVisible();
+ await empty.getByRole('button',{name:'Edit stay search',exact:true}).click();
+ await expect(page.getByLabel('Destination',{exact:true})).toBeFocused();
+ await expect(page.getByLabel('Destination',{exact:true})).toHaveValue('Goa');
+ await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(departure);
+ await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(0);
+});
+
 for(const width of [320,390])test(`${width}px hotel totals and room actions stay readable without splitting amounts`,async({page,provider},testInfo)=>{
  await page.setViewportSize({width,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});

@@ -31,6 +31,7 @@ test("viewer gets a readable booking register and no privileged desks or actions
   await expect(
     page.getByRole("heading", { name: "Booking journeys", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Max AI travel assistant" })).toHaveCount(0);
   const records = page.getByRole("region", {
     name: "bookings records",
     exact: true,

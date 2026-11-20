@@ -19,6 +19,14 @@ import "@/app/search-pickers.css";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
 
 type Product = "FLIGHT" | "HOTEL";
+type SearchDraft = {
+  date: string;
+  end: string;
+  adults: number;
+  children: number;
+  infants: number;
+  cabin: string;
+};
 const destinations = [
   { name: "The Maldives", image: "/travel/maldives.jpg", alt: "Turquoise lagoon and overwater villas in the Maldives", detail: "Lagoons and overwater villas" },
   { name: "Goa", image: "/travel/goa.jpg", alt: "Goa's coastline", detail: "Beach days and coastal cafés" },
@@ -40,6 +48,18 @@ function dateAfter(days: number) {
   return indiaToday(date);
 }
 
+function initialDraft(): SearchDraft {
+  const date = dateAfter(7);
+  return { date, end: shiftDate(date, 3), adults: 1, children: 0, infants: 0, cabin: "ECONOMY" };
+}
+
+function readAirportFields(form: HTMLFormElement | null) {
+  if (!form) return null;
+  const from = form.querySelector<HTMLInputElement>('[data-airport-query="from"]');
+  const to = form.querySelector<HTMLInputElement>('[data-airport-query="to"]');
+  return from && to ? { from: from.value, to: to.value } : null;
+}
+
 export default function HomeSearch({ children }: { children: ReactNode }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
@@ -48,12 +68,11 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
   const [airportRevision, setAirportRevision] = useState(0);
   const [hotelDestination,setHotelDestination] = useState({city:"",hotelIds:"",regionId:"",destinationCursor:""});
-  const [date, setDate] = useState(() => dateAfter(7));
-  const [end, setEnd] = useState(() => dateAfter(10));
-  const [adults, setAdults] = useState(1);
-  const [childCount, setChildCount] = useState(0);
-  const [infants, setInfants] = useState(0);
-  const [cabin, setCabin] = useState("ECONOMY");
+  const [drafts, setDrafts] = useState<Record<Product, SearchDraft>>(() => ({
+    FLIGHT: initialDraft(),
+    HOTEL: initialDraft(),
+  }));
+  const { date, end, adults, children: childCount, infants, cabin } = drafts[product];
   const [roundTrip, setRoundTrip] = useState(false);
   const [notice, setNotice] = useState("");
   const [codes, setCodes] = useState({ from: "BOM", to: "DEL" });
@@ -63,6 +82,12 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   const inbound = useFareCalendar(codes.to, codes.from, cabin, end, product === "FLIGHT" && roundTrip);
   const [navigating, startNavigation] = useTransition();
   const nights = Math.round((Date.parse(end) - Date.parse(date)) / 86400000);
+
+  function updateDraft(change: Partial<SearchDraft>) {
+    setDrafts(current => ({ ...current, [product]: { ...current[product], ...change } }));
+    backgroundSearch.interact();
+  }
+
   function currentSearchInput(data:FormData){
     data.set('cabin',cabin);data.set('nationality','106');
     if(product==='FLIGHT'&&roundTrip)data.set('returnDate',end);else data.delete('returnDate');
@@ -76,14 +101,12 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   function changeProduct(next: Product) {
     if (next === product) return;
     backgroundSearch.pause();invalidateBackgroundSearch();
-    if (product === "FLIGHT" && form.current) {
-      const data = new FormData(form.current);
-      setAirports({ from: String(data.get("from") || ""), to: String(data.get("to") || "") });
-      setAirportRevision(value => value + 1);
+    if (product === "FLIGHT") {
+      const fields = readAirportFields(form.current);
+      if (fields) setAirports(fields);
     }
     if(product === "HOTEL" && form.current){const data=new FormData(form.current);setHotelDestination({city:String(data.get("city")||""),hotelIds:String(data.get("hotelIds")||""),regionId:String(data.get("regionId")||""),destinationCursor:String(data.get("destinationCursor")||"")});}
     setProduct(next);
-    setAdults(current => next === "HOTEL" ? Math.min(4, current) : current);
     setNotice("");
   }
 
@@ -95,9 +118,9 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   }
 
   function swapAirports() {
-    if (!form.current) return;
-    const data = new FormData(form.current);
-    setAirports({ from: String(data.get("to") || ""), to: String(data.get("from") || "") });
+    const fields = readAirportFields(form.current);
+    if (!fields) return;
+    setAirports({ from: fields.to, to: fields.from });
     setAirportRevision(value => value + 1);
   }
 
@@ -118,6 +141,16 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     router.push(`/book?${params}`);
   }
 
+  function clearCorrectableNotice(event: React.FormEvent<HTMLFormElement>) {
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement)) return;
+    if (field.name === "city" && notice === "Choose a destination from the available suggestions before searching.") setNotice("");
+    if (field.dataset.airportQuery && [
+      "Choose different departure and arrival airports.",
+      "Select a departure and arrival airport, or enter their three-letter airport codes.",
+    ].includes(notice)) setNotice("");
+  }
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (navigating) return;
@@ -132,7 +165,11 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     if (product === "FLIGHT" && adults + childCount > 9) { setNotice("Choose up to 9 adults and children in one search."); return; }
     if (product === "FLIGHT" && infants > adults) { setNotice("Each infant must travel with an adult."); return; }
     const hotelIds = String(data.get("hotelIds") || "");
-    if (product === "HOTEL" && !hotelIds && !(data.get("regionId") && data.get("destinationCursor"))) { setNotice("Choose a destination from the available suggestions before searching."); return; }
+    if (product === "HOTEL" && !hotelIds && !(data.get("regionId") && data.get("destinationCursor"))) {
+      setNotice("Choose a destination from the available suggestions before searching.");
+      event.currentTarget.querySelector<HTMLInputElement>('input[name="city"]')?.focus();
+      return;
+    }
     const params = new URLSearchParams({ product, autoSearch: "1", date, adults: String(adults) });
     if (product === "FLIGHT") {
       params.set("from", from); params.set("to", to); params.set("cabin", cabin); params.set("children", String(childCount)); params.set("infants", String(infants));
@@ -179,13 +216,16 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
           <div className="home-search-heading"><div aria-hidden="true"><TravelIcon name={product === "FLIGHT" ? "airplane" : "bed"} size={21} /></div><h2>{product === "FLIGHT" ? "Find a flight" : "Find a stay"}</h2></div>
           <div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div>
         </div>
-        <form ref={form} className="home-search-form" aria-describedby={notice?'home-search-error':undefined} onChange={event=>{const target=event.target;if(target instanceof HTMLInputElement&&['From airport','To airport'].includes(target.getAttribute('aria-label')??'')&&['Choose different departure and arrival airports.','Select a departure and arrival airport, or enter their three-letter airport codes.'].includes(notice))setNotice('');}} onSubmit={submit}>
+        <form ref={form} className="home-search-form" aria-describedby={notice ? "home-search-error" : undefined} onChange={clearCorrectableNotice} onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
             {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode onCodeChange={setFromCode} /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode onCodeChange={setToCode} /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
-            <FareDatePicker name="date" label={product === "FLIGHT" ? "Departure" : "Check-in"} value={date} min={dateAfter(0)} fares={product === "FLIGHT" ? outbound : undefined} onChange={value => { setDate(value); if (end <= value) setEnd(shiftDate(value, product === "HOTEL" ? 1 : 3)); backgroundSearch.interact(); }} />
-            {(product === "HOTEL" || roundTrip) && <FareDatePicker name="end" label={product === "FLIGHT" ? "Return" : "Check-out"} value={end} min={product === "HOTEL" ? shiftDate(date, 1) : date} rangeStart={date} fares={product === "FLIGHT" ? inbound : undefined} helper={product === "HOTEL" && nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : undefined} onChange={value => { setEnd(value); backgroundSearch.interact(); }} />}
-            <TravellersPicker product={product} adults={adults} childCount={childCount} infants={infants} cabin={cabin} onChange={next => { setAdults(next.adults); setChildCount(next.children); setInfants(next.infants); setCabin(next.cabin); backgroundSearch.interact(); }} />
+            <FareDatePicker name="date" label={product === "FLIGHT" ? "Departure" : "Check-in"} value={date} min={dateAfter(0)} fares={product === "FLIGHT" ? outbound : undefined} onChange={value => {
+              const minimumEnd = product === "HOTEL" ? shiftDate(value, 1) : value;
+              updateDraft({ date: value, end: end >= minimumEnd ? end : shiftDate(value, product === "HOTEL" ? 1 : 3) });
+            }} />
+            {(product === "HOTEL" || roundTrip) && <FareDatePicker name="end" label={product === "FLIGHT" ? "Return" : "Check-out"} value={end} min={product === "HOTEL" ? shiftDate(date, 1) : date} rangeStart={date} fares={product === "FLIGHT" ? inbound : undefined} helper={product === "HOTEL" && nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : undefined} onChange={value => updateDraft({ end: value })} />}
+            <TravellersPicker product={product} adults={adults} childCount={childCount} infants={infants} cabin={cabin} onChange={updateDraft} />
             <button className="home-search-submit" disabled={navigating} type="submit"><TravelIcon name="search" size={19} /><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
           </div>
           {navigating&&<p role="status" className="home-navigation-status">Opening your search… Live availability will load on the next screen.</p>}

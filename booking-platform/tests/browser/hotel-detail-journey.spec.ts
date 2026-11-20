@@ -39,6 +39,47 @@ test.beforeEach(async({page,provider})=>{
  for(const photo of photos)await page.route(photo.url,route=>route.fulfill({contentType:'image/jpeg',path:path.resolve('public/travel/goa.jpg')}));
 });
 
+test('mobile room shortcut yields to actual rates and returns in the overview',async({page,provider},testInfo)=>{
+ test.skip(testInfo.project.name!=='mobile-390','The room shortcut only appears on narrow screens.');
+ await page.goto(searchUrl());await title(page).click();
+ await expect(page.locator('.room-option-card')).toHaveCount(2);
+ await page.locator('#stay-overview').evaluate(node=>node.scrollIntoView({block:'start'}));
+ const shortcut=page.locator('.stay-mobile-action');await expect(shortcut).toBeVisible();
+ await shortcut.getByRole('button',{name:'Choose room',exact:true}).click();
+ await expect(page.locator('#hotel-room-options-title')).toBeInViewport();
+ await expect(shortcut).toBeHidden();
+ const continueButton=page.locator('.room-option-card').first().getByRole('button',{name:'Continue with room',exact:true});
+ await continueButton.scrollIntoViewIfNeeded();await expect(continueButton).toBeInViewport();await expect(shortcut).toBeHidden();
+ await capture(page,testInfo,'room-rates-without-floating-shortcut');
+ await page.locator('#stay-overview').evaluate(node=>node.scrollIntoView({block:'start'}));
+ await expect(shortcut).toBeVisible();
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('desktop Max AI keeps the room selection action clear', async ({page, provider}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'The expanded launcher is used on desktop.');
+  await page.goto(searchUrl());
+  await title(page).click();
+  const action = page.locator('.room-option-card').last().getByRole('button', {name: 'Continue with room', exact: true});
+  const launcher = page.getByRole('button', {name: 'Open Max AI travel assistant'});
+  await expect(launcher).toBeVisible();
+  await action.evaluate(button => {
+    const top = button.getBoundingClientRect().top;
+    window.scrollBy({top: top - window.innerHeight + 62, behavior: 'instant'});
+  });
+  const button = await action.boundingBox();
+  const assistant = await launcher.boundingBox();
+  expect(button!.x + button!.width).toBeGreaterThan(assistant!.x);
+  await expect.poll(async () => {
+    const a = await action.boundingBox(), b = await launcher.boundingBox();
+    return Boolean(a && b && (b.y + b.height <= a.y - 8 || b.y >= a.y + a.height + 8));
+  }).toBe(true);
+  await action.click();
+  await expect(page.locator('#booking-review-title')).toBeVisible();
+  expect(provider.requests('/api/travel/review').map(call => call.body)).toEqual([{searchId, hid: '10001', optionId: 'exact-breakfast'}]);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 test('hotel NAME opens property overview, gallery, room rate, review and reversible selection',async({page,provider},testInfo)=>{
  await page.goto(searchUrl());await expect(card(page)).toBeVisible();
  await title(page).click();
@@ -136,8 +177,35 @@ test('empty live rates retain the property overview and offer a reversible retur
  await page.goto(searchUrl());await title(page).click();await expect(page.locator('#hotel-detail-title')).toHaveText(name);
  await expect(page.getByRole('heading',{name:'No rooms available for this stay',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'View all 3 photos',exact:true})).toBeVisible();await capture(page,testInfo,'hotel-available-property-no-room-inventory');
+ const checkIn=page.getByLabel('Check-in',{exact:true});
+ await page.locator('#hotel-room-options').getByRole('button',{name:'Change stay dates',exact:true}).click();
+ await expect(checkIn).toBeFocused();await expect(checkIn).toHaveValue(departure);await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
+ await expect(page.locator('#hotel-detail-title')).toHaveText(name);await expect(page).toHaveURL(/stay=10001/);
  await page.locator('#hotel-room-options').getByRole('button',{name:'Browse other stays',exact:true}).click();await expect(title(page)).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('room plans without a total have a clear recovery and can be retried in place',async({page,provider})=>{
+ provider.overrides['POST /api/travel/hotel-detail']={body:{property,options:options.map(({pricing,...option})=>({...option,pricing:{...pricing,totalPrice:0}}))}};
+ await page.goto(searchUrl());await title(page).click();
+ const rooms=page.locator('#hotel-room-options');
+ await expect(rooms.getByRole('heading',{name:'Room prices aren’t available',exact:true})).toBeVisible();
+ await expect(rooms.getByRole('button',{name:'Change stay dates',exact:true})).toBeVisible();
+ await expect(rooms.getByRole('button',{name:'Continue with room',exact:true}).first()).toBeDisabled();
+ provider.overrides['POST /api/travel/hotel-detail']={body:{property,options}};
+ await rooms.getByRole('button',{name:'Retry room availability',exact:true}).click();
+ await expect(rooms.getByRole('button',{name:'Continue with room',exact:true}).first()).toBeEnabled();
+ await expect(page).toHaveURL(/stay=10001/);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(2);expect(provider.requests('/api/travel/review')).toHaveLength(0);
+});
+
+test('property section links keep Back returning to the hotel list',async({page,provider})=>{
+ await page.goto(searchUrl());await title(page).click();await expect(page.locator('#hotel-detail-title')).toHaveText(name);
+ const propertyUrl=page.url();
+ await page.getByRole('link',{name:'Rooms & rates',exact:true}).click();
+ await expect(page.locator('#hotel-room-options-title')).toBeFocused();await expect(page).toHaveURL(propertyUrl);
+ await page.goBack();await expect(title(page)).toBeFocused();
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });
 
 test('expired snapshot payload is rejected before live rooms even if the endpoint returns success',async({page,provider})=>{

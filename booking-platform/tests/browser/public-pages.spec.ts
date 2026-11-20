@@ -37,6 +37,18 @@ test('unreviewed city permutations are real 404s rather than generated landing p
   expect(response?.status()).toBe(404);
 });
 
+test('footer travel assistance and check-in help lead to working pages', async ({page}) => {
+  await page.goto('/');
+  const footer = page.getByRole('contentinfo');
+  await expect(footer.getByRole('link', {name: 'Visa assistance', exact: true})).toHaveAttribute('href', '/visa-guide');
+  await expect(footer.getByRole('link', {name: 'Travel insurance', exact: true})).toHaveAttribute('href', '/travel-insurance-guide');
+  await expect(footer.getByRole('link', {name: 'Bus enquiries', exact: true})).toHaveAttribute('href', '/contact');
+  await footer.getByRole('link', {name: 'Flight check-in help', exact: true}).click();
+  await expect(page.getByRole('heading', {name: '5. Recheck before travelling', exact: true})).toBeVisible();
+  await expect(page).toHaveURL(/\/flight-booking-guide#section-4$/);
+  await expectNoHorizontalOverflow(page);
+});
+
 test.describe('public content without client JavaScript', () => {
   test.use({ javaScriptEnabled: false });
   test('homepage identity and route guidance are server-rendered', async ({ page }) => {

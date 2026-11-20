@@ -7,6 +7,7 @@ import {voucherLayout,voucherDate} from './booking-document-layout';
 import {hotelObject,hotelText,hotelRoomInfo,hotelStringList} from './hotel-presentation';
 import {policyText} from './public-supplier-policy';
 import {hotelCancellationTimeline} from './hotel-cancellation-timeline';
+import {isBookingConfirmed} from './booking-status';
 
 type Guest={roomIndex?:number;ti?:string;fN?:string;lN?:string;pt?:string};
 const guestName=(t:Guest)=>[t.ti,t.fN,t.lN].filter(Boolean).join(' ')||'Guest name not provided';
@@ -14,14 +15,15 @@ const guestName=(t:Guest)=>[t.ti,t.fN,t.lN].filter(Boolean).join(' ')||'Guest na
 export async function bookingDocument(id:string){
  const order=(await database().query('SELECT * FROM orders WHERE id=$1',[id])).rows[0];
  if(!order)throw new HttpError(404,'Booking not found.');
- if(!['TICKETED','CONFIRMED','CANCELLED'].includes(order.status))throw new HttpError(409,'Confirmation is available after the supplier confirms the booking.');
+ const hotel=order.product==='HOTEL',cancelled=order.status==='CANCELLED';
+ const confirmed=isBookingConfirmed(order.product,order.status,order.service_kind);
+ if(!cancelled&&!confirmed)throw new HttpError(409,'Confirmation is available after the supplier confirms the booking.');
  const record=await database().query('SELECT encrypted_payload FROM supplier_booking_payloads WHERE order_id=$1',[id]);
  const supplier=record.rows[0]?unseal(record.rows[0].encrypted_payload,id):{};
  const guests=unseal(order.guests_encrypted,id);
  const travellers:Guest[]=guests.travellers??[];
  const quote=(await database().query('SELECT review,service_payload FROM supplier_quotes WHERE id=$1',[order.quote_id])).rows[0];
  const option=hotelObject(hotelObject(quote?.review).option);
- const hotel=order.product==='HOTEL',cancelled=order.status==='CANCELLED';
  const title=cancelled?'Cancelled booking record':order.service_kind==='ANCILLARY'?'Flight extras confirmation':order.service_kind==='REISSUE'?'Replacement flight confirmation':hotel?'Hotel confirmation voucher':'Booking confirmation';
  const {doc,paragraph:p,section,facts,row,finish}=voucherLayout(order.reference,title,order.created_at,await getCompanyProfile());
  const chunks:Buffer[]=[];

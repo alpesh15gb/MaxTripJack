@@ -20,7 +20,7 @@ export type BookingStatusDetails = {
   serviceKind?: string | null;
   supplierBookingId?: string | null;
   hotelName?: string | null;
-  passengers: { name: string; pnrs: string[]; tickets: string[] }[];
+  passengers: { name: string; pnrs: string[]; tickets: string[]; roomIndex?: number }[];
   refunds: { id: string; amountMinor: string; status: string }[];
 };
 
@@ -36,11 +36,16 @@ type StatusView = {
   poll: boolean;
 };
 
+export function isBookingConfirmed(product: string, status: string, serviceKind?: string | null): boolean {
+  if (product === "HOTEL") return status === "CONFIRMED";
+  return product === "FLIGHT" && (status === "TICKETED" || serviceKind === "ANCILLARY" && status === "CONFIRMED");
+}
+
 /** Only persisted provider/supplier states establish success, never a return URL. */
 export function bookingStatusView(booking: StatusInput): StatusView {
   const paymentReceived = booking.paymentStatus === "CAPTURED";
   const paymentRequired = booking.totalMinor !== "0";
-  const confirmed = booking.product === "HOTEL" ? booking.status === "CONFIRMED" : booking.product === "FLIGHT" && booking.status === "TICKETED";
+  const confirmed = isBookingConfirmed(booking.product, booking.status, booking.serviceKind);
   const supplierStarted = confirmed || ["BOOKING_PENDING", "CONFIRMED"].includes(booking.status);
   const base = { confirmed, paymentReceived, paymentRequired, supplierStarted };
   if (confirmed) return { ...base, title: booking.serviceKind === "ANCILLARY" ? "Your flight extras are confirmed." : booking.serviceKind === "REISSUE" ? "Your replacement flight is ticketed." : booking.product === "HOTEL" ? "Your stay is confirmed." : "Your flight is ticketed.", description: "The supplier has confirmed this booking. Your reference and travel documents are below.", tone: "confirmed", poll: false };

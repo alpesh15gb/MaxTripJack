@@ -299,6 +299,26 @@ test('reload preserves an uncertain create marker and no-order-yet never unlocks
   await capture(page, testInfo, 'interrupted-checkout-no-order-yet');
 });
 
+for (const restored of [false,true]) test(`a stalled ${restored?'restored':'same-tab'} checkout status read releases recovery controls without a second order`, async ({ page, provider }) => {
+  await openReviewedFlight(page);await showPaymentReview(page);await openSyntheticPayment(page);
+  await page.evaluate('window.__syntheticGateway.dismiss()');
+  if(restored){await page.reload();await expect(page.getByRole('button',{name:/^Resume existing checkout/})).toBeEnabled();}
+  await page.clock.install({time:new Date()});
+  let requested=false;
+  await page.route('**/api/payments/status?**',async()=>{requested=true;});
+  await page.getByRole('button',{name:restored?/^Resume existing checkout/:/^Resume secure checkout$/}).click();
+  await expect.poll(()=>requested).toBe(true);
+  await page.clock.fastForward(20_001);
+  await expect(page.locator('#booking-feedback')).toContainText('Checking your payment status took too long. Your original order is preserved.');
+  await expect(page.getByRole('button',{name:'Book a different trip',exact:true})).toBeEnabled();
+  if(restored)await expect(page.getByRole('button',{name:'Check payment status again',exact:true})).toBeEnabled();
+  else await expect(page.getByRole('link',{name:'Check payment status in My trips',exact:true})).toBeVisible();
+  expect(await page.evaluate('JSON.parse(sessionStorage.getItem("maxtravel.pending-checkout.v1"))')).toEqual({quoteId,bookingId});
+  expect(provider.requests('/api/payments/create')).toHaveLength(1);
+  expect(provider.requests('/api/payments/verify')).toHaveLength(0);
+  expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(restored?0:1);
+});
+
 test('reload resumes only the owned server-checked order and stores no traveller or gateway data', async ({ page, provider }) => {
   await openReviewedFlight(page);
   await showPaymentReview(page);

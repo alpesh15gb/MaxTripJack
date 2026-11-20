@@ -30,7 +30,8 @@ test('My trips shows truthful booking states and keeps supplier confirmation wit
     passengers: [{ name: 'Aarav Example', pnrs: ['SYNPNR1'], tickets: ['SYN-TICKET-1'] }],
   } };
   provider.overrides[`GET /api/bookings/${ids.hotel}/details`] = { body: {
-    supplierBookingId: 'SYNTHETIC-HOTEL-REFERENCE', hotelName: 'Synthetic Goa Beach Stay', passengers: [],
+    supplierBookingId: 'SYNTHETIC-HOTEL-REFERENCE', hotelName: 'Synthetic Goa Beach Stay',
+    passengers: [{ name: 'Synthetic Hotel Guest', pnrs: [], tickets: [], roomIndex: 1 }],
   } };
   await page.goto('/my-trips');
   const record = (reference: string) => page.getByRole('article').filter({ has: page.getByText(reference, { exact: true }) });
@@ -60,6 +61,9 @@ test('My trips shows truthful booking states and keeps supplier confirmation wit
   await hotel.getByRole('button', { name: 'View confirmation details', exact: true }).click();
   const hotelDetails = hotel.getByRole('region', { name: 'Confirmation for MX-SYNTHETIC-HOTEL', exact: true });
   await expect(hotelDetails).toContainText('SYNTHETIC-HOTEL-REFERENCE');
+  await expect(hotelDetails).toContainText('Synthetic Hotel Guest');
+  await expect(hotelDetails).toContainText('Room 2 · Guest on this stay');
+  await expect(hotelDetails).not.toContainText(/PNR|Ticket|Awaiting supplier/);
   await expect(hotelDetails).not.toContainText('SYNPNR1');
   await ticket.getByRole('button', { name: 'Hide confirmation details', exact: true }).click();
   await expect(ticketDetails).toHaveCount(0);
@@ -72,6 +76,41 @@ test('My trips shows truthful booking states and keeps supplier confirmation wit
   expect(provider.calls.filter(call => call.method !== 'GET')).toEqual([]);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'my-trips-populated-inline-confirmations');
+});
+
+test('a confirmed flight reservation remains in progress until its ticket is issued', async ({ page, provider }, testInfo) => {
+  await page.clock.install({ time: new Date() });
+  const reservation = booking(ids.ticket, 'MX-SYNTHETIC-UNTICKETED', 'CONFIRMED');
+  const extras = { ...booking(ids.pending, 'MX-SYNTHETIC-EXTRAS', 'CONFIRMED'), service_kind: 'ANCILLARY', parent_order_id: ids.ticket };
+  provider.bookingsPages['1'] = { hasMore: false, bookings: [reservation, extras] };
+  await page.goto('/my-trips');
+  const pending = page.getByRole('region', { name: 'Booking updates & undated trips', exact: true });
+  await expect(pending.getByText('Awaiting ticket', { exact: true })).toBeVisible();
+  await expect(pending).toContainText('your ticket has not been issued yet');
+  const completedExtras = page.getByRole('region', { name: 'Upcoming & current', exact: true });
+  await expect(completedExtras.getByText('Extras confirmed', { exact: true })).toBeVisible();
+  await expect(completedExtras.getByRole('link', { name: 'Download confirmation PDF', exact: true })).toBeVisible();
+  await expect(completedExtras.getByRole('heading', { name: 'Flight extras', exact: true })).toBeVisible();
+  await expect(pending.getByRole('button', { name: 'View confirmation details', exact: true })).toHaveCount(0);
+  await expect(pending.getByRole('link', { name: 'Download confirmation PDF', exact: true })).toHaveCount(0);
+  await expect(page.locator('.trips-overview > div').nth(1).locator('strong')).toHaveText('1confirmed in loaded trips');
+  await expect(page.locator('.trips-overview > div').nth(2).locator('strong')).toHaveText('1pending in loaded trips');
+  await page.getByRole('button', { name: 'In progress', exact: true }).click();
+  await expect(pending.getByRole('article')).toHaveCount(1);
+  await expectNoHorizontalOverflow(page);
+  await capture(page, testInfo, 'my-trips-awaiting-flight-ticket');
+
+  provider.bookingsPages['1'] = { hasMore: false, bookings: [{ ...reservation, status: 'TICKETED' }, extras] };
+  await page.clock.fastForward(5_000);
+  await expect(page.getByRole('heading', { name: 'No bookings in this view.' })).toBeVisible();
+  await page.getByRole('button', { name: 'All trips', exact: true }).click();
+  const ticketed = page.getByRole('region', { name: 'Upcoming & current', exact: true }).getByRole('article').filter({ has: page.getByText(reservation.reference, { exact: true }) });
+  await expect(ticketed.getByText('Ticketed', { exact: true })).toBeVisible();
+  await expect(ticketed.getByRole('button', { name: 'View confirmation details', exact: true })).toBeVisible();
+  await expect(ticketed.getByRole('link', { name: 'Download confirmation PDF', exact: true })).toBeVisible();
+  expect(provider.requests('/api/bookings')).toHaveLength(2);
+  expect(provider.calls.filter(call => call.method !== 'GET')).toEqual([]);
+  await expectNoHorizontalOverflow(page);
 });
 
 test('older pending trips keep refreshing after pagination and update without dropping loaded records', async ({ page, provider }, testInfo) => {

@@ -14,7 +14,7 @@ export function hotelComparisonAmenities(values?:string[]){
  return amenities.sort((a,b)=>usefulness(a)-usefulness(b)).slice(0,3);
 }
 
-export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore,active=true}:{active?:boolean;hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement)=>void}){
+export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore,onEditSearch,active=true}:{active?:boolean;hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;onEditSearch?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement)=>void}){
  const [filters,setFilters]=useState(()=>readHotelBrowse(searchId).filters??{...emptyHotelFilters}),[sort,setSort]=useState(()=>readHotelBrowse(searchId).sort??'price'),[expanded,setExpanded]=useState(false);
  const drawer=useRef<HTMLDialogElement>(null),filterTrigger=useRef<HTMLButtonElement>(null);
  const filterHelpId=useId();
@@ -103,7 +103,13 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
      </div>
     </article>;
    })}</div>
-   {!shown.length&&<div className="empty-results"><h3>{hotels.length?'No stays match your filters':'No stays found'}</h3><p>{hotels.length?'Try a different location or name, remove an amenity, or adjust your category and stay budget.':'Try a different destination or date range, or load more stays if available.'}</p>{hotels.length>0&&(filters.area||selectedAmenities.length>0)&&<p>Some stays may not list the location or amenities you selected.</p>}{activeFilterCount>0&&<button className="secondary" type="button" onClick={()=>{setFilters({...emptyHotelFilters});focusResults();}}>Clear hotel filters</button>}</div>}
+   {!shown.length&&<div className="empty-results">
+    <h3>{hotels.length?'No stays match your filters':'No stays found'}</h3>
+    <p>{hotels.length?'Try a different location or name, remove an amenity, or adjust your category and stay budget.':hasMore?'Try new dates or check more stays in this destination.':'Try a different destination or date range.'}</p>
+    {hotels.length>0&&(filters.area||selectedAmenities.length>0)&&<p>Some stays may not list the location or amenities you selected.</p>}
+    {!hotels.length&&onEditSearch&&<button className="primary" type="button" disabled={busy} onClick={onEditSearch}>Edit stay search</button>}
+    {activeFilterCount>0&&<button className="secondary" type="button" onClick={()=>{setFilters({...emptyHotelFilters});focusResults();}}>Clear hotel filters</button>}
+   </div>}
    {(hasMore||loadingMore||loadMoreError)&&<div className="hotel-load-more"><p>{hasMore||loadingMore?'Showing stays checked so far. More properties in this destination can be checked for your dates.':'All destination pages have been checked for your dates.'}</p>{loadMoreError&&<p role="alert">{loadMoreError}</p>}{(hasMore||loadingMore)&&<button type="button" className="secondary" disabled={busy||loadingMore} onClick={onLoadMore}>{loadingMore?'Checking more stays…':loadMoreError?'Retry loading stays':'Load more stays'}</button>}</div>}
   </div>
  </div>;

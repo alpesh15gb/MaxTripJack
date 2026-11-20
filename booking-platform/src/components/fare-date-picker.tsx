@@ -34,6 +34,14 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
  function toggle(){setView(monthStart(value||min));setFocus(value||min);setOpen(current=>!current);}
  function pick(date:string){onChange(date);setOpen(false);root.current?.querySelector<HTMLButtonElement>('.fare-date-trigger')?.focus();}
  function allowed(date:string){return date>=min&&(!max||date<=max);}
+ function browseMonth(offset:number){
+  const start=nextMonth(view,offset),end=shift(nextMonth(start),-1);
+  // Keep a real day in the visible month keyboard-reachable, including short
+  // months and the first permitted month. Month browsing does not select it.
+  let next=`${start.slice(0,8)}${focus.slice(8)}`;
+  if(next>end)next=end;if(next<min)next=min;if(max&&next>max)next=max;
+  setView(start);setFocus(next);
+ }
  function move(date:string){
   if(!allowed(date))return;
   setFocus(date);
@@ -41,12 +49,14 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
   if(date<view)setView(monthStart(date));else if(date>=nextMonth(second))setView(nextMonth(monthStart(date),-1));
  }
  function keys(event:KeyboardEvent<HTMLDivElement>){
+  if(event.key==='Escape'){event.preventDefault();setOpen(false);root.current?.querySelector<HTMLButtonElement>('.fare-date-trigger')?.focus();return;}
+  if(!grid.current?.contains(event.target as Node))return;
   const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[event.key];
   if(step){event.preventDefault();move(shift(focus,step));return;}
-  if(event.key==='Escape'){event.preventDefault();setOpen(false);root.current?.querySelector<HTMLButtonElement>('.fare-date-trigger')?.focus();}
  }
  const months=[view,nextMonth(view)];
  const canBack=view>monthStart(min);
+ const canNext=!max||nextMonth(view)<=monthStart(max);
  const fare=fares[value];
  return <div className="home-search-input fare-date" ref={root}>
   <span id={`${id}-label`}>{label}</span>
@@ -55,12 +65,12 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
   </button>
   <input type="hidden" name={name} value={value}/>
   <small>{fare?<>from <b className={`fare-band-${fare.band}`}>₹{compactRupees(fare.minor)}</b></>:helper??' '}</small>
-  {open&&<div className="fare-calendar" role="dialog" aria-modal="false" aria-label={`Choose ${label.toLowerCase()}`}>
+  {open&&<div className="fare-calendar" role="dialog" aria-modal="false" aria-label={`Choose ${label.toLowerCase()}`} onKeyDown={keys}>
    <div className="fare-calendar-head">
-    <button type="button" aria-label="Previous month" disabled={!canBack} onClick={()=>setView(nextMonth(view,-1))}>‹</button>
-    <button type="button" aria-label="Next month" onClick={()=>setView(nextMonth(view))}>›</button>
+    <button type="button" aria-label="Previous month" disabled={!canBack} onClick={()=>browseMonth(-1)}>‹</button>
+    <button type="button" aria-label="Next month" disabled={!canNext} onClick={()=>browseMonth(1)}>›</button>
    </div>
-   <div className="fare-calendar-months" ref={grid} onKeyDown={keys}>
+   <div className="fare-calendar-months" ref={grid}>
     {months.map(start=>{
      const first=new Date(at(start)).getUTCDay(),days=Math.round((at(nextMonth(start))-at(start))/86_400_000);
      return <div className="fare-calendar-month" key={start} role="grid" aria-label={monthName.format(at(start))}>
@@ -72,7 +82,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
         const date=shift(start,index),price=fares[date],enabled=allowed(date);
         const inRange=rangeStart&&value&&date>rangeStart&&date<value;
         return <button type="button" role="gridcell" key={date} data-date={date} disabled={!enabled} tabIndex={date===focus?0:-1}
-         aria-selected={date===value} aria-label={`${fullDate.format(at(date))}${price?`, from ₹${Math.round(price.minor/100).toLocaleString('en-IN')}${price.band==='low'?', one of the lowest fares':''}`:''}`}
+         aria-selected={date===value} aria-label={`${fullDate.format(at(date))}${price?`, indicative fare from ₹${Math.round(price.minor/100).toLocaleString('en-IN')} per adult${price.band==='low'?', one of the lowest fares':''}`:''}`}
          className={[date===value?'is-selected':'',date===rangeStart?'is-range-start':'',inRange?'is-in-range':''].filter(Boolean).join(' ')||undefined}
          onClick={()=>pick(date)} onFocus={()=>setFocus(date)}>
          <span>{Number(date.slice(8))}</span>
@@ -83,7 +93,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
      </div>;
     })}
    </div>
-   <p className="fare-calendar-note">{hasFares?<><i className="fare-band-low"/>Lowest seen fares per adult in ₹, refreshed every few minutes. The final price is confirmed at review.</>:'Pick a date. Fares appear here once we have recent prices for this route.'}</p>
+   <p className="fare-calendar-note">{hasFares?<><i className="fare-band-low"/>Recent from fares per adult in ₹. The final price is checked at review.</>:'Pick a date. Fares appear here once we have recent prices for this route.'}</p>
   </div>}
  </div>;
 }

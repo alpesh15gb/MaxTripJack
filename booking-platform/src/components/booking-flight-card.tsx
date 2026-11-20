@@ -21,12 +21,14 @@ type BookingFlightCardProps = {
   selectionMode?: 'review' | 'leg';
   onSelect: (fare: FlightFare, trigger: HTMLButtonElement) => void;
   isCompatible?: (fare: FlightFare) => boolean;
+  onChangeOutbound?: () => void;
+  onEditSearch?: () => void;
 };
 
 const anyFare = () => true;
 
 export default function BookingFlightCard({
-  flight, group, selectedFareId, checkingFareId, busy, onSelect, isCompatible = anyFare,
+  flight, group, selectedFareId, checkingFareId, busy, onSelect, isCompatible = anyFare, onChangeOutbound, onEditSearch,
   readOnly = false, selectionMode = 'review',
 }: BookingFlightCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -215,6 +217,11 @@ export default function BookingFlightCard({
             </div>
             <button type="button" className="secondary" disabled={busy} onClick={closeFares}>Back to flights</button>
           </div>
+          {noCompatibleFare && onChangeOutbound && <div className="flight-fare-recovery">
+            <p>Try another outbound fare or change your dates to look for a pair that works together.</p>
+            <button type="button" className="secondary" disabled={busy} onClick={onChangeOutbound}>Change outbound fare</button>
+            {onEditSearch && <button type="button" className="secondary" disabled={busy} onClick={onEditSearch}>Edit flight search</button>}
+          </div>}
           <p id={termsId} className="fare-details-unavailable fare-shared-terms">Totals are estimates for all travellers. Check the final price, cancellation and change fees, seat inclusions and eligibility at review.</p>
         </>}
         {offers.length === 0 && <p className="muted">No fare options were supplied for this flight.</p>}

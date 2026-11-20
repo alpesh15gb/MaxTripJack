@@ -94,3 +94,12 @@ test('About renders optional supplier prose as text with a bounded preview and h
  const escaped=await render({property:{amenities:[],descriptionHeadline:'<img src=x onerror=alert(1)>',description:'<script>alert(1)</script>'}});
  assert.doesNotMatch(escaped,/<script>|<img src="?x/);assert.match(escaped,/&lt;script&gt;/);
 });
+
+test('property amenities collapse formatting duplicates while retaining supplier restrictions',async()=>{
+ const html=await render({property:{amenities:['Parking',' parking ','Wi-Fi','Wi Fi','No airport shuttle','No airport shuttle','  ']}});
+ const list=html.match(/<ul class="stay-amenities">(.*?)<\/ul>/)?.[1]??'';
+ assert.equal((list.match(/<li>/g)??[]).length,3);
+ assert.match(list,/<li>Parking<\/li>/);assert.match(list,/<li>Wi-Fi<\/li>/);
+ assert.match(list,/<li>No airport shuttle<\/li>/);
+ assert.doesNotMatch(list,/<li>parking<\/li>|<li>Wi Fi<\/li>|<li>Airport shuttle<\/li>/);
+});
