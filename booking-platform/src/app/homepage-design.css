@@ -4,7 +4,7 @@
   --home-search-line: #64748a;
   --home-on-dark: #e5e4df;
   --home-light-gold: #f0d7a8;
-  background: var(--brand-ivory);
+  background: var(--brand-page-sheen) var(--brand-ivory);
 }
 
 .trip-home .home-intro {
@@ -207,7 +207,7 @@
   margin: 0 auto;
 }
 .trip-home .home-confidence > div { gap: 12px; padding: 0 0 16px; border-bottom: 1px solid var(--brand-line); }
-.trip-home .home-confidence > div > svg { width: 38px; height: 38px; padding: 8px; border: 0; border-radius: 50%; color: var(--brand-gold-ink); background: var(--brand-sand); }
+.trip-home .home-confidence > div > svg { width: 38px; height: 38px; padding: 8px; border: 0; border-radius: 50%; color: var(--brand-gold-ink); background: var(--brand-sand) var(--brand-sand-sheen); }
 .trip-home .home-confidence strong { color: var(--brand-ink); font-size: 14px; }
 .trip-home .home-confidence small { color: var(--brand-muted); }
 
@@ -238,7 +238,7 @@
   white-space: normal;
 }
 
-.trip-home .home-section-heading > a:hover { border-color: var(--brand-action); background: var(--brand-tint); }
+.trip-home .home-section-heading > a:hover { border-color: var(--brand-action); background: var(--brand-tint) var(--brand-paper-sheen); }
 .trip-home .home-section-heading p:not(.home-kicker) { margin: 11px 0 0; color: var(--brand-muted); }
 .trip-home .home-destinations {
   display: grid;
@@ -257,23 +257,23 @@
 .trip-home .home-destination:nth-child(n+3) h3 { font-size: clamp(29px, 3.7vw, 44px); }
 .trip-home .home-destination p { color: #fff; font-size: 13px; line-height: 1.5; }
 .trip-home .home-destination-arrow { width: 41px; height: 41px; right: 16px; bottom: 16px; border-color: #ffffffaa; background: #101c2cbf; color: #f1d5a3; }
-.trip-home .home-destination:hover .home-destination-arrow { background: var(--brand-gold); color: var(--brand-midnight); }
+.trip-home .home-destination:hover .home-destination-arrow { background: var(--brand-gold) var(--brand-gold-sheen); color: var(--brand-midnight); }
 
 .trip-home .home-package-plans { margin: 0 auto 38px; padding: 32px 0; border-color: var(--brand-border); }
 .trip-home .home-package-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.trip-home .home-package-grid > a { border-color: var(--brand-border); border-radius: 16px; background: #fff; }
+.trip-home .home-package-grid > a { border-color: var(--brand-border); border-radius: 16px; background: #fff var(--brand-paper-sheen); }
 .trip-home .home-package-grid > a:hover { border-color: var(--brand-action); }
 .trip-home .home-package-photo { border-radius: 15px 15px 0 0; }
 .trip-home .home-package-grid h3 { font-family: var(--travel-display); font-size: 34px; line-height: 1.05; }
 .trip-home .home-package-detail { color: var(--brand-action); }
-.trip-home .home-package-empty { border: 1px solid var(--brand-border); border-radius: 14px; background: var(--brand-tint); }
+.trip-home .home-package-empty { border: 1px solid var(--brand-border); border-radius: 14px; background: var(--brand-tint) var(--brand-sand-sheen); }
 .trip-home .home-package-empty > svg, .trip-home .home-package-empty > a { color: var(--brand-action); }
 .trip-home .studio-concierge-band { border-radius: 20px 56px 20px 20px; background: var(--brand-ink) var(--brand-night-sheen); }
 .trip-home .studio-concierge-band :is(.public-eyebrow, .studio-office-note > svg) { color: var(--brand-amber); }
 .trip-home .studio-concierge-band h2, .trip-home .home-public-routes-heading { font-family: var(--travel-display); font-weight: 400; }
 .trip-home .studio-concierge-actions > a:first-child { background: var(--brand-amber) var(--brand-gold-sheen); border-color: var(--brand-amber); }
 .trip-home .home-public-links a { color: var(--brand-action); }
-.trip-home .public-route-card { border-color: var(--brand-border); background: #fff; }
+.trip-home .public-route-card { border-color: var(--brand-border); background: #fff var(--brand-paper-sheen); }
 
 @media (max-width: 1050px) {
   .trip-home .home-intro h1 { font-size: clamp(57px, 8.8vw, 88px); }

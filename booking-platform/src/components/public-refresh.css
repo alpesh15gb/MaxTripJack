@@ -14,10 +14,14 @@
   --public-dark-line: color-mix(in srgb, var(--public-gold) 34%, transparent);
   --public-shadow: rgb(16 28 44 / 8%);
   --public-display: var(--font-travel-display, Georgia), serif;
-  --public-hero-surface: linear-gradient(120deg, var(--public-ink) 32%, var(--public-slate));
+  --public-hero-surface: var(--brand-night-sheen, linear-gradient(120deg, var(--public-ink), #31485e 65%, var(--public-slate)));
+  --public-gold-surface: var(--brand-gold-sheen, linear-gradient(135deg, #ead4a8, var(--public-gold)));
+  --public-paper-surface: var(--brand-paper-sheen, linear-gradient(135deg, #fffdf9, #f2e9db));
+  --public-sand-surface: var(--brand-sand-sheen, linear-gradient(135deg, #fdf4e2, #e9d8ba));
+  --public-page-surface: var(--brand-page-sheen, linear-gradient(160deg, var(--public-paper), var(--public-sand)));
   color: var(--public-ink);
 }
-body .public-refresh:is(.public-site, .legal-site, .travel-app) { background: var(--public-paper); }
+body .public-refresh:is(.public-site, .legal-site, .travel-app) { background: var(--public-page-surface) var(--public-paper); }
 body .public-refresh :is(.public-main, .legal-main, .package-main) { max-width: 1320px; color: var(--public-ink); }
 body .public-refresh :is(.public-main, .legal-main, .package-main), body .public-refresh.catalogue-main { padding-inline: clamp(20px, 3.5vw, 48px); }
 body .public-refresh :is(a, button, input, summary):focus-visible, body .public-refresh :is(.package-quote, .support-contact):focus-visible {
@@ -57,7 +61,7 @@ body .public-refresh :is(.public-hero h1, .legal-header h1, .catalogue-directory
   text-wrap: balance;
 }
 body .public-refresh :is(.public-hero.public-hero--editorial, .legal-header, .package-main--catalogue .package-heading, .catalogue-directory-hero, .support-intro) {
-  background: var(--public-hero-surface);
+  background: var(--public-hero-surface) var(--public-ink);
   border: 1px solid var(--public-dark-line);
   border-radius: 8px 28px 8px 8px;
   padding: clamp(30px, 4.6vw, 60px);
@@ -69,7 +73,7 @@ body .public-refresh :is(.public-hero.public-hero--editorial, .legal-header, .pa
   display: block;
   width: 48px;
   height: 2px;
-  background: var(--public-gold);
+  background: var(--public-gold-surface) var(--public-gold);
   grid-column: 1/-1;
 }
 body .public-refresh :is(.public-hero.public-hero--editorial, .package-main--catalogue .package-heading) { gap: 24px clamp(30px, 4vw, 64px); }
@@ -84,7 +88,7 @@ body .public-refresh :is(.public-hero .public-intro, .public-hero .public-cta-no
 }
 body .public-refresh :is(.public-hero .public-eyebrow, .legal-header > div > p, .catalogue-directory-hero .catalogue-eyebrow, .package-main--catalogue .package-heading .package-eyebrow) { color: var(--public-gold); }
 body .public-refresh :is(.public-button, .catalogue-button, .package-button:not(.secondary), .package-state button, .route-directory-search button, .support-contact-jump) {
-  background: var(--public-gold);
+  background: var(--public-gold-surface) var(--public-gold);
   border: 1px solid var(--public-gold);
   color: var(--public-ink);
   border-radius: 8px;
@@ -92,20 +96,20 @@ body .public-refresh :is(.public-button, .catalogue-button, .package-button:not(
   font-weight: 650;
   box-shadow: none;
   text-decoration: none;
-  transition: background .18s, box-shadow .18s;
+  transition: border-color .18s, box-shadow .18s, filter .18s;
 }
-body .public-refresh :is(.public-button, .catalogue-button, .package-button:not(.secondary), .package-state button, .route-directory-search button, .support-contact-jump):hover:not(:disabled) { background: var(--public-gold-hover); border-color: var(--public-gold-hover); box-shadow: 0 5px 16px var(--public-shadow); }
+body .public-refresh :is(.public-button, .catalogue-button, .package-button:not(.secondary), .package-state button, .route-directory-search button, .support-contact-jump):hover:not(:disabled) { border-color: var(--public-gold-hover); box-shadow: 0 5px 16px var(--public-shadow); filter: brightness(1.04); }
 body .public-refresh .package-state button:disabled { opacity: .7; cursor: wait; }
 body .public-refresh :is(.public-section, .public-questions, .public-sources, .catalogue-section, .legal-article section) { scroll-margin-top: 100px; }
 
 /* Guides: a compact chapter index, a generous article and a quieter contact rail. */
-body .public-refresh.public-site .public-hero--editorial .public-section-links { background: #ffffff08; border-color: var(--public-dark-line); border-radius: 12px; padding: 24px; }
-body .public-refresh.public-site .public-hero--editorial .public-section-links > p { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--public-gold); margin: 0 0 10px; }
+body .public-refresh.public-site .public-hero--editorial .public-section-links { background: linear-gradient(145deg, rgb(255 246 223 / 12%), rgb(255 255 255 / 3%)); border-color: var(--public-dark-line); border-radius: 12px; padding: 24px; }
+body .public-refresh.public-site .public-hero--editorial .public-section-links > p { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--public-gold-hover); margin: 0 0 10px; }
 body .public-refresh.public-site .public-section-links ul { margin: 0; padding: 0; list-style: none; }
 body .public-refresh.public-site .public-section-links a { display: flex; align-items: center; min-height: 44px; padding: 10px 0; color: var(--public-link); font-size: 13px; line-height: 1.5; text-decoration: none; text-underline-offset: 4px; }
 body .public-refresh.public-site .public-hero--editorial .public-section-links a { color: var(--public-on-dark); }
 body .public-refresh.public-site .public-layout { gap: 32px; padding-top: 36px; grid-template-columns: minmax(0, 1fr) 300px; }
-body .public-refresh.public-site .public-article { padding: clamp(24px, 3.2vw, 44px); border: 1px solid var(--public-line); border-radius: 12px; background: #fff; box-shadow: 0 8px 28px var(--public-shadow); }
+body .public-refresh.public-site .public-article { padding: clamp(24px, 3.2vw, 44px); border: 1px solid var(--public-line); border-radius: 12px; background: var(--public-paper-surface) var(--public-paper); box-shadow: 0 8px 28px var(--public-shadow); }
 body .public-refresh.public-site .public-section { padding: 34px 0; border-color: var(--public-line); }
 body .public-refresh :is(.public-section h2, .public-questions > h2, .public-sources > h2, .public-related > h2, .catalogue-section h2, .catalogue-results-heading h2, .package-detail-content h2, .support-answers h2) {
   color: var(--public-ink);
@@ -118,55 +122,54 @@ body .public-refresh :is(.public-section h2, .public-questions > h2, .public-sou
 body .public-refresh.public-site :is(.public-section p, .public-section li, .public-questions p, .public-sources p) { color: var(--public-muted); font-size: 15px; line-height: 1.85; }
 body .public-refresh.public-site :is(.public-section li)::marker { color: var(--public-link); }
 body .public-refresh.public-site :is(.public-section a, .public-sources a, .public-rail-note a) { color: var(--public-link); }
-body .public-refresh.public-site .public-notice { border-color: var(--public-line); background: var(--public-soft); border-radius: 8px; }
+body .public-refresh.public-site .public-notice { border-color: var(--public-line); background: var(--public-sand-surface) var(--public-sand); border-radius: 8px; }
 body .public-refresh.public-site .public-notice > svg { color: var(--public-link); flex-shrink: 0; }
 body .public-refresh.public-site .public-notice p { font-size: 12px; line-height: 1.8; }
 body .public-refresh.public-site .public-rail { position: sticky; top: 24px; gap: 18px; }
-body .public-refresh.public-site :is(.public-office-card, .public-rail-note) { background: #fff; border: 1px solid var(--public-line); border-radius: 12px; padding: 26px; box-shadow: none; }
+body .public-refresh.public-site :is(.public-office-card, .public-rail-note) { background: var(--public-paper-surface) var(--public-paper); border: 1px solid var(--public-line); border-radius: 12px; padding: 26px; box-shadow: none; }
 body .public-refresh.public-site .public-office-card { border-top: 3px solid var(--public-gold); }
-body .public-refresh.public-site .public-rail-note { background: var(--public-soft); }
-body .public-refresh.public-site .public-icon { background: var(--public-soft); color: var(--public-link); border-radius: 50%; }
+body .public-refresh.public-site .public-rail-note { background: var(--public-sand-surface) var(--public-sand); }
+body .public-refresh.public-site .public-icon { background: var(--public-gold-surface) var(--public-gold); color: var(--public-ink); border-radius: 50%; }
 body .public-refresh.public-site :is(.public-office-card h2, .public-rail-note h2) { font: 400 28px/1.12 var(--public-display); color: var(--public-ink); }
 body .public-refresh.public-site :is(.public-hours, .public-office-card address, .public-fineprint, .public-rail-note p) { color: var(--public-muted); }
 body .public-refresh.public-site :is(.public-contact-links a, .public-directions, .public-office-link, .public-social a) { color: var(--public-link); }
 body .public-refresh.public-site .public-route-grid { gap: 20px; }
-body .public-refresh.public-site .public-route-card { border: 1px solid var(--public-line); border-radius: 12px; background: #fff; padding: 28px; box-shadow: none; transition: border-color .18s, box-shadow .18s, transform .18s; }
+body .public-refresh.public-site .public-route-card { border: 1px solid var(--public-line); border-radius: 12px; background: var(--public-paper-surface) var(--public-paper); padding: 28px; box-shadow: none; transition: border-color .18s, box-shadow .18s, transform .18s; }
 body .public-refresh.public-site .public-route-card:hover { border-color: var(--public-gold); box-shadow: 0 12px 28px var(--public-shadow); transform: translateY(-3px); }
-body .public-refresh.public-site .public-route-codes { align-self: flex-start; color: var(--public-link); font-size: 12px; letter-spacing: .07em; padding: 7px 10px; border: 1px solid var(--public-line); background: var(--public-soft); border-radius: 6px; }
+body .public-refresh.public-site .public-route-codes { align-self: flex-start; color: var(--public-link); font-size: 12px; letter-spacing: .07em; padding: 7px 10px; border: 1px solid var(--public-line); background: var(--public-sand-surface) var(--public-sand); border-radius: 6px; }
 body .public-refresh.public-site .public-route-card h3 { font: 400 28px/1.1 var(--public-display); color: var(--public-ink); }
 body .public-refresh.public-site .public-route-card p { color: var(--public-muted); }
 body .public-refresh.public-site .public-route-action { color: var(--public-link); border-top: 1px solid var(--public-line); padding-top: 14px; }
-body .public-refresh.public-site .public-route-pass { background: var(--public-paper); color: var(--public-ink); border: 1px solid var(--public-gold); border-radius: 12px; gap: 18px 12px; padding: 32px 24px; }
+body .public-refresh.public-site .public-route-pass { background: var(--public-sand-surface) var(--public-paper); color: var(--public-ink); border: 1px solid var(--public-gold); border-radius: 12px; gap: 18px 12px; padding: 32px 24px; }
 body .public-refresh.public-site .public-route-pass strong { font: 400 clamp(35px, 4.2vw, 52px)/1 var(--public-display); letter-spacing: -.03em; }
 body .public-refresh.public-site .public-route-pass > div > span { color: var(--public-muted); }
 body .public-refresh.public-site .public-route-pass > svg { color: var(--public-link); }
 body .public-refresh.public-site .public-route-pass > :is(a, span) { grid-column: 1/-1; border-top: 1px dashed var(--public-line); padding-top: 18px; font-size: 12px; color: var(--public-link); }
 body .public-refresh.public-site .public-hero .public-route-pass > a:focus-visible { outline-color: var(--public-link); }
-body .public-refresh.public-site .public-airport-table thead th { background: var(--public-soft); color: var(--public-ink); }
-body .public-refresh.public-site .public-questions details { padding: 0 20px; border: 1px solid var(--public-line); background: #fff; border-radius: 8px; margin: 10px 0; }
-body .public-refresh.public-site .public-questions details[open] { background: var(--public-soft); border-color: var(--public-gold); }
+body .public-refresh.public-site .public-airport-table thead th { background: var(--public-sand-surface) var(--public-sand); color: var(--public-ink); }
+body .public-refresh.public-site .public-questions details { padding: 0 20px; border: 1px solid var(--public-line); background: var(--public-paper-surface) var(--public-paper); border-radius: 8px; margin: 10px 0; }
+body .public-refresh.public-site .public-questions details[open] { background: var(--public-sand-surface) var(--public-sand); border-color: var(--public-gold); }
 body .public-refresh.public-site .public-questions summary { min-height: 60px; padding: 18px 26px 18px 0; color: var(--public-ink); position: relative; list-style: none; }
 body .public-refresh.public-site .public-questions summary::-webkit-details-marker { display: none; }
 body .public-refresh.public-site .public-questions summary::after { content: "+"; position: absolute; right: 0; top: 17px; color: var(--public-link); font-size: 20px; font-weight: 400; }
 body .public-refresh.public-site .public-questions details[open] summary::after { content: "\2212"; }
-body .public-refresh.public-site .public-related { background: var(--public-sand); border: 0; border-radius: 4px; padding: 32px; margin-top: 40px; }
+body .public-refresh.public-site .public-related { background: var(--public-sand-surface) var(--public-sand); border: 0; border-radius: 4px; padding: 32px; margin-top: 40px; }
 body .public-refresh.public-site .public-related a { color: var(--public-link); }
 body .public-refresh.route-directory .public-hero.public-hero--editorial { grid-template-columns: minmax(0, 1fr); }
 body .public-refresh.route-directory .public-hero--editorial .public-hero-copy { max-width: 820px; }
-body .public-refresh.public-site .route-directory-search { background: #fff; border: 1px solid var(--public-line); border-radius: 10px; padding: 26px; }
+body .public-refresh.public-site .route-directory-search { background: var(--public-paper-surface) var(--public-paper); border: 1px solid var(--public-line); border-radius: 10px; padding: 26px; }
 body .public-refresh.public-site .route-directory-search label { font-size: 12px; font-weight: 650; color: var(--public-ink); }
 body .public-refresh.public-site .route-directory-search input { border-color: var(--public-line); border-radius: 6px; min-height: 50px; background: var(--public-soft); }
-body .public-refresh.public-site .route-directory-pagination a { color: var(--public-link); background: #fff; border: 1px solid var(--public-line); }
-body .public-refresh.public-site .route-airport-grid section { background: var(--public-soft); border-color: var(--public-line); border-radius: 8px; }
+body .public-refresh.public-site .route-directory-pagination a { color: var(--public-link); background: var(--public-paper-surface) var(--public-paper); border: 1px solid var(--public-line); }
+body .public-refresh.public-site .route-airport-grid section { background: var(--public-sand-surface) var(--public-sand); border-color: var(--public-line); border-radius: 8px; }
 body .public-refresh.public-site .route-directory-search + section, body .public-refresh.route-directory section[aria-label="More flight routes"] { margin-top: 36px; }
 body .public-refresh.route-directory section > h2 { font: 400 32px/1.1 var(--public-display); }
-body .public-refresh.public-site .route-catalogue-notice { background: #fff; border-color: var(--public-line); }
+body .public-refresh.public-site .route-catalogue-notice { background: var(--public-sand-surface) var(--public-sand); border-color: var(--public-line); }
 
 /* Hotel catalogue: photography first, factual property information close at hand. */
 body .public-refresh.catalogue-main { max-width: 1320px; color: var(--public-ink); padding-top: 12px; }
 body .public-refresh.catalogue-main .catalogue-directory-hero {
   margin-bottom: 42px;
-  background: var(--public-hero-surface);
 }
 body .public-refresh.catalogue-main .catalogue-directory-hero h1 { max-width: 16ch; margin: 12px 0 20px; }
 body .public-refresh.catalogue-main .catalogue-directory-hero > p { max-width: 64ch; }
@@ -176,7 +179,7 @@ body .public-refresh.catalogue-main .catalogue-search input {
   border-radius: 8px;
   min-height: 54px;
   border-color: color-mix(in srgb, var(--public-gold) 65%, var(--public-ink));
-  background: var(--public-slate);
+  background: var(--public-hero-surface) var(--public-slate);
   color: var(--public-paper);
   color-scheme: dark;
 }
@@ -184,23 +187,23 @@ body .public-refresh.catalogue-main .catalogue-search input::placeholder { color
 body .public-refresh.catalogue-main .catalogue-search .catalogue-button { min-height: 54px; padding-inline: 24px; }
 body .public-refresh.catalogue-main .catalogue-results-heading p { color: var(--public-muted); }
 body .public-refresh.catalogue-main .catalogue-grid { gap: 24px; }
-body .public-refresh.catalogue-main .catalogue-hotel-card { border-color: var(--public-line); border-radius: 12px; box-shadow: none; transition: box-shadow .2s, transform .2s, border-color .2s; }
+body .public-refresh.catalogue-main .catalogue-hotel-card { background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-line); border-radius: 12px; box-shadow: none; transition: box-shadow .2s, transform .2s, border-color .2s; }
 body .public-refresh.catalogue-main .catalogue-hotel-card:hover { transform: translateY(-4px); border-color: var(--public-gold); box-shadow: 0 14px 30px var(--public-shadow); }
 body .public-refresh.catalogue-main .catalogue-card-photo :is(.hotel-property-thumb, .hotel-property-thumb figure, img, .hotel-photo-unavailable) { height: clamp(220px, 20vw, 280px); }
-body .public-refresh.catalogue-main .catalogue-card-photo { background: var(--public-sand); }
+body .public-refresh.catalogue-main .catalogue-card-photo { background: var(--public-sand-surface) var(--public-sand); }
 body .public-refresh.catalogue-main .catalogue-card-copy { padding: 24px; }
 body .public-refresh.catalogue-main .catalogue-card-place { color: var(--public-link); font-size: 10px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
 body .public-refresh.catalogue-main .catalogue-card-copy h3 { font: 400 29px/1.15 var(--public-display); letter-spacing: -.018em; }
 body .public-refresh.catalogue-main .catalogue-card-copy h3 a { color: var(--public-ink); }
 body .public-refresh.catalogue-main :is(.catalogue-card-description, .catalogue-address, .catalogue-section p) { color: var(--public-muted); }
 body .public-refresh.catalogue-main .catalogue-card-description { font-size: 13px; }
-body .public-refresh.catalogue-main .catalogue-card-photo .hotel-photo-unavailable { color: var(--public-muted); }
+body .public-refresh.catalogue-main .hotel-photo-unavailable { background: var(--public-sand-surface) var(--public-sand); color: var(--public-muted); }
 body .public-refresh.catalogue-main .catalogue-card-amenities li { background: var(--public-soft); color: var(--public-muted); padding: 6px 8px; }
 body .public-refresh.catalogue-main :is(.catalogue-card-action, .catalogue-text-link, .catalogue-sections a) { color: var(--public-link); }
 body .public-refresh.catalogue-main .catalogue-card-action { border-color: var(--public-line); }
-body .public-refresh.catalogue-main .catalogue-pagination a { background: #fff; color: var(--public-ink); border-color: var(--public-line); min-width: 44px; border-radius: 6px; }
-body .public-refresh.catalogue-main .catalogue-pagination a[aria-current=page] { background: var(--public-ink); color: var(--public-paper); border-color: var(--public-ink); }
-body .public-refresh.catalogue-main .catalogue-outline-button { background: #fff; color: var(--public-link); border-color: var(--public-gold); border-radius: 8px; }
+body .public-refresh.catalogue-main .catalogue-pagination a { background: var(--public-paper-surface) var(--public-paper); color: var(--public-ink); border-color: var(--public-line); min-width: 44px; border-radius: 6px; }
+body .public-refresh.catalogue-main .catalogue-pagination a[aria-current=page] { background: var(--public-hero-surface) var(--public-ink); color: var(--public-paper); border-color: var(--public-ink); }
+body .public-refresh.catalogue-main .catalogue-outline-button { background: var(--public-paper-surface) var(--public-paper); color: var(--public-link); border-color: var(--public-gold); border-radius: 8px; }
 body .public-refresh.catalogue-main .catalogue-property-heading { padding: 22px 0 6px; align-items: flex-end; }
 body .public-refresh.catalogue-main .catalogue-property-heading h1 { color: var(--public-ink); font-size: clamp(34px, 4.1vw, 56px); max-width: 25ch; }
 body .public-refresh.catalogue-main .catalogue-property-heading .catalogue-eyebrow { display: inline-block; margin-bottom: 14px; }
@@ -210,11 +213,11 @@ body .public-refresh.catalogue-main .catalogue-sections a { min-height: 44px; di
 body .public-refresh.catalogue-main .catalogue-sections a:hover { border-color: var(--public-link); }
 body .public-refresh.catalogue-main .catalogue-property-layout { gap: 50px; grid-template-columns: minmax(0, 1fr) 330px; }
 body .public-refresh.catalogue-main .catalogue-section { padding-block: 34px; border-color: var(--public-line); }
-body .public-refresh.catalogue-main .catalogue-amenities li { color: var(--public-muted); background: var(--public-soft); border-radius: 6px; padding: 12px; }
+body .public-refresh.catalogue-main .catalogue-amenities li { color: var(--public-muted); background: var(--public-paper-surface) var(--public-paper); border-radius: 6px; padding: 12px; }
 body .public-refresh.catalogue-main .catalogue-amenities svg { color: var(--public-link); flex-shrink: 0; }
-body .public-refresh.catalogue-main .catalogue-location { background: var(--public-soft); border-radius: 10px; }
+body .public-refresh.catalogue-main .catalogue-location { background: var(--public-sand-surface) var(--public-sand); border-radius: 10px; }
 body .public-refresh.catalogue-main .catalogue-location > svg { color: var(--public-link); flex-shrink: 0; }
-body .public-refresh.catalogue-main .catalogue-availability { background: var(--public-hero-surface); border: 1px solid var(--public-dark-line); border-radius: 12px; padding: 30px; color: var(--public-paper); }
+body .public-refresh.catalogue-main .catalogue-availability { background: var(--public-hero-surface) var(--public-ink); border: 1px solid var(--public-dark-line); border-radius: 12px; padding: 30px; color: var(--public-paper); }
 body .public-refresh.catalogue-main .catalogue-availability h2 { font: 400 37px/1.1 var(--public-display); color: var(--public-paper); }
 body .public-refresh.catalogue-main .catalogue-availability .catalogue-eyebrow { color: var(--public-gold); }
 body .public-refresh.catalogue-main .catalogue-availability > p, body .public-refresh.catalogue-main .catalogue-availability-note { color: var(--public-on-dark); }
@@ -222,8 +225,9 @@ body .public-refresh.catalogue-main .catalogue-availability-note { border-color:
 body .public-refresh.catalogue-main .catalogue-availability-note svg { color: var(--public-gold); flex-shrink: 0; }
 body .public-refresh.catalogue-main .catalogue-availability .catalogue-text-link { color: var(--public-gold); text-decoration: underline; text-underline-offset: 4px; }
 body .public-refresh.catalogue-main .catalogue-questions details { border-color: var(--public-line); }
+body .public-refresh.catalogue-main .catalogue-questions details[open] { background: var(--public-paper-surface) var(--public-paper); }
 body .public-refresh.catalogue-main .catalogue-questions summary { min-height: 44px; color: var(--public-ink); }
-body .public-refresh.catalogue-main :is(.catalogue-discover-more, .catalogue-empty) { background: var(--public-soft); border: 1px solid var(--public-line); border-radius: 12px; }
+body .public-refresh.catalogue-main :is(.catalogue-discover-more, .catalogue-empty) { background: var(--public-sand-surface) var(--public-sand); border: 1px solid var(--public-line); border-radius: 12px; }
 body .public-refresh.catalogue-main .catalogue-empty > svg { color: var(--public-link); }
 body .public-refresh.catalogue-main .catalogue-empty p { color: var(--public-muted); }
 body .public-refresh.catalogue-main .catalogue-empty :is(h1, h2) { font: 400 clamp(30px, 3.5vw, 44px)/1.15 var(--public-display); }
@@ -234,18 +238,18 @@ body .public-refresh.travel-app .package-main--catalogue .package-heading { max-
 body .public-refresh.travel-app .package-planning-note { border-color: var(--public-dark-line); }
 body .public-refresh.travel-app .package-planning-note > svg, body .public-refresh.travel-app .package-planning-note a { color: var(--public-gold); }
 body .public-refresh.travel-app .package-planning-note h2 { font: 400 31px/1.12 var(--public-display); }
-body .public-refresh.travel-app .package-disclosure { border-color: var(--public-line); background: var(--public-soft); color: var(--public-link); border-radius: 8px; padding: 18px 22px; }
+body .public-refresh.travel-app .package-disclosure { border-color: var(--public-line); background: var(--public-sand-surface) var(--public-sand); color: var(--public-link); border-radius: 8px; padding: 18px 22px; }
 body .public-refresh.travel-app .package-disclosure p { font-size: 13px; line-height: 1.8; }
-body .public-refresh.travel-app .package-main--catalogue .package-discovery { border-color: var(--public-line); border-radius: 10px; background: #fff; padding: 26px; box-shadow: none; }
+body .public-refresh.travel-app .package-main--catalogue .package-discovery { border-color: var(--public-line); border-radius: 10px; background: var(--public-paper-surface) var(--public-paper); padding: 26px; box-shadow: none; }
 body .public-refresh.travel-app .package-main--catalogue .package-discovery label { font-size: 18px; color: var(--public-ink); }
 body .public-refresh.travel-app .package-main--catalogue .package-discovery input { background: var(--public-soft); border-color: var(--public-line); border-radius: 6px; }
 body .public-refresh.travel-app .package-discovery p { color: var(--public-muted); font-size: 12px; }
-body .public-refresh.travel-app .package-card { border-color: var(--public-line); border-radius: 12px; box-shadow: none; transition: box-shadow .2s, transform .2s; }
+body .public-refresh.travel-app .package-card { background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-line); border-radius: 12px; box-shadow: none; transition: box-shadow .2s, transform .2s; }
 body .public-refresh.travel-app .package-card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px var(--public-shadow); }
 body .public-refresh.travel-app .package-main--catalogue .package-card-photo { height: clamp(240px, 26vw, 350px); overflow: hidden; }
 body .public-refresh.travel-app .package-card-photo > img { transition: transform .4s; }
 body .public-refresh.travel-app .package-card:hover .package-card-photo > img { transform: scale(1.025); }
-body .public-refresh.travel-app .package-card-photo > span { background: var(--public-ink); color: var(--public-paper); border: 1px solid var(--public-dark-line); font-size: 11px; border-radius: 4px; left: 20px; bottom: 20px; padding: 9px 12px; }
+body .public-refresh.travel-app .package-card-photo > span { background: var(--public-hero-surface) var(--public-ink); color: var(--public-paper); border: 1px solid var(--public-dark-line); font-size: 11px; border-radius: 4px; left: 20px; bottom: 20px; padding: 9px 12px; }
 body .public-refresh.travel-app .package-main--catalogue .package-card h2 { font: 400 clamp(28px, 3.1vw, 38px)/1.12 var(--public-display); color: var(--public-ink); }
 body .public-refresh.travel-app .package-card h2 a { color: inherit; text-underline-offset: 4px; }
 body .public-refresh.travel-app .package-card-body > p { color: var(--public-muted); font-size: 14px; line-height: 1.8; }
@@ -254,16 +258,15 @@ body .public-refresh.travel-app .package-status.is-unavailable { color: #8c5037;
 body .public-refresh.travel-app .package-price { color: var(--public-ink); }
 body .public-refresh.travel-app .package-price strong { font-size: 30px; font-weight: 650; }
 body .public-refresh.travel-app .package-price :is(small, span) { color: var(--public-muted); }
-body .public-refresh.travel-app .package-button.secondary { background: #fff; border-color: var(--public-gold); color: var(--public-link); }
-body .public-refresh.travel-app .package-main .package-button:not(.secondary) { background: var(--public-gold); border-color: var(--public-gold); color: var(--public-ink); }
-body .public-refresh.travel-app .package-main .package-button:not(.secondary):hover { background: var(--public-gold-hover); border-color: var(--public-gold-hover); }
+body .public-refresh.travel-app .package-button.secondary { background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-gold); color: var(--public-link); }
+body .public-refresh.travel-app .package-main .package-button:not(.secondary) { background: var(--public-gold-surface) var(--public-gold); border-color: var(--public-gold); color: var(--public-ink); }
 body .public-refresh.travel-app .package-main--detail .package-heading { padding: 24px 0 20px; background: transparent; border-color: var(--public-line); border-radius: 0; }
 body .public-refresh.travel-app .package-main--detail .package-heading h1 { color: var(--public-ink); max-width: 24ch; }
 body .public-refresh.travel-app .package-main--detail .package-heading p { color: var(--public-muted); }
 body .public-refresh.travel-app .package-main--detail .package-detail { grid-template-columns: minmax(0, 1fr) 330px; gap: 40px; }
-body .public-refresh.travel-app .package-section-nav { background: #fff; border: 1px solid var(--public-line); border-radius: 8px; padding: 5px; }
+body .public-refresh.travel-app .package-section-nav { background: var(--public-paper-surface) var(--public-paper); border: 1px solid var(--public-line); border-radius: 8px; padding: 5px; }
 body .public-refresh.travel-app .package-section-nav a { color: var(--public-link); border-radius: 5px; }
-body .public-refresh.travel-app .package-section-nav a:hover { background: var(--public-soft); }
+body .public-refresh.travel-app .package-section-nav a:hover { background: var(--public-sand-surface) var(--public-sand); }
 body .public-refresh.travel-app .package-cover { height: clamp(300px, 32vw, 440px); border-radius: 12px; }
 body .public-refresh.travel-app .package-facts { border-color: var(--public-line); gap: 12px 22px; }
 body .public-refresh.travel-app .package-facts > span { color: var(--public-muted); font-size: 13px; }
@@ -274,27 +277,27 @@ body .public-refresh.travel-app .package-main--detail .package-itinerary li { bo
 body .public-refresh.travel-app .package-main--detail .package-itinerary li::before { background: var(--public-link); border-color: var(--public-paper); top: 32px; }
 body .public-refresh.travel-app .package-itinerary li > span { color: var(--public-link); }
 body .public-refresh.travel-app .package-itinerary h3 { color: var(--public-ink); font-size: 20px; font-weight: 600; }
-body .public-refresh.travel-app .package-main--detail .package-inclusions { background: var(--public-soft); border-radius: 10px; gap: 30px; padding: 0 28px; }
+body .public-refresh.travel-app .package-main--detail .package-inclusions { background: var(--public-sand-surface) var(--public-sand); border-radius: 10px; gap: 30px; padding: 0 28px; }
 body .public-refresh.travel-app .package-inclusions li { color: var(--public-muted); font-size: 14px; }
 body .public-refresh.travel-app .package-gallery > img { border-radius: 8px; height: 240px; }
-body .public-refresh.travel-app .package-main--detail .package-quote { border: 1px solid var(--public-line); border-top: 3px solid var(--public-gold); border-radius: 10px; background: #fff; padding: 28px; box-shadow: 0 12px 30px var(--public-shadow); }
+body .public-refresh.travel-app .package-main--detail .package-quote { border: 1px solid var(--public-line); border-top: 3px solid var(--public-gold); border-radius: 10px; background: var(--public-paper-surface) var(--public-paper); padding: 28px; box-shadow: 0 12px 30px var(--public-shadow); }
 body .public-refresh.travel-app .package-quote h2 { font: 400 28px/1.12 var(--public-display); }
 body .public-refresh.travel-app .package-quote hr { border-color: var(--public-line); }
 body .public-refresh.travel-app .package-quote > a { color: var(--public-link); }
-body .public-refresh.travel-app .package-state { background: var(--public-soft); border-color: var(--public-line); border-radius: 12px; }
+body .public-refresh.travel-app .package-state { background: var(--public-sand-surface) var(--public-sand); border-color: var(--public-line); border-radius: 12px; }
 body .public-refresh.travel-app .package-state :is(h1, h2) { font: 400 clamp(30px, 3.5vw, 44px)/1.15 var(--public-display); }
-body .public-refresh.travel-app .package-photo-empty { background: var(--public-sand); color: var(--public-muted); }
+body .public-refresh.travel-app .package-photo-empty { background: var(--public-sand-surface) var(--public-sand); color: var(--public-muted); }
 
 /* Legal reading and task-led support retain their existing contents and actions. */
 body .public-refresh.legal-site .legal-main { padding-top: 12px; }
 body .public-refresh.legal-site .legal-header { margin-top: 0; gap: 40px; }
 body .public-refresh.legal-site .legal-header-contact { color: var(--public-on-dark); }
 body .public-refresh.legal-site .legal-header-contact span { color: var(--public-gold); }
-body .public-refresh.legal-site .legal-sidebar nav { background: #fff; border-color: var(--public-line); border-radius: 10px; }
+body .public-refresh.legal-site .legal-sidebar nav { background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-line); border-radius: 10px; }
 body .public-refresh.legal-site .legal-sidebar nav a { color: var(--public-muted); min-height: 44px; }
-body .public-refresh.legal-site .legal-sidebar nav a[aria-current=page] { background: var(--public-soft); color: var(--public-link); }
-body .public-refresh.legal-site .legal-sidebar nav a:hover { background: var(--public-soft); }
-body .public-refresh.legal-site .legal-article { border-color: var(--public-line); border-radius: 12px; padding: clamp(24px, 3.5vw, 46px); color: var(--public-muted); font-size: 15px; line-height: 1.95; }
+body .public-refresh.legal-site .legal-sidebar nav a[aria-current=page] { background: var(--public-gold-surface) var(--public-gold); color: var(--public-ink); }
+body .public-refresh.legal-site .legal-sidebar nav a:hover:not([aria-current=page]) { background: var(--public-sand-surface) var(--public-sand); }
+body .public-refresh.legal-site .legal-article { background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-line); border-radius: 12px; padding: clamp(24px, 3.5vw, 46px); color: var(--public-muted); font-size: 15px; line-height: 1.95; }
 body .public-refresh.legal-site .legal-article section { border-color: var(--public-line); padding-top: 30px; margin-top: 36px; }
 body .public-refresh.legal-site .legal-article h2 { font: 400 30px/1.16 var(--public-display); color: var(--public-ink); }
 body .public-refresh.legal-site .legal-source { border-color: var(--public-line); }
@@ -306,33 +309,34 @@ body .public-refresh.support-experience .support-intro .support-eyebrow { color:
 body .public-refresh.support-experience .support-intro-contact > span { color: var(--public-on-dark); }
 body .public-refresh.support-experience .support-intro h1 { max-width: 15ch; }
 body .public-refresh.support-experience .support-section-title { margin-bottom: 18px; font: 400 clamp(28px, 3.2vw, 37px)/1.1 var(--public-display); }
-body .public-refresh.support-experience .support-task { border-color: var(--public-line); border-radius: 10px; padding: 28px; transition: border-color .18s, box-shadow .18s; }
+body .public-refresh.support-experience .support-task { background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-line); border-radius: 10px; padding: 28px; transition: border-color .18s, box-shadow .18s; }
 body .public-refresh.support-experience .support-task:hover { border-color: var(--public-gold); box-shadow: 0 8px 24px var(--public-shadow); }
-body .public-refresh.support-experience .support-task-icon { background: var(--public-soft); color: var(--public-link); border-radius: 10px; }
+body .public-refresh.support-experience .support-task-icon { background: var(--public-gold-surface) var(--public-gold); color: var(--public-ink); border-radius: 10px; }
 body .public-refresh.support-experience .support-task h3 { font: 400 27px/1.15 var(--public-display); color: var(--public-ink); }
 body .public-refresh.support-experience .support-task-action { color: var(--public-link); }
 body .public-refresh.support-experience :is(.support-task > small, .support-prepare, .support-question-list details, .support-resource-links) { border-color: var(--public-line); }
-body .public-refresh.support-experience .support-contact { background: var(--public-soft); border: 1px solid var(--public-line); border-top: 3px solid var(--public-gold); border-radius: 10px; }
+body .public-refresh.support-experience .support-contact { background: var(--public-sand-surface) var(--public-sand); border: 1px solid var(--public-line); border-top: 3px solid var(--public-gold); border-radius: 10px; }
 body .public-refresh.support-experience .support-contact h2 { font: 400 30px/1.1 var(--public-display); }
 body .public-refresh.support-experience :is(.support-task > p, .support-task > small, .support-hours, .support-external-note, .support-prepare p, .support-question-list details p) { color: var(--public-muted); }
-body .public-refresh.support-experience .support-contact-actions a { border-color: var(--public-gold); color: var(--public-link); background: var(--public-soft); border-radius: 6px; }
+body .public-refresh.support-experience .support-contact-actions a { border-color: var(--public-gold); color: var(--public-link); background: var(--public-paper-surface) var(--public-paper); border-radius: 6px; }
 body .public-refresh.support-experience .support-office-link { color: var(--public-link); }
-body .public-refresh.support-experience .support-answers { border-color: var(--public-line); border-radius: 12px; padding: 36px; }
-body .public-refresh.support-experience .support-question-list details[open] { background: var(--public-soft); }
+body .public-refresh.support-experience .support-answers { background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-line); border-radius: 12px; padding: 36px; }
+body .public-refresh.support-experience .support-question-list details[open] { background: var(--public-sand-surface) var(--public-sand); }
 body .public-refresh.support-experience .support-question-list details a { color: var(--public-link); }
-body .public-refresh.support-experience .support-resource-links a { color: var(--public-link); border-color: var(--public-line); border-radius: 8px; }
+body .public-refresh.support-experience .support-resource-links a { color: var(--public-link); background: var(--public-paper-surface) var(--public-paper); border-color: var(--public-line); border-radius: 8px; }
 
 /* Route errors and empty collections use the same controls as the public pages. */
+body .state-page.public-refresh { background: radial-gradient(ellipse at 35% 28%, rgb(198 166 107 / 19%), transparent 72%); }
 body .state-page.public-refresh h1 { color: var(--public-ink); font: 400 clamp(38px, 5vw, 60px)/1.05 var(--public-display); text-wrap: balance; }
 body .state-page.public-refresh p { color: var(--public-muted); }
 body .state-page.public-refresh .state-code { color: var(--public-link); font: 400 clamp(58px, 9vw, 90px)/1 var(--public-display); }
-body .state-page.public-refresh .state-actions :is(a, button) { color: var(--public-link); border-color: var(--public-gold); background: var(--public-paper); }
-body .state-page.public-refresh .state-actions .state-primary { color: var(--public-ink); background: var(--public-gold); }
+body .state-page.public-refresh .state-actions :is(a, button) { color: var(--public-link); border-color: var(--public-gold); background: var(--public-paper-surface) var(--public-paper); }
+body .state-page.public-refresh .state-actions .state-primary { color: var(--public-ink); background: var(--public-gold-surface) var(--public-gold); }
 body .state-page.public-refresh .state-photo { border: 1px solid var(--public-gold); border-radius: 12px; box-shadow: 0 15px 36px var(--public-shadow); }
 
 @media (min-width: 901px) {
   body .public-refresh.catalogue-main .catalogue-directory-hero {
-    background-image: linear-gradient(90deg, var(--public-ink) 30%, rgb(16 28 44 / 93%) 53%, rgb(16 28 44 / 34%) 100%), url("/travel/goa.jpg");
+    background-image: linear-gradient(100deg, var(--public-ink) 15%, rgb(30 48 66 / 94%) 48%, rgb(16 28 44 / 36%) 100%), url("/travel/goa.jpg");
     background-position: center, right 55%;
     background-size: cover;
   }
@@ -407,5 +411,5 @@ body .state-page.public-refresh .state-photo { border: 1px solid var(--public-go
   body .public-refresh.legal-site .legal-header { background: none; color: #000; padding: 0 0 24px; }
   body .public-refresh.legal-site .legal-header h1, body .public-refresh.legal-site .legal-header > div > p { color: #000; }
   body .public-refresh.legal-site .legal-header::before { display: none; }
-  body .public-refresh.legal-site .legal-article { border: 0; padding: 0; color: #000; }
+  body .public-refresh.legal-site .legal-article { background: #fff; border: 0; padding: 0; color: #000; }
 }

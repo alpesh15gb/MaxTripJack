@@ -63,11 +63,11 @@
 .visibility-content .visibility-section:first-child { padding-top: 0; border-top: 0; }
 .visibility-content h2[id] { scroll-margin-top: 28px; }
 .visibility-content .visibility-connections { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border: 0; border-radius: 0; }
-.visibility-content .visibility-connections article { border: 1px solid var(--brand-line); background: #fff; border-radius: 14px; padding: 20px; }
+.visibility-content .visibility-connections article { border: 1px solid var(--brand-line); background: #fff var(--brand-paper-sheen); border-radius: 14px; padding: 20px; }
 .visibility-content .visibility-connections article > div { align-items: flex-start; flex-direction: column; gap: 10px; }
 .visibility-content .visibility-metric { padding: 20px; }
 .visibility-content .visibility-funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.visibility-content .visibility-funnel li { border-left: 3px solid var(--brand-slate); background: #fff; border-radius: 0 12px 12px 0; }
+.visibility-content .visibility-funnel li { border-left: 3px solid var(--brand-gold); background: #fff var(--brand-paper-sheen); border-radius: 0 12px 12px 0; }
 @media (max-width: 1000px) {
   .visibility-workbench { grid-template-columns: 1fr; gap: 24px; }
   .visibility-jump-nav { position: static; display: flex; flex-wrap: wrap; padding: 0; border: 0; border-bottom: 1px solid var(--brand-line); }
@@ -78,12 +78,20 @@
   .visibility-jump-nav a { font-size: 13px; padding: 10px; }
 }
 
-body .visibility-page { color: var(--brand-midnight); background: var(--brand-ivory); padding-top: 30px; }
-body .visibility-page .visibility-heading { background: var(--brand-midnight); color: #fff; border-radius: 18px; padding: 32px; }
+body .visibility-page { color: var(--brand-midnight); background: var(--brand-page-sheen) var(--brand-ivory); padding-top: 30px; }
+body .visibility-page .visibility-heading {
+  background: var(--brand-midnight) var(--brand-night-sheen);
+  color: var(--brand-ivory);
+  border: 1px solid #c6a66b45;
+  border-radius: 18px;
+  padding: clamp(20px, 4vw, 36px);
+  box-shadow: 0 14px 32px #101c2c16;
+}
 .visibility-page .visibility-heading h1 { font-size: clamp(32px, 3.5vw, 44px); line-height: 1.12; letter-spacing: -.045em; font-weight: 650; }
-.visibility-page .visibility-heading .visibility-eyebrow { color: #ffcf94; font-size: 10px; letter-spacing: .12em; }
-.visibility-page .visibility-heading p:not(.visibility-eyebrow) { color: #c8d5e8; font-size: 14px; }
-.visibility-page .visibility-button { background: #fff; color: var(--brand-slate); border-color: #fff; border-radius: 10px; }
+.visibility-page .visibility-heading .visibility-eyebrow { color: #efd7a8; font-size: 10px; letter-spacing: .12em; }
+.visibility-page .visibility-heading p:not(.visibility-eyebrow) { color: #e4ddcf; font-size: 14px; }
+.visibility-page .visibility-button { background: var(--brand-gold) var(--brand-gold-sheen); color: var(--brand-midnight); border-color: var(--brand-gold); border-radius: 10px; }
+.visibility-page .visibility-heading :focus-visible { outline-color: #efd7a8; }
 .visibility-page .visibility-notice { background: #fff7ec; border-color: #edddc7; border-radius: 14px; }
 .visibility-page .visibility-section { border-color: var(--brand-line); border-radius: 16px; }
 .visibility-page .visibility-section h2 { color: var(--brand-midnight); font-size: 24px; }
@@ -91,10 +99,9 @@ body .visibility-page .visibility-heading { background: var(--brand-midnight); c
 .visibility-page .visibility-jump-nav { border-color: var(--brand-line); }
 .visibility-page .visibility-jump-nav a { color: #526176; font-size: 13px; }
 .visibility-page .visibility-jump-nav a:hover { color: var(--brand-slate); background: var(--brand-sand); }
-.visibility-page .visibility-metric { border-color: var(--brand-line); background: var(--brand-ivory); }
+.visibility-page .visibility-metric { border-color: var(--brand-line); background: var(--brand-ivory) var(--brand-paper-sheen); }
 .visibility-page .visibility-metric strong { color: var(--brand-midnight); font-variant-numeric: tabular-nums; }
 .visibility-page .visibility-metric p { color: var(--brand-slate); }
-.visibility-page .visibility-content .visibility-funnel li { border-left-color: var(--brand-slate); }
-.visibility-page .visibility-table thead { background: var(--brand-tint); }
+.visibility-page .visibility-table thead { background: var(--brand-tint) var(--brand-sand-sheen); }
 .visibility-page .visibility-tableWrap { border-color: var(--brand-line); }
 @media (max-width: 600px) { body .visibility-page { padding-top: 22px; } body .visibility-page .visibility-heading { padding: 26px 22px; } }

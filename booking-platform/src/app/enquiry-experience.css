@@ -1,11 +1,11 @@
-.enquiry-review,.enquiry-receipt { min-width:0; margin-top:16px; padding:16px; border:1px solid #cadfd0; border-radius:14px; background:#f7fbf5; color:#214b3b; }
+.enquiry-review,.enquiry-receipt { min-width:0; margin-top:16px; padding:16px; border:1px solid #cadfd0; border-radius:14px; background:#f7fbf5 linear-gradient(140deg,#fffefa,#eaf3e9); color:#214b3b; }
 .enquiry-kicker { display:block; color:#557a60; font-size:9px; font-weight:700; letter-spacing:1.1px; line-height:1.6; }
 .enquiry-review h3,.enquiry-receipt h3 { margin:8px 0 10px; font-size:18px; line-height:1.4; letter-spacing:-.3px; }
 .enquiry-review p,.enquiry-receipt p { margin:10px 0; font-size:12px; line-height:1.7; overflow-wrap:anywhere; }
 .enquiry-summary { display:grid; gap:6px; margin:12px 0; padding-left:18px; color:#476653; font-size:12px; line-height:1.6; }
 .enquiry-summary li { overflow-wrap:anywhere; }
 .enquiry-review button,.enquiry-receipt a { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 13px; margin:0; border:1px solid #b5cfbc; border-radius:9px; background:#fff; color:#175b45; font:inherit; font-size:12px; font-weight:600; cursor:pointer; text-decoration:none; }
-.enquiry-review button.enquiry-primary { width:100%; border-color:#116c50; background:#116c50; color:white; }
+.enquiry-review button.enquiry-primary { width:100%; border-color:var(--brand-gold); background:var(--brand-gold) var(--brand-gold-sheen); color:var(--brand-midnight); }
 .enquiry-review button:disabled { opacity:.55; cursor:wait; }
 .enquiry-review fieldset { min-width:0; margin:19px 0 0; padding:0; border:0; }
 .enquiry-review legend { margin-bottom:12px; padding:0; font-size:14px; font-weight:700; color:#254f3e; }
@@ -26,7 +26,7 @@
 .enquiry-review .enquiry-error { padding:10px; border:1px solid #e4c7b5; border-radius:8px; background:#fff6ef; color:#933f27; }
 .enquiry-recovery { display:flex; flex-wrap:wrap; gap:8px; padding:12px 0 0; }
 .enquiry-recovery p { flex-basis:100%; margin-top:0; }
-.enquiry-reference { margin:14px 0; padding:13px; border:1px solid #c5dac9; border-radius:10px; background:#fff; }
+.enquiry-reference { margin:14px 0; padding:13px; border:1px solid #c5dac9; border-radius:10px; background:#fff var(--brand-paper-sheen); }
 .enquiry-reference span { display:block; margin-bottom:6px; font-size:11px; color:#607d68; }
 .enquiry-reference strong { display:block; color:#17513d; font-size:23px; line-height:1.4; letter-spacing:.5px; overflow-wrap:anywhere; }
 .enquiry-admin { width:min(1200px,100%); min-width:0; margin:auto; padding:30px 24px 70px; color:#173b40; }

@@ -1,8 +1,6 @@
 /* Site-wide polish, loaded last. One palette (midnight navy + champagne) and
    one rhythm across the shared shells, so every page reads as the same brand. */
 
-/* Footer: the public (reference) footer was charcoal; match the navy shell. */
-html body .travel-footer.travel-footer--reference{background:var(--brand-midnight,#101c2c)}
 body .travel-footer--reference .travel-footer-copyright{background:#0b1521}
 body .travel-footer :is(h2,h3){letter-spacing:-.2px}
 body .travel-footer a{transition:color .15s ease}
@@ -12,10 +10,8 @@ body .travel-footer a:hover{color:var(--home-light-gold,#f0d7a8)}
 html body .travel-footer .travel-footer-policies{display:flex;flex-wrap:wrap;align-items:center;gap:0 22px}
 html body .travel-footer .travel-footer-policies a:not(:last-child)::after,html body .travel-footer .travel-footer-policies a::before{content:none}
 
-/* Packages: hero on the brand navy instead of teal; real button for the CTA. */
-html body .package-main.package-main--catalogue .package-heading{background:linear-gradient(135deg,var(--brand-midnight,#101c2c) 0%,#1b2e45 100%)}
-body .package-state>a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin-top:16px;padding:10px 20px;border-radius:8px;background:var(--brand-midnight,#101c2c);color:var(--brand-ivory,#faf9f6);font-weight:650;text-decoration:none;transition:background .15s ease}
-body .package-state>a:hover{background:var(--brand-slate,#24364b)}
+body .package-state>a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin-top:16px;padding:10px 20px;border-radius:8px;background:var(--brand-midnight,#101c2c) var(--brand-night-sheen);color:var(--brand-ivory,#faf9f6);font-weight:650;text-decoration:none;transition:filter .15s ease}
+body .package-state>a:hover{filter:brightness(1.12)}
 body .package-state>button{min-height:44px;margin:16px 10px 0 0}
 
 /* Flight results: the options count is plain supporting text, not a boxed chip. */

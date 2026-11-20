@@ -4,6 +4,7 @@
   margin: 0 0 16px;
   padding: 12px;
   border-radius: 12px;
+  background-image: var(--brand-paper-sheen);
 }
 .checkout-promo-heading, .checkout-promo-applied {
   display: flex;
@@ -40,7 +41,7 @@
   padding: 12px;
   border: 1px solid #d4e3d9;
   border-radius: 10px;
-  background: #f5f9f6;
+  background: #f5f9f6 linear-gradient(135deg, #fbfdfb, #e8f2e9);
 }
 .checkout-promo :is(strong, small, button) { overflow-wrap: anywhere; }
 .checkout-promo-offers small { display: block; margin-block-start: 4px; }

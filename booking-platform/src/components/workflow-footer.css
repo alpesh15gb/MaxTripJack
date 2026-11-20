@@ -9,8 +9,8 @@
 .travel-footer--compact .travel-footer-bottom{margin-top:16px;padding-top:16px;gap:12px}
 @media(max-width:600px){.travel-footer--compact .workflow-footer-content{align-items:flex-start;gap:12px}.travel-footer--compact nav{gap:0 18px}.travel-footer--compact .travel-footer-bottom{font-size:12px;line-height:1.6}}
 
-/* The owner's maxtravel.us footer: a quiet charcoal surface and four clear columns. */
-body .travel-footer.travel-footer--reference{border-top:0;position:relative;background:#1d1d1d;color:#f5f5f5;padding:0;margin-top:56px}
+/* The full footer keeps four clear columns on wide screens. */
+body .travel-footer.travel-footer--reference{border-top:0;position:relative;padding:0;margin-top:56px}
 .travel-footer--reference .travel-footer-inner{max-width:1552px;margin:auto;padding:40px 48px 16px}
 .travel-footer--reference .travel-footer-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);gap:48px;min-width:0}
 .travel-footer--reference .travel-footer-identity{padding-top:40px}
