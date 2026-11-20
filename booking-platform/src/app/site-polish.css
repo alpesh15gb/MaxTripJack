@@ -57,7 +57,7 @@ html body :is(.fare-calendar-days small,.flight-date-fare).fare-band-low::before
 
 /* Clickable things look clickable. */
 html body :is(button,summary,[role=button],label:has(input[type=radio]),label:has(input[type=checkbox])):not(:disabled){cursor:pointer}
-html body .booking-workflow :is(.booking-progress li,.booking-criteria-field small,.flight-shortcut-label,.flight-shortcut-metrics,.flight-shortcut-metrics small,.flight-headline-facts span,.flight-headline-facts li,.mobile-action-total small,.flight-date-day .flight-date-fare),html body .booking-workflow .airport-hint{font-size:12px}
+html body .booking-workflow :is(.booking-progress li,.booking-criteria-field small,.flight-headline-facts span,.flight-headline-facts li,.mobile-action-total small,.flight-date-day .flight-date-fare),html body .booking-workflow .airport-hint{font-size:12px}
 html body .booking-workflow .booking-progress li>span{font-size:11px}
 html body .booking-workflow.journey-flow.has-journey .booking-progress li,html body .booking-workflow.journey-flow .booking-progress li,html body .booking-progress li{font-size:12px}
 html body .booking-progress li>:is(span:first-child,b){font-size:11px}

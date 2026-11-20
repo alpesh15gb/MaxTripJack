@@ -67,11 +67,11 @@ test('flight shopping preserves local dates, airport identity and party fare con
  const shot=await page.screenshot({path:testInfo.outputPath(`flight-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});await testInfo.attach('flight-shopping viewport',{body:shot,contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-shopping-loaded');
  await filters(page,true);
- await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');await filters(page,false);await expect(page.getByLabel('Active flight filters')).toContainText('Up to ₹7,000 · all travellers');await expect(page.getByLabel('Active flight filters')).not.toContainText('/ party');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
+ await page.getByRole('spinbutton',{name:'Maximum total for all travellers (₹)',exact:true}).fill('7000');await filters(page,false);await expect(page.getByLabel('Active flight filters')).toContainText('Up to ₹7,000 · all travellers');await expect(page.getByLabel('Active flight filters')).not.toContainText('/ party');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('IndiGo');
  await filters(page,true);
  await page.getByRole('button',{name:'Reset flight filters',exact:true}).click();await expect(cards).toHaveCount(3);
  await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('EVENING');await expect(cards).toHaveCount(2);
- await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('13000');await expect(cards).toHaveCount(1);
+ await page.getByRole('spinbutton',{name:'Maximum total for all travellers (₹)',exact:true}).fill('13000');await expect(cards).toHaveCount(1);
  await expect(cards.first()).toContainText('+1 calendar day');await expect(cards.first()).toContainText('NMI');await expect(cards.first()).toContainText('Navi Mumbai');
  await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');await filters(page,false);await expect(page.getByRole('heading',{name:'No flights match these filters'})).toBeVisible();
  await page.getByRole('button',{name:'Reset filters',exact:true}).click();await expect(cards).toHaveCount(3);
@@ -96,11 +96,11 @@ test('automatic return advance clears group filters but preserves selected outbo
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,returnDate:returning,adults:'1',autoSearch:'1'}));
  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
  await filters(page,true);
- await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('MORNING');await page.getByLabel('Maximum total for all travellers (₹)',{exact:true}).fill('7000');
+ await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('MORNING');await page.getByRole('spinbutton',{name:'Maximum total for all travellers (₹)',exact:true}).fill('7000');
  await filters(page,false);await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Choose this outbound fare',exact:true}).click();
  await expect(page.getByRole('button',{name:/^Return/})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('₹10,000');
  await filters(page,true);
- await expect(page.getByRole('combobox',{name:'Departure time',exact:true})).toHaveValue('ALL');await expect(page.getByLabel('Maximum total for all travellers (₹)',{exact:true})).toHaveValue('');
+ await expect(page.getByRole('combobox',{name:'Departure time',exact:true})).toHaveValue('ALL');await expect(page.getByRole('spinbutton',{name:'Maximum total for all travellers (₹)',exact:true})).toHaveValue('');
  await filters(page,false);await page.getByRole('button',{name:/^Outbound/}).click();await expect(page.getByRole('button',{name:'Selected',exact:true})).toHaveAttribute('aria-pressed','true');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
@@ -122,23 +122,16 @@ test('flight sort controls reorder loaded options by price, duration and local d
  await page.goto('/book?' + new URLSearchParams({product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: '1', autoSearch: '1'}));
  const names = page.locator('.flight-shopping-list .airline-identity strong');
  await expect(names).toHaveText(['Price fixture', 'Duration fixture', 'Departure fixture', 'Unknown fixture']);
- const desktopSort = page.getByRole('group', {name: 'Sort flights', exact: true});
- const mobileSort = page.getByRole('combobox', {name: 'Sort by', exact: true});
+ const sorting = page.getByRole('group', {name: 'Sort flights', exact: true});
+ await expect(sorting).toHaveCount(1);
  for (const sort of [
-  {value: 'duration', label: 'Shortest', order: ['Duration fixture', 'Departure fixture', 'Price fixture', 'Unknown fixture']},
-  {value: 'departure', label: 'Earliest', order: ['Departure fixture', 'Price fixture', 'Duration fixture', 'Unknown fixture']},
-  {value: 'price', label: 'Lowest price', order: ['Price fixture', 'Duration fixture', 'Departure fixture', 'Unknown fixture']},
+  {label: 'Fastest', order: ['Duration fixture', 'Departure fixture', 'Price fixture', 'Unknown fixture']},
+  {label: 'Earliest', order: ['Departure fixture', 'Price fixture', 'Duration fixture', 'Unknown fixture']},
+  {label: 'Cheapest', order: ['Price fixture', 'Duration fixture', 'Departure fixture', 'Unknown fixture']},
  ]) {
-  if (page.viewportSize()!.width > 1100) {
-   await expect(desktopSort).toBeVisible();
-   await expect(mobileSort).toHaveCount(0);
-   await desktopSort.getByRole('button', {name: sort.label, exact: true}).click();
-   await expect(desktopSort.getByRole('button', {name: sort.label, exact: true})).toHaveAttribute('aria-pressed', 'true');
-  } else {
-   await expect(desktopSort).toHaveCount(0);
-   await mobileSort.selectOption(sort.value);
-   await expect(mobileSort).toHaveValue(sort.value);
-  }
+  await sorting.getByRole('button', {name: sort.label, exact: true}).click();
+  await expect(sorting.getByRole('button', {pressed: true})).toHaveCount(1);
+  await expect(sorting.getByRole('button', {pressed: true})).toHaveAccessibleName(sort.label);
   await expect(names).toHaveText(sort.order);
  }
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -167,7 +160,7 @@ test('return headlines, ordering and budget use fares compatible with the select
  await expectNoHorizontalOverflow(page);
  await capture(page, testInfo, 'compatible-return-results');
  await filters(page,true);
- await page.getByLabel('Maximum total for all travellers (₹)', {exact: true}).fill('8000');
+ await page.getByRole('spinbutton', {name: 'Maximum total for all travellers (₹)', exact: true}).fill('8000');
  await expect(cards).toHaveCount(1);
  await expect(cards.first()).toContainText('Compatible return fixture');
  await page.getByRole('button', {name: 'Reset flight filters', exact: true}).click();

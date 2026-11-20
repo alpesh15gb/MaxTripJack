@@ -1,5 +1,6 @@
 import {test,expect,departure,returning,searchId,flight,openFlightSearch,reviewedQuote,expectNoHorizontalOverflow,capture,type ProviderFixture} from './fixtures';
 import type {Locator,Page,TestInfo} from '@playwright/test';
+import type {Flight} from '../../src/lib/booking-presentation';
 
 async function expectNativeModalTabCycle(page:Page,dialog:Locator,info:TestInfo){
  const focusState=()=>dialog.evaluate(node=>({inside:node.contains(document.activeElement),tag:document.activeElement?.tagName,id:document.activeElement?.id,documentFocused:document.hasFocus()}));
@@ -12,7 +13,7 @@ async function expectNativeModalTabCycle(page:Page,dialog:Locator,info:TestInfo)
  const afterCycle=await focusState();
  await info.attach('native-modal-tab-cycle',{body:JSON.stringify({afterLast,afterCycle}),contentType:'application/json'});
  // Native inertness must also reject a direct attempt to focus the background trigger.
- await page.locator('.mobile-filter-toggle:visible,.hotel-filter-toggle:visible').evaluate(node=>(node as HTMLElement).focus());
+ await page.locator('.flight-filter-trigger:visible,.hotel-filter-toggle:visible').evaluate(node=>(node as HTMLElement).focus());
  expect((await focusState()).inside).toBe(true);
 }
 
@@ -24,7 +25,7 @@ function comparisonFlights(provider:ProviderFixture){
  ];
  connector.totalPriceList[0].customerEstimateMinor=400000;
  const direct=flight('ONWARD','direct-fare');
- direct.sI[0].fD={aI:{name:'Direct Air',code:'6E'},fN:'401'};
+ direct.sI[0]={...direct.sI[0],dt:`${departure}T06:45:00`,at:`${departure}T08:55:00`,fD:{aI:{name:'Direct Air',code:'6E'},fN:'401'}};
  direct.totalPriceList[0].customerEstimateMinor=600000;
  const fastest=flight('ONWARD','fastest-fare');
  fastest.sI[0]={...fastest.sI[0],dt:`${departure}T09:30:00`,at:`${departure}T11:00:00`,duration:90,fD:{aI:{name:'Quick Air',code:'6E'},fN:'501'}};
@@ -32,36 +33,120 @@ function comparisonFlights(provider:ProviderFixture){
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[connector,direct,fastest]}}}};
 }
 
-test('flight shortcuts compare the displayed itinerary estimates and refine without reviewing or reserving',async({page,provider},info)=>{
+test('flight comparison shows coherent estimates and keeps sorting independent from non-stop filtering',async({page,provider},info)=>{
  comparisonFlights(provider);
  await openFlightSearch(page);
- const choices=page.getByRole('group',{name:'Compare flight options',exact:true});
+ const choices=page.getByRole('group',{name:'Sort flights',exact:true});
  const cards=page.locator('.live-flight-card');
  await expect(cards).toHaveCount(3);
- await expect(choices.getByRole('button',{name:'Lowest estimated price',exact:true})).toContainText('₹4,000');
- await expect(choices.getByRole('button',{name:'Lowest non-stop',exact:true})).toContainText('₹6,000');
+ await expect(choices).toHaveCount(1);
+ await expect(choices.getByRole('button')).toHaveCount(3);
+ const cheapest=choices.getByRole('button',{name:'Cheapest',exact:true});
  const fastest=choices.getByRole('button',{name:'Fastest',exact:true});
+ const earliest=choices.getByRole('button',{name:'Earliest',exact:true});
+ const selected=choices.getByRole('button',{pressed:true});
+ await expect(selected).toHaveCount(1);
+ await expect(selected).toHaveAccessibleName('Cheapest');
+ await expect(cheapest).toContainText('₹4,000');
+ await expect(cheapest).toContainText('3h');
  await expect(fastest).toContainText('₹9,000');
  await expect(fastest).toContainText('1h 30m');
+ await expect(earliest).toContainText('06:45');
+ await expect(earliest).toContainText('₹6,000');
  await fastest.click();
  await expect(cards.first().locator('.airline-identity')).toContainText('Quick Air');
- await expect(fastest).toHaveAttribute('aria-pressed','true');
- await choices.getByRole('button',{name:'Lowest estimated price',exact:true}).click();
- await expect(cards.first().locator('.airline-identity')).toContainText('Connector Air');
- const nonstop=choices.getByRole('button',{name:'Lowest non-stop',exact:true});
+ await expect(selected).toHaveAccessibleName('Fastest');
+ const nonstop=page.getByRole('button',{name:'Non-stop',exact:true});
+ await expect(nonstop).toHaveAttribute('aria-pressed','false');
  await nonstop.click();
  await expect(cards).toHaveCount(2);
- await expect(cards.first().locator('.airline-identity')).toContainText('Direct Air');
  await expect(nonstop).toHaveAttribute('aria-pressed','true');
- await expect(choices.getByRole('button',{name:'Lowest estimated price',exact:true})).toContainText('₹6,000');
+ await expect(page.getByRole('button',{name:'Clear all filters',exact:true})).toBeVisible();
+ await expect(selected).toHaveCount(1);
+ await expect(selected).toHaveAccessibleName('Fastest');
+ await expect(cards.first().locator('.airline-identity')).toContainText('Quick Air');
+ await expect(cheapest).toContainText('₹6,000');
+ await earliest.click();
+ await expect(nonstop).toHaveAttribute('aria-pressed','true');
+ await expect(selected).toHaveAccessibleName('Earliest');
+ await expect(cards.first().locator('.airline-identity')).toContainText('Direct Air');
+ await capture(page,info,'flight-comparison-active-filters');
  await nonstop.click();
  await expect(cards).toHaveCount(3);
+ await expect(selected).toHaveAccessibleName('Earliest');
+ await cheapest.click();
  await expect(cards.first().locator('.airline-identity')).toContainText('Connector Air');
+ await expect(selected).toHaveAccessibleName('Cheapest');
  await expectNoHorizontalOverflow(page);
  await capture(page,info,'flight-comparison-shortcuts');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('missing estimates and times do not promise a faster or earlier flight',async({page,provider})=>{
+ const unknown:Flight=flight('ONWARD','unknown-metrics-fare');
+ const noTimes={...unknown.sI[0],dt:'unknown',at:'unknown',duration:undefined};
+ unknown.sI=[
+  {...noTimes,aa:{code:'AMD',city:'Ahmedabad'}},
+  {...noTimes,da:{code:'AMD',city:'Ahmedabad'}},
+ ];
+ unknown.totalPriceList[0].customerEstimateMinor=undefined;
+ provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[unknown]}}}};
+ await openFlightSearch(page);
+ const sorts=page.getByRole('group',{name:'Sort flights',exact:true});
+ await expect(sorts.getByRole('button',{name:'Cheapest',exact:true})).toBeEnabled();
+ await expect(sorts.getByRole('button',{pressed:true})).toHaveAccessibleName('Cheapest');
+ await expect(sorts.getByRole('button',{name:'Fastest',exact:true})).toBeDisabled();
+ await expect(sorts.getByRole('button',{name:'Earliest',exact:true})).toBeDisabled();
+ await expect(sorts.getByRole('button',{name:'Cheapest',exact:true})).toContainText('Price at review');
+ await expect(sorts.getByRole('button',{name:'Fastest',exact:true})).toContainText('Time unavailable');
+ await expect(sorts.getByRole('button',{name:'Earliest',exact:true})).toContainText('Time unavailable');
+ await expect(sorts).not.toContainText('₹');
+ await expect(page.getByRole('button',{name:'Non-stop',exact:true})).toBeDisabled();
+ await expect(page.locator('.live-flight-card')).toHaveCount(1);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
+});
+
+test('flight sorting fits 320px and stays usable by keyboard',async({page,provider},info)=>{
+ test.skip(info.project.name!=='mobile-390','One narrow and keyboard pass is sufficient');
+ await page.setViewportSize({width:320,height:844});
+ comparisonFlights(provider);
+ await openFlightSearch(page);
+ const sorts=page.getByRole('group',{name:'Sort flights',exact:true});
+ const cheapest=sorts.getByRole('button',{name:'Cheapest',exact:true});
+ const fastest=sorts.getByRole('button',{name:'Fastest',exact:true});
+ const earliest=sorts.getByRole('button',{name:'Earliest',exact:true});
+ const nonStop=page.getByRole('button',{name:'Non-stop',exact:true});
+ await expect(earliest).toBeVisible();
+ await page.evaluate(()=>document.fonts.ready);
+ await expectNoHorizontalOverflow(page);
+ for(const control of [cheapest,fastest,earliest,nonStop]){
+  const box=await control.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect(box?.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x+box!.width).toBeLessThanOrEqual(321);
+  expect(await control.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
+ }
+ await cheapest.focus();
+ await page.keyboard.press('Tab');
+ await expect(fastest).toBeFocused();
+ await page.keyboard.press('Space');
+ await expect(sorts.getByRole('button',{pressed:true})).toHaveAccessibleName('Fastest');
+ await page.keyboard.press('Tab');
+ await expect(earliest).toBeFocused();
+ await page.keyboard.press('Enter');
+ await expect(sorts.getByRole('button',{pressed:true})).toHaveAccessibleName('Earliest');
+ await nonStop.focus();
+ await page.keyboard.press('Space');
+ await expect(nonStop).toBeFocused();
+ await expect(nonStop).toHaveAttribute('aria-pressed','true');
+ await expect(sorts.getByRole('button',{pressed:true})).toHaveAccessibleName('Earliest');
+ await expect(page.locator('.live-flight-card')).toHaveCount(2);
+ await capture(page,info,'flight-comparison-320px');
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });
 
 test('mobile flight filters contain keyboard focus and preserve refinements after closing',async({page,provider},info)=>{

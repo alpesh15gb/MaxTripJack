@@ -20,8 +20,11 @@ test('nearby departure dates use submitted criteria and never move the return',a
  expect(request.date).toBe(previous);
  await expect(dates.locator(`[data-flight-date="${previous}"]`)).toHaveAttribute('aria-current','date');
  await expect(dates.locator('button[aria-current="date"]')).toHaveCount(1);
- // Day fares are indicative calendar prices, never a selectable fare or a payment.
- await expect(dates.locator(`[data-flight-date="${departure}"] .flight-date-fare`)).toHaveText('₹5,620');expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ // Generic one-way estimates don't describe a journey with this fixed return.
+ await expect(dates).toContainText(`Return stays ${travelDateLabel(departure)}`);
+ await expect(dates).not.toContainText('₹');
+ expect(provider.requests('/api/travel/fare-calendar')).toHaveLength(0);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 test('15-day flight timeline fits desktop and scrolls inside the mobile strip without searching',async({page,provider,isMobile},info)=>{
@@ -93,6 +96,7 @@ test('flight timeline starts today instead of offering past departure dates',asy
  await expect(days.last()).toHaveAttribute('data-flight-date',shiftedDate(today,14));
  await expect(dates.locator('button[aria-current="date"]')).toHaveAttribute('data-flight-date',today);
  expect((await days.evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-flight-date')!))).every(date=>date>=today)).toBe(true);
+ await expect.poll(()=>provider.requests('/api/travel/fare-calendar').find(call=>call.method==='GET')?.query).toMatchObject({start:today,days:'15'});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

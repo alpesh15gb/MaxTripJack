@@ -13,13 +13,18 @@ const flightProps:ComponentProps<typeof BookingFlightCard>={flight:{sI:[{dt:'202
 const roomProps:ComponentProps<typeof HotelRoomView>={name:'Test hotel',options:[{optionId:'room-1',roomInfo:[{name:'Twin room'}],pricing:{totalPrice:4000}}],context:{checkIn:'2026-10-31',checkOut:'2026-11-02',rooms:2,guests:3},busy:false,now:0,onBack:()=>{},onReview:()=>{}};
 const hotelProps:ComponentProps<typeof HotelResults>={searchId:'11111111-1111-4111-8111-111111111111',hotels:[{tjHotelId:'h-1',name:'Test stay',customerEstimateMinor:400000,property:{amenities:['No Accessible Shuttle','Parking']}}],context:null,busy:false,onChoose:()=>{}};
 
-test('nearby date prices expose their indicative per-adult basis only when a displayed fare exists',()=>{
+test('nearby dates expose their one-adult fare scope and distinguish checks from missing prices',()=>{
  const props:ComponentProps<typeof FlightDateTimeline>={days:[{date:'2026-10-31',search:null}],selectedDate:'2026-10-31',pendingDate:null,disabled:false,onPrepare:()=>{},onSelect:()=>{}};
  const priced=renderToStaticMarkup(createElement(FlightDateTimeline,{...props,fares:{'2026-10-31':{minor:562000,band:'low'}}}));
- assert.match(priced,/Recent from fares · per adult/);assert.match(priced,/indicative fare from ₹5,620 per adult/);
+ assert.match(priced,/Indicative one-way fares · 1 adult/);assert.match(priced,/indicative fare from ₹5,620 for 1 adult/);
  assert.match(priced,/aria-describedby="[^"]+"/);
+ const checking=renderToStaticMarkup(createElement(FlightDateTimeline,{...props,pendingFares:['2026-10-31']}));
+ assert.match(checking,/checking fare/);assert.match(checking,/>Checking<\/small>/);
  const missing=renderToStaticMarkup(createElement(FlightDateTimeline,{...props,fares:{'2026-11-01':{minor:600000,band:'mid'}}}));
- assert.doesNotMatch(missing,/Recent from fares|indicative fare|aria-describedby/);
+ assert.match(missing,/fare not available yet/);assert.doesNotMatch(missing,/₹|checking fare/);
+ const roundTrip=renderToStaticMarkup(createElement(FlightDateTimeline,{...props,returnDate:'2026-11-05',fares:{'2026-10-31':{minor:562000,band:'low'}}}));
+ assert.match(roundTrip,/Round-trip fares depend on both dates/);assert.match(roundTrip,/Return stays 5 Nov 2026/);
+ assert.doesNotMatch(roundTrip,/₹|fare not available yet/);
 });
 
 test('flight card uses readable local dates and truthful total scope without invented duration',()=>{

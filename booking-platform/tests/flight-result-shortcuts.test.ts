@@ -15,30 +15,36 @@ function flight(id: string, duration: number, price: number, currency?: string):
   };
 }
 
-test('each shortcut uses the price and duration of one compatible itinerary', () => {
+test('each sort preview comes from the compatible itinerary it puts first', () => {
   const connecting = flight('connecting', 105, 688000);
   connecting.sI = [
     { ...segment, aa: { code: 'AMD' }, at: '2026-11-24T08:00:00+05:30' },
     { ...segment, da: { code: 'AMD' }, dt: '2026-11-24T09:30:00+05:30', at: '2026-11-24T11:30:00+05:30' },
   ];
-  const options = flightResultShortcuts([
-    flight('incompatible', 65, 499000), connecting, flight('direct', 135, 695000), flight('fast', 115, 775000),
-  ], 'RETURN', fare => fare.id !== 'incompatible');
+  const incompatible = flight('incompatible', 65, 499000);
+  incompatible.sI[0].dt = '2026-11-24T02:00:00+05:30';
+  const direct = flight('direct', 135, 695000);
+  direct.sI[0].dt = '2026-11-24T05:00:00+05:30';
+  const options = flightResultShortcuts([incompatible, connecting, direct, flight('fast', 115, 775000)], 'RETURN', fare => fare.id !== 'incompatible');
   assert.deepEqual(options, {
-    lowest: { priceMinor: 688000, durationMinutes: 315 },
-    nonstop: { priceMinor: 695000, durationMinutes: 135 },
-    fastest: { priceMinor: 775000, durationMinutes: 115 },
+    lowest: { priceMinor: 688000, durationMinutes: 315, departureLabel: '06:15' },
+    fastest: { priceMinor: 775000, durationMinutes: 115, departureLabel: '06:15' },
+    earliest: { priceMinor: 695000, durationMinutes: 135, departureLabel: '05:00' },
   });
 });
 
-test('unknown duration and foreign estimates stay unknown, and COMBO has no shortcuts', () => {
+test('sort previews keep unknown metrics and foreign fares distinct from available estimates', () => {
   const unknown = flight('unknown-time', 0, 500000);
   unknown.sI[0].dt = 'unknown';
   const foreign = flight('fast-unpriced', 120, 80000, 'USD');
   assert.deepEqual(flightResultShortcuts([unknown, foreign], 'ONWARD'), {
-    lowest: { priceMinor: 500000, durationMinutes: null },
-    nonstop: { priceMinor: 500000, durationMinutes: null },
-    fastest: { priceMinor: null, durationMinutes: 120 },
+    lowest: { priceMinor: 500000, durationMinutes: null, departureLabel: null },
+    fastest: { priceMinor: null, durationMinutes: 120, departureLabel: '06:15' },
+    earliest: { priceMinor: null, durationMinutes: 120, departureLabel: '06:15' },
   });
-  assert.deepEqual(flightResultShortcuts([foreign], 'COMBO'), { lowest: null, nonstop: null, fastest: null });
+  assert.deepEqual(flightResultShortcuts([foreign], 'COMBO'), {
+    lowest: null,
+    fastest: null,
+    earliest: { priceMinor: null, durationMinutes: null, departureLabel: '06:15' },
+  });
 });

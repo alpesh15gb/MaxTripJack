@@ -1,9 +1,10 @@
-/* Flight comparison: compact hierarchy, honest price scope and one sort control per viewport. */
+/* Flight comparison: compact hierarchy and clear price scope. */
 body .booking-workflow.journey-flow.flight-results-page .results-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 4px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 18px;
   padding: 8px 0 14px;
   margin: 0;
   border: 0;
@@ -11,15 +12,7 @@ body .booking-workflow.journey-flow.flight-results-page .results-heading {
   background: transparent;
 }
 body .booking-workflow.journey-flow.flight-results-page .results-heading h2 { margin: 0; font-size: 22px; letter-spacing: -.025em; }
-body .booking-workflow.journey-flow.flight-results-page .results-heading p { display: none; }
-body .booking-workflow.journey-flow.flight-results-page .results-heading .results-count { grid-column: 1; grid-row: 2; justify-self: start; padding: 0; border-radius: 0; background: transparent; color: #536963; font-size: 13px; line-height: 1.5; }
-body .booking-workflow.journey-flow.flight-results-page .flight-sort-options { grid-column: 2; grid-row: 1 / 3; display: inline-flex; padding: 4px; gap: 3px; border: 1px solid #d3e1d9; border-radius: 12px; background: #fff; }
-body .booking-workflow.journey-flow.flight-results-page .flight-sort-options button { min-height: 44px; padding: 9px 15px; border: 0; border-radius: 8px; background: transparent; color: #425d54; font: 600 14px/1.4 var(--font-geist-sans), sans-serif; box-shadow: none; white-space: nowrap; }
-body .booking-workflow.journey-flow.flight-results-page .flight-sort-options button[aria-pressed="true"] { background: #e4f1e9; color: #005344; }
-body .booking-workflow.journey-flow.flight-results-page .flight-sort-options button:hover:not(:disabled) { background: #f0f6f2; }
-body .booking-workflow.journey-flow.flight-results-page .flight-sort-options button:disabled { color: #6e7f78; opacity: .7; cursor: not-allowed; }
-body .booking-workflow.journey-flow.flight-results-page .flight-sort-options button:focus-visible { outline: 3px solid #087f8c; outline-offset: 2px; }
-body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls .flight-sort-select { display: none; }
+body .booking-workflow.journey-flow.flight-results-page .results-heading .results-count { padding: 0; border-radius: 0; background: transparent; color: var(--brand-muted, #526071); font-size: 13px; line-height: 1.5; }
 body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls { border-radius: 12px; padding: 16px; }
 body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list { gap: 10px; }
 
@@ -82,13 +75,10 @@ body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .c
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card.is-choosing-fare:not(:has(.combo-itinerary)) { grid-template-columns: 180px minmax(0, 1fr) 0; }
 }
 @media (max-width: 1100px) {
-  body .booking-workflow.journey-flow.flight-results-page .flight-sort-options { display: none; }
-  body .booking-workflow.journey-flow.flight-results-page .results-heading { grid-template-columns: minmax(0, 1fr); padding-bottom: 10px; }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls .flight-sort-select { display: grid; }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-controls { padding: 10px 12px; }
+  body .booking-workflow.journey-flow.flight-results-page .results-heading { padding-bottom: 10px; }
 }
 @media (max-width: 600px) {
-  body .booking-workflow.journey-flow.flight-results-page .results-heading { gap: 3px; padding-top: 0; }
+  body .booking-workflow.journey-flow.flight-results-page .results-heading { gap: 3px 10px; padding-top: 0; }
   body .booking-workflow.journey-flow.flight-results-page .results-heading h2 { font-size: 21px; }
   body .booking-workflow.journey-flow.flight-results-page .results-heading .results-count { font-size: 12px; }
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping { gap: 10px; }

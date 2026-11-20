@@ -588,7 +588,7 @@ test('mobile filters expand accessibly without replacing the visible sort or tri
  if(await filters.isVisible()){
   await expect(filters).toHaveAttribute('aria-expanded','false');
   await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveCount(0);
-  await filters.focus();await filters.press('Enter');await expect(page.locator('.mobile-filter-toggle')).toHaveAttribute('aria-expanded','true');await expect(page.getByRole('dialog',{name:'Filter flights',exact:true})).toBeVisible();
+  await filters.focus();await filters.press('Enter');await expect(page.locator('.flight-filter-trigger')).toHaveAttribute('aria-expanded','true');await expect(page.getByRole('dialog',{name:'Filter flights',exact:true})).toBeVisible();
   await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');
   await expect(page.getByRole('combobox',{name:'Stops',exact:true})).toBeVisible();
   const dialog=page.getByRole('dialog',{name:'Filter flights',exact:true});
@@ -598,8 +598,7 @@ test('mobile filters expand accessibly without replacing the visible sort or tri
   await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(filters).toBeFocused();
   await expectFlightToolbarValuesFit(page);
  }
- if (page.viewportSize()!.width <= 1100) await expect(page.getByRole('combobox',{name:'Sort by',exact:true})).toBeVisible();
- else await expect(page.getByRole('group',{name:'Sort flights',exact:true})).toBeVisible();
+ await expect(page.getByRole('group',{name:'Sort flights',exact:true})).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });
 

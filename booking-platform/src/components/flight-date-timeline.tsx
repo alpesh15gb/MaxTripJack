@@ -8,8 +8,10 @@ import {compactRupees,type FareCalendarDay} from '@/lib/fare-calendar-core';
 const weekday = new Intl.DateTimeFormat('en-GB', {weekday: 'short', timeZone: 'UTC'});
 const month = new Intl.DateTimeFormat('en-GB', {month: 'short', timeZone: 'UTC'});
 
-export default function FlightDateTimeline({days, selectedDate, returnDate, pendingDate, disabled, onPrepare, onSelect, fares = {}}: {
+export default function FlightDateTimeline({days, selectedDate, returnDate, pendingDate, disabled, onPrepare, onSelect, showFares = !returnDate, fares = {}, pendingFares = []}: {
+  showFares?: boolean;
   fares?: Record<string, FareCalendarDay>;
+  pendingFares?: string[];
   days: FlightTimelineDay[];
   selectedDate: string;
   returnDate?: string;
@@ -24,7 +26,7 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
   const restoreFocus = useRef(false);
   const [focusedDate, setFocusedDate] = useState(selectedDate);
   const [scroll, setScroll] = useState({earlier: false, later: false});
-  const hasIndicativeFares = days.some(day => Boolean(fares[day.date]));
+  const checkingDates = new Set(pendingFares);
   const tabDate = days.some(day => day.date === focusedDate && (day.search || day.date === selectedDate)) ? focusedDate : selectedDate;
 
   const cancelWarm = useCallback(() => {
@@ -87,11 +89,13 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
     buttons[target]?.focus();
   }
 
-  return <nav className="flight-date-timeline" aria-label="Nearby departure dates" aria-describedby={hasIndicativeFares ? priceNoteId : undefined}>
+  return <nav className="flight-date-timeline" aria-label="Nearby departure dates" aria-describedby={priceNoteId}>
     <div className="flight-date-header">
       <div>
         <h3>Departure dates</h3>
-        {hasIndicativeFares && <p id={priceNoteId} className="flight-date-price-note">Recent from fares · per adult</p>}
+        <p id={priceNoteId} className="flight-date-price-note">{showFares
+          ? 'Indicative one-way fares · 1 adult. Select a date for live prices.'
+          : returnDate ? 'Round-trip fares depend on both dates.' : 'Select a date to check fares for your travellers.'}</p>
         {returnDate && <p>Return stays {travelDateLabel(returnDate)}</p>}
       </div>
       {(scroll.earlier || scroll.later) && <div className="flight-date-arrows">
@@ -105,10 +109,14 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
         const pending = day.date === pendingDate;
         const value = new Date(`${day.date}T00:00:00Z`);
         const week = weekday.format(value);
-        const fare = fares[day.date];
+        const fare = showFares ? fares[day.date] : undefined;
+        const checkingFare = showFares && checkingDates.has(day.date);
+        const fareLabel = fare
+          ? `, indicative fare from ₹${Math.round(fare.minor / 100).toLocaleString('en-IN')} for 1 adult${fare.band === 'low' ? ', one of the lowest fares' : ''}`
+          : showFares ? checkingFare ? ', checking fare' : ', fare not available yet' : '';
         return <button key={day.date} type="button" className="flight-date-day"
           data-flight-date={day.date} data-pending={pending || undefined}
-          aria-label={`${travelDateLabel(day.date)}, ${week}${fare ? `, indicative fare from ₹${Math.round(fare.minor / 100).toLocaleString('en-IN')} per adult${fare.band === 'low' ? ', one of the lowest fares' : ''}` : ''}`}
+          aria-label={`${travelDateLabel(day.date)}, ${week}${fareLabel}`}
           aria-current={current ? 'date' : undefined} aria-disabled={current || undefined}
           disabled={disabled || (!current && !day.search)} tabIndex={day.date === tabDate ? 0 : -1}
           onPointerEnter={event => { if (event.pointerType === 'mouse') prepare(day); }} onPointerLeave={cancelWarm}
@@ -121,7 +129,7 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
           }}>
           <span>{week}</span>
           <time dateTime={day.date}><strong>{value.getUTCDate()}</strong> {month.format(value)}</time>
-          <small className={fare ? `flight-date-fare fare-band-${fare.band}` : 'flight-date-fare'} aria-hidden="true">{fare ? `₹${compactRupees(fare.minor)}` : ' '}</small>
+          {showFares && <small className={fare ? `flight-date-fare fare-band-${fare.band}` : 'flight-date-fare flight-date-fare-status'} aria-hidden="true">{fare ? `₹${compactRupees(fare.minor)}` : checkingFare ? 'Checking' : '—'}</small>}
         </button>;
       })}
     </div>

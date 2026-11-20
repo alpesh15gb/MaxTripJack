@@ -1,6 +1,7 @@
 import { bookingSearchUrl } from './booking-search-state';
+import { fareCalendarWindow, FARE_CALENDAR_TIMELINE_DAYS } from './fare-calendar-core';
 
-const DATE_RADIUS = 7;
+const DATE_RADIUS = Math.floor(FARE_CALENDAR_TIMELINE_DAYS / 2);
 const DAY_MS = 86_400_000;
 type DateSearch = {date:string;criteria:Record<string,string>;url:string};
 export type FlightTimelineDay = {date:string;search:DateSearch|null};
@@ -30,11 +31,8 @@ export function nearbyFlightSearch(criteria:Record<string,string>, offset:number
 }
 
 export function flightDateTimeline(criteria:Record<string,string>, today:string):FlightTimelineDay[] {
-  const departure = departureTime(criteria);
-  if (departure === null) return [];
-  const start = Math.max(departure - DATE_RADIUS * DAY_MS, Date.parse(`${today}T00:00:00Z`));
-  return Array.from({length: 2 * DATE_RADIUS + 1}, (_, index) => {
-    const date = isoDay(start + index * DAY_MS);
-    return {date, search: searchOnDate(criteria, date, today)};
-  });
+  if (departureTime(criteria) === null) return [];
+  return fareCalendarWindow(criteria.date, today).map(date => ({
+    date, search: searchOnDate(criteria, date, today),
+  }));
 }

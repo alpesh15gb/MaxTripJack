@@ -14,7 +14,7 @@ function nextMonth(start:string,count=1){const d=new Date(at(start));d.setUTCMon
 
 /** Date field with an inline two-month calendar. Prices are indicative "from"
  * fares per adult; the hidden input keeps native form submission unchanged. */
-export default function FareDatePicker({name,label,value,min,max,onChange,fares={},rangeStart,helper}:{
+export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper}:{
  name:string;label:string;value:string;min:string;max?:string;onChange:(value:string)=>void;
  fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;
 }){
@@ -22,7 +22,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
  const [open,setOpen]=useState(false);
  const [view,setView]=useState(()=>monthStart(value||min));
  const [focus,setFocus]=useState(value||min);
- const hasFares=Object.keys(fares).length>0;
+ const hasFares=Boolean(fares&&Object.keys(fares).length);
  useEffect(()=>{
   if(!open)return;
   const away=(event:PointerEvent)=>{if(root.current&&!root.current.contains(event.target as Node))setOpen(false);};
@@ -57,7 +57,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
  const months=[view,nextMonth(view)];
  const canBack=view>monthStart(min);
  const canNext=!max||nextMonth(view)<=monthStart(max);
- const fare=fares[value];
+ const fare=fares?.[value];
  return <div className="home-search-input fare-date" ref={root}>
   <span id={`${id}-label`}>{label}</span>
   <button type="button" className="fare-date-trigger" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${id}-label ${id}-value`} onClick={toggle}>
@@ -79,7 +79,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
       <div className="fare-calendar-days" role="row">
        {Array.from({length:first},(_,index)=><span key={`gap-${index}`} aria-hidden="true"/>)}
        {Array.from({length:days},(_,index)=>{
-        const date=shift(start,index),price=fares[date],enabled=allowed(date);
+        const date=shift(start,index),price=fares?.[date],enabled=allowed(date);
         const inRange=rangeStart&&value&&date>rangeStart&&date<value;
         return <button type="button" role="gridcell" key={date} data-date={date} disabled={!enabled} tabIndex={date===focus?0:-1}
          aria-selected={date===value} aria-label={`${fullDate.format(at(date))}${price?`, indicative fare from ₹${Math.round(price.minor/100).toLocaleString('en-IN')} per adult${price.band==='low'?', one of the lowest fares':''}`:''}`}
@@ -93,7 +93,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares=
      </div>;
     })}
    </div>
-   <p className="fare-calendar-note">{hasFares?<><i className="fare-band-low"/>Recent from fares per adult in ₹. The final price is checked at review.</>:'Pick a date. Fares appear here once we have recent prices for this route.'}</p>
+   {fares&&<p className="fare-calendar-note">{hasFares?<><i className="fare-band-low"/>Indicative one-way fares for 1 adult in ₹. Search for current availability.</>:'Search a date to check current fares.'}</p>}
   </div>}
  </div>;
 }

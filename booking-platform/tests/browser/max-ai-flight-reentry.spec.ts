@@ -9,11 +9,14 @@ test('reopening the same AI card reapplies its view without reloading the owned 
   provider.overrides['POST /api/travel/max-ai']={body:{reply:'Reopen your checked non-stop IndiGo results.',cards:[{id:'same-owned-result',type:'flight',title:'IndiGo result',subtitle:'BOM → DEL',details:[],action:{label:'Reopen checked flights',href}}],actions:[],conversationToken:'synthetic-token'}};
   await page.goto(href);
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
+  const sorts=page.getByRole('group',{name:'Sort flights',exact:true});
+  const selectedSort=sorts.getByRole('button',{pressed:true});
+  const nonstop=page.getByRole('button',{name:'Non-stop',exact:true});
   await page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true}).click();
-  await page.getByRole('button',{name:'Remove stops preference',exact:true}).click();
+  await expect(nonstop).toHaveAttribute('aria-pressed','true');
+  await nonstop.click();
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(3);
-  if(page.viewportSize()!.width<=1100)await page.getByRole('combobox',{name:'Sort by',exact:true}).selectOption('price');
-  else await page.getByRole('button',{name:'Lowest price',exact:true}).click();
+  await sorts.getByRole('button',{name:'Cheapest',exact:true}).click();
   const filters=page.getByRole('button',{name:/^Filters(?: \(\d+\))?$/});
   if(await filters.isVisible())await filters.click();
   await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('Other Air');
@@ -21,7 +24,7 @@ test('reopening the same AI card reapplies its view without reloading the owned 
   await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('Other Air');
-  await expect(page.locator('.flight-sort-select select')).toHaveValue('price');
+  await expect(selectedSort).toHaveAccessibleName('Cheapest');
   await page.getByRole('button',{name:'Open Max AI travel assistant',exact:true}).click();
   const panel=page.getByRole('dialog',{name:'Max AI',exact:true});
   await panel.getByRole('textbox',{name:'Your message to Max AI',exact:true}).fill('Reopen those flights');
@@ -30,8 +33,8 @@ test('reopening the same AI card reapplies its view without reloading the owned 
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('IndiGo');
   await expect(page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Remove stops preference',exact:true})).toBeVisible();
-  await expect(page.locator('.flight-sort-select select')).toHaveValue('departure');
+  await expect(nonstop).toHaveAttribute('aria-pressed','true');
+  await expect(selectedSort).toHaveAccessibleName('Earliest');
   expect(provider.requests('/api/travel/flight-search-snapshot')).toHaveLength(1);
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);

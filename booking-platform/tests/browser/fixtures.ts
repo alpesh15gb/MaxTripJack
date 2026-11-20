@@ -195,11 +195,10 @@ export async function expectNoHorizontalOverflow(page: Page) {
 }
 
 export async function expectFlightToolbarValuesFit(page: Page) {
-  const mobileSort = page.viewportSize()!.width <= 1100;
-  if (!mobileSort) await expect(page.getByRole('group', { name: 'Sort flights', exact: true })).toBeVisible();
   const dialog=page.getByRole('dialog',{name:'Filter flights',exact:true});
   // The sort remains outside the native modal and becomes inert while it is open.
   if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();
+  await expect(page.getByRole('group', { name: 'Sort flights', exact: true })).toBeVisible();
   async function assertFits(label:string){
     const select = page.getByRole('combobox', { name: label, exact: true });
     const size = await select.evaluate(element => {
@@ -217,7 +216,6 @@ export async function expectFlightToolbarValuesFit(page: Page) {
     expect(size.label).not.toBe('');
     expect(size.available, `${label} must show the selected value rather than clip it`).toBeGreaterThanOrEqual(size.text);
   }
-  if(mobileSort)await assertFits('Sort by');
   const filters=page.getByRole('button',{name:/^Filters/});
   if(await filters.isVisible())await filters.click();
   for(const label of ['Airline (any segment)','Stops'])await assertFits(label);

@@ -1,47 +1,88 @@
-import { useId } from 'react';
+import { useId, type ComponentProps } from 'react';
 import { durationLabel, type Flight, type FlightFare } from '@/lib/booking-presentation';
 import { displayMoney } from '@/lib/display-money';
-import { flightResultShortcuts } from '@/lib/flight-result-shortcuts';
+import { flightResultShortcuts, type FlightSort } from '@/lib/flight-result-shortcuts';
+import { TravelIcon } from './travel-shell';
+
+type SortCard = {
+  sort: FlightSort;
+  label: string;
+  icon: ComponentProps<typeof TravelIcon>['name'];
+  value: string;
+  detail?: string;
+  unavailable?: boolean;
+};
 
 type Props = {
   flights: readonly Flight[];
   group?: string;
   isCompatible: (fare: FlightFare) => boolean;
-  sortBy: string;
-  nonstop: boolean;
-  onSort: (sort: 'price' | 'duration') => void;
-  onToggleNonstop: () => void;
+  sortBy: FlightSort;
+  onSort: (sort: FlightSort) => void;
   disabled?: boolean;
 };
 
-export default function FlightResultShortcuts({ flights, group, isCompatible, sortBy, nonstop, onSort, onToggleNonstop, disabled }: Props) {
-  const id = useId();
-  if (!group || group === 'COMBO') return null;
-  const options = flightResultShortcuts(flights, group, isCompatible);
-  if (!options.lowest && !options.nonstop && !options.fastest && !nonstop) return null;
+function price(minor: number | null | undefined) {
+  return minor == null ? 'Price at review' : displayMoney(minor);
+}
 
-  const shortcuts = [
-    { label: 'Lowest estimated price', result: options.lowest, active: sortBy === 'price', action: () => onSort('price') },
-    { label: 'Lowest non-stop', result: options.nonstop, active: nonstop, action: onToggleNonstop },
-    { label: 'Fastest', result: options.fastest, active: sortBy === 'duration', action: () => onSort('duration') },
+export default function FlightResultShortcuts({ flights, group, isCompatible, sortBy, onSort, disabled }: Props) {
+  const id = useId();
+  if (!group || !flights.length) return null;
+  const { lowest, fastest, earliest } = flightResultShortcuts(flights, group, isCompatible);
+
+  const cards: SortCard[] = [
+    {
+      sort: 'price',
+      label: 'Cheapest',
+      icon: 'receipt',
+      value: price(lowest?.priceMinor),
+      detail: lowest?.durationMinutes != null ? durationLabel(lowest.durationMinutes) : undefined,
+    },
+    {
+      sort: 'duration',
+      label: 'Fastest',
+      icon: 'clock',
+      value: fastest?.durationMinutes != null ? durationLabel(fastest.durationMinutes) : 'Time unavailable',
+      detail: fastest ? price(fastest.priceMinor) : undefined,
+      unavailable: !fastest,
+    },
+    {
+      sort: 'departure',
+      label: 'Earliest',
+      icon: 'plane',
+      value: earliest?.departureLabel ?? 'Time unavailable',
+      detail: earliest ? price(earliest.priceMinor) : undefined,
+      unavailable: !earliest,
+    },
   ];
 
-  return <div className="flight-result-shortcuts" role="group" aria-label="Compare flight options">
-    {shortcuts.map(({ label, result, active, action }, index) => <button
-      key={label}
-      type="button"
-      aria-label={label}
-      aria-describedby={`${id}-${index}`}
-      aria-pressed={active}
-      disabled={disabled || (!result && !(label === 'Lowest non-stop' && nonstop))}
-      onClick={action}
-    >
-      <span className="flight-shortcut-label">{label}</span>
-      {result ? <span className="flight-shortcut-metrics" id={`${id}-${index}`}>
-        <strong>{result.priceMinor === null ? 'Price at review' : displayMoney(result.priceMinor)}</strong>
-        {result.durationMinutes !== null && <small>{durationLabel(result.durationMinutes)}</small>}
-      </span> : <span className="flight-shortcut-unavailable" id={`${id}-${index}`}>Unavailable</span>}
-    </button>)}
+  return <div className="flight-result-shortcuts" role="group" aria-label="Sort flights" aria-describedby="flight-sort-fare-scope">
+    {cards.map(({ sort, label, icon, value, detail, unavailable }) => {
+      const active = sortBy === sort;
+      const description = `${id}-${sort}`;
+      return <button
+        key={sort}
+        type="button"
+        className="flight-sort-card"
+        aria-label={label}
+        aria-describedby={description}
+        aria-pressed={active}
+        disabled={disabled || unavailable}
+        onClick={() => onSort(sort)}
+      >
+        <span className="flight-sort-card-heading">
+          <span className="flight-sort-card-icon"><TravelIcon name={icon} size={16}/></span>
+          <span className="flight-sort-card-label">{label}</span>
+          {active && <span className="flight-sort-card-selected"><TravelIcon name="check" size={12}/></span>}
+        </span>
+        <span className="flight-sort-card-metrics" id={description}>
+          <strong>{value}</strong>
+          {sort === 'departure' && !unavailable && <span className="visually-hidden"> departure, airport local time</span>}
+          {detail && <span>{detail}</span>}
+        </span>
+      </button>;
+    })}
   </div>;
 }
 

@@ -40,7 +40,7 @@ import HotelDetailView from './hotel-detail-view';
 import {hotelJourneyUrl,readHotelBrowse,writeHotelBrowse} from '@/lib/hotel-journey-state';
 import HotelResults from './hotel-results';
 import SearchJourneyPending, {type PendingSearch} from './search-journey-pending';
-import {travelDateLabel,travelDateTimeLabel,travelTimeLabel} from '@/lib/travel-date';
+import {travelDateLabel,travelDateTimeLabel} from '@/lib/travel-date';
 import SelectedJourneyReceipt from './selected-journey-receipt';
 import {matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops,groupIdenticalFlights} from '@/lib/flight-results';
 import {hotelContentUnavailable,type HotelStayContext} from '@/lib/hotel-results';
@@ -59,7 +59,8 @@ import CheckoutPromo from './checkout-promo';
 import CheckoutExtras from './checkout-extras';
 import BookingFlightCard,{money} from './booking-flight-card';
 import FlightResultShortcuts,{FlightResultColumns} from './flight-result-shortcuts';
-import FlightResultsControls, {FlightActiveFilterChips} from './flight-results-controls';
+import FlightResultsControls, {FlightDesktopFilters} from './flight-results-controls';
+import {flightDepartureKey,type FlightSort} from '@/lib/flight-result-shortcuts';
 import {TravelHeader,TravelFooter,TravelIcon} from './travel-shell';
 import {authClient} from '@/lib/auth-client';
 import useCheckoutRecovery from './use-checkout-recovery';
@@ -533,22 +534,23 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   // The original flight retains every offer and ID for comparison and review.
   const comparableFlight=(flight:Flight):Flight=>({...flight,totalPriceList:flight.totalPriceList.filter(compatibleFare)});
   const groupFlights=groups[shownGroup]??[];
-  const hasKnownDuration=groupFlights.some(flight=>journeyMinutes(flight,shownGroup)!==null);
-  const hasKnownDeparture=groupFlights.some(flight=>travelTimeLabel(flight.sI[0]?.dt)!=='Time unavailable');
-  const effectiveSort=(sortBy==='duration'&&!hasKnownDuration)||(sortBy==='departure'&&!hasKnownDeparture)?'price':sortBy;
-  const flightSortOptions=[
-    {value:'price',label:'Lowest price',description:'Estimated total for all travellers',disabled:false},
-    {value:'duration',label:'Shortest',description:'Total journey duration where supplied',disabled:!hasKnownDuration},
-    {value:'departure',label:'Earliest',description:'Local departure date and time',disabled:!hasKnownDeparture},
-  ];
-  const departureKey=(flight:Flight)=>travelTimeLabel(flight.sI[0]?.dt)==='Time unavailable'?null:flight.sI[0].dt.slice(0,16);
+  const flightsWithOtherFilters=groupFlights
+    .filter(flight=>matchesFlightRefinements(comparableFlight(flight),shownGroup,departureWindow,flightBudget))
+    .filter(flight=>matchesFlightAirlineQuery(flight,airlineQuery))
+    .filter(flight=>airlineFilter==='ALL'||flight.sI.some(segment=>segment.fD.aI.name===airlineFilter));
+  const nonstopCount=shownGroup==='COMBO'?0:flightsWithOtherFilters.filter(flight=>matchesFlightStops(flight,shownGroup,'0')).length;
+  const filteredFlights=flightsWithOtherFilters.filter(flight=>matchesFlightStops(flight,shownGroup,stopFilter));
+  const hasSortMetrics=(metric:(flight:Flight)=>string|number|null)=>filteredFlights.some(flight=>flight.totalPriceList.some(compatibleFare)&&metric(flight)!==null);
+  let effectiveSort:FlightSort='price';
+  if(sortBy==='duration'&&hasSortMetrics(flight=>journeyMinutes(flight,shownGroup)))effectiveSort='duration';
+  if(sortBy==='departure'&&hasSortMetrics(flightDepartureKey))effectiveSort='departure';
   const compareDeparture=(left:Flight,right:Flight)=>{
-    const a=departureKey(left),b=departureKey(right);
+    const a=flightDepartureKey(left),b=flightDepartureKey(right);
     if(a===null)return b===null?0:1;
     if(b===null)return -1;
     return a.localeCompare(b);
   };
-  const flightRows=groupFlights.filter(flight=>matchesFlightRefinements(comparableFlight(flight),shownGroup,departureWindow,flightBudget)).filter(flight=>matchesFlightAirlineQuery(flight,airlineQuery)).filter(flight=>airlineFilter==='ALL'||flight.sI.some(segment=>segment.fD.aI.name===airlineFilter)).filter(flight=>matchesFlightStops(flight,shownGroup,stopFilter)).slice().sort((a,b)=>{
+  const flightRows=filteredFlights.sort((a,b)=>{
     const eligibility=Number(b.totalPriceList.some(compatibleFare))-Number(a.totalPriceList.some(compatibleFare));
     if(eligibility)return eligibility;
     return effectiveSort==='departure'?compareDeparture(a,b):effectiveSort==='duration'?(journeyMinutes(a,shownGroup)??Number.MAX_SAFE_INTEGER)-(journeyMinutes(b,shownGroup)??Number.MAX_SAFE_INTEGER):estimatedFare(comparableFlight(a))-estimatedFare(comparableFlight(b));
@@ -584,7 +586,12 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const step=checkoutStarted?1:0;
   const today=indiaToday();
   const timeline=useMemo(()=>flightDateTimeline(submittedSearch,today),[submittedSearch,today]);
-  const timelineFares=useFareCalendar(submittedSearch.from??'',submittedSearch.to??'',submittedSearch.cabin||'ECONOMY',submittedSearch.date??'',product==='FLIGHT'&&timeline.length>0);
+  const showTimelineFares=!submittedSearch.returnDate&&!Number(submittedSearch.children)&&!Number(submittedSearch.infants);
+  const timelineCalendar=useFareCalendar({
+    from:submittedSearch.from??'',to:submittedSearch.to??'',cabin:submittedSearch.cabin||'ECONOMY',
+    start:timeline[0]?.date??'',days:timeline.length,anchor:submittedSearch.date,
+    enabled:product==='FLIGHT'&&hasFullSearchResults&&!checkoutStarted&&showTimelineFares,
+  });
   const nextFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,1,today),[submittedSearch,today]);
   const prepareSearch=backgroundSearch.prepare;
   const preparedNearbyDate=useRef(false);
@@ -617,6 +624,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   function changeFlightCarrier(value:string){setAirlineFilter(value);setAirlineQuery('');clearFlightViewFields(['flightAirlineQuery']);}
   function changeFlightStops(value:string){setStopFilter(value);clearFlightViewFields(['flightStops']);}
   function changeFlightSort(value:string){setSortBy(value);clearFlightViewFields(['flightSort']);}
+  const flightFilterProps={
+    group:shownGroup,airlines,airline:airlineFilter,airlineQuery,onAirline:changeFlightCarrier,
+    stops:stopFilter,onStops:changeFlightStops,departure:departureWindow,onDeparture:setDepartureWindow,
+    budget:flightBudget,onBudget:setFlightBudget,count:flightRows.length,nonstopCount,disabled:busy,
+  };
   function resetFlightGroupRefinements(){setStopFilter(submittedSearch.flightStops??'ALL');setAirlineFilter('ALL');setAirlineQuery(submittedSearch.flightAirlineQuery??'');setDepartureWindow('ALL');setFlightBudget('');}
   function changeFlightGroup(group:string){
     if(busyRef.current)return;
@@ -1250,17 +1262,26 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       {results&&!hasFullSearchResults&&!quote&&!signInRequired&&<section id="saved-selection-recovery" tabIndex={-1} className="white-card saved-selection-recovery" aria-label="Saved selection"><h2>Your saved selection</h2><p>This tab has your selected option, not the complete previous search results. No price or availability is confirmed; nothing is reserved. For privacy, traveller and contact details must be entered again after a reload.</p>{product==='FLIGHT'?selectedJourney.map((flight,index)=><div key={index}><h3>{flight.sI[0]?.da.code} → {flight.sI.at(-1)?.aa.code}</h3><p>{flight.sI[0]?.fD.aI.name} · {travelDateTimeLabel(flight.sI[0]?.dt)}</p><p>Selected fare: {flight.totalPriceList.map(fare=>fareDecisionName(fare)).join(' / ')}</p></div>):savedHandoff?.hotel&&<div><h3>{savedHandoff.hotel.name}</h3><p>{savedHandoff.hotel.roomLabel}</p>{savedHandoff.hotel.mealBasis&&<p>{savedHandoff.hotel.mealBasis.replaceAll('_',' ')}</p>}</div>}{busy&&checkingSelection?<p role="status">Checking the current price and conditions… Nothing is reserved yet.</p>:resumeSelection&&!hasVerifiedCustomerIdentity(checkoutSession?.user)?<><p>Continue with your email to check the latest price and availability.</p><CheckoutVerification initialEmail={checkoutSession?.user.email} onVerified={continueVerifiedSelection}/></>:<>{savedHandoff&&<button type="button" className="primary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>void review(savedHandoff.selection)}>Check current price and conditions</button>}<p>To compare other options, search again using your retained criteria.</p></>}<button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={recoverSearch}>Search again</button></section>}
 
       {results&&hasFullSearchResults&&<section id="booking-results" className="live-results" hidden={checkoutStarted||showSearchScene||(product==='HOTEL'&&roomView)} aria-label="Available options" aria-busy={busy&&!switchingDate}>
-        {product==='FLIGHT'&&<div className="results-heading"><div><h2 id="flight-results-title" tabIndex={-1}>{pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:'Available flights'}</h2><p className="muted">Compare fares, baggage and flexibility.</p></div><div className="flight-sort-options" role="group" aria-label="Sort flights">{flightSortOptions.map(option=><button type="button" key={option.value} aria-pressed={effectiveSort===option.value} disabled={busy||option.disabled} title={option.description} onClick={()=>changeFlightSort(option.value)}>{option.label}</button>)}</div><span className={`results-count${switchingDate?' flight-date-count-hidden':''}`} role="status" aria-live="polite">{flightRows.length} of {(groups[shownGroup]??[]).length} options · {groupLabel(shownGroup||'')}</span></div>}
-        {product==='FLIGHT'&&timeline.length>0&&<FlightDateTimeline days={timeline} selectedDate={submittedSearch.date} returnDate={submittedSearch.returnDate} pendingDate={switchingDate} disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)} fares={timelineFares}/>}
+        {product==='FLIGHT'&&<div className="results-heading">
+          <h2 id="flight-results-title" tabIndex={-1}>{pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:'Available flights'}</h2>
+          <span className={`results-count${switchingDate?' flight-date-count-hidden':''}`} role="status" aria-live="polite">{flightRows.length} of {groupFlights.length} options · {groupLabel(shownGroup||'')}</span>
+        </div>}
+        {product==='FLIGHT'&&timeline.length>0&&<FlightDateTimeline days={timeline} selectedDate={submittedSearch.date} returnDate={submittedSearch.returnDate} pendingDate={switchingDate} disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)} showFares={showTimelineFares} fares={timelineCalendar.days} pendingFares={timelineCalendar.pending}/>}
         {switchingDate&&<div id="booking-pending" className="flight-date-progress"><div role="status" aria-label="Search and booking activity"><span className="booking-spinner" aria-hidden="true"/><strong>Checking flights for {travelDateLabel(switchingDate)}…</strong></div><button className="secondary" type="button" onClick={stopAvailabilitySearch}>Stop search</button></div>}
         {product==='FLIGHT'&&!switchingDate&&<>
           {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} disabled={busy} onClick={()=>{setActiveGroup(group);resetFlightGroupRefinements();}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
           {pairedFares&&<FlightSelectionSummary groups={fareGroups.map(group=>{const fare=selectedFare(group);return {group,fare,flight:groups[group]?.find(item=>item.totalPriceList.some(option=>option.id===fare?.id))};})} activeGroup={shownGroup} busy={busy} checking={Boolean(busy&&checkingSelection)} allSelected={allSelected} onChange={changeFlightGroup} onReview={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}/>}
           <div className="flight-shopping">
-          {!checkoutStarted&&<FlightResultsControls sort={effectiveSort} onSort={changeFlightSort} hasDuration={hasKnownDuration} hasDeparture={hasKnownDeparture} group={shownGroup} airlines={airlines} airline={airlineFilter} airlineQuery={airlineQuery} onAirline={changeFlightCarrier} stops={stopFilter} onStops={changeFlightStops} departure={departureWindow} onDeparture={setDepartureWindow} budget={flightBudget} onBudget={setFlightBudget} count={flightRows.length} disabled={busy}/>}
+          {!checkoutStarted&&<FlightDesktopFilters {...flightFilterProps}/>}
           <div className="flight-shopping-list">
-            <FlightActiveFilterChips group={shownGroup} airline={airlineFilter} airlineQuery={airlineQuery} onAirline={changeFlightCarrier} stops={stopFilter} onStops={changeFlightStops} departure={departureWindow} onDeparture={setDepartureWindow} budget={flightBudget} onBudget={setFlightBudget} disabled={busy}/>
-          <FlightResultShortcuts flights={flightRows} group={shownGroup} isCompatible={compatibleFare} sortBy={effectiveSort} nonstop={stopFilter==='0'} onSort={changeFlightSort} onToggleNonstop={()=>{changeFlightStops(stopFilter==='0'?'ALL':'0');changeFlightSort('price');}} disabled={busy}/>
+          <div className="flight-comparison-bar">
+            {flightRows.length>0&&<div className="flight-sort-heading">
+              <span>Sort by</span>
+              <p id="flight-sort-fare-scope">Estimated fares for all travellers</p>
+            </div>}
+            {!checkoutStarted&&<FlightResultsControls {...flightFilterProps}/>}
+          </div>
+          <FlightResultShortcuts flights={flightRows} group={shownGroup} isCompatible={compatibleFare} sortBy={effectiveSort} onSort={changeFlightSort} disabled={busy}/>
           {flightRows.length>0&&shownGroup!=='COMBO'&&<FlightResultColumns/>}
           {visibleFlightRows.map((flight,index)=><BookingFlightCard key={`${shownGroup}-${flight.totalPriceList[0]?.id??index}`} flight={flight} group={shownGroup} selectionMode={pairedFares?'leg':'review'} busy={busy} checkingFareId={checkingSelection?.priceIds?.find(id=>flight.totalPriceList.some(fare=>fare.id===id))} selectedFareId={selectedFares[shownGroup]} onSelect={(fare,trigger)=>chooseFare(shownGroup,fare,trigger)} isCompatible={compatibleFare} onChangeOutbound={shownGroup==='RETURN'&&onwardFare?()=>changeFlightGroup('ONWARD'):undefined} onEditSearch={editFlightSearch}/>)}
           {flightRows.length>flightShown&&<div className="flight-load-more"><p className="muted" role="status">Showing {Math.min(flightShown,flightRows.length)} of {flightRows.length} flights</p><button type="button" className="secondary" disabled={busy} onClick={showMoreFlights}>Show {Math.min(FLIGHT_PAGE,flightRows.length-flightShown)} more flights</button></div>}
