@@ -251,3 +251,195 @@ html body .booking-workflow.journey-flow.has-journey .booking-progress li,html b
 html body .booking-progress li>:is(span:first-child,b){font-size:11px}
 /* Floor for supporting copy in the booking journey and home search. */
 html body :is(.booking-workflow,.trip-home) small{font-size:max(12px,.8em)}
+
+/* ==================== STRUCTURAL UX FLOW UPGRADES (/book) ==================== */
+
+/* Compact above-the-fold header on /book so flights appear immediately */
+body .booking-workflow .booking-test-badge { display: none; }
+body .booking-workflow .booking-intro {
+  padding-block: 10px 8px;
+  margin-bottom: 8px;
+}
+body .booking-workflow .booking-intro h1 {
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.15;
+}
+body .booking-workflow .booking-heading-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+body .booking-workflow .booking-progress {
+  margin-bottom: 10px;
+  padding-block: 6px;
+}
+body .booking-workflow .booking-criteria-summary,
+body .booking-workflow .search-summary-bar {
+  margin-bottom: 12px;
+  padding-block: 10px;
+  border-radius: 14px;
+}
+
+/* 1-Click MakeMyTrip/Yatra Filter Sidebar Controls */
+body .ux-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+body .ux-filter-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+body .ux-filter-head strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+body .ux-filter-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+body .ux-filter-reset-inline {
+  border: 0;
+  background: transparent;
+  color: #006ce4;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+body .ux-filter-reset-inline:hover { background: #eff6ff; }
+body .ux-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+body .ux-filter-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #475569;
+}
+body .ux-pill-grid,
+body .ux-budget-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+body .ux-filter-pill {
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: all .14s ease;
+}
+body .ux-filter-pill:hover:not(:disabled) {
+  border-color: #006ce4;
+  background: #eff6ff;
+  color: #0052cc;
+}
+body .ux-filter-pill.is-active {
+  background: #006ce4;
+  border-color: #006ce4;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 108, 228, 0.22);
+}
+body .ux-time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+body .ux-time-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 9px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f172a;
+  text-align: center;
+  transition: all .14s ease;
+}
+body .ux-time-tile strong { font-size: 12.5px; font-weight: 700; }
+body .ux-time-tile small { font-size: 11px; color: #64748b; }
+body .ux-time-tile:hover:not(:disabled) {
+  border-color: #006ce4;
+  background: #eff6ff;
+}
+body .ux-time-tile.is-active {
+  background: #eff6ff;
+  border-color: #006ce4;
+  color: #0052cc;
+  box-shadow: inset 0 0 0 1px #006ce4;
+}
+body .ux-time-tile.is-active small { color: #0052cc; font-weight: 600; }
+body .ux-airline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+body .ux-airline-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition: background .14s ease, border-color .14s ease;
+}
+body .ux-airline-row:hover:not(:disabled) { background: #f8fafc; border-color: #e2e8f0; }
+body .ux-airline-row.is-active { background: #eff6ff; border-color: #bfdbfe; color: #0052cc; }
+body .ux-check-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid #94a3b8;
+  display: inline-grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: #ffffff;
+  color: #ffffff;
+}
+body .ux-airline-row.is-active .ux-check-box {
+  background: #006ce4;
+  border-color: #006ce4;
+}
+body .ux-budget-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+body .ux-budget-label input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+}

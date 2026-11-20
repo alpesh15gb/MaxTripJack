@@ -198,12 +198,9 @@ export default function BookingFlightCard({
           <small>{offers.length} fare option{offers.length === 1 ? '' : 's'}</small>
         </>}</span>
         <strong id={priceId}>{noCompatibleFare ? 'No compatible fare' : estimate === null ? 'Price at review' : <>
-          {!readOnly && <span className="flight-price-from">From </span>}<span className="flight-price-amount">{money(estimate)}</span>
+          {!readOnly && offers.length > 1 && <span className="flight-price-from">From </span>}<span className="flight-price-amount">{money(Math.round(estimate))}</span>
         </>}
-          {noCompatibleFare ? <small>These fares do not match your outbound selection.</small> : <>
-            <small>{estimate === null ? 'Total for all travellers' : 'Estimated total · all travellers'}</small>
-            <small>{combo ? 'Complete itinerary' : `${groupName} journey`}</small>
-          </>}
+          {noCompatibleFare ? <small>These fares do not match your outbound selection.</small> : <small>{combo ? 'Complete itinerary · est. total' : `Est. total · ${groupName.toLowerCase()}`}</small>}
         </strong>
       </summary>
       {showFares && <div className="fare-comparison-options" role={readOnly ? undefined : 'region'} aria-labelledby={readOnly ? undefined : headingId}>

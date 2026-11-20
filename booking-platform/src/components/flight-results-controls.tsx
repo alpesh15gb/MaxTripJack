@@ -32,6 +32,20 @@ type Props = FlightFilterFieldsProps & {
 };
 
 const departureLabels:Record<string,string> = {EARLY:'Before 06:00',MORNING:'Morning · 06:00–11:59',AFTERNOON:'Afternoon · 12:00–17:59',EVENING:'Evening · 18:00–23:59'};
+const stopOptions = [
+  { value: 'ALL', label: 'Any' },
+  { value: '0', label: 'Non-stop' },
+  { value: '1', label: '1 stop' },
+  { value: '2', label: '2 stops' },
+];
+const departureSlots = [
+  { value: 'EARLY', title: 'Early', range: 'Before 6 AM' },
+  { value: 'MORNING', title: 'Morning', range: '6 AM – 12 PM' },
+  { value: 'AFTERNOON', title: 'Afternoon', range: '12 PM – 6 PM' },
+  { value: 'EVENING', title: 'Evening', range: 'After 6 PM' },
+];
+const budgetPresets = ['5000', '8000', '12000', '20000'];
+
 function resetFlightFilters(props:FlightFilterProps) {
   props.onStops('ALL');props.onAirline('ALL');props.onDeparture('ALL');props.onBudget('');
 }
@@ -70,22 +84,113 @@ export function FlightActiveFilterChips(props: FlightFilterProps & {withNonstopT
 }
 
 function FlightFilterFields(props: FlightFilterFieldsProps) {
-  return <div className="flight-extra-filters is-expanded">
-    <div className="flight-filter-intro"><strong>Refine your flights</strong><p>Filter loaded options. Times are local to the departure airport.</p></div>
-    {props.airlineQuery&&<p className="flight-filter-note">Matching carrier: <strong>{props.airlineQuery}</strong> on every segment. Choose an airline below to replace this preference.</p>}
-    <label>Airline (any segment)<select aria-label="Airline (any segment)" value={props.airline} onChange={event => props.onAirline(event.target.value)} disabled={props.disabled}>
-      <option value="ALL">All airlines</option>{props.airlines.map(name => <option key={name} value={name}>{name}</option>)}
-    </select></label>
-    <label>Stops<select aria-label="Stops" value={props.stops} disabled={props.disabled || props.group === 'COMBO'} onChange={event => props.onStops(event.target.value)}>
-      <option value="ALL">Any number of stops</option><option value="0">Non-stop</option><option value="1">1 stop</option><option value="2">2 stops</option>
-    </select></label>
-    <label>Departure time<select aria-label="Departure time" value={props.departure} disabled={props.disabled || props.group === 'COMBO'} onChange={event => props.onDeparture(event.target.value)}>
-      <option value="ALL">Any departure time</option><option value="EARLY">Before 06:00</option><option value="MORNING">06:00–11:59</option><option value="AFTERNOON">12:00–17:59</option><option value="EVENING">18:00–23:59</option>
-    </select></label>
-    <label>Maximum total for all travellers (₹)<input type="number" min="0" step="1" inputMode="numeric" placeholder="No limit" value={props.budget} disabled={props.disabled} onChange={event => props.onBudget(event.target.value)}/></label>
-    <p className="flight-filter-note">Estimated journey total for all travellers. Only compatible fares are compared. Unpriced options are excluded when a limit is set.</p>
-    {props.group === 'COMBO' && <p className="muted">Complete itineraries: inspect each flight below. Stop and departure filters do not apply across multiple journeys.</p>}
-    <button className="secondary" type="button" disabled={props.disabled} onClick={()=>resetFlightFilters(props)}>Reset flight filters</button>
+  const combo = props.group === 'COMBO';
+  const hasActive = props.airline !== 'ALL' || Boolean(props.airlineQuery?.trim()) || (!combo && props.stops !== 'ALL') || (!combo && props.departure !== 'ALL') || Boolean(props.budget.trim());
+
+  return <div className="flight-extra-filters is-expanded ux-filter-panel">
+    <div className="flight-filter-intro ux-filter-head">
+      <div>
+        <strong>Filter flights</strong>
+        <p>Instant 1-click filters · local airport times</p>
+      </div>
+      {hasActive && <button type="button" className="ux-filter-reset-inline" disabled={props.disabled} onClick={() => resetFlightFilters(props)}>Reset</button>}
+    </div>
+
+    {props.airlineQuery && <p className="flight-filter-note">Matching carrier: <strong>{props.airlineQuery}</strong> on every segment.</p>}
+
+    {/* 1-Click Stops Pills (MakeMyTrip & Yatra pattern) */}
+    <div className="ux-filter-group">
+      <span className="ux-filter-label">Stops</span>
+      <div className="ux-pill-grid" role="group" aria-label="Stops">
+        {stopOptions.map(opt => {
+          const active = props.stops === opt.value;
+          return <button
+            key={opt.value}
+            type="button"
+            className={`ux-filter-pill${active ? ' is-active' : ''}`}
+            aria-pressed={active}
+            disabled={props.disabled || combo}
+            onClick={() => props.onStops(active && opt.value !== 'ALL' ? 'ALL' : opt.value)}
+          >{opt.label}</button>;
+        })}
+      </div>
+    </div>
+
+    {/* 2x2 Visual Departure Time Tiles (MakeMyTrip & Yatra pattern) */}
+    <div className="ux-filter-group">
+      <span className="ux-filter-label">Departure time</span>
+      <div className="ux-time-grid" role="group" aria-label="Departure time">
+        {departureSlots.map(slot => {
+          const active = props.departure === slot.value;
+          return <button
+            key={slot.value}
+            type="button"
+            className={`ux-time-tile${active ? ' is-active' : ''}`}
+            aria-pressed={active}
+            disabled={props.disabled || combo}
+            onClick={() => props.onDeparture(active ? 'ALL' : slot.value)}
+          >
+            <strong>{slot.title}</strong>
+            <small>{slot.range}</small>
+          </button>;
+        })}
+      </div>
+    </div>
+
+    {/* 1-Click Airline Check List */}
+    <div className="ux-filter-group">
+      <span className="ux-filter-label">Airlines</span>
+      <div className="ux-airline-list" role="group" aria-label="Airline (any segment)">
+        <button
+          type="button"
+          className={`ux-airline-row${props.airline === 'ALL' ? ' is-active' : ''}`}
+          aria-pressed={props.airline === 'ALL'}
+          disabled={props.disabled}
+          onClick={() => props.onAirline('ALL')}
+        >
+          <span className="ux-check-box" aria-hidden="true">{props.airline === 'ALL' ? '✓' : ''}</span>
+          <span>All airlines ({props.airlines.length})</span>
+        </button>
+        {props.airlines.map(name => {
+          const active = props.airline === name;
+          return <button
+            key={name}
+            type="button"
+            className={`ux-airline-row${active ? ' is-active' : ''}`}
+            aria-pressed={active}
+            disabled={props.disabled}
+            onClick={() => props.onAirline(active ? 'ALL' : name)}
+          >
+            <span className="ux-check-box" aria-hidden="true">{active ? '✓' : ''}</span>
+            <span>{name}</span>
+          </button>;
+        })}
+      </div>
+    </div>
+
+    {/* Max Budget Input + 1-Tap Quick Caps */}
+    <div className="ux-filter-group">
+      <label className="ux-budget-label">
+        <span className="ux-filter-label">Max total for all travellers (₹)</span>
+        <input type="number" min="0" step="1" inputMode="numeric" placeholder="No limit" value={props.budget} disabled={props.disabled} onChange={event => props.onBudget(event.target.value)} />
+      </label>
+      <div className="ux-budget-chips" role="group" aria-label="Quick maximum budget">
+        {budgetPresets.map(val => {
+          const active = props.budget === val;
+          return <button
+            key={val}
+            type="button"
+            className={`ux-filter-pill${active ? ' is-active' : ''}`}
+            aria-pressed={active}
+            disabled={props.disabled}
+            onClick={() => props.onBudget(active ? '' : val)}
+          >≤ ₹{Number(val).toLocaleString('en-IN')}</button>;
+        })}
+      </div>
+    </div>
+
+    {combo && <p className="muted">Complete itineraries: stop and departure filters apply to individual legs.</p>}
+    <button className="secondary" type="button" disabled={props.disabled || !hasActive} onClick={() => resetFlightFilters(props)}>Reset flight filters</button>
   </div>;
 }
 
@@ -122,13 +227,12 @@ export default function FlightResultsControls(props: Props) {
       quickControl.focus({preventScroll:true});
       return;
     }
-    const sidebar=toolbar.current?.closest('.flight-shopping')?.querySelector<HTMLSelectElement>('.flight-desktop-filters select');
+    const sidebar=toolbar.current?.closest('.flight-shopping')?.querySelector<HTMLButtonElement>('.flight-desktop-filters button');
     (sidebar ?? toolbar.current)?.focus({preventScroll:true});
   }
 
   useEffect(() => {
     const query = window.matchMedia(mobileQuery);
-    // Resizing unmounts the mobile dialog, so its close event cannot reset state.
     const closeOnDesktop = () => {
       if (!query.matches) setOpen(false);
     };
