@@ -58,7 +58,7 @@ test('the incompatible fare notice fits above its expanded comparison and close 
   await disclosure.click();
   await comparison.getByRole('button', {name: 'Edit flight search', exact: true}).click();
   await expect(page.getByLabel('Departure', {exact: true})).toBeFocused();
-  await expect(page.getByLabel('Return date, optional', {exact: true})).toHaveValue(returning);
+  await expect(page.getByLabel('Return date', {exact: true})).toHaveValue(returning);
   await comparison.getByRole('button', {name: 'Change outbound fare', exact: true}).click();
   await expect(page.getByRole('heading', {name: 'Choose your outbound flight'})).toBeFocused();
   await expect(page.getByRole('region', {name: 'Selected flight context'})).toContainText('Standard fare');

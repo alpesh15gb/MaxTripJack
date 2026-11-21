@@ -2,7 +2,7 @@ import {businessProfile} from './business-profile';
 // Metadata only: legal document bodies stay out of the client footer bundle.
 export const footerPolicyLinks=[
  {label:'Privacy Policy',href:'/privacy-policy'},
- {label:'Terms & Conditions',href:'/terms-and-conditions'},
+ {label:'Terms of Use',href:'/terms-of-use'},
  {label:'Cancellations & Payment Policy',href:'/cancellations-payment-policy'},
  {label:'Disclaimer',href:'/disclaimer'},
 ] as const;

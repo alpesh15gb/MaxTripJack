@@ -1,70 +1,185 @@
-// Imported from the owner's maxtravel.us pages on 2026-11-01.
-// Only substantive edit: Bonton Holidays → MaxTravel, explicitly approved by
-// the owner in this chat. No new legal clauses or effective dates were added.
-export const legalPolicies = [
+type PolicySection = {heading:string; paragraphs:readonly string[]; bullets:readonly string[]; afterBullets?:readonly string[]};
+type LegalPolicy = {slug:string; title:string; sourceUrl?:string; effectiveDate?:string; effectiveDateLabel?:string; intro:readonly string[]; sections:readonly PolicySection[]};
+
+// Privacy Policy and Terms of Use carry over the published maxtravel.in text
+// and effective date. The other policies retain their maxtravel.us sources.
+export const legalPolicies: readonly LegalPolicy[] = [
   {
     "slug": "privacy-policy",
     "title": "Privacy Policy",
-    "sourceUrl": "https://maxtravel.us/PrivacyPolicy",
+    "effectiveDate": "2026-10-27",
+    "effectiveDateLabel": "27 October 2026",
     "intro": [
-      "We value the privacy of our customers and are committed to protecting their personal information. We believe that the personal information of our customers should not be shared with third parties without prior consent. This Privacy Policy outlines how we collect, use, and safeguard your information when you use our services."
+      "Business: Max Travel, a proprietorship of Moez Meghani."
     ],
     "sections": [
       {
-        "heading": "Information We Collect",
+        "heading": "1. About this policy",
         "paragraphs": [
-          "We collect the following types of information:"
+          "This policy explains how Max Travel handles personal information when you use maxtravel.in, create an account, make travel enquiries or bookings, or communicate with our team. Our office is in Secunderabad, India. For privacy questions and requests, email cs@maxtravel.in.",
+          "The information involved depends on the services you use. Booking and payment sections apply when those services are available; a displayed search result or payment acknowledgement is not, by itself, a confirmed travel booking."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "2. Information we collect",
+        "paragraphs": [
+          "Account information includes your name, email address, account credentials, verification status and security settings. We also process session and device information needed to provide account access and protect accounts.",
+          "Travel information may include passenger and guest names, contact details, dates of birth or ages, gender, nationality, passport information where required, itinerary, travel dates, accommodation preferences and booking references. If you choose to save traveller profiles, we store those details for future use. For business bookings, we may also collect company and GST billing details.",
+          "Transaction records include amounts, payment method, payment and refund references, status, invoices and cancellation records. Payment providers process the payment information submitted through their payment services under their own privacy notices. Please do not send card numbers, passwords, payment OTPs or full identity documents through ordinary email or WhatsApp.",
+          "When you contact us, we receive your messages, contact details and information you choose to provide. WhatsApp records may include message content, delivery status and communication preferences. Technical records may include IP addresses, browser or device details, session identifiers, search activity and security or operational logs."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "3. How we use information",
+        "paragraphs": [
+          "We use relevant information to:"
         ],
         "bullets": [
-          "Personal Information: Information provided by you during registration or booking, including your name, contact number, email address, and physical address.",
-          "Transaction Information: Details of transactions made on our website, including booking details and payment information.",
-          "Usage Data: Information about how you use our websites, such as pages visited, IP address, and device information."
+          "Create and manage accounts, verify email addresses and support account recovery.",
+          "Search for travel options, prepare quotes, arrange bookings and provide travel documents.",
+          "Process and reconcile payments, cancellations, amendments and refunds.",
+          "Answer enquiries, send service updates and maintain customer-service records.",
+          "Save traveller details when you choose that feature.",
+          "Protect our services, investigate misuse and maintain transaction and accounting records.",
+          "Send optional promotional communications where you have agreed to receive them."
+        ],
+        "afterBullets": [
+          "We request information needed for the service you select. If you do not provide required details, we may be unable to complete that service. Optional marketing is not a condition of making a booking."
         ]
       },
       {
-        "heading": "How We Use Your Information",
+        "heading": "4. Who receives information",
         "paragraphs": [
-          "We use your information for the following purposes:"
-        ],
-        "bullets": [
-          "To provide and personalize our services to you.",
-          "To communicate with you regarding your bookings, updates, and promotions.",
-          "To process transactions and bookings efficiently.",
-          "To improve our website and services based on usage patterns and feedback."
-        ]
-      },
-      {
-        "heading": "Data Security Information",
-        "paragraphs": [
-          "We have implemented extensive security measures to protect your information, including firewalls and monitoring systems. Any suspicious activity or transactions are thoroughly investigated to maintain the integrity of our services."
+          "Relevant information is shared with airlines, hotels, travel suppliers and booking intermediaries to arrange and service your travel. Payment providers receive information needed to process or resolve transactions. These providers may also handle information under their own privacy policies and legal obligations.",
+          "Our authorised staff and service providers supporting hosting, databases, email, customer relationship management and business communications may process information for these purposes. Booking, customer, itinerary and transaction details may be transferred to our customer-service system so our team can assist you.",
+          "If you use WhatsApp, your messages and associated information are processed through WhatsApp/Meta's services, subject also to their applicable terms and privacy notices. We may disclose information where required by law or necessary to address fraud, security incidents or legal claims. International travel and service providers may involve processing outside India, subject to applicable legal requirements."
         ],
         "bullets": []
       },
       {
-        "heading": "Third-Party Entities",
+        "heading": "5. Cookies and similar storage",
         "paragraphs": [
-          "Our privacy policy applies only to information collected and processed by the company. It does not cover third-party entities or websites that are not under our control."
+          "We use cookies or similar identifiers for functions such as account sessions, guest searches and security. You can control cookies through your browser, although blocking necessary cookies may prevent some features from working. Any additional analytics or advertising uses must be described and accompanied by the choices required by applicable law before they are introduced."
         ],
         "bullets": []
       },
       {
-        "heading": "Type of Information We Collect and Its Legal Basis",
+        "heading": "6. WhatsApp and communication choices",
         "paragraphs": [
-          "We collect personal information to provide our services and fulfil legal obligations. This includes information provided during registration, booking, and transactions. We use this information to process bookings, confirm reservations, and keep you informed of transaction status and updates."
+          "We use WhatsApp for enquiries, support and updates consistent with your permission and preferences. Reply STOP, or email cs@maxtravel.in, to ask us to stop WhatsApp messages. You may also withdraw permission for optional marketing through that email address. Opting out does not cancel a booking; necessary service information may still be provided through another appropriate channel."
         ],
         "bullets": []
       },
       {
-        "heading": "How We Use Your Personal Information",
+        "heading": "7. Retention and protection",
         "paragraphs": [
-          "We may use your personal information to facilitate bookings, confirm reservations, and send updates via email. Your information may also be used for customer support and to improve our services."
+          "Retention depends on the record and its purpose, including booking fulfilment, accounting, legal requirements, dispute resolution and security. Removing a saved traveller profile does not necessarily remove information already included in a booking, transaction record or backup.",
+          "We use access controls and other technical and organisational measures to protect information. No online service can guarantee absolute security. Contact us promptly if you suspect unauthorised account access."
         ],
         "bullets": []
       },
       {
-        "heading": "Reviews and Feedback",
+        "heading": "8. Access, correction and deletion requests",
         "paragraphs": [
-          "We welcome your feedback and reviews. Please email us with any comments or concerns regarding our privacy policy or services."
+          "Email cs@maxtravel.in with the subject “Privacy request” and describe whether you want access, correction, deletion, account closure or withdrawal of consent. Include the email address or phone number associated with your interaction and, if relevant, a booking reference. Do not include passwords, OTPs or full payment details.",
+          "We may ask for proportionate information to verify your identity. We will assess and respond under applicable law, explaining any information that must be retained and why. Deletion is not an automatic cancellation or refund request. You may raise a privacy concern through the same contact and pursue remedies available under applicable law."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "9. Other travellers and children",
+        "paragraphs": [
+          "Provide another person's information only with appropriate authority, and share this policy with them. An adult arranging travel for a child should have the necessary parental or guardian authority. Children's details should be supplied only as needed for their travel arrangements."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "10. Updates",
+        "paragraphs": [
+          "We may update this policy as our services or legal requirements change. The current version and effective date will appear on this page. Where required, we will provide additional notice or request consent."
+        ],
+        "bullets": []
+      }
+    ]
+  },
+  {
+    "slug": "terms-of-use",
+    "title": "Terms of Use",
+    "effectiveDate": "2026-10-27",
+    "effectiveDateLabel": "27 October 2026",
+    "intro": [
+      "Business: Max Travel, a proprietorship of Moez Meghani."
+    ],
+    "sections": [
+      {
+        "heading": "1. About these terms",
+        "paragraphs": [
+          "These terms cover your use of maxtravel.in and travel services arranged through Max Travel. Read them together with the Privacy Policy and the fare, room, package and other booking-specific conditions presented before you confirm a purchase. Our office is in Secunderabad, India. Contact cs@maxtravel.in for assistance."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "2. Using the website and your account",
+        "paragraphs": [
+          "You must be legally able to enter into the transaction or act with appropriate authority. If booking for others, you must have their authority to provide their information and accept the relevant booking conditions. A parent, guardian or authorised adult must arrange bookings for children.",
+          "Provide accurate contact and traveller details, protect your login information and promptly report suspected unauthorised access. Do not use the website for fraudulent bookings, unlawful activity, unauthorised access or interference with its operation."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "3. Travel services and supplier conditions",
+        "paragraphs": [
+          "Max Travel helps customers search for and arrange travel supplied by airlines, hotels and other travel providers. The applicable provider's fare, baggage, check-in, accommodation, cancellation and other service conditions form part of your booking when disclosed and accepted. Please review them carefully.",
+          "Information and availability can change. Search results and enquiries do not reserve inventory. Any service marked unavailable or not open for booking cannot be purchased merely by submitting an enquiry."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "4. Prices and payment",
+        "paragraphs": [
+          "Review the itinerary, traveller details, currency, total price, taxes, disclosed fees and cancellation conditions before authorising payment. Prices and availability may need to be checked again before booking. Any revised price requiring your agreement must be presented for acceptance; do not assume an earlier quote remains available.",
+          "Use only the payment options offered through the authorised checkout or confirmed by our team. Payment processing and bank verification may be subject to the payment provider's conditions. If a payment outcome is unclear, contact us or check its status before attempting another payment."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "5. Booking confirmation",
+        "paragraphs": [
+          "Payment success alone does not confirm travel. A booking is confirmed only when the relevant supplier confirmation or issued travel document is provided and the booking status confirms this. A pending request, quote or payment receipt is not a ticket or hotel confirmation.",
+          "Check the confirmation promptly and contact us about any discrepancy. Traveller names should match the documents required for travel. You are responsible for obtaining valid passports, visas and other entry documents and meeting check-in and destination requirements. Our assistance does not guarantee admission or a visa decision."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "6. Changes, cancellations and refunds",
+        "paragraphs": [
+          "Change and cancellation eligibility depends on the accepted booking conditions and applicable law. Contact us with your booking reference. A request is not a completed amendment or cancellation until confirmed.",
+          "Where charges or fare differences apply, we will provide the applicable information for your review before proceeding when approval is required. Cancellation confirmation and refund processing are separate steps. Any refund amount and timing depend on the applicable entitlement, supplier confirmation and payment processing; contact us for the status of your specific case. Nothing in these terms overrides a refund or other remedy required by law."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "7. Service problems and responsibilities",
+        "paragraphs": [
+          "Airlines, hotels and other suppliers operate the underlying travel services. Contact us promptly if your travel is disrupted or a service differs from its confirmation so we can assist with the available options. Website maintenance, technical failures and supplier changes may affect availability or processing.",
+          "These terms do not exclude Max Travel's responsibility for its own services or remove rights and remedies that cannot lawfully be excluded. No blanket waiver of consumer rights applies."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "8. Privacy and communications",
+        "paragraphs": [
+          "Our Privacy Policy explains how account, traveller, booking and communication information is handled. We may send necessary booking and account messages. Optional promotional communications are subject to your choices; you can ask to stop them by emailing cs@maxtravel.in. Reply STOP to stop WhatsApp messages. This does not cancel your booking."
+        ],
+        "bullets": []
+      },
+      {
+        "heading": "9. Complaints and changes to these terms",
+        "paragraphs": [
+          "For a complaint, email cs@maxtravel.in with your booking reference and a brief description. We will review the issue and explain the next steps. You retain access to statutory complaints procedures and remedies.",
+          "We may update these terms prospectively and show the revised effective date. Updated terms do not retrospectively replace the conditions accepted for an existing booking or reduce rights provided by applicable law."
         ],
         "bullets": []
       }
@@ -205,5 +320,5 @@ export const legalPolicies = [
     ],
     "sections": []
   }
-] as const;
+];
 export function getLegalPolicy(slug:string){return legalPolicies.find(policy=>policy.slug===slug);}

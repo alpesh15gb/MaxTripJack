@@ -17,6 +17,32 @@ function matches(trip:unknown,legs:{from:string;to:string;date:string}[]):boolea
  }
  return visit(0,0);
 }
+
+export function oneWayTrips<T>(trips:readonly T[],criteria:AirportCriteria):T[]{
+ return trips.filter(trip=>matches(trip,[criteria]));
+}
+
+/** Match both whole-path and sector fare-rule keys on the selected departure. */
+export function oneWayRouteKeys(criteria:AirportCriteria,trips:readonly unknown[]):Set<string>{
+ const keys=new Set([`${criteria.from}-${criteria.to}`]);
+ for(const trip of oneWayTrips(trips,criteria)){
+  const segments=object(trip).sI as unknown[];
+  for(let start=0;start<segments.length;start++){
+   const from=object(object(segments[start]).da).code;
+   if(typeof from!=='string')continue;
+   const path=[from];
+   for(let end=start;end<segments.length&&end<start+7;end++){
+    const segment=object(segments[end]);
+    const to=object(segment.aa).code;
+    if(object(segment.da).code!==path.at(-1)||typeof to!=='string')break;
+    path.push(to);
+    keys.add(`${from}-${to}`);
+    keys.add(path.join('-'));
+   }
+  }
+ }
+ return keys;
+}
 export function exactAirportGroups(value:unknown,criteria:AirportCriteria):Record<string,unknown[]> {
  const groups=object(value),legs=routes(criteria),result:Record<string,unknown[]>={};
  const numeric=Object.keys(groups).filter(key=>/^\d+$/.test(key)).sort((a,b)=>Number(a)-Number(b));

@@ -86,6 +86,13 @@ export function flightFareRuleRoutes(source:unknown):{route:string;policy:Flight
  const rules=publicFlightFareRule(source);
  return rules?Object.entries(rules).filter(([route])=>routePattern.test(route)).sort(([a],[b])=>a.localeCompare(b)).map(([route,policy])=>({route,policy:policy as FlightRuleRoute})):[];
 }
+
+export function scopeFlightFareRules(source:unknown,routes:ReadonlySet<string>){
+ const raw=object(source);
+ const rules=object(raw.fareRule);
+ if(!Object.keys(rules).length)return source;
+ return {...raw,fareRule:Object.fromEntries(Object.entries(rules).filter(([key])=>key==='miscInfo'||routes.has(key)))};
+}
 export function flightRuleWindow(rule:FlightRule):string {
  if(rule.st!==undefined&&rule.et!==undefined)return `${rule.st}–${rule.et} hours before departure`;
  if(rule.pp==='BEFORE_DEPARTURE')return 'Before departure';

@@ -26,3 +26,18 @@ test('temporary package retry recovers current publication or a real withdrawn s
   if(outcome==='success')await expect(page.getByRole('heading',{name:'Your itinerary'})).toBeVisible();else await expect(page.locator('.package-contact-actions a')).toHaveCount(0);
  }
 });
+
+test('booking trip ideas show useful details and link to a quote request',async({page,request})=>{
+ const path='/packages/plan-goa-coast';
+ const api=await request.get(`/api${path}`);
+ expect(api.status()).toBe(200);
+ expect(await api.json()).toMatchObject({source:'trip-ideas',package:{priceAmount:null,availability:'ON_REQUEST'}});
+ expect((await page.goto(path))?.status()).toBe(200);
+ await expect(page.getByRole('heading',{level:1})).toHaveText('A long weekend in Goa');
+ await expect(page.getByRole('heading',{name:'Sample itinerary',exact:true})).toBeVisible();
+ await expect(page.locator('.package-itinerary li')).toHaveCount(4);
+ await expect(page.getByText('Price on request',{exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Ask for a quote'})).toHaveAttribute('href','/contact');
+ await expect(page.locator('meta[name=robots]')).toHaveAttribute('content',/noindex/);
+ await expectNoHorizontalOverflow(page);
+});

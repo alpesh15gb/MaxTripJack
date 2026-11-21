@@ -57,6 +57,7 @@ test('passport validation uses final travel in saved quote, not an edited unsubm
  await toggleResultSearch(page);
  const search=page.getByRole('form',{name:'Search availability'});
  await search.locator('[name="date"]').fill(after(returning,90));
+ await search.getByRole('combobox',{name:'Journey type'}).selectOption('round-trip');
  await search.locator('[name="returnDate"]').fill(after(returning,100));
  await toggleResultSearch(page);await selectFare(page);await fillParty(page,1);
  const documents=page.locator('.traveller-card details').filter({hasText:'Travel documents'});

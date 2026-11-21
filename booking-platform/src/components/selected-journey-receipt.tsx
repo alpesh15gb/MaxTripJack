@@ -20,12 +20,13 @@ type SelectedStay = {
   checkOut?: string;
 };
 
-export default function SelectedJourneyReceipt({ flights, fallbackFlight, totalMinor, hotel, context, children }: {
-  flights: Flight[]; fallbackFlight?: { title: string; date?: string }; totalMinor: number; hotel?: SelectedStay; context: ReactNode; children: ReactNode;
+export default function SelectedJourneyReceipt({ flights, flightJourney, fallbackFlight, totalMinor, hotel, context, children }: {
+  flights: Flight[]; flightJourney?: string; fallbackFlight?: { title: string; date?: string }; totalMinor: number; hotel?: SelectedStay; context: ReactNode; children: ReactNode;
 }) {
   const nights = hotel?.checkIn && hotel.checkOut ? stayNights({checkIn:hotel.checkIn,checkOut:hotel.checkOut,guests:hotel.guests,rooms:hotel.rooms}) : null;
   return <section className="selected-itinerary compact-selected-itinerary stitch-itinerary" aria-label="Selected itinerary">
     {!hotel && context}
+    {!hotel && flightJourney && <p className="review-journey-type">{flightJourney}</p>}
     <div className="selected-journey-recap">
       {!hotel && !flights.some(flight=>flight.sI.length) && fallbackFlight && <div className="receipt-fallback-flight"><StitchSymbol name="flight" size={24}/><div><strong>{fallbackFlight.title}</strong><p>{travelDateLabel(fallbackFlight.date)}</p></div></div>}
       {hotel ? <div className="review-stay">

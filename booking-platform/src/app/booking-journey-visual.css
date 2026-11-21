@@ -181,3 +181,4 @@ body .booking-workflow.journey-flow :is(.checkout-verification-note,.checkout-ve
   body .booking-workflow.journey-flow .checkout-submit-action .mobile-action-total strong { color: var(--brand-midnight, #101C2C); font-variant-numeric: tabular-nums; }
   body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .stay-room-group-heading { padding: 13px 14px; }
 }
+.selected-itinerary .review-journey-type { margin: 0 0 8px; font-size: .875rem; font-weight: 650; }

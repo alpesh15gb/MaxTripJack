@@ -15,6 +15,8 @@
 }
 .legal-header > div > p { color: #e2f6c7; font-size: 11px; letter-spacing: .12em; margin-bottom: 16px; }
 .legal-header h1 { max-width: 22ch; font-size: clamp(32px, 4.3vw, 52px); }
+.legal-effective-date { margin-top: 12px; font-size: 14px; }
+.legal-article p > span > a { text-decoration: underline; text-underline-offset: 3px; }
 .legal-header-contact { flex: 0 0 215px; color: #e0ece7; font-size: 14px; line-height: 1.7; text-decoration: none; }
 .legal-header-contact span { display: block; color: #e2f6c7; font-weight: 700; margin-top: 8px; text-decoration: underline; text-underline-offset: 4px; }
 .legal-site .legal-layout { grid-template-columns: 265px minmax(0, 1fr); gap: 36px; }
@@ -26,6 +28,7 @@
 .legal-article section { scroll-margin-top: 32px; padding-top: 24px; border-top: 1px solid #dce7e1; }
 .legal-article h2 { font-size: 24px; max-width: 35ch; }
 .legal-site .legal-help { padding: 16px; }
+.legal-site .legal-mobile-contents { display: none; }
 @media (max-width: 850px) {
   .legal-site .legal-layout { grid-template-columns: 1fr; }
   .legal-site .legal-sidebar { display: grid; grid-template-columns: 1fr 1fr; }
@@ -36,15 +39,18 @@
 @media (max-width: 550px) {
   .legal-site .legal-header { flex-direction: column; align-items: flex-start; gap: 24px; }
   .legal-header-contact { flex-basis: auto; }
-  .legal-site .legal-layout { display: grid; }
-  .legal-site .legal-sidebar { display: block; }
-  .legal-site .legal-sidebar nav:not(.legal-contents) { margin-top: 16px; }
+  .legal-site .legal-layout { display: grid; gap: 16px; }
+  .legal-site .legal-sidebar { display: none; }
+  .legal-site .legal-mobile-contents { display: block; border: 1px solid #d5dfed; border-radius: 12px; background: #fff; }
+  .legal-mobile-contents summary { padding: 14px 16px; cursor: pointer; font-weight: 650; }
+  .legal-mobile-contents nav { display: grid; padding: 0 16px 10px; }
+  .legal-mobile-contents nav a { display: flex; align-items: center; min-height: 44px; padding: 6px 0; }
   .legal-site .legal-article { padding: 24px 20px; font-size: 15px; }
 }
 @media print {
   .legal-site .legal-header { background: none; color: #000; padding: 0 0 24px; }
   .legal-header > div > p { color: #000; }
-  .legal-header-contact, .legal-site .legal-sidebar { display: none; }
+  .legal-header-contact, .legal-site .legal-sidebar, .legal-site .legal-mobile-contents { display: none; }
   .legal-site .legal-layout { display: block; }
   .legal-site .legal-article { padding: 0; border: 0; }
 }

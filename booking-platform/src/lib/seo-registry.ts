@@ -4,7 +4,8 @@
  * Search results, user data and supplier quotes must never enter this registry.
  */
 export const PUBLIC_SEO_PAGES = [
-  { path: "/privacy-policy", lastModified: "2026-11-01" },
+  { path: "/privacy-policy", lastModified: "2026-11-22" },
+  { path: "/terms-of-use", lastModified: "2026-11-22" },
   { path: "/terms-and-conditions", lastModified: "2026-11-01" },
   { path: "/cancellations-payment-policy", lastModified: "2026-11-01" },
   { path: "/disclaimer", lastModified: "2026-11-01" },

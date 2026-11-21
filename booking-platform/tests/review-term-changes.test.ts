@@ -195,7 +195,7 @@ test('public policy projection and refreshed/current policy rendering never expo
   assert.match(html,/Known policy/);assert.doesNotMatch(html,/PRIVATE_TOKEN|987654|Supplier Auth Token/);assert.match(html,/Other terms may be unavailable/);
  }
  const boundary=readFileSync(new URL('../src/lib/supplier-flow.ts',import.meta.url),'utf8');
- assert.match(boundary,/review:publicSupplierReview\(product,data\)/);
+ assert.match(boundary,/review:publicSupplierReview\(product,data,flight\)/);
  const projection=readFileSync(new URL('../src/lib/public-supplier-review.ts',import.meta.url),'utf8');
  assert.match(projection,/fareRules:publicSupplierPolicy\(data.fareRules\)/);assert.match(projection,/cancellation:publicSupplierPolicy\(option.cancellation\)/);
 });

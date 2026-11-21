@@ -163,7 +163,7 @@ test('popular pairs and multi-city carry the selected first leg into the editabl
   await expect(planner.getByLabel('From airport',{exact:true})).toHaveValue('Hyderabad (HYD)');
   await expect(planner.getByLabel('To airport',{exact:true})).toHaveValue('Dubai (DXB)');
   await planner.getByRole('button',{name:'Multi-city',exact:true}).click();
-  await expect(page.getByRole('combobox',{name:'Journey type',exact:true})).toHaveValue('MULTI');
+  await expect(page.getByRole('combobox',{name:'Journey type',exact:true})).toHaveValue('multi-city');
   await expect(page.getByRole('group',{name:'Flight 2',exact:true}).getByRole('combobox',{name:'To airport',exact:true})).toHaveValue('');
   expect(new URL(page.url()).searchParams.get('from')).toBe('HYD');
   expect(new URL(page.url()).searchParams.get('to')).toBe('DXB');

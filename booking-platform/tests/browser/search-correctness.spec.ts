@@ -6,10 +6,12 @@ test('correcting airport clears only stale local validation and preserves return
  await expect(page.locator('#booking-feedback')).toContainText('different departure and arrival airports');
  await page.getByLabel('To airport',{exact:true}).fill('DEL');
  await expect(page.locator('#booking-feedback')).not.toContainText('different departure and arrival airports');
- await page.getByLabel('Return date, optional',{exact:true}).fill('2020-01-01');
+ await page.getByRole('combobox',{name:'Journey type'}).selectOption('round-trip');
+ await page.getByLabel('Return date',{exact:true}).fill('2020-01-01');
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
- await page.getByLabel('Return date, optional',{exact:true}).fill('');
+ await page.getByRole('combobox',{name:'Journey type'}).selectOption('one-way');
+ await expect(page.getByLabel('Return date',{exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
  await expect(page.locator('#booking-results')).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);

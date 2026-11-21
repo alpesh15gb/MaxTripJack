@@ -1,4 +1,5 @@
 import { currentPackage, currentPackageSummary, packageSlug, type TravelPackageSummary } from './travel-packages';
+import {planningPackage,planningPackageSummaries} from './package-trip-ideas';
 export class PackageCatalogueError extends Error {
   constructor(public readonly status: 404 | 503) { super(status === 404 ? 'This package is not available.' : 'Package information is temporarily unavailable. Please try again.'); }
 }
@@ -28,4 +29,20 @@ export async function fetchPackageCatalogue(slug?: string, fetcher: typeof fetch
     return {packages,truncated,unavailableCount};
   } catch (error) { if (error instanceof PackageCatalogueError) throw error; throw new PackageCatalogueError(503); }
   finally { clearTimeout(timer); controller.abort(); }
+}
+
+export async function customerPackageCatalogue(fetcher:typeof fetch=fetch) {
+ try {
+  return {...await fetchPackageCatalogue(undefined,fetcher),source:'published' as const};
+ } catch(error) {
+  if(!(error instanceof PackageCatalogueError)||error.status!==503)throw error;
+  return {packages:planningPackageSummaries(),truncated:false,unavailableCount:0,source:'trip-ideas' as const};
+ }
+}
+
+export async function customerPackageDetail(slug:string) {
+ const plan=planningPackage(slug);
+ if(plan)return {package:plan,source:'trip-ideas' as const};
+ const {packages:[item]}=await fetchPackageCatalogue(slug);
+ return {package:item,source:'published' as const};
 }

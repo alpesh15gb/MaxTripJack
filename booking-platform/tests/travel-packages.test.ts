@@ -1,10 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {currentPackage,currentPackageSummary,packageEmailHref,packagePrice,safePackagePhoto} from '../src/lib/travel-packages';
-import {fetchPackageCatalogue,PackageCatalogueError} from '../src/lib/package-catalogue';
+import {customerPackageCatalogue,customerPackageDetail,fetchPackageCatalogue,PackageCatalogueError} from '../src/lib/package-catalogue';
 import {samplePackage} from './package-fixture';
 const reply = (value:unknown,status=200) => (async () => Response.json(value,{status})) as typeof fetch;
 const list = (packages:unknown[]) => ({packages,truncated:false,unavailableCount:0});
+test('a login redirect serves local enquiry-only ideas and a recovered feed serves current published packages',async()=>{
+ const fallback=await customerPackageCatalogue(async()=>Response.redirect('https://crm.maxtravel.in/login',307));
+ assert.equal(fallback.source,'trip-ideas');
+ assert.ok(fallback.packages.length>0);
+ for(const idea of fallback.packages){
+  assert.equal(idea.priceAmount,null);
+  assert.equal(idea.availability,'ON_REQUEST');
+  assert.ok(safePackagePhoto(idea.coverImageUrl));
+  const detail=await customerPackageDetail(idea.slug);
+  assert.equal(detail.source,'trip-ideas');
+  assert.equal(currentPackage(detail.package).itinerary.length,idea.durationDays);
+ }
+ const recovered=await customerPackageCatalogue(reply(list([samplePackage])));
+ assert.equal(recovered.source,'published');
+ assert.deepEqual(recovered.packages.map(item=>item.slug),[samplePackage.slug]);
+});
 test('published contract strips private fields and keeps major-unit prices',()=>{
  const item=currentPackage({...samplePackage,internalNotes:'private',contactWhatsapp:'+919000000001'},new Date('2026-10-21T23:00:00Z'));
  assert.equal(packagePrice(item),'₹15,000');assert.equal('internalNotes' in item,false);assert.equal('contactWhatsapp' in item,false);

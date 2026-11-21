@@ -41,6 +41,12 @@ for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
     const logo = page.locator('.maxtravel-logo:visible').first();
     await expect(logo).toHaveAttribute('src', /maxtravel-logo\.jpg/);
     await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    if (path === '/privacy-policy' || path === '/terms-of-use') {
+      await expect(page.locator('.legal-effective-date time')).toHaveAttribute('datetime', '2026-10-27');
+      await expect(page.locator('.legal-article section')).toHaveCount(path === '/privacy-policy' ? 10 : 9);
+      await expect(page.locator('.legal-article a[href="mailto:cs@maxtravel.in"]').first()).toBeVisible();
+      await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', `https://maxtravel.in${path}`);
+    }
     if (path === '/') {
       const launcher = page.getByRole('button', {name: 'Open Max AI travel assistant'});
       await expect(launcher).toContainText('Ask Max AI');
@@ -51,8 +57,8 @@ for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
       await expect(page.getByRole('main').getByRole('heading', {level: 1}).first()).toHaveCSS('font-family', /Plus Jakarta Sans/);
     }
     if (!path.startsWith('/operations')) {
-      await expect(page.locator('.concierge-header')).toBeVisible();
-      await expect(page.locator('.concierge-footer')).toBeVisible();
+      await expect(page.locator('.concierge-header:visible')).toHaveCount(1);
+      await expect(page.locator('.concierge-footer:visible')).toHaveCount(1);
     }
     expect(await page.evaluate(async () => {
       await document.fonts.ready;

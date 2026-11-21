@@ -29,6 +29,20 @@ test('period-based rules keep before/after departure restrictions and each route
  assert.equal(flightFareRuleTerms(raw).find(row=>row.key==='fareRules.DXB-DEL.CANCELLATION')?.value,null);
 });
 
+test('one-way review preserves connected departures and omits stray return policy and baggage',()=>{
+ const date='2026-12-20';
+ const segment=(from:string,to:string)=>({da:{code:from},aa:{code:to},dt:`${date}T10:00:00`});
+ const outbound={sI:[segment('BOM','HYD'),segment('HYD','DEL')]};
+ const inbound={sI:[segment('DEL','BOM')],totalPriceList:[{fD:{ADULT:{bI:{iB:'RETURN BAGGAGE'}}}}]};
+ const routes=['BOM-DEL','BOM-HYD','HYD-DEL','BOM-HYD-DEL','DEL-BOM','DEL-HYD'];
+ const fareRules={fareRule:Object.fromEntries(routes.map(key=>[key,{tfr:{CANCELLATION:[timedRule()]}}]))};
+ const result=publicSupplierReview('FLIGHT',{fareRules,tripInfos:[outbound,inbound]},
+  {criteria:{from:'BOM',to:'DEL',date},selectedTrips:[outbound]});
+ assert.deepEqual(flightFareRuleRoutes(result.fareRules).map(row=>row.route),routes.slice(0,4).sort());
+ assert.ok(hasFlightCancellationRules(result.fareRules));
+ assert.doesNotMatch(JSON.stringify(result),/DEL-BOM|DEL-HYD|RETURN BAGGAGE/);
+});
+
 test('public policy projects only documented fields at every nested level',()=>{
  const raw={fareRule:{'BOM-DEL':{supplierToken:'PRIVATE_ROUTE',tfr:{CANCELLATION:[{...timedRule(),supplierToken:'PRIVATE_ROW',fcs:{...timedRule().fcs,NF:987654321,apikey:'PRIVATE_FEE'}}],supplierToken:'PRIVATE_TYPE'}},supplierToken:'PRIVATE_ROOT'},apikey:'PRIVATE_ENVELOPE',bookingId:'PRIVATE_BOOKING',fC:{NF:987654321}};
  const safe=publicSupplierPolicy(raw);

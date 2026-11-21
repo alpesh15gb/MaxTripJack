@@ -64,8 +64,8 @@ test("request indexing requires canonical origin, public path and no query varia
 });
 
 test("sitemap contains 24 editorial pages and four imported policies, with no query/private URL", () => {
-  assert.equal(PUBLIC_SEO_PAGES.length, 34);
-  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 34);
+  assert.equal(PUBLIC_SEO_PAGES.length, 35);
+  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 35);
   const sitemap = buildSitemap(approved);
   assert.deepEqual(sitemap.map(entry => entry.url), PUBLIC_SEO_PAGES.map(page => canonicalUrl(page.path)));
   for (const entry of sitemap) {

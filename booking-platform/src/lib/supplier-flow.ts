@@ -10,7 +10,7 @@ import { customerTotal,customerFlightResults,customerHotelOptions,customerHotelR
 import { hotelListingId } from "./hotel-listing-id";
 import { hotelContentForSearch } from "./hotel-content";
 import { mergeHotelPropertyDetails } from "./hotel-property-merge";
-import { hotelPropertyDetails } from "./hotel-presentation";
+import { hotelObject, hotelPropertyDetails } from "./hotel-presentation";
 import { SearchTiming } from "./search-timing";
 import { cachedFlightSearch, cachedHotelSearch } from "./flight-search-cache";
 import { observeSearchFare } from "./fare-calendar";
@@ -83,9 +83,17 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  await requestLimit(actor.userId,"supplier-review",30);
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
  if(search.service_kind)throw new HttpError(400,"Use the flight service review flow for this search.");
- let data;let chosen:unknown;const reviewedAt=Date.now();
+ let data;let chosen:unknown;let flight:Parameters<typeof publicSupplierReview>[2];const reviewedAt=Date.now();
  if(search.product==="FLIGHT"){
-  let priceIds:string[];try{priceIds=orderedFlightSelection(exactAirportGroups(search.results.searchResult?.tripInfos,search.criteria),selection.priceIds??[],search.criteria);}catch(e){throw new HttpError(400,e instanceof Error?e.message:"Invalid fare selection.");}
+  const groups=exactAirportGroups(search.results.searchResult?.tripInfos,search.criteria);
+  let priceIds:string[];try{priceIds=orderedFlightSelection(groups,selection.priceIds??[],search.criteria);}catch(e){throw new HttpError(400,e instanceof Error?e.message:"Invalid fare selection.");}
+  if(!search.criteria.returnDate&&!search.criteria.legs?.length){
+   const selectedTrips=Object.values(groups).flat().filter(trip=>{
+    const prices=hotelObject(trip).totalPriceList;
+    return Array.isArray(prices)&&prices.some(price=>priceIds.includes(String(hotelObject(price).id)));
+   });
+   flight={criteria:search.criteria,selectedTrips};
+  }
   chosen={priceIds};data=await tripjack("FLIGHT",paths.FLIGHT.review,chosen);if(data.bookingId)data.fareRules=await tripjack("FLIGHT","/fms/v2/farerule",{flowType:"REVIEW",id:data.bookingId});
  }else{
   if(!selection.hid||!selection.optionId)throw new HttpError(400,"Choose a hotel room option.");
@@ -105,5 +113,5 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  if(!Number.isFinite(seconds)||seconds<30)throw new HttpError(409,"Supplier review session unavailable or too short. Review again.");
  const expiresAt=new Date(reviewedAt+Math.min(seconds,180)*1000);if(expiresAt.getTime()-Date.now()<30000)throw new HttpError(409,"Supplier review expired while loading the rules. Review again.");
  const id=randomUUID();await database().query("INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",[id,searchId,actor.userId,actor.companyId,product,chosen,data,data.bookingId,supplierMinor,totalMinor,expiresAt]);
- return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:publicSupplierReview(product,data)};
+ return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:publicSupplierReview(product,data,flight)};
 }

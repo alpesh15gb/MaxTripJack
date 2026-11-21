@@ -14,7 +14,7 @@ test('public review allowlist excludes arbitrary fields at every raw boundary wi
  assert.deepEqual(reviewGuestIssues(guests,result),reviewGuestIssues(guests,raw));
  const boundary=readFileSync(new URL('../src/lib/supplier-flow.ts',import.meta.url),'utf8');
  assert.match(boundary,/chosen,data,data.bookingId,supplierMinor,totalMinor,expiresAt/);
- assert.match(boundary,/review:publicSupplierReview\(product,data\)/);
+ assert.match(boundary,/review:publicSupplierReview\(product,data,flight\)/);
 
 });
 test('required flags retain server validation parity without coercing malformed PAN flags into requirements',()=>{

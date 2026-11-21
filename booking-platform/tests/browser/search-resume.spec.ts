@@ -5,7 +5,7 @@ const legs=[{from:'BOM',to:'DEL',date:departure},{from:'DEL',to:'GOI',date:retur
 test('submitted multi-city shape survives refresh, but unsubmitted edits do not replace it',async({page,provider})=>{
  await page.goto('/');
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',legs:JSON.stringify(legs),adults:'2',children:'1',infants:'1',cabin:'BUSINESS'}));
- await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('MULTI');
+ await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('multi-city');
  await expect(page.locator('[name="leg-date-1"]')).toHaveValue(returning);
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
  await expect.poll(()=>provider.requests('/api/travel/search').length).toBe(1);
@@ -20,7 +20,7 @@ test('submitted multi-city shape survives refresh, but unsubmitted edits do not 
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  await page.reload();
  await expect(page.locator('[name="leg-date-1"]')).toHaveValue(returning);
- await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('MULTI');
+ await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('multi-city');
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
  await expect.poll(()=>provider.requests('/api/travel/search').length).toBe(2);
@@ -86,6 +86,6 @@ test('round-trip auto-search refresh preserves the return date and searches once
  expect(provider.requests('/api/travel/search')).toHaveLength(2);
  expect(provider.requests('/api/travel/search')[1].body).toMatchObject({returnDate:returning,adults:2,cabin:'FIRST'});
  await toggleResultSearch(page);
- await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('STANDARD');
+ await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('round-trip');
  await expect(page.locator('[name="returnDate"]')).toHaveValue(returning);
 });

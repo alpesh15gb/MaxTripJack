@@ -45,8 +45,34 @@ async function showConditions(page:Page){
  return page.getByRole('region',{name:'Cancellation and fare rules',exact:true});
 }
 
+test('one-way review after switching from round trip shows only the departure and its fare rules',async({page,provider})=>{
+ const criteria={from:'BOM',to:'DEL',date:departure,adults:1};
+ provider.quote=reviewedQuote({summary:criteria,
+  review:publicSupplierReview('FLIGHT',{conditions:{},tripInfos:[flight(),flight('RETURN')],fareRules:supplierRules()},
+   {criteria,selectedTrips:[flight()]})});
+ await openFlightSearch(page,{auto:false,roundTrip:true});
+ await expect(page.getByLabel('Return date',{exact:true})).toHaveValue(returning);
+ await page.getByRole('combobox',{name:'Journey type'}).selectOption('one-way');
+ await expect(page.getByLabel('Return date',{exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Search flights',exact:true}).click();
+ await selectFare(page,'Check fare & continue');
+ await expect(form(page)).toBeVisible();
+ const receipt=page.getByRole('region',{name:'Selected itinerary',exact:true});
+ await expect(receipt.getByText('One way',{exact:true})).toBeVisible();
+ await expect(receipt.locator('.review-flights li')).toHaveCount(1);
+ await expect(receipt).not.toContainText('DEL → BOM');
+ const policy=await showConditions(page);
+ await expect(policy.getByRole('heading',{name:'BOM → DEL',exact:true})).toBeVisible();
+ await expect(policy.getByRole('heading',{name:'DEL → BOM',exact:true})).toHaveCount(0);
+ expect(provider.requests('/api/travel/search')[0].body).not.toHaveProperty('returnDate');
+ expect(provider.requests('/api/travel/review')[0].body).toMatchObject({priceIds:['onward-standard']});
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expectNoHorizontalOverflow(page);
+});
+
 test('review shows official-shaped cancellation rules for both routes with readable fee disclosures',async({page,provider},testInfo)=>{
  provider.quote=quote();await reviewRoundTrip(page,provider);const policy=await showConditions(page);
+ await expect(page.getByRole('region',{name:'Selected itinerary',exact:true}).getByText('Round trip',{exact:true})).toBeVisible();
  const outbound=policy.locator('.flight-policy-route').filter({has:page.getByRole('heading',{name:'BOM → DEL',exact:true})});
  const inbound=policy.locator('.flight-policy-route').filter({has:page.getByRole('heading',{name:'DEL → BOM',exact:true})});
  await expect(outbound).toBeVisible();await expect(inbound).toBeVisible();
