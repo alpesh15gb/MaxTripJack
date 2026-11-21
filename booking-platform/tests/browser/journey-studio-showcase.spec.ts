@@ -16,6 +16,7 @@ test('Journey Studio photo showcase is clearly labelled and never presented as b
  provider.overrides['GET /api/packages']={body:{packages:samples,truncated:false,unavailableCount:0}};
  for(const sample of samples)provider.overrides[`GET /api/packages/${sample.slug}`]={body:{package:sample}};
  await page.goto('/');await expect(page.locator('.home-package-grid')).toContainText('Layout sample — not published inventory');
+ if((page.viewportSize()?.width??1440)<=700)await page.getByText('View 3 published itineraries',{exact:true}).click();
  await page.locator('.home-package-plans').scrollIntoViewIfNeeded();const homePhotos=page.locator('.home-package-photo img');await expect(homePhotos).toHaveCount(3);
  for(const image of await homePhotos.all()){await image.scrollIntoViewIfNeeded();await expect.poll(()=>image.evaluate(node=>(node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);}
  await page.locator('.home-package-plans').scrollIntoViewIfNeeded();await capture(page,testInfo,'studio-home-real-photo-layout-samples');await testInfo.attach('published-layout-samples viewport',{body:await page.screenshot({fullPage:false,animations:'disabled'}),contentType:'image/png'});await expectNoHorizontalOverflow(page);

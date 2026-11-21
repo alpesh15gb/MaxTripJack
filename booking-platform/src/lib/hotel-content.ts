@@ -7,6 +7,15 @@ import type { QueryConfig } from 'pg';
 
 // Fixed supplier host/path; no external image fetching, URL proxy or client-controlled endpoint.
 // Optional property content has a short deadline independent of dynamic rate lookup.
+export async function readStoredHotelProperties(ids: string[]) {
+  return storedHotelProperties(ids, (text, values) => {
+    const pool = database();
+    // Photos are optional and must not queue behind booking transactions.
+    const query: QueryConfig & {query_timeout: number} = {text, values, query_timeout: 250};
+    return pool.idleCount > 0 ? pool.query<Record<string, unknown>>(query) : Promise.resolve({rows: []});
+  });
+}
+
 export const hotelContentForSearch = createHotelContentCache(async hotelIds => {
   const key = tripjackApiKey('HOTEL');
   if (!key) throw new Error('Hotel content unavailable.');
@@ -43,11 +52,4 @@ export const hotelContentForSearch = createHotelContentCache(async hotelIds => {
   const data = JSON.parse(new TextDecoder().decode(bytes));
   if (data?.status?.success !== true) throw new Error('Hotel content unavailable.');
   return data;
-},Date.now,ids=>storedHotelProperties(ids,(text,values)=>{
-  const pool=database();
-  // The owning search lookup has normally returned an idle connection. Optional
-  // photos must not queue behind transactions or open another connection first.
-  // pg supports per-query read deadlines; its QueryConfig type omits this option.
-  const query:QueryConfig & {query_timeout:number}={text,values,query_timeout:250};
-  return pool.idleCount>0?pool.query<Record<string,unknown>>(query):Promise.resolve({rows:[]});
-}));
+},Date.now,readStoredHotelProperties);

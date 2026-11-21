@@ -5,7 +5,7 @@ import {maxAiGatewayConfiguration} from '@/lib/max-ai-provider';
 import {conversationConfigured} from '@/lib/max-ai-conversation';
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { DM_Sans, Geist, Geist_Mono, Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
 import { SITE_NAME, SITE_ORIGIN, siteRobots } from "@/lib/seo";
 import "./globals.css";
 import "./refinement.css";
@@ -25,6 +25,13 @@ import "./visual-polish.css";
 import "./checkout-flow.css";
 import "./homepage-design.css";
 import "./site-polish.css";
+import "./stitch-shell.css";
+import "./stitch-home.css";
+import "./stitch-shopping.css";
+import "./stitch-checkout.css";
+
+const bookingDisplay = Plus_Jakarta_Sans({ variable: "--font-stitch-display", subsets: ["latin"], display: "swap" });
+const bookingBody = DM_Sans({ variable: "--font-stitch-body", subsets: ["latin"], display: "swap" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,7 +66,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${travelDisplay.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${travelDisplay.variable} ${bookingDisplay.variable} ${bookingBody.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col"><CompanyProfileProvider value={company}>{children}<MaxAiAssistant enabled={Boolean(maxAiGatewayConfiguration())&&conversationConfigured()}/></CompanyProfileProvider></body>
     </html>

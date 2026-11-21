@@ -1,0 +1,448 @@
+/* The review and voucher retain a single reviewed total and the provider’s own payment controls. */
+.checkout-active, .booking-status-page {
+  --review-navy: #001736;
+  --review-blue: #005bb3;
+  --review-text: #191c1e;
+  --review-muted: #525e70;
+  --review-canvas: #f7f9fc;
+  --review-line: #dce2e9;
+  --review-shadow: 0 2px 8px -2px rgb(13 44 84 / 5%), 0 8px 24px -5px rgb(13 44 84 / 7%);
+  --brand-midnight: var(--review-navy);
+  --brand-ink: var(--review-text);
+  --brand-muted: var(--review-muted);
+  --brand-line: var(--review-line);
+  --brand-gold-ink: var(--review-blue);
+  --brand-tint: #edf3fb;
+  --brand-sand: #e7f0fb;
+  --brand-paper-sheen: none;
+  font-family: var(--font-stitch-body), Arial, sans-serif;
+}
+body:has(.checkout-active, .booking-status-page) { background: #f7f9fc; }
+.checkout-active :is(h1,h2,h3,h4), .booking-status-page :is(h1,h2,h3,h4) {
+  font-family: var(--font-stitch-display), Arial, sans-serif;
+  color: var(--review-navy);
+}
+#booking-review.stitch-checkout {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+#booking-review > .page-heading {
+  padding: 0;
+  margin: 0 0 14px;
+  align-items: center;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+#booking-review > .page-heading h2 { margin: 0; color: var(--review-navy); font: 750 clamp(20px, 2vw, 28px)/1.2 var(--font-stitch-display), Arial, sans-serif; }
+#booking-review > .page-heading p { margin: 3px 0 0; color: var(--review-muted); font-size: 13px; }
+#booking-review > .page-heading button, #booking-review .booking-expiry button {
+  background: #fff; border: 1px solid var(--review-line); border-radius: 8px;
+  color: var(--review-blue); font-size: 13px; font-weight: 700;
+}
+#booking-review > .booking-expiry {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 8px 16px; margin: 0 0 18px; padding: 9px 14px; border: 1px solid #dbe7f6;
+  border-radius: 10px; background: #ecf3ff; color: #183b69;
+}
+#booking-review .booking-expiry strong { font-size: 14px; color: inherit; }
+#booking-review .booking-expiry p { margin: 2px 0 0; font-size: 12px; color: inherit; }
+#booking-review > .booking-expiry.is-expired { background: #fff4eb; border-color: #f4d7b7; color: #7f4619; }
+#booking-review .booking-inline-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(295px, 1fr); gap: clamp(16px, 2vw, 28px); align-items: start; }
+#booking-review .booking-details-column, #booking-review .booking-traveller-fields { display: grid; gap: 16px; padding: 0; margin: 0; background: none; border: 0; }
+#booking-review .booking-traveller-fields[hidden] { display: none; }
+#booking-review :is(.stitch-itinerary,.booking-contact,.review-guests,.booking-traveller-fields>details,.review-conditions,.checkout-optional-extras,.booking-review-column,.payer-billing) {
+  min-width: 0; margin: 0; padding: clamp(16px, 2vw, 24px); background: #fff; border: 1px solid var(--review-line);
+  border-radius: 15px; box-shadow: var(--review-shadow); color: var(--review-text);
+}
+#booking-review :is(.booking-contact,.review-guests) > h3, #booking-review .checkout-methods h4, #booking-review .review-room h4 {
+  display: flex; align-items: center; gap: 9px; margin: 0 0 7px; font-size: 17px; font-weight: 700;
+}
+#booking-review :is(.booking-contact,.review-guests,.checkout-methods) > :is(h3,h4) svg, #booking-review .review-room svg { color: var(--review-blue); flex-shrink: 0; }
+#booking-review .booking-contact > .muted { margin: 2px 0 12px; font-size: 13px; }
+#booking-review .guest-checkout-note { background: #f4f7fc; border-color: var(--review-line); border-left: 2px solid var(--review-blue); font-size: 12px; }
+#booking-review .review-guests { display: grid; gap: 14px; }
+#booking-review .review-guests .traveller-card {
+  background: #f7f9fc; border: 1px solid #e3e8f0; border-radius: 10px; margin: 0; padding: 12px 15px; box-shadow: none;
+}
+#booking-review .traveller-card legend { color: var(--review-navy); font: 700 14px var(--font-stitch-display), Arial, sans-serif; padding-inline: 4px; }
+#booking-review .traveller-card > .muted { margin: 0 0 8px; font-size: 12px; }
+#booking-review .form-row input, #booking-review .form-row select, #booking-review .checkout-promo-entry input {
+  width: 100%; min-width: 0; min-height: 44px; border: 1px solid #d9e1eb; background: #f2f4f7;
+  color: var(--review-navy); border-radius: 7px; box-shadow: none; font-family: inherit;
+}
+#booking-review .form-row label { color: #30435e; font-size: 13px; font-weight: 650; }
+#booking-review :is(input,select,summary,button,a):focus-visible, .booking-status-page :is(button,a):focus-visible {
+  outline: 3px solid #3385ce; outline-offset: 3px;
+}
+#booking-review .stitch-itinerary .selected-journey-recap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+#booking-review .review-stay-heading { display: flex; align-items: center; gap: 16px; }
+#booking-review .review-stay-heading .hotel-property-thumb, #booking-review .review-stay-heading .hotel-photo-unavailable {
+  flex: 0 0 110px; width: 110px; height: 96px; overflow: hidden; border-radius: 10px;
+}
+#booking-review .review-stay-heading figure, #booking-review .review-stay-heading img { width: 100%; height: 100%; margin: 0; object-fit: cover; }
+.review-stay-symbol, .checkout-methods .method-symbol { display: inline-grid; place-items: center; flex-shrink: 0; color: var(--review-blue); background: #e7f0fd; }
+.review-stay-symbol { width: 64px; height: 64px; border-radius: 12px; }
+#booking-review .review-category { font-weight: 700; font-size: 12px; color: var(--review-blue); }
+#booking-review .review-stay h3 { margin: 3px 0 6px; font-size: clamp(17px,2vw,24px); font-weight: 750; line-height: 1.2; }
+#booking-review .review-stay p { display: flex; align-items: start; gap: 6px; margin: 4px 0; color: var(--review-muted); font-size: 13px; }
+#booking-review .review-stay p svg { flex-shrink: 0; }
+#booking-review .review-dates {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; padding: 12px 14px; background: #f2f4f7; border-radius: 8px;
+}
+#booking-review .review-dates dt { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--review-muted); }
+#booking-review .review-dates dd { margin: 4px 0 0; color: var(--review-navy); font-size: 14px; font-weight: 650; }
+#booking-review .review-flights { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+#booking-review .review-flights li { display: flex; align-items: center; gap: 12px; border: 0; padding: 0; }
+#booking-review .review-flights li+li { border-top: 1px solid var(--review-line); padding-top: 12px; }
+#booking-review .review-flights li > div { display: grid; gap: 3px; }
+#booking-review .selected-reviewed-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding-top: 10px; border-top: 1px solid var(--review-line); }
+#booking-review .selected-reviewed-total :is(span,small) { font-size: 12px; color: var(--review-muted); }
+#booking-review .selected-reviewed-total strong { font-size: 16px; color: var(--review-navy); }
+#booking-review .selected-source-details { margin: 10px 0 0; }
+#booking-review summary { color: var(--review-navy); font-weight: 650; }
+#booking-review .stitch-itinerary .selected-source-details > summary { min-height: 36px; padding-block: 8px; color: var(--review-blue); }
+#booking-review .review-payable { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin: 12px 0; padding: 12px 14px; border-radius: 8px; background: #edf3fc; }
+#booking-review .review-payable span { font-size: 14px; font-weight: 650; }
+#booking-review .review-payable strong { font: 800 24px/1.2 var(--font-stitch-display), Arial, sans-serif; color: var(--review-navy); }
+#booking-review .checkout-methods { margin-block: 16px; border-top: 1px solid var(--review-line); padding-top: 14px; }
+#booking-review .checkout-methods h4 { font-size: 16px; }
+#booking-review .checkout-methods summary { padding-block: 9px; font-size: 13px; min-height: 44px; }
+#booking-review .checkout-methods fieldset { display: grid; gap: 6px; border: 0; padding: 0; margin: 4px 0; }
+#booking-review .checkout-methods label { display: flex; align-items: center; gap: 9px; margin: 0; cursor: pointer; padding: 8px; min-height: 44px; border: 1px solid var(--review-line); border-radius: 8px; background: #fff; font-size: 13px; }
+#booking-review .checkout-methods label:has(input:checked) { background: #eef5ff; border-color: #005bb3; }
+#booking-review .checkout-methods label input { width: 17px; height: 17px; min-height: 0; margin-inline-start: auto; accent-color: var(--review-blue); }
+#booking-review .method-symbol { width: 28px; height: 28px; border-radius: 6px; }
+#booking-review .checkout-methods p { margin: 6px 0 0; color: var(--review-muted); font-size: 12px; line-height: 1.5; }
+#booking-review .checkout-promo { background: #f4f7fc; border: 1px dashed #bdcde1; border-radius: 10px; }
+#booking-review .checkout-submit-action .booking-continue {
+  border: 0; border-radius: 9px; background: linear-gradient(110deg,#0064bf,#0073df);
+  color: #fff; box-shadow: 0 3px 9px #005bb326; font-weight: 700;
+}
+#booking-review .checkout-summary-jump, #booking-review .checkout-summary-jump > small, #booking-review .checkout-party-edit { color: var(--review-blue); }
+@media (max-width: 900px) {
+  #booking-review .booking-inline-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 700px) {
+  #booking-review .booking-inline-grid, #booking-review .booking-details-column, #booking-review .booking-traveller-fields { gap: 12px; }
+  #booking-review > .page-heading { gap: 8px; }
+  #booking-review .review-stay-heading { gap: 10px; }
+  #booking-review .review-stay-heading .hotel-property-thumb { flex-basis: 80px; width: 80px; height: 72px; }
+  #booking-review .checkout-submit-action.mobile-booking-action { background: #fff; border-top: 1px solid var(--review-line); }
+}
+
+body .booking-workflow.checkout-active .booking-progress {
+  display: flex; gap: 10px; padding: 10px 14px; border: 1px solid #e0e6ee; border-radius: 10px;
+  background: #fff; box-shadow: var(--review-shadow);
+}
+body .booking-workflow.checkout-active .booking-progress li {
+  display: flex; align-items: center; gap: 6px; color: #64748b; padding: 0; border: 0; min-width: 0; font-size: 13px;
+}
+body .booking-workflow.checkout-active .booking-progress li > span { width: 24px; height: 24px; flex: 0 0 24px; }
+body .booking-workflow.checkout-active .booking-progress li.is-complete > span { background: #005bb3; color: #fff; }
+body .booking-workflow.checkout-active .booking-progress li.is-current { color: #001736; }
+body .booking-workflow.checkout-active .booking-progress li.is-current > span { background: #001736; color: #fff; }
+.stitch-voucher.page-shell { max-width: 1240px; width: min(100%, 1240px); margin: 0 auto; padding: 22px clamp(16px,3vw,40px) 48px; }
+.stitch-voucher .booking-status-back { display: inline-flex; align-items: center; min-height: 38px; margin-bottom: 12px; color: var(--review-blue); }
+.stitch-voucher .booking-status-header { align-items: center; min-height: auto; margin-bottom: 0; padding: clamp(18px,3vw,36px); border: 1px solid #dfe7ed; border-radius: 16px 16px 0 0; background: #fff; box-shadow: none; }
+.stitch-voucher .booking-status-header h1 { margin: 0 0 6px; font-size: clamp(24px,3vw,36px); line-height: 1.15; color: var(--review-navy); font-weight: 800; }
+.stitch-voucher .booking-status-header p { margin: 0; color: var(--review-muted); font-size: 14px; }
+.stitch-voucher .booking-status-icon { display: grid; place-items: center; flex: 0 0 54px; height: 54px; width: 54px; border-radius: 17px; background: #e3edfa; color: #084785; }
+.stitch-voucher .is-confirmed .booking-status-icon { background: #008963; color: #fff; box-shadow: 0 4px 10px #00896328; }
+.stitch-voucher .voucher-reference, .stitch-voucher .voucher-doc {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: #f2f5fa;
+}
+.stitch-voucher .voucher-reference { margin: 0 0 22px; padding: 9px clamp(16px,3vw,34px); border: 1px solid #dfe7ed; border-top: 0; border-radius: 0 0 16px 16px; }
+.stitch-voucher .voucher-reference :is(strong,small), .stitch-voucher .voucher-doc :is(strong,small) { display: block; overflow-wrap: anywhere; }
+.stitch-voucher .voucher-reference small, .stitch-voucher .voucher-doc small { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--review-muted); }
+.stitch-voucher .voucher-reference button { min-height: 44px; padding: 6px 12px; border: 1px solid var(--review-line); border-radius: 8px; background: #fff; color: var(--review-blue); font-weight: 650; }
+.stitch-voucher .booking-status-layout { display: grid; grid-template-columns: minmax(0,2fr) minmax(275px,.95fr); gap: clamp(14px,2.2vw,28px); align-items: start; }
+.stitch-voucher .booking-status-main { display: grid; gap: 16px; }
+.stitch-voucher .booking-status-card { padding: clamp(16px,2.2vw,26px); background: #fff; border: 1px solid var(--review-line); border-radius: 14px; color: var(--review-text); box-shadow: var(--review-shadow); }
+.stitch-voucher .booking-status-card > h2 { color: var(--review-navy); margin: 0 0 12px; font-size: clamp(18px,2.2vw,24px); font-weight: 750; }
+.stitch-voucher.voucher-confirmed .booking-status-confirmation { order: -1; }
+.stitch-voucher .voucher-confirmed-label { display: inline-flex; align-items: center; gap: 3px; margin: 0 0 8px; color: #006e51; background: #e4f8f0; border-radius: 99px; font-size: 12px; font-weight: 650; padding: 3px 9px; }
+.stitch-voucher .voucher-address { display: flex; align-items: center; gap: 4px; margin: 4px 0 12px; color: var(--review-muted); font-size: 13px; }
+.stitch-voucher .hotel-property-gallery { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, minmax(0,1fr)); gap: 5px; height: clamp(150px,21vw,260px); overflow: hidden; border-radius: 10px; margin: 12px 0; }
+.stitch-voucher .hotel-property-gallery figure { margin: 0; min-height: 0; overflow: hidden; }
+.stitch-voucher .hotel-property-gallery figure:first-child { grid-row: span 2; }
+.stitch-voucher .hotel-property-gallery figure:only-child { grid-column: 1/-1; }
+.stitch-voucher .hotel-property-gallery figure:nth-child(2):last-child { grid-row: span 2; }
+.stitch-voucher .hotel-property-gallery figure:nth-child(n+4), .stitch-voucher .hotel-property-gallery figcaption { display: none; }
+.stitch-voucher .hotel-property-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.stitch-voucher .booking-status-itinerary { display: flex; align-items: start; flex-wrap: wrap; gap: 8px 22px; background: #f2f5fa; border-radius: 8px; padding: 12px; }
+.stitch-voucher .booking-status-itinerary p { margin: 0; font-size: 13px; color: var(--review-text); }
+.stitch-voucher .booking-status-itinerary p strong { display: block; font-size: 12px; color: var(--review-muted); margin: 0 0 2px; }
+.stitch-voucher .voucher-room { display: grid; gap: 12px; margin: 14px 0; }
+.stitch-voucher .voucher-room p { margin: 3px 0; font-size: 14px; }
+.stitch-voucher .voucher-room ul { margin: 6px 0 0; padding-left: 0; list-style: none; display: grid; gap: 7px; }
+.stitch-voucher .voucher-room li { display: flex; gap: 8px; font-size: 14px; }
+.stitch-voucher .voucher-room li svg { flex-shrink: 0; color: #08775e; }
+.stitch-voucher .voucher-doc { background: #fff; padding-block: 16px; border-bottom: 1px solid var(--review-line); }
+.stitch-voucher .voucher-doc a { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 9px 14px; border-radius: 8px; background: #007d5b; color: #fff; text-decoration: none; }
+.stitch-voucher .voucher-party h3 { display: flex; align-items: center; gap: 7px; margin: 16px 0 4px; }
+.stitch-voucher .booking-status-passenger { display: flex; align-items: start; gap: 12px; padding: 10px 0; margin: 0; border: 0; border-bottom: 1px solid var(--review-line); border-radius: 0; background: transparent; }
+.stitch-voucher .booking-status-passenger:last-child { border: 0; }
+.stitch-voucher .voucher-avatar { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; background: #e0ebfc; color: #12457d; font-weight: 700; }
+.stitch-voucher .booking-status-passenger h4 { margin: 0; font-size: 14px; }
+.stitch-voucher .booking-status-summary .eyebrow { color: var(--review-blue); font-size: 11px; }
+.stitch-voucher .voucher-summary-title { font-size: 14px; margin: 8px 0; font-weight: 650; }
+.stitch-voucher .booking-status-summary dl > div { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 12px 0; }
+.stitch-voucher .booking-status-summary :is(dt,dd) { margin: 0; }
+.stitch-voucher .voucher-receipt-total { border-top: 1px solid var(--review-line); }
+.stitch-voucher .voucher-receipt-total dd { font-size: 24px; font-weight: 800; color: var(--review-navy); }
+.stitch-voucher .booking-status-actions { margin-top: 10px; }
+.stitch-voucher .booking-status-actions a { width: 100%; }
+.stitch-voucher .booking-status-actions .primary { background: var(--review-navy); color: #fff; }
+.stitch-voucher .booking-status-actions .secondary { color: var(--review-blue); border: 1px solid var(--review-line); background: #f1f5fa; }
+.stitch-voucher .booking-status-steps li.is-complete .booking-status-step-icon { color: #006e51; background: #e4f8f0; border-color: #b0e2d0; }
+.booking-concierge {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px; border-radius: 12px; background: #001736; color: #fff;
+}
+#booking-review .booking-concierge { grid-column: 1; }
+.stitch-voucher .booking-concierge { margin-top: 16px; }
+body .booking-concierge h3 { color: #fff; font: 700 15px/1.3 var(--font-stitch-display), Arial, sans-serif; margin: 0; }
+body .booking-concierge p { color: #dce8f9; font-size: 12px; margin: 4px 0 0; }
+.booking-concierge .concierge-symbol { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: #234268; }
+.booking-concierge a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 7px 14px; border-radius: 8px; background: #e5f0ff; color: #103e75; text-decoration: none; font-size: 13px; font-weight: 700; }
+@media (max-width: 760px) {
+  .stitch-voucher .booking-status-layout { grid-template-columns: minmax(0,1fr); }
+  .stitch-voucher .booking-status-header { flex-direction: column; text-align: center; }
+  .stitch-voucher .booking-status-icon { border-radius: 50%; }
+  .stitch-voucher .booking-status-header p { max-width: 38ch; }
+  body .booking-workflow.checkout-active .booking-progress { justify-content: space-between; gap: 4px; padding: 8px; }
+  body .booking-workflow.checkout-active .booking-progress li { flex-direction: column; text-align: center; font-size: 11px; }
+}
+
+#booking-review .checkout-method-launch {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  min-height: 44px; padding: 9px 12px; border: 1px solid var(--review-line); border-radius: 8px;
+  background: #f3f7fc; color: var(--review-blue); font-size: 13px; font-weight: 700;
+}
+.checkout-method-sheet:not([open]) { display: none; }
+#booking-review .checkout-method-sheet[open] {
+  position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto;
+  margin: auto; width: min(480px,calc(100% - 32px)); max-width: none; height: fit-content;
+  max-height: min(86dvh,780px); padding: 0; overflow: hidden; border: 1px solid var(--review-line);
+  border-radius: 18px; color: var(--review-navy); background: var(--review-canvas); box-shadow: 0 14px 60px #00173630;
+}
+.checkout-method-sheet::backdrop { background: #071d39a6; }
+body:has(.checkout-method-sheet[open]) { overflow: hidden; }
+#booking-review .checkout-method-sheet :is(header,footer) { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: #fff; }
+#booking-review .checkout-method-sheet header { border-bottom: 1px solid var(--review-line); }
+#booking-review .checkout-method-sheet h2 { margin: 0; color: var(--review-navy); font-size: 21px; }
+#booking-review .checkout-method-sheet header p { display: flex; gap: 4px; align-items: center; margin: 2px 0 0; color: #00694e; }
+#booking-review .sheet-back { width: 44px; height: 44px; border: 1px solid var(--review-line); border-radius: 50%; background: #fff; color: var(--review-navy); font-size: 19px; }
+#booking-review .sheet-body { display: grid; align-content: start; gap: 12px; padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
+#booking-review .sheet-body > section { padding: 15px; border-radius: 12px; border: 1px solid var(--review-line); background: #fff; }
+#booking-review .sheet-body .sheet-total { display: grid; gap: 4px; border: 0; color: #fff; background: #001736; }
+#booking-review .sheet-total span { color: #dfeaf8; font-size: 13px; }
+#booking-review .sheet-total strong { color: #fff; font-size: 25px; }
+#booking-review .sheet-total small { color: #b4ecd8; }
+#booking-review .sheet-options legend, #booking-review .sheet-body h3 { font-size: 16px; font-weight: 750; color: var(--review-navy); margin: 0 0 10px; }
+#booking-review .sheet-options fieldset { margin: 0; }
+#booking-review .sheet-options label { min-height: 49px; padding: 8px 12px; color: var(--review-navy); }
+#booking-review .sheet-options label .method-symbol { width: 32px; height: 32px; }
+#booking-review .sheet-offers button { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; width: 100%; padding: 8px 12px; border: 1px solid #b9dccd; border-radius: 8px; text-align: left; background: #edfaf3; color: #005b41; }
+#booking-review .sheet-offers button span:first-child { display: grid; }
+#booking-review .checkout-method-sheet footer { justify-content: space-between; border-top: 1px solid var(--review-line); }
+#booking-review .checkout-method-sheet footer div { display: grid; }
+#booking-review .checkout-method-sheet footer small { font-size: 12px; color: var(--review-muted); }
+#booking-review .checkout-method-sheet footer strong { font-size: 19px; }
+#booking-review .sheet-done { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 100px; min-height: 46px; border: 0; border-radius: 9px; background: #001736; color: white; font-weight: 700; }
+@media (max-width: 700px) {
+  #booking-review .checkout-method-sheet[open] { width: 100%; max-height: 100%; height: 100dvh; margin: 0; border: 0; border-radius: 0; }
+  #booking-review .checkout-method-sheet header { padding-top: max(12px,env(safe-area-inset-top)); }
+  #booking-review .checkout-method-sheet footer { padding-bottom: max(12px,env(safe-area-inset-bottom)); }
+  body .booking-workflow.checkout-active > .back { display: none; }
+  body .booking-workflow.checkout-active .booking-heading-copy { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
+  body .booking-workflow.checkout-active .booking-intro { margin: 4px 0 8px; padding: 0; min-height: 0; border: 0; }
+}
+/* Stitch review places the quote clock beside the progress steps and the
+   selected journey directly above the contact and guest particulars. */
+body .checkout-active:has(#booking-review) { width: min(100%,1280px); max-width: 1280px; padding: 16px clamp(16px,3.4vw,48px) 52px; }
+body .checkout-active:has(#booking-review) > :is(.back,.booking-intro) { display: none; }
+#booking-review .checkout-stages {
+  display: grid; grid-template-columns: minmax(0,1.4fr) minmax(305px,1fr); align-items: center;
+  gap: 16px; margin-bottom: 24px; padding-block: 2px 16px; border-bottom: 1px solid #e4e8ef;
+}
+#booking-review .checkout-stages .booking-progress { grid-column: 1; grid-row: 1; width: 100%; margin: 0; padding: 0; border: 0; box-shadow: none; background: transparent; }
+#booking-review .checkout-stages .booking-progress li { flex: 1 1 auto; padding: 0; min-width: 0; font-size: 12px; border: 0; color: var(--review-muted); }
+#booking-review .checkout-stages .booking-progress li:not(:last-child)::after { content: ""; width: clamp(8px,2vw,32px); height: 1px; background: #cbd5e1; margin-inline-start: auto; }
+#booking-review .checkout-stages .booking-expiry { grid-column: 2; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px 12px; margin: 0; padding: 7px 10px; border: 1px solid #cbddee; border-radius: 8px; box-shadow: none; color: #173a64; background: #edf4ff; }
+#booking-review .checkout-stages .booking-expiry strong { font-size: 12px; }
+#booking-review .checkout-stages .booking-expiry p { margin: 0; font-size: 11px; }
+#booking-review .checkout-stages .booking-expiry button { min-height: 34px; font-size: 11px; padding: 5px 8px; }
+#booking-review .checkout-stages .booking-expiry.is-expired { background: #fff4eb; color: #7f4619; border-color: #f4d7b7; }
+#booking-review .booking-inline-grid { gap: clamp(16px,2.25vw,32px); }
+#booking-review .booking-details-column, #booking-review .booking-traveller-fields { gap: 20px; }
+#booking-review .review-selection-context { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 6px; }
+#booking-review .review-selection-context h2 { color: var(--review-blue); font: 700 12px/1.4 var(--font-stitch-body),Arial,sans-serif; margin: 0; }
+#booking-review .review-selection-context button { display: inline-flex; align-items: center; justify-content: center; gap: 3px; min-height: 36px; padding: 3px 7px; color: var(--review-blue); }
+#booking-review .review-stay-heading { gap: 15px; }
+#booking-review .review-stay-heading .hotel-property-thumb { flex: 0 0 124px; width: 124px; height: 106px; }
+#booking-review .review-stay h3 { font-size: clamp(21px,2vw,28px); }
+#booking-review .review-dates { grid-template-columns: repeat(3,minmax(0,1fr)); text-align: left; gap: 8px; }
+#booking-review .review-room { padding-top: 12px; border-top: 1px solid var(--review-line); }
+#booking-review .review-room p { align-items: center; }
+#booking-review .review-contact-gst { margin-top: 12px; padding-top: 10px; border: 0; border-top: 1px solid var(--review-line); border-radius: 0; background: #fff; box-shadow: none; }
+#booking-review .review-contact-gst summary { font-size: 13px; }
+#booking-review .booking-review-column { padding: clamp(16px,1.75vw,24px); }
+#booking-review .booking-review-column h3.checkout-summary-kicker { color: var(--review-muted); margin: 0 0 4px; padding: 0; border: 0; font: 600 12px/1.35 var(--font-stitch-body),Arial,sans-serif; }
+#booking-review .checkout-price-breakdown { padding: 0; margin: 0 0 12px; border: 0; background: #fff; }
+#booking-review .checkout-price-breakdown > summary { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 5px 0 12px; min-height: 42px; border: 0; color: var(--review-navy); font: 750 22px/1.25 var(--font-stitch-display),Arial,sans-serif; }
+#booking-review .checkout-price-breakdown > summary small { font: 500 10px/1.4 var(--font-stitch-body),Arial,sans-serif; color: var(--review-muted); }
+#booking-review .checkout-price-breakdown .booking-summary-lines { margin: 2px 0 6px; }
+#booking-review .checkout-price-breakdown .booking-summary-lines > div { padding: 5px 0; border: 0; }
+#booking-review .checkout-price-breakdown .booking-summary-lines .booking-total { background: #f0f4fa; border-radius: 8px; padding: 12px; margin: 8px 0; color: var(--review-navy); }
+#booking-review .booking-total dd { font-weight: 800; font-size: 24px; }
+#booking-review .checkout-price-breakdown p.muted { font-size: 12px; line-height: 1.45; margin: 4px 0; }
+#booking-review .checkout-summary-policy { padding: 3px 0 8px; }
+#booking-review .checkout-submit-action + .checkout-party-summary { margin-top: 16px; border-top: 1px solid var(--review-line); }
+#booking-review .sheet-steps { display: flex; justify-content: space-between; gap: 4px; padding: 0 6px; margin: 0; position: relative; isolation: isolate; list-style: none; }
+#booking-review .sheet-steps::before { content: ''; position: absolute; z-index: -1; inset: 12px 11% auto; border-top: 2px solid #7aa9da; }
+#booking-review .sheet-steps li { display: grid; justify-items: center; gap: 4px; width: 25%; font-size: 11px; color: var(--review-muted); }
+#booking-review .sheet-steps li :is(span,strong) { display: grid; place-items: center; min-width: 26px; height: 26px; border-radius: 50%; background: #005bb3; color: white; }
+#booking-review .sheet-steps li strong { background: #001736; }
+#booking-review .sheet-journey-summary { display: flex; align-items: center; gap: 11px; }
+#booking-review .sheet-journey-summary :is(.hotel-property-thumb,.sheet-journey-symbol) { width: 58px; height: 56px; flex: 0 0 58px; border-radius: 8px; overflow: hidden; background: #e3edf9; color: #164a80; }
+#booking-review .sheet-journey-summary .sheet-journey-symbol { display: grid; place-items: center; }
+#booking-review .sheet-journey-summary figure, #booking-review .sheet-journey-summary img { width: 100%; height: 100%; object-fit: cover; margin: 0; }
+#booking-review .sheet-journey-summary small { color: var(--review-blue); font-size: 10px; font-weight: 700; }
+#booking-review .sheet-journey-summary h3 { margin: 3px 0 0; }
+#booking-review .sheet-journey-summary p { margin: 2px 0; }
+#booking-review .sheet-journey .sheet-total { margin: 12px -15px -15px; padding: 10px 15px; background: #f0f4f9; border-radius: 0 0 12px 12px; border: 0; }
+#booking-review .sheet-journey .sheet-total summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0; }
+#booking-review .sheet-journey .sheet-total summary > span { display: grid; }
+#booking-review .sheet-journey .sheet-total small { color: var(--review-muted); font-size: 10px; text-transform: uppercase; }
+#booking-review .sheet-journey .sheet-total strong { color: var(--review-navy); font-size: 23px; }
+#booking-review .sheet-total b { display: inline-flex; align-items: center; color: var(--review-blue); font-size: 11px; }
+#booking-review .sheet-total dl { margin: 8px 0 0; color: var(--review-navy); font-size: 12px; }
+#booking-review .sheet-total dl > div { display: flex; justify-content: space-between; }
+#booking-review .sheet-method-copy { display: grid; gap: 2px; }
+#booking-review .sheet-method-copy small { color: var(--review-muted); font-size: 11px; font-weight: 450; }
+#booking-review .sheet-body .sheet-options { padding: 0; border: 0; background: none; }
+#booking-review .sheet-options label { min-height: 63px; border: 0; box-shadow: var(--review-shadow); }
+#booking-review .sheet-options label:has(input:checked) { outline: 1px solid #005bb3; }
+#booking-review .sheet-options .method-symbol { color: #17487b; background: #e2edf9; }
+.stitch-voucher .voucher-mobile-actions { display: none; }
+.stitch-voucher .voucher-trail { display: flex; align-items: center; gap: 9px; padding: 2px 0 14px; color: var(--review-muted); font-size: 12px; }
+.stitch-voucher .voucher-trail :is(span,strong):not(.stitch-symbol) { display: inline-flex; gap: 4px; align-items: center; }
+.stitch-voucher .voucher-trail strong, .stitch-voucher .voucher-status-tag, .stitch-voucher .voucher-paid { color: #00664c; }
+.stitch-voucher .voucher-status-tag, .stitch-voucher .voucher-paid { display: inline-flex; gap: 4px; align-items: center; font-size: 11px; font-weight: 700; }
+.stitch-voucher .booking-status-header { display: flex; align-items: center; gap: 15px; padding: clamp(16px,2vw,28px); }
+.stitch-voucher .voucher-header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.stitch-voucher .voucher-header-actions :is(button,a) { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 12px; min-height: 42px; color: #fff; background: #007d5b; border: 0; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; }
+.stitch-voucher .voucher-header-actions button { background: #f0f3f8; color: #283f5c; }
+.stitch-voucher .voucher-property h2 { color: var(--review-navy); margin: 3px 0; font-size: clamp(21px,2.1vw,29px); }
+.stitch-voucher .voucher-stars { margin-inline-start: 6px; color: #98631b; font-size: 12px; }
+.stitch-voucher .voucher-property-gallery { margin-block: 12px; }
+.stitch-voucher .voucher-paid { background: #e1f6ed; border-radius: 5px; padding: 3px 6px; float: right; }
+.stitch-voucher .voucher-room { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.stitch-voucher .voucher-room div:has(ul) { grid-column: 1/-1; }
+.stitch-voucher .voucher-room ul { grid-template-columns: repeat(2,minmax(0,1fr)); }
+@media (max-width: 900px) {
+  #booking-review .checkout-stages { grid-template-columns: 1fr; gap: 7px; }
+  #booking-review .checkout-stages .booking-expiry { grid-column: 1; }
+}
+@media (max-width: 700px) {
+  body .checkout-active:has(#booking-review) { padding: 0 12px 84px; }
+  #booking-review .checkout-stages { margin: 0 -12px 10px; padding: 0; border: 0; }
+  #booking-review .checkout-stages .booking-progress { grid-row: 2; padding: 4px 12px; }
+  #booking-review .checkout-stages .booking-progress li { font-size: 11px; }
+  #booking-review .checkout-stages .booking-progress li:not(:last-child)::after { display: none; }
+  #booking-review .checkout-stages .booking-expiry { grid-row: 1; gap: 3px 8px; border: 0; border-radius: 0; background: #001736; color: #fff; padding: 7px 12px; }
+  #booking-review .checkout-stages .booking-expiry p, #booking-review .checkout-stages .booking-expiry strong { color: #fff; }
+  #booking-review .checkout-stages .booking-expiry.is-expired { background: #71401a; }
+  #booking-review .checkout-stages .booking-expiry button { min-height: 36px; background: #1c3658; color: white; border-color: #547094; }
+  #booking-review .booking-details-column, #booking-review .booking-traveller-fields { gap: 10px; }
+  #booking-review .review-dates { grid-template-columns: 1fr 1fr; }
+  #booking-review .review-dates > div:last-child { grid-column: 1/-1; }
+  #booking-review .review-stay-heading .hotel-property-thumb { flex-basis: 88px; width: 88px; height: 88px; }
+  #booking-review .review-stay h3 { font-size: 19px; }
+  .stitch-voucher .voucher-trail, .stitch-voucher .voucher-header-actions, .stitch-voucher.voucher-confirmed .booking-status-back { display: none; }
+  .stitch-voucher .voucher-mobile-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin: 0 0 12px; }
+  .stitch-voucher .voucher-mobile-actions a { display: grid; align-content: center; justify-items: center; gap: 5px; padding: 9px 4px; min-height: 58px; background: white; border: 1px solid var(--review-line); border-radius: 9px; color: #16487a; font-size: 11px; font-weight: 700; text-decoration: none; }
+  .stitch-voucher .booking-status-header { gap: 8px; }
+  .stitch-voucher .booking-status-icon { width: 66px; height: 66px; flex-basis: 66px; border-radius: 50%; outline: 5px solid #dcf6e9; }
+  .stitch-voucher .voucher-reference { margin-bottom: 8px; }
+  .stitch-voucher .voucher-property.with-gallery { display: grid; isolation: isolate; overflow: hidden; border-radius: 10px; background: #15344c; margin-bottom: 10px; }
+  .stitch-voucher .voucher-property.with-gallery .voucher-property-heading, .stitch-voucher .voucher-property.with-gallery .voucher-property-gallery { grid-area: 1/1; }
+  .stitch-voucher .voucher-property-gallery, .stitch-voucher .voucher-property-gallery .hotel-property-gallery { margin: 0; }
+  .stitch-voucher .voucher-property-gallery .hotel-property-gallery { display: block; height: clamp(160px,49vw,245px); }
+  .stitch-voucher .voucher-property-gallery .hotel-property-gallery figure { height: 100%; }
+  .stitch-voucher .voucher-property-gallery .hotel-property-gallery figure:not(:first-child) { display: none; }
+  .stitch-voucher .voucher-property.with-gallery .voucher-property-heading { display: flex; flex-direction: column; align-items: start; justify-content: end; min-height: 145px; padding: 12px; z-index: 1; background: linear-gradient(0deg,#001227f5 0%,#00122794 39%,transparent 78%); }
+  .stitch-voucher .voucher-property.with-gallery .voucher-property-heading h2, .stitch-voucher .voucher-property.with-gallery .voucher-address { color: #fff; }
+  .stitch-voucher .voucher-property.with-gallery .voucher-address { margin: 2px 0 0; }
+  .stitch-voucher .voucher-property.with-gallery .voucher-confirmed-label { margin-bottom: auto; }
+  .stitch-voucher .voucher-room ul { grid-template-columns: 1fr; }
+}
+@media print {
+  .stitch-voucher :is(.voucher-trail,.voucher-header-actions,.voucher-reference button,.booking-status-refresh,.booking-status-actions,.booking-concierge,.voucher-mobile-actions,.booking-status-back) { display:none; }
+  body:has(.stitch-voucher) :is(header.stitch-header,footer) { display: none; }
+  .stitch-voucher .booking-status-layout { display: block; }
+  .stitch-voucher .booking-status-card { break-inside: avoid; box-shadow: none; margin-bottom: 12px; }
+}
+#booking-review .checkout-test-mode { display: inline-block; margin-top: 2px; font-weight: 600; font-size: 10px; color: #526784; }
+#booking-review .review-flights li strong { color: var(--review-navy); font: 750 clamp(17px,1.5vw,22px)/1.3 var(--font-stitch-display),Arial,sans-serif; }
+#booking-review .receipt-fallback-flight { display: flex; align-items: center; gap: 10px; }
+#booking-review .review-dates small { color: var(--review-blue); font-weight: 650; }
+@media (max-width:700px) {
+  #booking-review .checkout-test-mode { color: #d2e1f3; }
+}
+#booking-review .review-stay { display: grid; grid-template-columns: 124px minmax(0,1fr); column-gap: 16px; row-gap: 6px; align-items: start; }
+#booking-review .review-stay-heading { display: contents; }
+#booking-review .review-stay-heading > :is(.hotel-property-thumb,.hotel-photo-unavailable,.review-stay-symbol) { grid-column: 1; grid-row: 1/3; width: 100%; height: 134px; }
+#booking-review .review-stay-copy { grid-column: 2; }
+#booking-review .review-stay .review-selection-context { margin-bottom: 1px; min-height: 0; }
+#booking-review .review-stay .review-selection-context button { min-height: 26px; padding: 2px 4px; font-size: 12px; }
+#booking-review .review-stay :is(.review-category,.review-selection-context h2) { font-size: 10px; }
+#booking-review .review-stay .review-dates { grid-column: 2; grid-template-columns: repeat(2,minmax(0,1fr)); padding: 8px 10px; margin: 0; }
+#booking-review .review-stay .review-dates .review-date-range, #booking-review .review-stay .review-dates .review-room-count { display: none; }
+#booking-review .review-room { display: grid; grid-column: 1/-1; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2px 10px; margin-top: 7px; padding-top: 8px; }
+#booking-review .review-room h4 { grid-column: 1/-1; }
+#booking-review .review-stay-copy .review-category { color: #155589; background: #e6effb; border-radius: 3px; padding: 1px 5px; }
+#booking-review #booking-summary h3#checkout-summary-heading { font-size: 12px; font-weight: 650; line-height: 1.25; }
+#booking-review #booking-summary .sheet-body .sheet-journey-summary h3 { font-size: 17px; font-weight: 750; line-height: 1.2; }
+#booking-review #booking-summary .sheet-body .sheet-offers h3 { font-size: 15px; font-weight: 700; line-height: 1.3; }
+#booking-review .clock-refresh-short { display: none; }
+@media (max-width:700px) {
+ #booking-review .review-stay { grid-template-columns: 88px minmax(0,1fr); gap: 8px; }
+ #booking-review .review-stay-heading > :is(.hotel-property-thumb,.hotel-photo-unavailable,.review-stay-symbol) { height: 100px; grid-row: 1; }
+ #booking-review .review-stay .review-dates { grid-column: 1/-1; margin: 0; }
+ #booking-review .review-stay .review-dates .review-date-range, #booking-review .review-stay .review-dates .review-room-count { display: block; grid-column: auto; }
+ #booking-review .review-stay .review-dates .review-date-separate { display: none; }
+ #booking-review .review-dates > div dd { font-size: 13px; }
+ #booking-review .review-room { grid-template-columns: 1fr; gap: 1px; margin: 0; border: 0; padding: 9px; border-radius: 6px; background: #f6f8fb; }
+ #booking-review .review-room p { margin: 2px 0; font-size: 12px; }
+ #booking-review .review-room h4 { margin-bottom: 3px; font-size: 15px; }
+ #booking-review .stitch-itinerary:has(.review-stay) .selected-reviewed-total { display: none; }
+ #booking-review .stitch-itinerary .selected-source-details { margin-top: 2px; }
+ #booking-review .checkout-stages .booking-expiry:not(.is-expired) { flex-direction: row; justify-content: space-between; text-align:left; flex-wrap: nowrap; gap: 7px; padding: 4px 12px; }
+ #booking-review .checkout-stages .booking-expiry:not(.is-expired) > div { display: flex; align-items: center; flex-wrap: wrap; gap: 1px 8px; }
+ #booking-review .checkout-stages .booking-expiry:not(.is-expired) p { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
+ #booking-review .checkout-stages .booking-expiry strong { font-size: 11px; }
+ #booking-review .checkout-stages .booking-expiry small { font-size: 9px; }
+ #booking-review .checkout-stages .booking-expiry button { flex: 0 0 auto; width: auto; min-height: 34px; margin: 0; }
+ #booking-review .clock-refresh-wide { display: none; }
+ #booking-review .clock-refresh-short { display: inline; }
+}
+.stitch-voucher .voucher-guidelines > div { display: flex; align-items: start; gap: 8px; margin-top: 10px; }
+.stitch-voucher .voucher-guidelines > div > span { flex-shrink: 0; color: var(--review-blue); }
+.stitch-voucher .voucher-guidelines p { margin: 0; color: var(--review-muted); font-size: 13px; }
+.stitch-voucher .voucher-guidelines strong { display: block; color: var(--review-navy); font-size: 14px; }
+.stitch-voucher .voucher-guidelines a { color: var(--review-blue); font-weight: 650; }
+.stitch-voucher .voucher-payment-line { display: none; }
+@media (max-width: 700px) {
+ .stitch-voucher.voucher-confirmed .booking-status-header { padding: 12px 10px 16px; border: 0; border-radius: 0; background: transparent; }
+ .stitch-voucher.voucher-confirmed .voucher-reference { border: 1px solid var(--review-line); border-radius: 10px; }
+ .stitch-voucher .voucher-payment-line { display: flex; justify-content: center; align-items: center; gap: 6px; min-height: 32px; margin: 0 0 8px; padding: 5px 8px; border-radius: 7px; background: #eaf0f7; color: var(--review-muted); font-size: 11px; }
+ .stitch-voucher .voucher-payment-line > .stitch-symbol { color: var(--review-blue); }
+ .stitch-voucher .voucher-payment-line strong { color: var(--review-navy); }
+ .stitch-voucher .voucher-mobile-actions a { min-height: 70px; }
+ .stitch-voucher .voucher-property.with-gallery { margin: -16px -16px 10px; border-radius: 12px 12px 0 0; }
+}

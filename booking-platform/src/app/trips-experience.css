@@ -389,7 +389,7 @@ body .trips-workspace .trip-record { border-radius: 18px; border: 1px solid var(
 
 /* Itinerary receipts use the same midnight and champagne travel desk palette. */
 .trips-workspace.account-workspace-layout { --trip-ink: var(--brand-ink, #101c2c); --trip-muted: var(--brand-muted, #637080); --trip-border: var(--brand-line, #e2dcd2); }
-.trips-workspace.page-shell:not(.account-workspace-layout) {
+.trips-workspace.page-shell:not(.account-workspace-layout):not(.concierge-trips) {
   padding: clamp(20px, 4vw, 36px);
   border: 1px solid var(--brand-line, #e2dcd2);
   border-radius: 20px;

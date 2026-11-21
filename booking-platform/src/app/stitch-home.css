@@ -1,0 +1,443 @@
+/* The booking planner follows the two supplied Stitch compositions. */
+body .trip-home.stitch-home {
+  --s-ink:#001736; --s-blue:#005bb3; --s-muted:#455266; --s-paper:#f7f9fc; --s-low:#f2f4f7;
+  --s-gutter:clamp(16px,3.75vw,48px); --s-width:1184px;
+  --s-display:var(--font-stitch-display,Arial),sans-serif; --s-body:var(--font-stitch-body,Arial),sans-serif;
+  --s-shadow:0 2px 8px -2px #0d2c540c,0 8px 24px -4px #0d2c5414;
+  background:var(--s-paper); color:var(--s-ink); font-family:var(--s-body);
+}
+.stitch-home .stitch-home-wrap, body .trip-home.stitch-home :is(.home-search-card,.home-confidence,.home-package-plans,.home-public-intro) {
+  width:min(var(--s-width),calc(100% - 2 * var(--s-gutter))); max-width:none; margin-inline:auto;
+}
+.stitch-home .stitch-home-hero {
+  padding:32px 0 112px; background:linear-gradient(180deg,#001736 0%,#102f54 55%,#f7f9fc 100%); color:white;
+}
+.stitch-home .stitch-office-line { display:flex; align-items:center; gap:10px; font-size:12px; line-height:1.45; }
+.stitch-home .stitch-office-line>span { display:inline-flex; gap:7px; align-items:center; padding:5px 12px; background:#ffffff14; border:1px solid #ffffff2b; border-radius:999px; }
+.stitch-home .stitch-office-line i { width:7px; height:7px; border-radius:50%; background:#63b4ff; }
+.stitch-home .stitch-office-line a { margin-left:auto; color:white; text-decoration:none; }
+.stitch-home .stitch-office-line a b { margin-left:8px; }
+.stitch-home .stitch-home-hero h1 { margin:33px 0 10px; font:800 clamp(42px,4.9vw,68px)/1.07 var(--s-display); letter-spacing:-.055em; color:inherit; }
+.stitch-home .stitch-home-hero h1 em { font:italic 500 1.02em/1 Georgia,serif; letter-spacing:-.055em; }
+.stitch-home .stitch-home-hero p { margin:0; max-width:690px; font:400 clamp(16px,1.45vw,20px)/1.5 var(--s-body); color:#ebf3ff; }
+.stitch-home .stitch-hubs { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:23px; }
+.stitch-home .stitch-hubs>span,.stitch-home .stitch-popular>span { font-size:10px; font-weight:750; letter-spacing:.075em; text-transform:uppercase; }
+.stitch-home .stitch-hubs :is(button,a) { display:inline-flex; align-items:center; gap:3px; padding:5px 11px; min-height:30px; border:1px solid #ffffff45; border-radius:20px; background:#ffffff16; color:inherit; font:600 12px/1.3 var(--s-body); text-decoration:none; cursor:pointer; }
+.stitch-home .stitch-hubs button:is(:hover,[aria-pressed=true]),.stitch-home .stitch-hubs a { background:white; color:#0d2c54; }
+.stitch-home .stitch-hubs-mobile { display:none; }
+body .trip-home.stitch-home .home-search-card { position:relative; z-index:3; margin-top:-78px; padding:22px 24px; border:1px solid #e0e6ef; border-radius:20px; background:#fff; color:var(--s-ink); box-shadow:var(--s-shadow); }
+.stitch-home .stitch-product-nav { padding-bottom:12px; border-bottom:1px solid #e4e8ef; }
+body .trip-home.stitch-home .home-product-tabs { display:flex; flex-wrap:wrap; align-items:center; gap:8px; width:auto; border:none; padding:0; background:none; }
+body .trip-home.stitch-home .home-product-tabs :is(a,button) { display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:none; min-height:44px; padding:8px 17px; border:0; border-radius:9px; font:600 15px var(--s-body); color:var(--s-ink); background:none; box-shadow:none; text-decoration:none; }
+body .trip-home.stitch-home .home-product-tabs :is(a,button):hover { background:#eef4ff; }
+body .trip-home.stitch-home .home-product-tabs button[aria-pressed=true] { background:var(--s-ink); color:white; box-shadow:0 2px 6px #0d2c5419; }
+.stitch-home .stitch-assurance { display:inline-flex; align-items:center; gap:6px; color:var(--s-blue); margin-top:9px; font:600 12px var(--s-body); text-decoration:none; }
+body .trip-home.stitch-home .home-search-form { padding:0; margin:0; }
+body .trip-home.stitch-home .home-search-options { display:flex; flex-wrap:wrap; flex-direction:row; align-items:center; justify-content:space-between; gap:8px; padding:13px 0; color:var(--s-ink); }
+body .trip-home.stitch-home .home-search-options fieldset { display:inline-flex; flex-wrap:wrap; gap:2px; width:auto; margin:0; border:0; padding:3px; border-radius:24px; background:#eceff4; }
+body .trip-home.stitch-home .home-search-options :is(label,.stitch-multicity) { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; min-height:33px; cursor:pointer; border:0; border-radius:18px; color:var(--s-ink); background:none; font:600 13px var(--s-body); }
+body .trip-home.stitch-home .home-search-options label:has(:checked) { color:#004d9c; background:white; box-shadow:0 1px 4px #0017361a; }
+.stitch-home .home-search-options label input { accent-color:var(--s-blue); width:13px; height:13px; }
+body .trip-home.stitch-home .home-advanced-link { color:var(--s-blue); min-height:36px; background:none; padding:0 4px; font:600 12px var(--s-body); }
+body .trip-home.stitch-home .home-stay-note { color:var(--s-muted); background:#f2f4f7; border:0; }
+body .trip-home.stitch-home .home-search-fields,
+body .trip-home.stitch-home .home-search-fields.is-return,
+body .trip-home.stitch-home .home-search-fields.is-hotel {
+  display:grid; grid-template-columns:minmax(0,3.05fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.15fr);
+  gap:12px; align-items:stretch;
+}
+body .trip-home.stitch-home .home-search-fields.is-hotel { grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,1fr)) minmax(0,1fr); }
+body .trip-home.stitch-home .home-airports { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); position:relative; gap:12px; grid-column:auto; min-width:0; }
+body .trip-home.stitch-home .home-search-input,body .trip-home.stitch-home .stitch-add-return {
+  display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; min-width:0; padding:11px 12px;
+  color:var(--s-ink); background:var(--s-low); border:1px solid transparent; border-radius:12px; box-shadow:none;
+}
+body .trip-home.stitch-home .home-search-input:focus-within { background:#f8fbff; border-color:#9bbfe5; box-shadow:0 0 0 2px #005bb316; }
+body .trip-home.stitch-home .home-airports>.home-search-input:first-child { padding-right:14px; }
+body .trip-home.stitch-home .home-airports>.home-search-input:last-child { padding-left:19px; }
+body .trip-home.stitch-home .home-search-input>span:first-child,
+body .trip-home.stitch-home .stitch-airport-label>span:first-child,
+body .trip-home.stitch-home .stitch-add-return>span,
+body .trip-home.stitch-home .home-hotel-destination label { font:700 11px/1.4 var(--s-body); letter-spacing:.065em; text-transform:uppercase; color:#24344a; }
+body .trip-home.stitch-home .home-search-input input:not([hidden]):not([type=hidden]),
+body .trip-home.stitch-home .home-search-input :is(.fare-date-trigger,.travellers-trigger) { margin:0; padding:2px 0; min-height:44px; border:0; border-radius:4px; background:transparent; color:var(--s-ink); box-shadow:none; }
+body .trip-home.stitch-home .home-search-input input:not([type=hidden]):not([type=radio]) { width:100%; text-transform:none; font:600 16px var(--s-body); color:var(--s-ink); }
+body .trip-home.stitch-home .home-search-input>small,body .trip-home.stitch-home .airport-hint,body .trip-home.stitch-home .stitch-add-return small { margin:0; color:var(--s-muted); font:400 12px/1.4 var(--s-body); min-height:0; }
+body .trip-home.stitch-home .stitch-airport-label { display:flex; flex-direction:column; gap:0; min-width:0; }
+.stitch-home .airport-edit { position:relative; display:block; min-width:0; }
+body .trip-home.stitch-home .stitch-airport-value { position:absolute; inset:0; display:flex; align-items:center; flex-wrap:wrap; gap:5px 8px; pointer-events:none; color:var(--s-ink); background:var(--s-low); }
+body .trip-home.stitch-home .stitch-airport-value .airport-code-badge { width:auto; min-width:0; height:auto; min-height:0; padding:0; border:0; border-radius:0; background:none; color:var(--s-ink); font:800 26px/1 var(--s-display); letter-spacing:-.04em; }
+body .trip-home.stitch-home .stitch-airport-value>span { font:650 15px/1.15 var(--s-body); letter-spacing:-.025em; color:var(--s-ink); }
+.stitch-home .airport-edit:focus-within .stitch-airport-value { visibility:hidden; }
+body .trip-home.stitch-home .home-swap { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:1; display:grid; place-items:center; width:39px; height:39px; min-width:0; min-height:0; padding:0; border:1px solid #e1e7ee; border-radius:50%; background:white; color:var(--s-blue); box-shadow:0 3px 9px #0017361a; }
+body .trip-home.stitch-home .fare-date-value { flex-wrap:wrap; gap:3px 6px; }
+body .trip-home.stitch-home :is(.fare-date-value strong,.travellers-trigger>span,.stitch-add-return strong) { color:var(--s-ink); font:700 21px/1.2 var(--s-display); letter-spacing:-.04em; }
+body .trip-home.stitch-home .travellers-trigger strong { font:inherit; }
+body .trip-home.stitch-home .stitch-add-return { cursor:pointer; text-align:left; }
+.stitch-home .stitch-add-return strong { display:flex; align-items:center; min-height:44px; }
+body .trip-home.stitch-home .home-search-input .search-picker-dialog { background:#fff; box-shadow:0 12px 36px #0d2c5430; }
+body .trip-home.stitch-home .home-search-input .travellers-done { background:#001736; color:white; }
+body .trip-home.stitch-home .home-search-input :is(.travellers-cabins label:has(:checked),.fare-calendar-days .is-selected) { background:var(--s-ink); color:white; }
+body .trip-home.stitch-home .stitch-popular { grid-column:1/4; display:flex; align-items:center; gap:10px; min-width:0; padding-top:10px; border-top:1px solid #e4e8ef; }
+.stitch-popular>div { display:flex; align-items:center; gap:5px; min-width:0; flex-wrap:wrap; }
+body .trip-home.stitch-home .stitch-popular button { background:#f0f2f5; border:0; padding:6px 9px; border-radius:7px; color:var(--s-ink); font:650 12px/1.2 var(--s-body); min-height:30px; cursor:pointer; }
+.stitch-home .stitch-popular button:hover { background:#dcecff; }
+body .trip-home.stitch-home .home-search-submit { grid-column:4; align-self:end; min-height:50px; width:100%; padding:8px 12px; margin:0; border:0; border-radius:10px; color:white; background:#001736; font:700 16px var(--s-display); box-shadow:0 3px 7px #00173620; }
+body .trip-home.stitch-home .home-search-submit svg:last-child { display:none; }
+body .trip-home.stitch-home .home-search-submit:hover { background:#0d2c54; }
+body .trip-home.stitch-home .home-search-error { color:#82202c; background:#fff0f1; }
+body .trip-home.stitch-home .home-confidence { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:42px auto 0; padding:23px 24px; border:0; border-radius:16px; background:#f0f3f7; }
+body .trip-home.stitch-home .home-confidence>div { display:flex; align-items:flex-start; gap:13px; padding:0; border:0; }
+body .trip-home.stitch-home .home-confidence>div>svg { width:45px; height:45px; flex:none; padding:11px; color:var(--s-blue); border:0; border-radius:12px; background:#fff; }
+body .trip-home.stitch-home .home-confidence strong { display:block; color:var(--s-ink); font:700 15px/1.35 var(--s-display); }
+body .trip-home.stitch-home .home-confidence small { display:block; margin-top:5px; color:var(--s-muted); font:400 13px/1.45 var(--s-body); }
+.stitch-home :is(.stitch-ideas,.stitch-discover) { margin-top:60px; }
+.stitch-home .stitch-section-title { display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:19px; }
+.stitch-home .stitch-section-title h2 { margin:0; color:var(--s-ink); font:750 clamp(24px,2.1vw,32px)/1.15 var(--s-display); letter-spacing:-.045em; }
+.stitch-home .stitch-section-title>div>span,.stitch-home .stitch-office-card header small { display:block; margin-bottom:5px; color:var(--s-blue); font:700 10px/1.4 var(--s-body); letter-spacing:.09em; text-transform:uppercase; }
+.stitch-home .stitch-section-title>a,.stitch-home .stitch-ideas-grid a,.stitch-home .stitch-office-actions a { display:inline-flex; gap:7px; align-items:center; color:var(--s-blue); font-size:13px; font-weight:700; text-decoration:none; }
+.stitch-home .stitch-ideas-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.stitch-home .stitch-ideas-grid article { display:flex; flex-direction:column; align-items:flex-start; padding:23px; background:white; border:1px solid #e7ebf1; border-radius:16px; box-shadow:var(--s-shadow); }
+.stitch-home .stitch-ideas-grid article>span,.stitch-home .stitch-getaway-tag { padding:4px 9px; border-radius:6px; font:700 10px/1.4 var(--s-body); letter-spacing:.065em; text-transform:uppercase; }
+.stitch-home .stitch-ideas-grid article>span { background:#dbeaff; color:#004b96; }
+.stitch-home .stitch-ideas-grid article:nth-child(2)>span { background:#ffdddd; color:#8b1731; }
+.stitch-home .stitch-ideas-grid article:nth-child(3)>span { background:#e9edf3; color:#233650; }
+.stitch-home .stitch-ideas-grid h3 { margin:16px 0 7px; color:var(--s-ink); font:700 20px/1.25 var(--s-display); letter-spacing:-.03em; }
+.stitch-home .stitch-ideas-grid p { margin:0 0 18px; color:var(--s-muted); font:400 14px/1.5 var(--s-body); }
+.stitch-home .stitch-ideas-grid a { justify-content:space-between; width:100%; min-height:42px; padding:9px 12px; margin-top:auto; border-radius:8px; background:#f1f4f8; }
+.stitch-home .stitch-destinations { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.stitch-home .stitch-getaway { position:relative; isolation:isolate; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; min-height:clamp(220px,23vw,320px); padding:18px; overflow:hidden; color:white; background:#183452; border-radius:16px; text-decoration:none; }
+.stitch-home .stitch-getaway:first-child { grid-column:span 2; }
+.stitch-home .stitch-getaway-photo,.stitch-home .stitch-getaway::after { position:absolute; inset:0; z-index:-1; }
+.stitch-home .stitch-getaway-photo { background-size:cover; background-position:center; }
+.stitch-home .stitch-getaway::after { content:""; background:linear-gradient(180deg,#0017360d 25%,#00173621 45%,#001736ee 100%); }
+.stitch-home .stitch-getaway-tag { margin:0; color:#112a47; background:#fffffff5; }
+.stitch-home .stitch-getaway h3 { margin:0; color:white; font:750 clamp(20px,2.3vw,32px)/1.1 var(--s-display); letter-spacing:-.04em; }
+.stitch-home .stitch-getaway p { margin:6px 0 0; color:white; font:450 14px/1.35 var(--s-body); }
+@media (prefers-reduced-motion:no-preference){
+ .stitch-getaway-photo { transition:transform .35s ease; }
+ .stitch-getaway:hover .stitch-getaway-photo { transform:scale(1.04); }
+}
+body .trip-home.stitch-home .home-package-plans { margin:60px auto 0; padding:38px; border:0; border-radius:20px; color:white; background:linear-gradient(120deg,#001736,#10365e); }
+.stitch-home .stitch-package-intro>span { display:inline-flex; padding:5px 11px; border:1px solid #ffffff40; border-radius:99px; color:#ddecff; background:#ffffff12; font:650 11px var(--s-body); letter-spacing:.04em; }
+.stitch-home .stitch-package-intro h2 { margin:14px 0 8px; color:white; font:750 clamp(24px,2.6vw,36px)/1.2 var(--s-display); letter-spacing:-.045em; }
+.stitch-home .stitch-package-intro p { max-width:620px; color:#d7e3f3; font:400 16px/1.55 var(--s-body); }
+.stitch-home .stitch-package-intro>div,.stitch-home .stitch-office-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+.stitch-home .stitch-package-intro a,.stitch-home .stitch-office-actions a { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:9px 16px; color:white; background:#005bb3; border-radius:9px; text-decoration:none; font-weight:700; }
+.stitch-home .stitch-package-intro a+a { background:#ffffff20; }
+body .trip-home.stitch-home .home-package-grid { margin-top:22px; }
+body .trip-home.stitch-home .home-package-note { color:#bacde3; margin-top:13px; font-size:12px; }
+body .trip-home.stitch-home .home-public-intro { margin:54px auto 64px; padding:0; border:0; background:none; }
+body .trip-home.stitch-home .studio-concierge-band { display:grid; grid-template-columns:1.13fr 1fr; align-items:stretch; gap:24px; padding:0; border:0; border-radius:0; background:none; color:var(--s-ink); box-shadow:none; }
+.stitch-home .stitch-office-card { padding:26px; border:1px solid #e7ebf1; border-radius:18px; background:white; box-shadow:var(--s-shadow); }
+.stitch-home .stitch-office-card header { display:flex; gap:12px; align-items:center; padding-bottom:16px; margin-bottom:16px; border-bottom:1px solid #e5eaf1; }
+.stitch-home .stitch-office-card header>span { display:grid; place-items:center; width:42px; height:42px; border-radius:11px; color:white; background:var(--s-ink); }
+body .trip-home.stitch-home .stitch-office-card h2 { color:var(--s-ink); margin:0; font:750 21px/1.25 var(--s-display); letter-spacing:-.04em; }
+.stitch-home .stitch-office-facts { display:grid; grid-template-columns:1fr 1fr; gap:20px 12px; }
+.stitch-home .stitch-office-facts>div { display:flex; align-items:flex-start; gap:10px; min-width:0; font:400 14px/1.5 var(--s-body); color:var(--s-muted); }
+.stitch-home .stitch-office-facts>div:first-child { grid-column:1/-1; }
+.stitch-home .stitch-office-facts svg { flex:none; margin-top:2px; color:var(--s-blue); }
+.stitch-home .stitch-office-facts strong { display:block; margin-bottom:4px; color:var(--s-ink); }
+.stitch-home .stitch-office-facts address { font-style:normal; }
+.stitch-home .stitch-office-facts a { color:var(--s-blue); overflow-wrap:anywhere; }
+.stitch-home .stitch-office-actions a { background:var(--s-ink); }
+.stitch-home .stitch-office-actions a+a { background:#edf1f6; color:var(--s-ink); }
+body .trip-home.stitch-home .stitch-ai-card p { font:400 14px/1.5 var(--s-body); color:var(--s-muted); }
+.stitch-home .stitch-ai-card header>span { background:#d6e8ff; color:var(--s-blue); }
+.stitch-home .stitch-ai-questions { display:grid; gap:6px; margin-top:15px; }
+.stitch-home .stitch-ai-questions :is(a,button) { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; min-height:40px; border:0; border-radius:6px; background:#f1f4f7; color:var(--s-ink); text-align:left; text-decoration:none; font:500 13px var(--s-body); cursor:pointer; }
+.stitch-home .stitch-ai-card form { display:flex; align-items:center; gap:7px; padding:4px; margin-top:18px; border:1px solid #d1dae6; border-radius:8px; }
+.stitch-home .stitch-ai-card input { flex:1; min-width:0; border:0; background:transparent; color:var(--s-ink); font:400 14px var(--s-body); padding:6px 8px; }
+.stitch-home .stitch-ai-card form button { width:40px; height:40px; border:0; border-radius:6px; display:grid; place-items:center; color:white; background:var(--s-ink); }
+.stitch-home .stitch-ai-card form button:disabled { opacity:.65; }
+body .trip-home.stitch-home .home-public-routes-heading { margin-top:30px; font:700 18px/1.35 var(--s-display); color:var(--s-ink); }
+body .trip-home.stitch-home .home-public-links { display:flex; flex-wrap:wrap; gap:6px 14px; margin:18px 0 0; padding:0; }
+body .trip-home.stitch-home .home-public-links a { display:inline-flex; align-items:center; min-height:28px; padding:0; color:var(--s-blue); background:none; border:0; border-radius:0; font:550 13px var(--s-body); }
+body .trip-home.stitch-home .public-route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:8px; }
+body .trip-home.stitch-home .public-route-card { display:block; min-height:0; margin:0; padding:14px; border:1px solid #e3e8ef; border-radius:9px; background:white; color:var(--s-ink); }
+body .trip-home.stitch-home .public-route-card .public-route-codes { display:flex; align-items:center; gap:6px; font:750 15px var(--s-display); }
+body .trip-home.stitch-home .public-route-card h3 { margin:5px 0 0; color:var(--s-muted); font:500 12px var(--s-body); }
+body .trip-home.stitch-home .public-route-card :is(p,.public-route-action) { display:none; }
+@media(min-width:701px) and (max-width:1000px) {
+  body .trip-home.stitch-home .home-search-fields,body .trip-home.stitch-home .home-search-fields.is-return { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  body .trip-home.stitch-home .home-airports { grid-column:1/-1; }
+  body .trip-home.stitch-home .stitch-popular { grid-column:1/3; }
+  body .trip-home.stitch-home .home-search-submit { grid-column:3; }
+  body .trip-home.stitch-home .home-search-fields.is-hotel .home-search-submit { grid-column:3/5; }
+  body .trip-home.stitch-home .home-hotel-destination {grid-column:auto;}
+}
+@media(max-width:700px) {
+  body .trip-home.stitch-home { --s-gutter:16px; }
+  .stitch-home .stitch-home-hero { padding:12px 0; color:var(--s-ink); background:var(--s-paper); }
+  .stitch-home .stitch-office-line { flex-wrap:wrap; gap:4px; font-size:10px; }
+  .stitch-home .stitch-office-line>span { padding:5px 9px; background:#dae9ff; border:0; color:#113a70; }
+  .stitch-home .stitch-office-line a,.stitch-home .stitch-hubs-desktop { display:none; }
+  .stitch-home .stitch-home-hero h1 { margin:12px 0 4px; font-size:clamp(26px,7vw,38px); letter-spacing:-.045em; }
+  .stitch-home .stitch-home-hero h1 em { color:#004ba2; font-weight:650; }
+  .stitch-home .stitch-home-hero p { color:var(--s-muted); font-size:14px; }
+  body .trip-home.stitch-home .home-search-card { margin:0 auto; padding:14px; border-radius:17px; }
+  .stitch-home .stitch-product-nav { padding:0; border:0; }
+  body .trip-home.stitch-home .home-product-tabs { width:100%; flex-wrap:nowrap; gap:2px; padding:4px; background:#eceff3; border-radius:24px; }
+  body .trip-home.stitch-home .home-product-tabs button { flex:1; min-height:38px; padding:8px; border-radius:22px; }
+  body .trip-home.stitch-home .home-product-tabs a,.stitch-home .stitch-assurance { display:none; }
+  body .trip-home.stitch-home .home-search-options { padding:9px 0; }
+  body .trip-home.stitch-home .home-search-options fieldset { width:100%; justify-content:space-between; gap:3px; padding:0; background:none; }
+  body .trip-home.stitch-home .home-search-options :is(label,.stitch-multicity) { flex:1; justify-content:center; padding:6px 4px; min-height:35px; background:var(--s-low); font-size:12px; }
+  body .trip-home.stitch-home .home-search-options label:has(:checked) { background:#d6e7ff; box-shadow:none; }
+  body .trip-home.stitch-home .home-advanced-link { min-height:25px; margin-left:auto; font-size:11px; }
+  body .trip-home.stitch-home .home-search-fields,body .trip-home.stitch-home .home-search-fields.is-return,body .trip-home.stitch-home .home-search-fields.is-hotel { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  body .trip-home.stitch-home .home-airports { grid-column:1/-1; grid-template-columns:minmax(0,1fr); gap:8px; border-radius:12px; padding:8px; background:#edf0f4; }
+  body .trip-home.stitch-home .home-airports>.home-search-input,body .trip-home.stitch-home .home-airports>.home-search-input:last-child { padding:7px 10px; border:0; background:white; border-radius:8px; }
+  body .trip-home.stitch-home .stitch-airport-value { flex-wrap:nowrap; gap:7px; background:white; }
+  body .trip-home.stitch-home .home-swap { left:50%; top:50%; transform:translate(-50%,-50%) rotate(90deg); width:32px; height:32px; }
+  body .trip-home.stitch-home .stitch-add-return { display:none; }
+  body .trip-home.stitch-home .home-search-input { padding:10px; }
+  body .trip-home.stitch-home .home-search-fields:is(.is-return,.is-hotel) .home-guests { grid-column:1/-1; display:flex; flex-direction:column; }
+  body .trip-home.stitch-home .home-search-fields.is-hotel .home-hotel-destination { grid-column:1/-1; }
+  body .trip-home.stitch-home .stitch-popular { grid-column:1/-1; display:block; padding:4px 0 1px; border:0; }
+  body .trip-home.stitch-home .stitch-popular>div { flex-wrap:nowrap; overflow-x:auto; gap:5px; margin-top:4px; }
+  body .trip-home.stitch-home .stitch-popular button { flex:none; min-height:32px; }
+  body .trip-home.stitch-home .home-search-submit { grid-column:1/-1; min-height:48px; }
+  .stitch-home .stitch-hubs-mobile { display:block; color:var(--s-ink); }
+  .stitch-home .stitch-hubs-mobile .stitch-hubs { margin:12px 0 0; gap:4px; }
+  .stitch-home .stitch-hubs-mobile .stitch-hubs :is(button,a) { background:white; border:1px solid #d8e0ea; color:var(--s-ink); }
+  body .trip-home.stitch-home .home-confidence { margin-top:20px; gap:8px; padding:13px 8px; border-radius:12px; }
+  body .trip-home.stitch-home .home-confidence>div { flex-direction:column; align-items:center; text-align:center; gap:6px; }
+  body .trip-home.stitch-home .home-confidence>div>svg { width:30px; height:30px; padding:7px; background:#d7e7ff; border-radius:50%; }
+  body .trip-home.stitch-home .home-confidence strong { font-size:12px; }
+  body .trip-home.stitch-home .home-confidence small { font-size:11px; line-height:1.35; }
+  .stitch-home :is(.stitch-ideas,.stitch-discover) { margin-top:28px; }
+  .stitch-home .stitch-section-title { margin-bottom:12px; }
+  .stitch-home .stitch-section-title h2 { font-size:21px; }
+  .stitch-home .stitch-section-title>a { font-size:12px; }
+  .stitch-home .stitch-ideas-grid { display:flex; overflow-x:auto; gap:10px; scroll-snap-type:x proximity; padding:0 0 4px; }
+  .stitch-home .stitch-ideas-grid article { flex:0 0 82%; padding:16px; scroll-snap-align:start; }
+  .stitch-home .stitch-ideas-grid h3 { font-size:18px; margin-top:10px; }
+  .stitch-home .stitch-destinations { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .stitch-home .stitch-getaway { min-height:190px; border-radius:11px; padding:11px; }
+  .stitch-home .stitch-getaway:first-child { min-height:180px; }
+  .stitch-home .stitch-getaway-tag { font-size:8px; padding:3px 6px; letter-spacing:.04em; }
+  .stitch-home .stitch-getaway h3 { font-size:19px; }
+  .stitch-home .stitch-getaway p { font-size:12px; margin-top:4px; }
+  body .trip-home.stitch-home .home-package-plans { margin-top:24px; padding:23px 18px; border-radius:14px; }
+  .stitch-home .stitch-package-intro>div { display:grid; }
+  .stitch-home .stitch-package-intro h2 { font-size:23px; }
+  body .trip-home.stitch-home .home-public-intro { margin:22px auto 36px; }
+  body .trip-home.stitch-home .studio-concierge-band { grid-template-columns:1fr; gap:10px; }
+  .stitch-home .stitch-office-card { padding:17px; }
+  .stitch-home .stitch-office-facts { grid-template-columns:1fr; gap:12px; }
+  .stitch-home .stitch-office-actions a { flex:1; font-size:13px; }
+  .stitch-home .stitch-ai-card { display:none; }
+}
+
+.stitch-getaway-goa .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-goa.webp"); }
+.stitch-getaway-maldives .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-maldives.webp"); }
+.stitch-getaway-dubai .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-dubai.webp"); }
+.stitch-getaway-bali .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-bali.webp"); }
+.stitch-getaway-paris .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-paris.webp"); }
+
+@media (max-width:700px){
+.stitch-getaway-goa .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-goa.webp"); }
+.stitch-getaway-maldives .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-maldives.webp"); }
+.stitch-getaway-dubai .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-dubai.webp"); }
+.stitch-getaway-bali .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-bali.webp"); }
+.stitch-getaway-paris .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-paris.webp"); }
+}
+.stitch-home .stitch-office-map { display:flex; align-items:center; justify-content:center; min-height:145px; margin-top:20px; border-radius:12px; background:#e3e9ef url("/travel/stitch/secunderabad-map.webp") center/cover; text-decoration:none; }
+.stitch-home .stitch-office-map span { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:18px; color:var(--s-ink); background:white; box-shadow:var(--s-shadow); font:650 12px var(--s-body); }
+@media (min-width:701px) and (max-width:1000px) {
+ body .trip-home.stitch-home .home-product-tabs { flex-wrap:nowrap; gap:2px; }
+ body .trip-home.stitch-home .home-product-tabs :is(a,button) { gap:5px; padding-inline:8px; font-size:13px; }
+ body .trip-home.stitch-home .home-search-fields:not(.is-return):not(.is-hotel) .home-search-submit { grid-column:3; }
+ .stitch-home .stitch-office-facts { grid-template-columns:1fr; }
+}
+@media(max-width:700px) { .stitch-home .stitch-office-map { display:none; } }
+.stitch-home .stitch-home-hero { position:relative; isolation:isolate; overflow:hidden; }
+.stitch-home .stitch-home-hero::before,.stitch-home .stitch-home-hero::after { content:""; position:absolute; z-index:-1; left:54%; top:-63%; width:55%; height:101%; border-bottom:1px dashed #89bcf54a; border-radius:50%; transform:rotate(-12deg); pointer-events:none; }
+.stitch-home .stitch-home-hero::after { left:63%; top:-36%; width:48%; opacity:.55; }
+body .trip-home.stitch-home #trip-search { --brand-midnight:#001736; --brand-ink:#001736; --brand-line:#dce3eb; --brand-ivory:#fff; --brand-gold:#76a9e2; --brand-sand:#e7f0fd; --brand-tint:#edf3fb; --brand-paper-sheen:none; --brand-slate:#005bb3; --brand-light-gold:#d6e8ff; }
+.stitch-home .stitch-office-map { position:relative; }
+.stitch-home .stitch-office-map::after { content:"Map data © Google"; position:absolute; bottom:2px; right:4px; padding:1px 2px; font:10px/1.1 Arial,sans-serif; color:#364254; background:#ffffffe6; }
+@media(max-width:700px){ .stitch-home .stitch-home-hero::before,.stitch-home .stitch-home-hero::after { display:none; } }
+@media(max-width:700px) {
+  .stitch-home .home-search-fields,.stitch-home .home-search-submit { scroll-margin-block-end:calc(76px + env(safe-area-inset-bottom)); }
+}
+/* Shared dimensions of the desktop and phone booking exports. */
+.stitch-home .stitch-phone-only { display:none; }
+.stitch-home .stitch-flight-paths { position:absolute; z-index:-1; inset:0; width:100%; height:100%; opacity:.15; pointer-events:none; }
+.stitch-home .stitch-home-hero::before,.stitch-home .stitch-home-hero::after { content:none; }
+.stitch-home .stitch-home-hero { padding-top:40px; background:linear-gradient(to bottom,#001736,#0d2c54,#f7f9fc); }
+.stitch-home .stitch-home-hero h1 { margin:40px 0 16px; font-size:clamp(40px,4.7vw,60px); line-height:1; letter-spacing:-.035em; }
+.stitch-home .stitch-home-hero h1 em { color:#d6e3ff; font-weight:400; }
+.stitch-home .stitch-home-hero p { max-width:672px; font:400 16px/1.65 var(--s-body); color:#adc7f8; }
+.stitch-home .stitch-office-line a b { color:#d6e3ff; font:700 16px var(--s-display); }
+.stitch-home .stitch-hubs { margin-top:32px; }
+.stitch-home .stitch-hubs :is(button,a) { border:0; min-height:26px; }
+body .trip-home.stitch-home .home-search-card { border:0; padding:24px; border-radius:16px; box-shadow:0 16px 40px -8px #0d2c541f; }
+.stitch-home .stitch-product-nav { padding-bottom:16px; }
+.stitch-home .stitch-assurance { gap:9px; text-transform:uppercase; font:700 11px var(--s-body); letter-spacing:.045em; }
+.stitch-home .stitch-assurance b { padding:3px 8px; border-radius:4px; background:#d6e3ff; color:var(--s-ink); font:600 11px var(--s-body); letter-spacing:0; text-transform:none; }
+body .trip-home.stitch-home .home-search-options fieldset { border-radius:12px; padding:4px; }
+body .trip-home.stitch-home .home-search-options :is(label,.stitch-multicity) { border-radius:8px; }
+body .trip-home.stitch-home .home-search-fields { row-gap:20px; }
+body .trip-home.stitch-home .stitch-airport-caption,body .trip-home.stitch-home .stitch-picker-caption { display:flex; justify-content:space-between; align-items:center; gap:4px; }
+.stitch-home .stitch-airport-caption b { padding:1px 6px; font:600 10px/1.5 var(--s-body); text-transform:none; background:#e0e3e6; border-radius:4px; }
+.stitch-home .home-airports>.home-search-input:last-child .stitch-airport-caption b { background:#d6e3ff; color:#0051a3; }
+.stitch-home .stitch-picker-caption .stitch-symbol { color:var(--s-blue); order:1; }
+body .trip-home.stitch-home .airport-hint { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+body .trip-home.stitch-home .home-search-input :is(.travellers-trigger>span,.fare-date-value strong),body .trip-home.stitch-home .stitch-add-return strong { font-size:16px; }
+body .trip-home.stitch-home .stitch-add-return small { color:#005bb3; }
+.stitch-home .stitch-add-child { display:inline; }
+.stitch-home .stitch-add-child::before { content:" · "; }
+body .trip-home.stitch-home .home-search-submit { width:max-content; max-width:100%; justify-self:end; min-height:54px; padding:10px clamp(16px,2vw,32px); border-radius:12px; font:700 19px/1.4 var(--s-display); }
+body .trip-home.stitch-home .home-confidence { margin-top:48px; padding:24px; }
+.stitch-home .home-confidence i { flex:none; display:grid; place-items:center; width:48px; height:48px; border-radius:12px; color:var(--s-blue); background:white; }
+body .trip-home.stitch-home .home-confidence>div { padding-inline:12px; }
+.stitch-home :is(.stitch-ideas,.stitch-discover),body .trip-home.stitch-home .home-package-plans,body .trip-home.stitch-home .home-public-intro { margin-top:64px; }
+.stitch-home .stitch-section-title { margin-bottom:24px; }
+.stitch-home .stitch-section-title h2 { font-size:28px; letter-spacing:-.025em; }
+.stitch-home .stitch-offer-heading { display:flex; align-items:center; gap:12px; }
+.stitch-home .stitch-offer-heading>span.stitch-wide-only { background:#ffdad6; color:#651e24; border-radius:7px; margin:0; padding:5px 10px; }
+.stitch-home .stitch-ideas-grid,.stitch-home .stitch-destinations { gap:24px; }
+.stitch-home .stitch-ideas-grid article { position:relative; padding:24px; border:0; }
+.stitch-home .stitch-offer-icon { display:none; }
+.stitch-home .stitch-offer-tag { display:inline-flex; border-radius:5px; background:#d6e3ff; padding:3px 8px; color:#00468c; font:700 11px/1.3 var(--s-body); text-transform:uppercase; letter-spacing:.045em; }
+.stitch-home .stitch-ideas-grid article:nth-child(2) .stitch-offer-tag { background:#ffdad6; color:#720720; }
+.stitch-home .stitch-ideas-grid article:nth-child(3) .stitch-offer-tag { background:#e0e3e6; color:#283443; }
+.stitch-home .stitch-ideas-grid article>a .stitch-symbol { background:white; border-radius:6px; padding:4px 9px; }
+.stitch-home .stitch-getaway { padding:24px; min-height:320px; }
+.stitch-home .stitch-getaway-tag { align-self:flex-start; color:#001736; padding:4px 10px; border-radius:20px; font-size:11px; letter-spacing:0; text-transform:none; }
+.stitch-home .stitch-getaway h3 { font-size:22px; }
+.stitch-home .stitch-getaway:first-child h3 { font-size:28px; }
+.stitch-home .stitch-getaway p { color:#e2eaff; }
+body .trip-home.stitch-home .studio-concierge-band { grid-template-columns:minmax(0,4fr) minmax(0,3fr); align-items:start; gap:24px; }
+.stitch-home .stitch-office-map { min-height:192px; }
+.stitch-home .stitch-extra-guides { margin:20px 0; border:0; color:var(--s-muted); font:550 13px/1.45 var(--s-body); }
+.stitch-home .stitch-extra-guides summary { width:max-content; max-width:100%; padding:5px 0; color:var(--s-blue); cursor:pointer; }
+.stitch-home .stitch-route-guides { padding:26px 24px; background:#f0f3f7; border-radius:12px; }
+body .trip-home.stitch-home .home-public-routes-heading { margin:0 0 14px; font-size:16px; }
+body .trip-home.stitch-home .public-route-grid { display:flex; gap:10px; overflow-x:auto; padding-bottom:5px; }
+body .trip-home.stitch-home .public-route-grid>a { min-width:0; flex:0 0 calc((100% - 50px)/6); }
+body .trip-home.stitch-home .public-route-card .public-route-codes { font:700 15px/1.25 var(--s-display); color:var(--s-ink); }
+@media (min-width:1001px) {
+ body .trip-home.stitch-home .home-search-fields,body .trip-home.stitch-home .home-search-fields.is-return { grid-template-columns:minmax(0,3.07fr) repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:700px) {
+ .stitch-home .stitch-wide-only, .stitch-home .stitch-section-title>div>span.stitch-wide-only { display:none; }
+ .stitch-home .stitch-phone-only { display:inline; }
+ .stitch-home .stitch-flight-paths { display:none; }
+ .stitch-home .stitch-home-hero { padding:12px 0; background:var(--s-paper); }
+ .stitch-home .stitch-home-hero h1 { margin:12px 0 4px; font:700 24px/32px var(--s-display); letter-spacing:-.025em; }
+ .stitch-home .stitch-home-hero h1 em { color:#005bb3; font-weight:650; }
+ .stitch-home .stitch-home-hero p { color:#43474e; font:400 14px/1.4 var(--s-body); }
+ body .trip-home.stitch-home .home-search-card { padding:12px; border-radius:12px; box-shadow:0 4px 24px -4px #0d2c5415,0 2px 8px -2px #0d2c540b; }
+ body .trip-home.stitch-home .stitch-product-nav { padding-bottom:0; }
+ body .trip-home.stitch-home .home-product-tabs button { min-height:34px; font-size:12px; }
+ body .trip-home.stitch-home .home-search-options { flex-wrap:nowrap; gap:3px; padding:12px 0; }
+ body .trip-home.stitch-home .home-search-options fieldset { width:auto; flex:1; gap:5px; padding:0; }
+ body .trip-home.stitch-home .home-search-options :is(label,.stitch-multicity) { flex:none; min-height:32px; gap:4px; padding:5px 8px; border-radius:20px; }
+ body .trip-home.stitch-home .home-search-options:has(fieldset) .home-advanced-link { flex:none; width:32px; min-height:32px; display:grid; place-items:center; padding:0; border-radius:50%; }
+ body .trip-home.stitch-home .home-search-options:has(fieldset) .home-advanced-link>span:first-child { display:none; }
+ body .trip-home.stitch-home .home-search-options:not(:has(fieldset)) { flex-wrap:wrap; }
+ body .trip-home.stitch-home .home-search-fields { gap:8px; }
+ body .trip-home.stitch-home .home-airports { gap:15px; }
+ body .trip-home.stitch-home .home-airports>.home-search-input { padding:8px; }
+ body .trip-home.stitch-home .stitch-airport-value .airport-code-badge { font-size:26px; }
+ body .trip-home.stitch-home .airport-edit input:not([type=hidden]) { min-height:32px; }
+ .stitch-home .stitch-airport-caption b,.stitch-home .home-airports>.home-search-input:last-child .stitch-airport-caption b { background:transparent; color:var(--s-blue); }
+ body .trip-home.stitch-home .stitch-picker-caption { align-items:center; justify-content:flex-start; }
+ .stitch-home .stitch-picker-caption .stitch-symbol { order:0; font-size:14px; }
+ body .trip-home.stitch-home .fare-date-value { display:flex; flex-direction:column; align-items:flex-start; }
+ body .trip-home.stitch-home .fare-date-value em { font:400 12px/1.4 var(--s-body); }
+ body .trip-home.stitch-home .fare-date-value em.stitch-wide-only { display:none; }
+ body .trip-home.stitch-home .home-search-input :is(.travellers-trigger>span,.fare-date-value strong) { font-size:20px; }
+ .stitch-home .stitch-add-child { display:block; margin-top:5px; color:var(--s-ink); font-size:10px; }
+ .stitch-home .stitch-add-child::before { content:none; }
+ .stitch-home .stitch-popular .stitch-phone-only { display:inline-flex; align-items:center; gap:4px; }
+ body .trip-home.stitch-home .stitch-popular button { min-height:28px; }
+ body .trip-home.stitch-home .home-search-submit { width:100%; padding:12px; min-height:50px; font:700 16px/1.4 var(--s-display); background-color:#001736; background-image:linear-gradient(to right,#001736,#0d2c54); box-shadow:0 8px 20px #00173630; }
+ body .trip-home.stitch-home .home-confidence { margin-top:20px; padding:8px; }
+ body .trip-home.stitch-home .home-confidence>div { padding:6px 2px; gap:4px; }
+ body .trip-home.stitch-home .home-confidence i { width:32px; height:32px; border-radius:50%; background:#d6e3ff; }
+ body .trip-home.stitch-home .home-confidence i .stitch-symbol { font-size:18px!important; }
+ body .trip-home.stitch-home .home-confidence strong { font-size:11px; font-weight:650; }
+ body .trip-home.stitch-home .home-confidence small { margin-top:2px; font-size:10px; }
+ .stitch-home :is(.stitch-ideas,.stitch-discover),body .trip-home.stitch-home .home-package-plans,body .trip-home.stitch-home .home-public-intro { margin-top:20px; }
+ .stitch-home .stitch-section-title { margin-bottom:8px; align-items:center; }
+ .stitch-home .stitch-section-title h2 { font:700 20px/28px var(--s-display); }
+ .stitch-home .stitch-section-title p { margin:2px 0 0; font:400 12px/16px var(--s-body); color:var(--s-muted); }
+ .stitch-home .stitch-ideas-grid { gap:12px; }
+ .stitch-home .stitch-ideas-grid article { padding:12px; flex:0 0 min(290px,88%); border-radius:12px; }
+ .stitch-home .stitch-offer-body { display:flex; align-items:start; gap:8px; }
+ .stitch-home .stitch-offer-icon { display:grid; place-items:center; width:44px; height:44px; flex:none; border-radius:10px; color:var(--s-blue); background:#d6e3ff; }
+ .stitch-home .stitch-ideas-grid article:nth-child(2) .stitch-offer-icon { background:#ffdad6; color:#600010; }
+ .stitch-home .stitch-ideas-grid article .stitch-offer-tag { background:none; padding:0; font-size:10px; }
+ .stitch-home .stitch-ideas-grid h3 { font-size:16px; margin:3px 0 5px; }
+ .stitch-home .stitch-ideas-grid p { margin-bottom:12px; font-size:12px; }
+ .stitch-home .stitch-destinations { gap:8px; }
+ .stitch-home .stitch-getaway,.stitch-home .stitch-getaway:first-child { min-height:176px; padding:12px; justify-content:flex-end; }
+ .stitch-home .stitch-getaway-tag { order:1; margin:4px 0 0; padding:0; color:#d6e3ff; background:none; font-size:11px; }
+ .stitch-home .stitch-getaway:first-child .stitch-getaway-tag { order:0; align-self:flex-start; color:white; background:#005bb3; padding:2px 7px; margin:0 0 4px; }
+ .stitch-home .stitch-getaway h3,.stitch-home .stitch-getaway:first-child h3 { font-size:18px; }
+ .stitch-home .stitch-getaway p { display:block; max-width:100%; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; margin-top:2px; font-size:12px; }
+ .stitch-home .stitch-getaway>div { max-width:100%; }
+ .stitch-home .stitch-hubs-mobile .stitch-hubs { flex-wrap:nowrap; overflow:auto; }
+ .stitch-home .stitch-hubs-mobile .stitch-hubs>* { flex:none; }
+ body .trip-home.stitch-home .studio-concierge-band { grid-template-columns:minmax(0,1fr); gap:0; }
+ .stitch-home .stitch-office-card { padding:12px; border-radius:12px; }
+ .stitch-home .stitch-office-card header { border:0; margin:0 0 12px; padding:0; }
+ body .trip-home.stitch-home .stitch-office-card h2 { font-size:16px; }
+ .stitch-home .stitch-office-facts { gap:8px; }
+ .stitch-home .stitch-office-facts>div { font-size:12px; gap:8px; }
+ .stitch-home .stitch-office-facts strong { display:inline; margin-right:4px; }
+ .stitch-home .stitch-office-facts>div:first-child strong { display:none; }
+ .stitch-home .stitch-office-actions { margin-top:12px; }
+ .stitch-home .stitch-office-actions a { min-height:40px; background:#eceef1; color:#001736; }
+ .stitch-home .stitch-route-guides { padding:12px; }
+ body .trip-home.stitch-home .public-route-grid>a { flex:0 0 150px; }
+}
+@media(max-width:360px) {
+ body .trip-home.stitch-home .home-search-options :is(label,.stitch-multicity) { font-size:11px; padding:4px 5px; }
+}
+@media(min-width:1001px) {
+ body .trip-home.stitch-home .stitch-popular { grid-column:1/3; }
+ body .trip-home.stitch-home .home-search-fields:not(.is-hotel) .home-search-submit { grid-column:3/-1; white-space:nowrap; min-width:218px; }
+}
+body .trip-home.stitch-home .home-package-grid { gap:12px; }
+body .trip-home.stitch-home .home-package-grid>a { position:relative; border:1px solid #ffffff38; border-radius:10px; padding:12px 16px; color:white; background:#ffffff0c; }
+body .trip-home.stitch-home .home-package-grid a>span { color:#caddf5; font:600 12px/1.4 var(--s-body); }
+body .trip-home.stitch-home .home-package-grid h3 { font:650 16px/1.35 var(--s-display); color:white; margin:3px 0 6px; }
+body .trip-home.stitch-home .home-package-grid p { margin:0 0 6px; font:400 12px/1.4 var(--s-body); color:#cbdcf0; }
+body .trip-home.stitch-home .home-package-grid strong { margin:0; font:600 13px/1.4 var(--s-body); }
+body .trip-home.stitch-home .home-package-grid small { margin:2px 0; color:#cbdcf0; font:400 11px/1.4 var(--s-body); }
+body .trip-home.stitch-home .home-package-grid .home-package-detail { margin-top:2px; color:#caddff; min-height:20px; }
+body .trip-home.stitch-home .home-package-photo { margin:-12px -16px 8px; height:98px; border-radius:10px 10px 0 0; }
+@media(max-width:700px) {
+ body .trip-home.stitch-home .home-search-input .airport-edit input:not([hidden]):not([type=hidden]) { height:32px; min-height:32px; }
+ body .trip-home.stitch-home .home-search-input .stitch-picker-caption { letter-spacing:.025em; font-size:10px; }
+ body .trip-home.stitch-home .stitch-airport-label>span:first-child { letter-spacing:.055em; }
+}
+.stitch-home .stitch-desk-status { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; margin-left:auto; border-radius:14px; white-space:nowrap; background:#e6efff; color:#004c9a; font:700 11px/1.3 var(--s-body); }
+.stitch-home .stitch-desk-status::before { content:""; width:6px; height:6px; border-radius:50%; background:#005bb3; }
+@media(max-width:360px){ .stitch-home .stitch-desk-status { padding:3px 5px; font-size:10px; } }
+body .trip-home.stitch-home .home-public-intro { margin-bottom:0; }
+.stitch-home .stitch-guides-wrap { margin-bottom:60px; }
+.stitch-home .stitch-package-list>summary { width:max-content; max-width:100%; margin-top:10px; padding:5px 0; cursor:pointer; color:#d6e3ff; font:650 13px/1.5 var(--s-body); }
+.stitch-home .stitch-package-list .home-package-grid { margin-top:10px; }
+.stitch-home .stitch-extra-guides .stitch-route-guides { margin-top:10px; }
+@media(max-width:700px) {
+ .stitch-home .stitch-extra-guides { margin:10px 0 0; }
+ .stitch-home .stitch-extra-guides>summary { min-height:42px; align-content:center; }
+ .stitch-home .stitch-guides-wrap { margin-bottom:20px; }
+ .stitch-home .stitch-package-list summary { margin-top:8px; min-height:36px; align-content:center; }
+ .stitch-home .stitch-package-list:not([open]) + .home-package-note { margin-top:2px; }
+}
+.stitch-home .stitch-cabin-shortcuts { margin-left:auto; display:flex; align-items:center; gap:6px; color:var(--s-muted); font:550 12px/1.4 var(--s-body); }
+.stitch-home .stitch-cabin-shortcuts button { padding:4px 10px; min-height:28px; background:#eceef1; border:0; border-radius:7px; font:550 12px/1.4 var(--s-body); color:#43474e; cursor:pointer; }
+.stitch-home .stitch-cabin-shortcuts button:is(:hover,[aria-pressed=true]) { background:#d6e3ff; color:#001736; }
+.stitch-home .stitch-office-card header small.stitch-phone-only { display:none; }
+@media(max-width:1000px){ .stitch-home .stitch-cabin-shortcuts { display:none; } }
+@media(max-width:700px) {
+ .stitch-home .stitch-office-card header small.stitch-wide-only { display:none; }
+ .stitch-home .stitch-office-card header small.stitch-phone-only { display:block; margin:2px 0 0; text-transform:none; letter-spacing:.01em; }
+}

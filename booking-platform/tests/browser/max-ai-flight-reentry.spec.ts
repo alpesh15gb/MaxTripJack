@@ -1,4 +1,4 @@
-import {test,expect,departure,searchId,flight} from './fixtures';
+import {toggleResultSearch, test,expect,departure,searchId,flight} from './fixtures';
 
 test('reopening the same AI card reapplies its view without reloading the owned search or undoing native filter edits',async({page,provider})=>{
   const direct=flight('ONWARD','indigo-direct'),other=flight('ONWARD','other-direct'),connecting=flight('ONWARD','indigo-connecting');
@@ -51,7 +51,7 @@ test('an original AI card restores its own inventory after an explicit different
   provider.search={searchId:newerId,results:{searchResult:{tripInfos:{ONWARD:[newer]}}}};
   await page.goto(href);
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('IndiGo');
-  await page.locator('#booking-search>summary').click();
+  await toggleResultSearch(page);
   await page.getByLabel('Departure',{exact:true}).fill(newerDate);
   await page.getByRole('button',{name:'Search flights',exact:true}).click();
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('New search airline');
@@ -63,7 +63,7 @@ test('an original AI card restores its own inventory after an explicit different
   await panel.getByRole('link',{name:'Reopen original flight search',exact:true}).click();
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('IndiGo');
   await expect(page.locator('.flight-shopping-list .live-flight-card')).not.toContainText('New search airline');
-  await page.locator('#booking-search>summary').click();
+  await toggleResultSearch(page);
   await expect(page.getByLabel('Departure',{exact:true})).toHaveValue(departure);
   expect(provider.requests('/api/travel/flight-search-snapshot')).toHaveLength(2);
   expect(provider.requests('/api/travel/search')).toHaveLength(1);

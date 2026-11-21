@@ -5,6 +5,10 @@ import { owned } from "@/lib/supplier-flow";
 import { database } from "@/lib/db";
 import { unseal } from "@/lib/vault";
 import { json, failure } from "@/lib/http";
+import {isBookingConfirmed} from "@/lib/booking-status";
+import {readStoredHotelProperties} from "@/lib/hotel-content";
+import {hotelObject, hotelPropertyDetails, hotelRoomInfo, hotelStringList, hotelText} from "@/lib/hotel-presentation";
+import {mergeHotelPropertyDetails} from "@/lib/hotel-property-merge";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -47,6 +51,21 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       }
     }
     const service = order.service_kind ? (await database().query("SELECT service_payload FROM supplier_quotes WHERE id=$1", [order.quote_id])).rows[0]?.service_payload : null;
+    let stay;
+    if (order.product === 'HOTEL' && isBookingConfirmed(order.product, order.status)) {
+      // The confirmed record remains available when optional quote or catalogue metadata is missing.
+      const quote = (await database().query("SELECT review->'option' AS option, selection->>'hid' AS hid FROM supplier_quotes WHERE id=$1", [order.quote_id]).catch(() => ({rows: []}))).rows[0];
+      const option = hotelObject(quote?.option);
+      const recordProperty = hotelPropertyDetails(source.itemInfos?.HOTEL?.hInfo);
+      const cached = quote?.hid ? await readStoredHotelProperties([quote.hid]).then(properties => properties[quote.hid]).catch(() => undefined) : undefined;
+      stay = {
+        property: mergeHotelPropertyDetails(recordProperty, cached),
+        rooms: hotelRoomInfo(option.roomInfo).map(room => room.name),
+        meal: hotelText(option.mealBasis)?.replaceAll('_', ' '),
+        inclusions: hotelStringList(option.inclusions),
+        bookingNotes: hotelText(option.bookingNotes, 1000),
+      };
+    }
     return shoppingResponse(json({
       id, reference: order.reference, product: order.product, status: order.status,
       currency: order.currency, totalMinor: String(order.total_minor),
@@ -58,7 +77,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         const guest = unseal(order.guests_encrypted, id).travellers[extra.travellerIndex];
         return { ...extra, passenger: guest ? guest.fN + " " + guest.lN : "Traveller " + (extra.travellerIndex + 1) };
       }),
-      passengers, hotelName: source.itemInfos?.HOTEL?.hInfo?.name ?? null,
+      passengers, hotelName: source.itemInfos?.HOTEL?.hInfo?.name ?? null, ...(stay && {stay}),
     }), access);
   } catch (error) { return failure(error); }
 }

@@ -5,7 +5,7 @@ import base from './playwright.config';
 // Reuses the strict synthetic browser API and server-side package fixtures.
 export default defineConfig(base, {
   testMatch: ['**/search.spec.ts', '**/checkout.spec.ts', '**/packages.spec.ts', '**/journey-studio.spec.ts', '**/webkit-runtime.webkit.ts'],
-  grep: /homepage carries canonical airports|fare comparison selects a server fare id|published packages support discovery|hero captions retain contrast|WebKit runtime evidence/,
+  grep: /homepage carries canonical airports|fare comparison selects a server fare id|published packages support discovery|destination photos and labels stay legible|WebKit runtime evidence/,
   retries: 0,
   workers: 1,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report-webkit', open: 'never' }]],

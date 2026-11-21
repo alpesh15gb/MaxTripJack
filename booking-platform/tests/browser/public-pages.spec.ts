@@ -40,6 +40,9 @@ test('unreviewed city permutations are real 404s rather than generated landing p
 test('footer travel assistance and check-in help lead to working pages', async ({page}) => {
   await page.goto('/');
   const footer = page.getByRole('contentinfo');
+  await expect(page.getByRole('contentinfo')).toBeVisible();
+  const directory = page.locator('.concierge-mobile-directory > summary');
+  if (await directory.isVisible()) await directory.click();
   await expect(footer.getByRole('link', {name: 'Visa assistance', exact: true})).toHaveAttribute('href', '/visa-guide');
   await expect(footer.getByRole('link', {name: 'Travel insurance', exact: true})).toHaveAttribute('href', '/travel-insurance-guide');
   await expect(footer.getByRole('link', {name: 'Bus enquiries', exact: true})).toHaveAttribute('href', '/contact');
@@ -55,6 +58,7 @@ test.describe('public content without client JavaScript', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Find your next escape.');
     await expect(page.getByRole('heading', { name: 'Visit MaxTravel Secunderabad' })).toBeVisible();
+    await page.getByText('Travel planning guides and directories',{exact:true}).click();
     await expect(page.locator('main a[href="/flights/hyderabad-to-delhi"]')).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });

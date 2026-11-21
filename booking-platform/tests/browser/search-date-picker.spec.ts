@@ -58,6 +58,7 @@ test('flight travellers, cabin class and Done are in view immediately after open
 
 test('Done on hotel guests brings the labelled search row and submit button back into view', async ({page}, info) => {
   if (info.project.name === 'desktop-1440') await page.setViewportSize({width:1440, height:900});
+  if (info.project.name === 'mobile-390') await page.setViewportSize({width:390, height:600});
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.goto('/');
   const planner = page.getByRole('region', {name:'Plan your trip'});
@@ -84,6 +85,10 @@ test('Done on hotel guests brings the labelled search row and submit button back
   await expect(guests).toContainText('2 Adults');
   await expect(planner.locator('.home-search-fields')).toBeInViewport({ratio:0.99});
   await expect(search).toBeInViewport({ratio:0.99});
+  await expect.poll(() => search.evaluate(el => {
+    const r = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+  })).toBe(true);
 
   if (info.project.name === 'desktop-1440') {
     // At tablet width Guests wraps onto the left of a second row.

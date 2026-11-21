@@ -1,4 +1,4 @@
-import {test,expect,departure,returning,searchId, setHomeTravellers } from './fixtures';
+import {toggleResultSearch, test,expect,departure,returning,searchId, setHomeTravellers } from './fixtures';
 
 test('correcting airport clears only stale local validation and preserves return date blocking',async({page,provider})=>{
  await page.goto(`/book?product=FLIGHT&from=BOM&to=BOM&date=${departure}`);
@@ -51,16 +51,21 @@ test('homepage clears corrected airport feedback before native return-date valid
  await setHomeTravellers(form,{adults:2});await expect(form.getByRole('alert')).toContainText('different departure and arrival');
  await form.getByLabel('To airport',{exact:true}).fill('DEL');await expect(form.getByRole('alert')).toHaveCount(0);
  await form.getByLabel('Round trip',{exact:true}).check();
- // The return calendar cannot select a day before departure.
+ // A suggested return can be in the following month. Check the actual
+ // departure boundary, including when departure is the first of a month.
  await form.getByRole('button',{name:/^Return /}).click();const calendar=form.getByRole('dialog',{name:'Choose return'});
- await expect(calendar.locator('[data-date]:disabled').first()).toBeVisible();await page.keyboard.press('Escape');await expect(calendar).toHaveCount(0);
+ const previous=calendar.getByRole('button',{name:'Previous month'});if(await previous.isEnabled())await previous.click();
+ const earliest=await form.locator('input[name="date"]').inputValue();
+ await expect(previous).toBeDisabled();
+ await expect(calendar.locator('[data-date]:enabled').first()).toHaveAttribute('data-date',earliest);
+ await page.keyboard.press('Escape');await expect(calendar).toHaveCount(0);
  expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
 
 test('new review failure is not misclassified as previous local search validation',async({page,provider})=>{
  await page.goto(`/book?product=FLIGHT&from=BOM&to=DEL&date=${departure}&autoSearch=1`);
  await expect(page.locator('#booking-results')).toBeVisible();
- await page.locator('#booking-search>summary').click();await page.getByLabel('To airport',{exact:true}).fill('BOM');
+ await toggleResultSearch(page);await page.getByLabel('To airport',{exact:true}).fill('BOM');
  await expect(page.getByLabel('From airport',{exact:true})).toHaveValue('BOM');
  await expect(page.getByLabel('To airport',{exact:true})).toHaveValue('BOM');
  await page.getByRole('button',{name:'Search flights',exact:true}).click();await expect(page.locator('#booking-feedback')).toContainText('different departure and arrival');

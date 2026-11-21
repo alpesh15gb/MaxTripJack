@@ -1,4 +1,5 @@
 import { displayMoney } from "./display-money";
+import type {HotelPropertyDetails} from "./hotel-presentation";
 export type BookingItinerary = {
   from?: string; to?: string; date?: string; returnDate?: string;
   legs?: { from: string; to: string; date: string }[];
@@ -20,6 +21,13 @@ export type BookingStatusDetails = {
   serviceKind?: string | null;
   supplierBookingId?: string | null;
   hotelName?: string | null;
+  stay?: {
+    property: HotelPropertyDetails;
+    rooms: string[];
+    meal?: string;
+    bookingNotes?: string;
+    inclusions: string[];
+  };
   passengers: { name: string; pnrs: string[]; tickets: string[]; roomIndex?: number }[];
   refunds: { id: string; amountMinor: string; status: string }[];
 };

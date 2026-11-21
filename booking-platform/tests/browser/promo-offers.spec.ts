@@ -83,3 +83,25 @@ test('a promo is private until an administrator opts into checkout discovery', a
     expect.objectContaining({code: 'PUBLIC75', discoverable: true}),
   ]);
 });
+
+test('payment options apply a quoted offer through the same promo action and keep payment optional', async ({page, provider}) => {
+  provider.overrides['GET /api/travel/promo'] = {body:{offers:[
+    {code:'FLY75',discountMinor:7500,minimumMinor:500000,expiresAt:'2030-01-01T00:00:00.000Z'},
+  ]}};
+  provider.overrides['POST /api/travel/promo'] = {body:{quoteId,totalMinor:646500,discountMinor:7500,originalTotalMinor:654000,code:'FLY75'}};
+  const form = await reviewedCheckout(page);
+  const launch = form.getByRole('button',{name:'Choose a preferred payment method'});
+  await launch.click();
+  const sheet = page.getByRole('dialog',{name:'Payment options'});
+  await sheet.getByRole('radio',{name:'UPI',exact:true}).check();
+  await sheet.getByRole('button',{name:'Back to booking review'}).click();
+  await expect(launch).toBeFocused();
+  await launch.click();
+  await expect(sheet.getByRole('radio',{name:'UPI',exact:true})).not.toBeChecked();
+  await sheet.getByRole('button',{name:/FLY75.*Apply/}).click();
+  await expect(sheet).not.toBeVisible();
+  await expect(form.getByRole('region',{name:'Promo code',exact:true})).toContainText('FLY75 applied.');
+  await expect(form.getByRole('button',{name:/^Agree & pay /})).toContainText('₹6,465');
+  expect(provider.requests('/api/travel/promo').filter(call=>call.method==='POST').map(call=>call.body)).toEqual([{quoteId,code:'FLY75'}]);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});

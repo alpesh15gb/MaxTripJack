@@ -1,5 +1,5 @@
 "use client";
-import { useId, useRef, useState } from 'react';
+import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { displayMoney } from '@/lib/display-money';
 import type { CheckoutPromoOffer } from '@/lib/promo-offers';
 import '@/app/checkout-promo.css';
@@ -15,7 +15,21 @@ function isCheckoutOffer(value: unknown): value is CheckoutPromoOffer {
   && typeof expiresAt === 'string' && expiresAt.length <= 40 && Number.isFinite(Date.parse(expiresAt));
 }
 
-export default function CheckoutPromo({quoteId,disabled,needsConfirmation=false,onUpdate,onBusy,onUncertain}:{quoteId:string;disabled:boolean;needsConfirmation?:boolean;onUpdate:(result:PromoResult)=>void;onBusy:(busy:boolean)=>void;onUncertain:(uncertain:boolean)=>void}){
+export type CheckoutPromoActions = { applyOffer: (code: string) => void };
+
+export async function readCheckoutOffers(quoteId: string, signal: AbortSignal): Promise<CheckoutPromoOffer[]> {
+  const search = new URLSearchParams({quoteId});
+  const response = await fetch(`/api/travel/promo?${search}`, {signal});
+  const data: unknown = await response.json();
+  const payload = data && typeof data === 'object' ? data as {offers?: unknown; error?: unknown} : {};
+  if (!response.ok && typeof payload.error === 'string' && payload.error.length <= 240) throw Error(payload.error);
+  if (!response.ok || !Array.isArray(payload.offers) || payload.offers.length > 8 || !payload.offers.every(isCheckoutOffer)) {
+   throw Error('Available offers could not be loaded.');
+  }
+  return payload.offers;
+}
+
+export default function CheckoutPromo({actionsRef,quoteId,disabled,needsConfirmation=false,onUpdate,onBusy,onUncertain}:{actionsRef?:Ref<CheckoutPromoActions>;quoteId:string;disabled:boolean;needsConfirmation?:boolean;onUpdate:(result:PromoResult)=>void;onBusy:(busy:boolean)=>void;onUncertain:(uncertain:boolean)=>void}){
  const [code,setCode]=useState(''),[applied,setApplied]=useState<PromoResult|null>(null),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const [uncertain,setUncertain]=useState(false);
  const locked=useRef(false);
@@ -25,21 +39,20 @@ export default function CheckoutPromo({quoteId,disabled,needsConfirmation=false,
  const [offersError, setOffersError] = useState('');
  const offersId = useId();
  const codeId = useId();
+ const entry = useRef<HTMLInputElement>(null);
+ useImperativeHandle(actionsRef, () => ({
+  applyOffer(value) {
+   entry.current?.focus();
+   void apply(value);
+  },
+ }));
 
  async function loadOffers() {
   setOffersLoading(true);
   setOffersError('');
   setOffers([]);
   try {
-   const search = new URLSearchParams({quoteId});
-   const response = await fetch(`/api/travel/promo?${search}`, {signal:AbortSignal.timeout(10000)});
-   const data: unknown = await response.json();
-   const payload = data && typeof data === 'object' ? data as {offers?: unknown; error?: unknown} : {};
-   if (!response.ok && typeof payload.error === 'string' && payload.error.length <= 240) throw Error(payload.error);
-   if (!response.ok || !Array.isArray(payload.offers) || payload.offers.length > 8 || !payload.offers.every(isCheckoutOffer)) {
-    throw Error('Available offers could not be loaded.');
-   }
-   setOffers(payload.offers);
+   setOffers(await readCheckoutOffers(quoteId, AbortSignal.timeout(10000)));
   } catch (error) {
    setOffersError(error instanceof Error && error.name === 'Error' ? error.message : 'Available offers could not be loaded.');
   } finally {
@@ -75,7 +88,7 @@ export default function CheckoutPromo({quoteId,disabled,needsConfirmation=false,
     }}>{offersOpen ? 'Hide available offers' : 'Available offers'}</button>
   </div>
   <div className="checkout-promo-entry">
-   <input id={codeId} value={code} maxLength={32} autoComplete="off" placeholder="Enter code" disabled={disabled||busy} onChange={e=>setCode(e.target.value.toUpperCase())} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();if(code.trim())void apply(code);}}}/>
+   <input ref={entry} id={codeId} value={code} maxLength={32} autoComplete="off" placeholder="Enter code" disabled={disabled||busy} onChange={e=>setCode(e.target.value.toUpperCase())} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();if(code.trim())void apply(code);}}}/>
    <button type="button" className="secondary" disabled={disabled||busy||!code.trim()} onClick={()=>void apply(code)}>Apply code</button>
   </div>
   <div id={offersId} className="checkout-promo-offers" hidden={!offersOpen}>

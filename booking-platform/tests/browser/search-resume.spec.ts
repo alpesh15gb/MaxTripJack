@@ -1,4 +1,4 @@
-import {test,expect,departure,returning,searchId,syntheticSession} from './fixtures';
+import {toggleResultSearch, test,expect,departure,returning,searchId,syntheticSession} from './fixtures';
 import {travelDateLabel} from '../../src/lib/travel-date';
 
 const legs=[{from:'BOM',to:'DEL',date:departure},{from:'DEL',to:'GOI',date:returning}];
@@ -14,7 +14,7 @@ test('submitted multi-city shape survives refresh, but unsubmitted edits do not 
  const searchSummary=page.locator('#booking-search > summary');
  await expect(searchSummary.locator('.booking-criteria-destination strong')).toHaveText('BOM → DEL · DEL → GOI');
  await expect(searchSummary.locator('.booking-criteria-party')).toContainText('4 travellers · Business');
- await page.locator('#booking-search > summary').click();
+ await toggleResultSearch(page);
  await page.locator('[name="leg-date-1"]').fill(departure);
  expect(page.url()).toBe(submitted);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -85,7 +85,7 @@ test('round-trip auto-search refresh preserves the return date and searches once
  await expect(page.locator('#booking-results')).toBeVisible();
  expect(provider.requests('/api/travel/search')).toHaveLength(2);
  expect(provider.requests('/api/travel/search')[1].body).toMatchObject({returnDate:returning,adults:2,cabin:'FIRST'});
- await page.locator('#booking-search > summary').click();
+ await toggleResultSearch(page);
  await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('STANDARD');
  await expect(page.locator('[name="returnDate"]')).toHaveValue(returning);
 });

@@ -1,5 +1,6 @@
 import HomeSearch from "@/components/home-search";
-import { HomePublicIntro } from "@/components/public-content";
+import HomeOffers from "@/components/home-offers";
+import { HomePublicIntro, HomeRouteGuides } from "@/components/public-content";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata(
@@ -9,5 +10,5 @@ export const metadata = pageMetadata(
 );
 
 export default function Home() {
-  return <HomeSearch><HomePublicIntro /></HomeSearch>;
+  return <HomeSearch offers={<HomeOffers />} guides={<HomeRouteGuides/>}><HomePublicIntro /></HomeSearch>;
 }

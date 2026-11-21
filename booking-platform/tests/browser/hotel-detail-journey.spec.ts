@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type {Page} from '@playwright/test';
-import {test,expect,capture,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
+import {toggleResultSearch, mainNavigation,test,expect,capture,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
 import {travelDateLabel} from '../../src/lib/travel-date';
 
 // All inventory and images below are synthetic fixtures. No supplier or payment is contacted.
@@ -246,7 +246,7 @@ test('pointer-only property URL hydrates authoritative dates, destination, natio
  provider.overrides['POST /api/travel/hotel-search-snapshot']={body:{searchId,expiresAt:new Date(Date.now()+10*60_000).toISOString(),criteria:authoritative,results:{hotels}}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',browseSearch:searchId,stay:'10001'}));await expect(page.locator('#hotel-detail-title')).toHaveText(name);
  await expect(page.locator('.stay-date-strip')).toContainText(travelDateLabel(departure));await expect(page.locator('.stay-date-strip')).toContainText(travelDateLabel(returning));await expect(page.locator('.stay-date-strip')).toContainText('2 rooms · 4 guests');
- await page.locator('#booking-search>summary').click();
+ await toggleResultSearch(page);
  const form=page.getByRole('form',{name:'Search availability',exact:true});
  await expect(form.getByLabel('Destination',{exact:true})).toHaveValue(authoritative.city);await expect(form.locator('input[name="hotelIds"]')).toHaveValue('10001,10002');
  await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue(returning);await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('2');await expect(form.getByRole('combobox',{name:'Guest nationality',exact:true})).toHaveValue('222');
@@ -293,7 +293,7 @@ test.afterEach(async({page},testInfo)=>{
 test('real same-book Next Link applies new public criteria without a document reload or stale hotel state',async({page,provider})=>{
  await page.goto(searchUrl());await title(page).click();await expect(page.locator('.room-option-card')).toHaveCount(2);
  await page.evaluate(()=>Object.assign(window,{__sameBookNavigationProof:'document-retained'}));
- const link=page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Hotels',exact:true});await expect(link).toHaveAttribute('href','/book?product=HOTEL');await link.click();
+ const link=(await mainNavigation(page)).getByRole('link',{name:'Hotels',exact:true});await expect(link).toHaveAttribute('href','/book?product=HOTEL');await link.click();
  await expect(page).toHaveURL(/\/book\?product=HOTEL$/);
  const form=page.getByRole('form',{name:'Search availability',exact:true});await expect(form).toBeVisible();
  await expect(form.getByLabel('Destination',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue('');await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('1');

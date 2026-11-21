@@ -2,10 +2,12 @@
 import {useCallback,useEffect,useId,useRef,useState,type KeyboardEvent} from 'react';
 import {compactRupees,type FareCalendarDay} from '@/lib/fare-calendar-core';
 import SearchPickerDialog from './search-picker-dialog';
+import {StitchSymbol} from './stitch-symbol';
 
 const monthName=new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
 const fullDate=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
 const shortDay=new Intl.DateTimeFormat('en-GB',{weekday:'short',timeZone:'UTC'});
+const longDay=new Intl.DateTimeFormat('en-GB',{weekday:'long',timeZone:'UTC'});
 const dayMonth=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
 const selectedDay=new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
 const iso=(time:number)=>new Date(time).toISOString().slice(0,10);
@@ -61,9 +63,9 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares,
  const canNext=!max||nextMonth(view)<=monthStart(max);
  const fare=fares?.[value];
  return <div className="home-search-input fare-date" ref={root}>
-  <span id={`${id}-label`}>{label}</span>
+  <span id={`${id}-label`} className="stitch-picker-caption"><StitchSymbol name="calendar_today" size={15}/>{label}</span>
   <button type="button" className="fare-date-trigger" aria-haspopup="dialog" aria-expanded={open} aria-controls={open?`${id}-panel`:undefined} aria-labelledby={`${id}-label ${id}-value`} onClick={toggle}>
-   <span id={`${id}-value`} className="fare-date-value">{value?<><strong>{dayMonth.format(at(value))}</strong><em>{shortDay.format(at(value))}</em></>:'Choose a date'}</span>
+   <span id={`${id}-value`} className="fare-date-value">{value?<><strong>{dayMonth.format(at(value))}</strong><em className="stitch-wide-only">’{value.slice(2,4)}, {shortDay.format(at(value))}</em><em className="stitch-phone-only">{longDay.format(at(value))}, {value.slice(0,4)}</em></>:'Choose a date'}</span>
   </button>
   <input type="hidden" name={name} value={value}/>
   <small>{fare?<>from <b className={`fare-band-${fare.band}`}>₹{compactRupees(fare.minor)}</b></>:helper??' '}</small>

@@ -2,8 +2,11 @@ export const RAZORPAY_CHECKOUT_SCRIPT = "https://checkout.razorpay.com/v1/checko
 export const RAZORPAY_CHECKOUT_LOAD_TIMEOUT = 15000;
 
 type CheckoutResult = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
+export type RazorpayMethod = 'upi' | 'card' | 'netbanking' | 'emi' | 'wallet';
 type CheckoutOptions = {
   key: string; amount: number; currency: string; order_id: string; name: string;
+  theme?: { color: string };
+  prefill?: { method: RazorpayMethod; email: string; contact: string };
   handler: (result: CheckoutResult) => void;
   modal: { ondismiss: () => void };
 };

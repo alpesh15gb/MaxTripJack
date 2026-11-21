@@ -14,7 +14,7 @@ export function searchLegs(value?:string):SearchLeg[]|undefined {try{return legs
 /** Only bounded, public search criteria survive refresh/authentication. Never copy form data wholesale. */
 export function bookingSearchPrefill(query:Record<string,string|string[]|undefined>,today=indiaToday()):Record<string,string>{
   const result:Record<string,string>={};
-  const limits:Record<string,number>={product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,regionId:30,destinationCursor:13,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36,browseSearch:36,flightSearch:36,flightStops:1,flightSort:9,flightAirlineQuery:80,stay:30,gallery:1,stayStep:8};
+  const limits:Record<string,number>={journey:5,product:6,from:3,to:3,date:10,end:10,returnDate:10,adults:1,children:1,infants:1,cabin:20,city:150,nationality:10,hotelIds:2000,regionId:30,destinationCursor:13,rooms:700,legs:1000,autoSearch:1,resumeSelection:1,resumeReview:1,selectionKey:36,browseSearch:36,flightSearch:36,flightStops:1,flightSort:9,flightAirlineQuery:80,stay:30,gallery:1,stayStep:8};
   let invalid=false;
   for(const [key,max] of Object.entries(limits)){
     const value=query[key];if(value===undefined)continue;
@@ -25,6 +25,7 @@ export function bookingSearchPrefill(query:Record<string,string|string[]|undefin
   for(const key of ['from','to'])if(result[key]&&!/^[A-Z]{3}$/.test(result[key]))invalid=true;
   for(const key of ['adults','children','infants'])if(result[key]&&!/^\d$/.test(result[key]))invalid=true;
   if(result.adults==='0'||Number(result.adults??1)+Number(result.children??0)>9||Number(result.infants??0)>Number(result.adults??1))invalid=true;
+  if(result.journey && (result.journey !== 'multi' || result.product !== 'FLIGHT' || result.autoSearch === '1' || result.returnDate))invalid=true;
   if(result.selectionKey&&!z.string().uuid().safeParse(result.selectionKey).success)invalid=true;
   if(result.browseSearch&&!z.string().uuid().safeParse(result.browseSearch).success)invalid=true;
   if(result.flightSearch&&(!z.string().uuid().safeParse(result.flightSearch).success||result.product==='HOTEL'||result.browseSearch||result.stay))invalid=true;

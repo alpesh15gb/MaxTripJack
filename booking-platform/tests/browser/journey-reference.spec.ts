@@ -31,7 +31,7 @@ test('flight decision has an explicit next action and reversible fare choice',as
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[row]}}}};
  provider.quote=reviewedQuote({totalMinor:720050});
  await page.goto(flightQuery());
- await expect(page.locator('#flight-results-title')).toHaveText('Available flights');
+ await expect(page.locator('#flight-results-title')).toHaveText('1 flight found');
  await expect(page.getByRole('heading',{name:'Choose your flight',exact:true})).toHaveCount(1);
  await expect(page.getByRole('region',{name:'Available options',exact:true})).toBeVisible();
  const card=page.locator('.flight-shopping-list .live-flight-card').first();

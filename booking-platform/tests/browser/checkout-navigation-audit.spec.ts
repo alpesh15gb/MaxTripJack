@@ -27,7 +27,11 @@ test('nearby departure dates use submitted criteria and never move the return',a
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('15-day flight timeline fits desktop and scrolls inside the mobile strip without searching',async({page,provider,isMobile},info)=>{
+test('15-day flight timeline shows seven desktop dates and browses both ends without searching',async({page,provider,isMobile},info)=>{
+ const cachedDays=Object.fromEntries(Array.from({length:15},(_,index)=>[shiftedDate(departure,index-7),{minor:400000+index*1300,band:'mid'}]));
+ provider.overrides['GET /api/travel/fare-calendar']={body:{days:cachedDays,pending:[]}};
+ provider.overrides['POST /api/travel/fare-calendar']={status:204,body:null};
+ await page.emulateMedia({reducedMotion:'reduce'});
  await page.setViewportSize({width:1440,height:1000});await openFlightSearch(page);
  const dates=page.getByRole('navigation',{name:'Nearby departure dates'}),track=dates.locator('[data-flight-date-track]'),days=track.locator('button[data-flight-date]');
  await expect(days).toHaveCount(15);
@@ -35,10 +39,31 @@ test('15-day flight timeline fits desktop and scrolls inside the mobile strip wi
  expect(listed[0]).toBe(shiftedDate(departure,-7));expect(listed[14]).toBe(shiftedDate(departure,7));
  expect(new Set(listed).size).toBe(15);for(let index=1;index<listed.length;index++)expect(listed[index]).toBe(shiftedDate(listed[index-1],1));
  for(const date of listed)await expect(dates.locator(`[data-flight-date="${date}"]`)).toHaveAccessibleName(new RegExp(`^${travelDateLabel(date)}`));
- const desktop=await track.evaluate(node=>({width:node.clientWidth,content:node.scrollWidth}));expect(desktop.content).toBeLessThanOrEqual(desktop.width+1);
- await expect(dates.getByRole('button',{name:'Earlier dates',exact:true})).toBeHidden();await expect(dates.getByRole('button',{name:'Later dates',exact:true})).toBeHidden();
+ const visibleDates=()=>track.evaluate(element=>{
+  const bounds=element.getBoundingClientRect();
+  return Array.from(element.querySelectorAll<HTMLButtonElement>('button[data-flight-date]')).filter(button=>{
+   const box=button.getBoundingClientRect();return box.left>=bounds.left-1&&box.right<=bounds.right+1;
+  }).map(button=>button.dataset.flightDate);
+ });
+ await expect.poll(visibleDates).toEqual(listed.slice(4,11));
+ await expect(days.nth(7).locator('.flight-date-fare')).toContainText('₹');
+ await expect.poll(()=>provider.requests('/api/travel/fare-calendar').filter(request=>request.method==='POST').length).toBe(1);
  await expectNoHorizontalOverflow(page);await capture(page,info,'flight-date-timeline-desktop');
  const searches=provider.requests('/api/travel/search').length;
+ const calendarReads=provider.requests('/api/travel/fare-calendar').length;
+ const earlier=dates.getByRole('button',{name:'Earlier dates',exact:true});
+ const later=dates.getByRole('button',{name:'Later dates',exact:true});
+ await earlier.click();await expect(earlier).toBeDisabled();
+ await expect.poll(visibleDates).toEqual(listed.slice(0,7));
+ await later.click();await later.click();await expect(later).toBeDisabled();
+ await expect.poll(visibleDates).toEqual(listed.slice(8));
+ await days.last().focus();await page.keyboard.press('Home');await expect(days.first()).toBeFocused();
+ await expect.poll(visibleDates).toEqual(listed.slice(0,7));
+ await page.keyboard.press('End');await expect(days.last()).toBeFocused();
+ await expect.poll(visibleDates).toEqual(listed.slice(8));
+ await expect(days.nth(7)).toHaveAttribute('aria-current','date');
+ expect(provider.requests('/api/travel/search')).toHaveLength(searches);
+ expect(provider.requests('/api/travel/fare-calendar')).toHaveLength(calendarReads);
  for(const width of [320,390]){
   await page.setViewportSize({width,height:844});await track.scrollIntoViewIfNeeded();
   const geometry=await track.evaluate(node=>({width:node.clientWidth,content:node.scrollWidth,overflow:getComputedStyle(node).overflowX,boxes:Array.from(node.querySelectorAll('button[data-flight-date]')).map(button=>{const rect=button.getBoundingClientRect();return {y:rect.y,height:rect.height,width:rect.width};})}));
@@ -70,6 +95,7 @@ test('15-day flight timeline fits desktop and scrolls inside the mobile strip wi
   }
   await expectNoHorizontalOverflow(page);await capture(page,info,`flight-date-timeline-${width}`);
  }
+ expect(provider.requests('/api/travel/fare-calendar')).toHaveLength(calendarReads);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

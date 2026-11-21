@@ -1,43 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import {usePathname} from "next/navigation";
 import {BrandLogo} from "./brand-logo";
-import "./package-navigation.css";
-import "./workflow-footer.css";
+import {ConciergeHeader, type HeaderProps} from "./concierge-header";
 import {FooterSocialIcon} from "./footer-social-icon";
 import {footerPolicyLinks,footerSocialLinks} from "@/lib/footer-links";
 import {useCompanyProfile} from "./company-profile-context";
+import {TravelIcon} from "./travel-icon";
+import {StitchSymbol} from "./stitch-symbol";
+import "./package-navigation.css";
+import "./workflow-footer.css";
+export {TravelIcon} from "./travel-icon";
 
-type IconName = "plane" | "airplane" | "hotel" | "bed" | "bus" | "holiday" | "passport" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
-
-export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number }) {
-  const paths: Record<IconName, string> = {
-    airplane: "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5Z",
-    plane: "m22 2-7 20-4-9-9-4L22 2ZM11 13l6-6",
-    bed: "M3 18v3m18-3v3M3 18h18V9H3v9Zm0-9V5h18v4M7 9V7h3v2m4 0V7h3v2",
-    bus: "M5 17v3m14-3v3M5 3h14l1 3v11H4V6l1-3Zm-1 8h16M8 14h.01M16 14h.01M8 6h8",
-    holiday: "M3 10c2-7 16-7 18 0H3Zm9 0v10m-5 0h10M4 22h16M7 10l-2 4m12-4 2 4",
-    passport: "M5 3h14v18H5V3Zm4 14h6M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-3-3v6M9 10h6",
-    hotel: "M3 21V3h12v18M15 9h6v12M7 7h4M7 11h4M7 15h4M7 21v-3h4v3M19 13v2M19 17v2",
-    arrow: "M5 12h14m-6-6 6 6-6 6",
-    "arrow-up-right": "M7 17 17 7M7 7h10v10",
-    shield: "M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Zm-4 9 3 3 5-6",
-    bag: "M4 7h16v14H4V7Zm4 0V3h8v4M8 11v5m8-5v5",
-    user: "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-3a8 8 0 0 1 16 0v3",
-    search: "M16 10a6 6 0 1 1-12 0 6 6 0 0 1 12 0Zm-2 4 7 7",
-    pin: "M19 9c0 6-7 12-7 12S5 15 5 9a7 7 0 1 1 14 0ZM12 8v2",
-    check: "m5 12 4 4L19 6",
-    swap: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
-    clock: "M12 8v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
-    receipt: "M5 3h14v18l-3-2-4 2-4-2-3 2V3Zm4 4h6M9 11h6M9 15h3",
-    chevron: "m9 5 7 7-7 7",
-    refresh: "M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 13 2M18 18A8 8 0 0 1 5 16",
-    globe: "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM2 12h20M12 2c5 6 5 14 0 20-5-6-5-14 0-20Z",
-  };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
-}
-
-export function TravelHeader({ active, onProductChange, hotelHref = '/book?product=HOTEL' }: { active?: "flights" | "hotels" | "trips" | "account" | "packages"; onProductChange?: (product: "FLIGHT" | "HOTEL") => void; hotelHref?: '/hotels' | '/book?product=HOTEL' }) {
+export function TravelHeader({active, onProductChange, hotelHref = '/book?product=HOTEL', mobileTitle, ...props}: HeaderProps) {
+  const path = usePathname();
+  if (path === '/' || path === '/book' || path === '/my-trips' || path?.startsWith('/my-trips/')) {
+    const priority = path.startsWith('/my-trips');
+    return <ConciergeHeader key={path} {...props} active={active} onProductChange={onProductChange} hotelHref={hotelHref}
+      mobileTitle={mobileTitle ?? (path==='/my-trips' ? 'My Trips' : priority ? 'Booking details' : undefined)}
+      dock={path==='/' || path==='/my-trips'} priority={priority} isHome={path==='/'}/>;
+  }
   return <>
     <a className="travel-skip" href="#main-content">Skip to main content</a>
     <div className="travel-environment"><span />In Testing <span className="travel-environment-detail">No live bookings or payments</span></div>
@@ -65,6 +48,21 @@ function FooterPolicyLinks(){
 function AirportDataCredit(){return <p className="travel-footer-data-credit">Airport timezone data © <a href="https://openflights.org/data.php">OpenFlights contributors</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL 1.0</a></p>;}
 export function TravelFooter({compact=false}:{compact?:boolean}={}) {
  const businessProfile=useCompanyProfile();
+ const path=usePathname();
+ if(path==='/'||path==='/book'||path==='/my-trips'||path?.startsWith('/my-trips/')) {
+   const directory = <div className="concierge-footer-grid">
+     <div><Link href="/" className="concierge-brand-link" aria-label="MaxTravel home"><span className="concierge-mark"><StitchSymbol name="flight_takeoff"/></span><b>{businessProfile.name} Desk</b></Link><p>Flights, handpicked stays, holiday packages, visa assistance and travel insurance from our {businessProfile.address.addressLocality} travel desk.</p><Link href="/office">Visit our office <span aria-hidden="true"><TravelIcon name="arrow-up-right" size={14}/></span></Link>{businessProfile.gstNumber && <span>GSTIN · {businessProfile.gstNumber}</span>}</div>
+     <div><h2>Core Travel Portals</h2><Link href="/flights">Domestic &amp; global flights</Link><Link href="/hotels">Hotels &amp; resorts</Link><Link href="/packages">Custom holiday packages</Link><Link href="/visa-guide">Visa assistance</Link><Link href="/travel-insurance-guide">Travel insurance</Link><Link href="/contact">Bus enquiries</Link></div>
+     <div><h2>Airport Planning Hubs</h2><Link href="/flights/routes">Explore flight routes</Link><Link href="/domestic-flights">Domestic flight planning</Link><Link href="/international-flights">International departures</Link><Link href="/flight-booking-guide#section-4">Flight check-in help</Link></div>
+     <div><h2>Customer Care &amp; Legal</h2><a className="concierge-footer-call" href={businessProfile.phoneHref}><strong>Booking support</strong><span>{businessProfile.phone.replace(/^(\+91)(\d{5})(\d{5})$/, '$1 $2 $3')}</span></a><span>{businessProfile.hours.display}</span><Link href="/customer-support">Customer support</Link><FooterPolicyLinks/></div>
+   </div>;
+   return <footer className="travel-footer concierge-footer">
+     <div className="concierge-desktop-directory">{directory}</div>
+     <details className="concierge-mobile-directory"><summary>Help &amp; policies <StitchSymbol name="expand_more" size={17}/></summary>{directory}</details>
+     <div className="concierge-footer-base"><span>© {new Date().getFullYear()} {businessProfile.legalName||businessProfile.name}. All rights reserved.</span><span>In Testing · No live bookings or payments</span></div>
+     <AirportDataCredit/>
+   </footer>;
+ }
  if(compact)return <footer className="travel-footer travel-footer--compact"><div className="workflow-footer-content"><div><h2>Support for your journey</h2><p>{businessProfile.hours.display}</p></div><nav aria-label="Travel workspace support"><Link href="/customer-support">Help & support</Link><a href={businessProfile.phoneHref}>{businessProfile.phone}</a><a href={businessProfile.emailHref}>Email us</a></nav></div><FooterPolicyLinks/><div className="travel-footer-bottom"><span>© {new Date().getFullYear()} {businessProfile.legalName||businessProfile.name}</span><span>In Testing · No live bookings or payments</span></div><AirportDataCredit/></footer>;
  return <footer className="travel-footer travel-footer--reference">
   <div className="travel-footer-inner"><div className="travel-footer-grid">

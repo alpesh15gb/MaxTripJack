@@ -24,7 +24,13 @@ for(const panRequired of [false,true,'false'] as const)test(`hotel PAN ${JSON.st
   await page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /}).click();
   await expect(form.locator('[name="pan-0"]')).toBeFocused();
   await expect(form.locator('[name="pan-0"]')).toHaveAttribute('aria-describedby','pan-hint-0 guest-error-pan-0');
-  const panIsUncovered=()=>form.locator('[name="pan-0"]').evaluate(node=>{const r=node.getBoundingClientRect(),sticky=document.querySelector('.mobile-booking-action')?.getBoundingClientRect();return r.top>=0&&r.bottom<=(sticky?.height?sticky.top:innerHeight)&&document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===node;});
+  const panIsUncovered=()=>form.locator('[name="pan-0"]').evaluate(node=>{
+   const field=node.getBoundingClientRect();
+   const action=document.querySelector('.mobile-booking-action')?.getBoundingClientRect();
+   const actionCoversColumn=action && action.height>0 && action.left < field.right && action.right > field.left;
+   const bottom=actionCoversColumn && action.bottom>=innerHeight-2 ? action.top : innerHeight;
+   return field.top>=0 && field.bottom<=bottom && document.elementFromPoint(field.left+field.width/2,field.top+field.height/2)===node;
+  });
   await expect.poll(panIsUncovered).toBe(true);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await form.locator('[name="pan-0"]').fill('ABCDE1234F');

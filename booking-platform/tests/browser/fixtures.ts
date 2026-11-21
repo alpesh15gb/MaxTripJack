@@ -176,6 +176,20 @@ export const test = base.extend<{ provider: ProviderFixture }>({
 
 export { expect };
 
+export async function mainNavigation(page: Page) {
+  const navigation = page.getByRole('navigation', {name:'Main navigation'});
+  if (!(await navigation.isVisible())) await page.getByRole('button', {name:'Open navigation'}).click();
+  return navigation;
+}
+
+export async function toggleResultSearch(page: Page) {
+  const summary = page.locator('#booking-search > summary');
+  const edit = page.getByRole('button', {name: 'Edit search', exact: true});
+  await expect(summary.locator('.booking-criteria-field').first()).toBeAttached();
+  if (await summary.isVisible()) await summary.click();
+  else await edit.click();
+}
+
 export async function openFlightSearch(page: Page, options: { auto?: boolean; roundTrip?: boolean } = {}) {
   const query = new URLSearchParams({ product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: '1' });
   if (options.auto !== false) query.set('autoSearch', '1');

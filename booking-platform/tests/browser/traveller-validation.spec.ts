@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, departure, returning, openFlightSearch, reviewedQuote, searchId, hotelOption, expectNoHorizontalOverflow, capture } from './fixtures';
+import {toggleResultSearch,  test, expect, departure, returning, openFlightSearch, reviewedQuote, searchId, hotelOption, expectNoHorizontalOverflow, capture } from './fixtures';
 
 function birthForAge(age:number){const date=new Date(`${departure}T00:00:00Z`);date.setUTCFullYear(date.getUTCFullYear()-age);return date.toISOString().slice(0,10);}
 function after(date:string,days:number){return new Date(Date.parse(`${date}T00:00:00Z`)+days*86400000).toISOString().slice(0,10);}
@@ -54,11 +54,11 @@ test('child and infant age errors retain corrections and block payment until the
 test('passport validation uses final travel in saved quote, not an edited unsubmitted search',async({page,provider})=>{
  provider.quote=reviewedQuote({summary:{from:'BOM',to:'DEL',date:departure,returnDate:returning,adults:1}});
  await openFlightSearch(page);
- await page.locator('#booking-search > summary').click();
+ await toggleResultSearch(page);
  const search=page.getByRole('form',{name:'Search availability'});
  await search.locator('[name="date"]').fill(after(returning,90));
  await search.locator('[name="returnDate"]').fill(after(returning,100));
- await page.locator('#booking-search > summary').click();await selectFare(page);await fillParty(page,1);
+ await toggleResultSearch(page);await selectFare(page);await fillParty(page,1);
  const documents=page.locator('.traveller-card details').filter({hasText:'Travel documents'});
  await documents.locator('summary').click();await page.locator('[name="expiry-0"]').fill(returning);await documents.locator('summary').click();
  await attemptPayment(page);await expect(documents).toHaveAttribute('open','');await expect(page.locator('[name="expiry-0"]')).toBeFocused();

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, flight, departure, returning, searchId, expectNoHorizontalOverflow, capture, pickHomeDate, setHomeTravellers } from './fixtures';
+import {toggleResultSearch,  test, expect, flight, departure, returning, searchId, expectNoHorizontalOverflow, capture, pickHomeDate, setHomeTravellers } from './fixtures';
 import {travelDateLabel} from '../../src/lib/travel-date';
 
 const warmPath = '/api/travel/search/warm';
@@ -182,7 +182,7 @@ test('changing a hotel date reuses the mapped properties and prepares the exact 
  const form = page.getByRole('form', { name: 'Search availability' });
  await form.getByRole('button', { name: 'Search stays', exact: true }).click();
  await expect(page.getByRole('article', { name: 'Date-change fixture stay' })).toBeVisible();
- await page.locator('#booking-search > summary').click();
+ await toggleResultSearch(page);
  await form.getByLabel('Check-in', { exact: true }).fill(date);
  await page.clock.fastForward(650);
  await expect.poll(() => observed.warm.length).toBe(1);

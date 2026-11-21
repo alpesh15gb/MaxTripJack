@@ -72,8 +72,16 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   await secondAction.click();await expect(page.locator('#booking-review-title')).toBeFocused();
   expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['flex-exact-id']});
   await expect(page.locator('.selected-reviewed-total')).toContainText('₹7,400.50');await expect(page.locator('.selected-reviewed-total')).not.toContainText('₹7,200.50');
-  const expiryWidth=await page.locator('.booking-expiry').evaluate(node=>{const content=node.firstElementChild!.getBoundingClientRect(),box=node.getBoundingClientRect();return {content:content.width,available:box.width-22};});
-  if((page.viewportSize()?.width??1440)<=600)expect(expiryWidth.content).toBeGreaterThanOrEqual(expiryWidth.available-1);
+  if((page.viewportSize()?.width??1440)<=600){
+   const clock=page.locator('.booking-expiry');
+   await expect(clock.getByRole('button',{name:'Refresh reviewed price'})).toBeVisible();
+   const geometry=await clock.evaluate(node=>{
+    const box=node.getBoundingClientRect(),copy=node.firstElementChild!.getBoundingClientRect(),action=node.querySelector('button')!.getBoundingClientRect();
+    return {copyInside:copy.left>=box.left&&copy.right<=box.right+1,actionInside:action.left>=box.left&&action.right<=box.right+1,
+     separate:copy.right<=action.left+1||action.bottom<=copy.top+1||copy.bottom<=action.top+1,clockFits:node.scrollWidth<=node.clientWidth+1};
+   });
+   expect(geometry).toEqual({copyInside:true,actionInside:true,separate:true,clockFits:true});
+  }
   const mobileAction=page.locator('.mobile-booking-action'),mobile=(page.viewportSize()?.width??1440)<=700;
   await expect(mobileAction.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
   if(mobile){

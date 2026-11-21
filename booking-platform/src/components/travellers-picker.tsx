@@ -1,9 +1,10 @@
 'use client';
 import {useCallback,useId,useRef,useState} from 'react';
 import SearchPickerDialog from './search-picker-dialog';
+import {StitchSymbol} from './stitch-symbol';
 
-const cabins=[['ECONOMY','Economy'],['PREMIUM_ECONOMY','Premium economy'],['BUSINESS','Business'],['FIRST','First']] as const;
-export const cabinLabel=(value:string)=>cabins.find(([key])=>key===value)?.[1]??'Economy';
+export const cabinChoices=[['ECONOMY','Economy'],['PREMIUM_ECONOMY','Premium economy'],['BUSINESS','Business'],['FIRST','First']] as const;
+export const cabinLabel=(value:string)=>cabinChoices.find(([key])=>key===value)?.[1]??'Economy';
 
 function Stepper({label,hint,value,min,max,onChange}:{label:string;hint:string;value:number;min:number;max:number;onChange:(value:number)=>void}){
  return <div className="travellers-row">
@@ -42,18 +43,18 @@ export default function TravellersPicker({product,adults,childCount:children,inf
   onChange(next);
  };
  return <div className="home-search-input home-guests travellers-picker" ref={root}>
-  <span id={`${id}-label`}>{flight?'Travellers & class':'Guests'}</span>
+  <span id={`${id}-label`} className="stitch-picker-caption"><StitchSymbol name="groups" size={16}/>{flight?'Travellers & class':'Guests'}</span>
   <button type="button" className="travellers-trigger" aria-haspopup="dialog" aria-expanded={open} aria-controls={`${id}-panel`} aria-labelledby={`${id}-label ${id}-value`} onClick={()=>setOpen(value=>!value)}>
-   <span id={`${id}-value`}><strong>{total}</strong> {flight?(total===1?'Traveller':'Travellers'):(total===1?'Adult':'Adults')}</span>
+   <span id={`${id}-value`}><strong>{total}</strong> {total===1?'Adult':flight?'Travellers':'Adults'}</span>
   </button>
-  <small>{flight?cabinLabel(cabin):'1 room'}</small>
+  <small>{flight?<>{cabinLabel(cabin)}<span className="stitch-add-child">+ Add infant / child</span></>:'1 room'}</small>
   {open&&<SearchPickerDialog fitToField className="travellers-panel" id={`${id}-panel`} label={flight?'Travellers and cabin class':'Guests'} onDismiss={close}>
    <Stepper label="Adults" hint={flight?'12 years and above':'Per room'} value={adults} min={1} max={flight?9:4} onChange={value=>set({adults:value})}/>
    {flight&&<>
     <Stepper label="Children" hint="2–11 years" value={children} min={0} max={9-adults} onChange={value=>set({children:value})}/>
     <Stepper label="Infants" hint="Under 2, on an adult’s lap" value={infants} min={0} max={adults} onChange={value=>set({infants:value})}/>
     <fieldset className="travellers-cabins"><legend>Cabin class</legend>
-     {cabins.map(([value,text])=><label key={value}><input type="radio" name={`${id}-cabin`} value={value} checked={cabin===value} onChange={()=>set({cabin:value})}/>{text}</label>)}
+     {cabinChoices.map(([value,text])=><label key={value}><input type="radio" name={`${id}-cabin`} value={value} checked={cabin===value} onChange={()=>set({cabin:value})}/>{text}</label>)}
     </fieldset>
     <p>Up to 9 adults and children. Ages apply on the travel date.</p>
    </>}

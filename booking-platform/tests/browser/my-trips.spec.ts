@@ -19,9 +19,14 @@ function booking(id: string, reference: string, status: string, product = 'FLIGH
 }
 
 test('My trips shows truthful booking states and keeps supplier confirmation within each record', async ({ page, provider }, testInfo) => {
+  const photo = 'https://pix8.agoda.net/hotelImages/123/stay.jpg';
+  const hotelBooking = booking(ids.hotel, 'MX-SYNTHETIC-HOTEL', 'CONFIRMED', 'HOTEL', 0);
+  await page.route(photo, route => route.fulfill({path:'public/travel/goa.jpg',contentType:'image/jpeg'}));
   provider.bookingsPages['1'] = { hasMore: false, bookings: [
     booking(ids.ticket, 'MX-SYNTHETIC-TICKET', 'TICKETED'),
-    booking(ids.hotel, 'MX-SYNTHETIC-HOTEL', 'CONFIRMED', 'HOTEL', 2),
+    {...hotelBooking, itinerary_summary:{...hotelBooking.itinerary_summary, hotelName:undefined, city:'Goa'},
+      hotelStay:{name:'Synthetic Goa Beach Stay', rooms:['Sea View Double'], meal:'Breakfast', inclusions:['Airport transfer']},
+      hotelPhotos:[{url:photo,caption:'Courtyard',isHero:true}]},
     booking(ids.pending, 'MX-SYNTHETIC-AWAITING', 'PAID', 'FLIGHT', 3),
     booking(ids.failed, 'MX-SYNTHETIC-FAILED', 'BOOKING_FAILED', 'FLIGHT', 4),
   ] };
@@ -43,6 +48,19 @@ test('My trips shows truthful booking states and keeps supplier confirmation wit
   await expect(ticket).toContainText('One way · 1 traveller');
   await expect(ticket.getByText('Ticketed', { exact: true })).toBeVisible();
   await expect(hotel.getByRole('heading', { name: 'Synthetic Goa Beach Stay', exact: true })).toBeVisible();
+  await expect(hotel).toContainText('Sea View Double');
+  await expect(hotel.getByRole('list', {name:'Booked meal plan and inclusions'})).toContainText('Meal plan: Breakfast');
+  await expect(hotel.getByRole('list', {name:'Booked meal plan and inclusions'})).toContainText('Airport transfer');
+  await expect(hotel.getByRole('img', {name:'Synthetic Goa Beach Stay · Courtyard'})).toHaveAttribute('src', photo);
+  await expect(page.getByRole('button', {name:'Flights', exact:true})).toHaveAccessibleDescription('3 matching loaded bookings');
+  await expect(page.getByRole('button', {name:'Upcoming & current', exact:true})).toHaveAccessibleDescription('2 matching loaded bookings');
+  await expect(page.getByRole('button', {name:'Hotels', exact:true})).toHaveAccessibleDescription('1 matching loaded bookings');
+  await page.evaluate(() => document.fonts.ready);
+  await hotel.getByRole('img').evaluate(image => (image as HTMLImageElement).decode());
+  const viewportPath = testInfo.outputPath('my-trips-dashboard-viewport.png');
+  await page.screenshot({path:viewportPath, animations:'disabled'});
+  await testInfo.attach('my-trips-dashboard-viewport', {path:viewportPath, contentType:'image/png'});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
   await expect(hotel).toContainText('2 rooms · 5 guests');
   await expect(hotel.getByText('Confirmed', { exact: true })).toBeVisible();
   await expect(pending.getByText('Awaiting supplier', { exact: true })).toBeVisible();
@@ -93,8 +111,8 @@ test('a confirmed flight reservation remains in progress until its ticket is iss
   await expect(completedExtras.getByRole('heading', { name: 'Flight extras', exact: true })).toBeVisible();
   await expect(pending.getByRole('button', { name: 'View confirmation details', exact: true })).toHaveCount(0);
   await expect(pending.getByRole('link', { name: 'Download confirmation PDF', exact: true })).toHaveCount(0);
-  await expect(page.locator('.trips-overview > div').nth(1).locator('strong')).toHaveText('1confirmed in loaded trips');
-  await expect(page.locator('.trips-overview > div').nth(2).locator('strong')).toHaveText('1pending in loaded trips');
+  await expect(page.locator('.hub-identity')).toContainText('2 loaded bookings · 1 confirmed');
+  await expect(page.getByRole('button', {name:'In progress', exact:true})).toHaveAccessibleDescription('1 matching loaded bookings');
   await page.getByRole('button', { name: 'In progress', exact: true }).click();
   await expect(pending.getByRole('article')).toHaveCount(1);
   await expectNoHorizontalOverflow(page);

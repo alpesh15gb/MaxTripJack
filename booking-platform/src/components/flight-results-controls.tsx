@@ -1,6 +1,11 @@
 'use client';
 
 import {useEffect, useId, useRef, useState, useSyncExternalStore} from 'react';
+import type {FlightSort} from '@/lib/flight-result-shortcuts';
+import {useCompanyProfile} from './company-profile-context';
+import {StitchSymbol} from './stitch-symbol';
+import {displayMoney} from '@/lib/display-money';
+import {estimatedFare,flightStops,type Flight} from '@/lib/booking-presentation';
 
 const mobileQuery = '(max-width: 1100px)';
 function subscribeViewport(callback: () => void) {
@@ -29,6 +34,8 @@ type FlightFilterFieldsProps = FlightFilterProps & { airlines: string[] };
 type Props = FlightFilterFieldsProps & {
   count: number;
   nonstopCount?: number;
+  sortBy: FlightSort;
+  onSort: (sort: FlightSort) => void;
 };
 
 const departureLabels:Record<string,string> = {EARLY:'Before 06:00',MORNING:'Morning · 06:00–11:59',AFTERNOON:'Afternoon · 12:00–17:59',EVENING:'Evening · 18:00–23:59'};
@@ -89,10 +96,48 @@ function FlightFilterFields(props: FlightFilterFieldsProps) {
   </div>;
 }
 
-export function FlightDesktopFilters(props: FlightFilterFieldsProps) {
+export function FlightDesktopFilters(props: FlightFilterFieldsProps & {flights: readonly Flight[]}) {
+  const stopPrices = new Map<string, number>(), airlinePrices = new Map<string, number>();
+  let lowest=Infinity, highest=0;
+  for(const flight of props.flights){
+    const fare=estimatedFare(flight);
+    if(!Number.isFinite(fare))continue;
+    lowest=Math.min(lowest,fare);highest=Math.max(highest,fare);
+    const stops=flightStops(flight,props.group);
+    if(stops!==null)stopPrices.set(String(stops),Math.min(stopPrices.get(String(stops))??Infinity,fare));
+    for(const segment of flight.sI){const name=segment.fD.aI.name;airlinePrices.set(name,Math.min(airlinePrices.get(name)??Infinity,fare));}
+  }
+  const min=Math.floor(lowest/100),max=Math.ceil(highest/100);
+  const choice=(value:string,label:string,selected:string,onChange:(value:string)=>void,estimate?:number)=><button type="button" className="stitch-facet-option" key={value} disabled={props.disabled} aria-label={`Filter by ${label}`} aria-pressed={selected===value} onClick={()=>onChange(selected===value?'ALL':value)}><span className="stitch-facet-tick" aria-hidden="true">{selected===value?'✓':''}</span><span>{label}</span><small>{estimate!==undefined?displayMoney(estimate):'—'}</small></button>;
   return <aside className="results-toolbar flight-shopping-controls flight-desktop-filters" aria-label="Flight result controls">
-    <FlightFilterFields {...props}/>
+    <div className="stitch-flight-facets">
+      <div className="stitch-facets-header"><h3>Filters</h3><button type="button" aria-label="Reset flight filters" onClick={()=>resetFlightFilters(props)} disabled={props.disabled}>Reset all</button></div>
+      {props.airlineQuery&&<p className="flight-filter-note">Matching {props.airlineQuery} on every segment.</p>}
+      {props.group!=='COMBO'&&<>
+        <section><div className="stitch-facet-heading"><h4>Stops</h4><select aria-label="Stops" value={props.stops} onChange={e=>props.onStops(e.target.value)}><option value="ALL">All</option><option value="0">Non-stop</option><option value="1">1 stop</option><option value="2">2 stops</option></select></div>
+          {['Non-stop','1 stop','2 stops'].map((label,i)=>choice(String(i),label,props.stops,props.onStops,stopPrices.get(String(i))))}</section>
+        <section><div className="stitch-facet-heading"><h4>Departure time</h4><select aria-label="Departure time" value={props.departure} onChange={e=>props.onDeparture(e.target.value)}><option value="ALL">All</option>{Object.keys(departureLabels).map(key=><option key={key} value={key}>{departureLabels[key]}</option>)}</select></div>
+          <div className="stitch-time-grid">{[['EARLY','wb_twilight','Early morning','00–06'],['MORNING','wb_sunny','Morning','06–12'],['AFTERNOON','partly_cloudy_day','Afternoon','12–18'],['EVENING','nights_stay','Evening','18–00']].map(([key,icon,title,hours])=><button key={key} type="button" aria-pressed={props.departure===key} disabled={props.disabled} onClick={()=>props.onDeparture(props.departure===key?'ALL':key)}><StitchSymbol name={icon} size={18}/><strong>{title}</strong><small>{hours}</small></button>)}</div></section>
+      </>}
+      {props.group==='COMBO'&&<section><div className="stitch-facet-heading"><h4>Stops</h4><select aria-label="Stops" disabled value="ALL"><option value="ALL">All</option></select></div><p className="flight-filter-note">Check stops for each flight in the complete itinerary.</p></section>}
+      <section><div className="stitch-facet-heading"><h4>Airlines</h4><select aria-label="Airline (any segment)" value={props.airline} disabled={props.disabled} onChange={e=>props.onAirline(e.target.value)}><option value="ALL">All</option>{props.airlines.map(name=><option key={name} value={name}>{name}</option>)}</select></div>
+        {props.airlines.slice(0,6).map(name=>choice(name,name,props.airline,props.onAirline,airlinePrices.get(name)))}</section>
+      <section className="stitch-facet-budget"><h4>Price range</h4>
+        {Number.isFinite(min)&&max>min&&<><input aria-label="Maximum fare slider" type="range" min={min} max={max} step="1" value={props.budget?Math.max(min,Math.min(max,Number(props.budget)||max)):max} onChange={e=>props.onBudget(Number(e.target.value)===max?'':e.target.value)} disabled={props.disabled}/><div><small>{displayMoney(min*100)}</small><small>{displayMoney(max*100)}</small></div></>}
+        <label>Maximum total for all travellers (₹)<input type="number" min="0" step="1" inputMode="numeric" placeholder="No limit" value={props.budget} disabled={props.disabled} onChange={e=>props.onBudget(e.target.value)}/></label>
+      </section>
+    </div>
+    <FlightDeskLink/>
   </aside>;
+}
+
+export function FlightDeskLink() {
+  const company = useCompanyProfile();
+  return <a className="flight-desk-link" href={company.phoneHref}>
+    <StitchSymbol name="verified_user" size={20}/>
+    <span><strong>{company.name} Assurance</strong><small>{company.address.addressLocality} desk · {company.phone}</small></span>
+    <StitchSymbol name="call" size={18}/>
+  </a>;
 }
 
 /** Quick filters remain beside comparison controls. The full set opens in a dialog on phones. */
@@ -150,10 +195,18 @@ export default function FlightResultsControls(props: Props) {
 
   return <section className="flight-filter-toolbar" aria-label="Flight filters" ref={toolbar} tabIndex={-1}>
     <div className="flight-filter-quick">
+      <div className="shopping-filter-actions">
+      <label className="flight-dock-sort">
+        <span>Sort by</span>
+        <select aria-label="Sort flights by" value={props.sortBy} disabled={props.disabled || !props.count} onChange={event=>props.onSort(event.target.value as FlightSort)}>
+          <option value="price">Cheapest</option><option value="duration">Fastest</option><option value="departure">Earliest departure</option>
+        </select>
+      </label>
       <button ref={trigger} type="button" className="flight-filter-trigger" disabled={props.disabled} aria-expanded={mobile && open} aria-haspopup="dialog" aria-controls={mobile ? `${id}-dialog` : undefined} aria-label={activeCount ? `Filters (${activeCount})` : 'Filters'} onClick={() => setOpen(true)}>
         <span className="flight-filter-trigger-icon" aria-hidden="true"><i/><i/><i/></span>
         Filters{activeCount>0&&<span className="flight-filter-button-count" aria-hidden="true">{activeCount}</span>}
       </button>
+      </div>
       {canFilterStops&&<button ref={nonstopTrigger} type="button" className="flight-nonstop-toggle" disabled={props.disabled || nonstopUnavailable} aria-pressed={nonstopSelected}
         aria-label="Non-stop" aria-description={props.nonstopCount === 0 ? 'No non-stop flights match the current filters.' : undefined} onClick={()=>props.onStops(nonstopSelected?'ALL':'0')}>
         <span className="flight-nonstop-mark" aria-hidden="true">{nonstopSelected?'✓':'+'}</span>

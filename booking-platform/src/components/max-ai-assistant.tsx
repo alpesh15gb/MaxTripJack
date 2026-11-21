@@ -9,6 +9,7 @@ import {isMaxAiActionHref, type MaxAiAction, type MaxAiCard, type MaxAiResponse}
 import {enquiryDraftSchema, type EnquiryDraft} from '@/lib/travel-enquiry-contract';
 import MaxAiEnquiry from './max-ai-enquiry';
 import {observeLauncherPlacement} from './max-ai-launcher-placement';
+import {StitchSymbol} from './stitch-symbol';
 import '@/app/max-ai.css';
 
 const REQUEST_TIMEOUT_MS = 90_000;
@@ -26,6 +27,7 @@ const starters = [
 type IconName = 'spark' | 'flight' | 'hotel' | 'trip' | 'passport' | 'shield' | 'cruise' | 'send' | 'close' | 'plus' | 'arrow' | 'stop';
 type ChatMessage = {id: number; role: 'user' | 'assistant'; text: string; cards?: MaxAiCard[]; actions?: MaxAiAction[]; notice?: string; enquiryDraft?: EnquiryDraft};
 type FailedRequest = {message: string; token?: string};
+type DraftRequest = {text:string} | null;
 type CancelRef = MutableRefObject<(() => void) | null>;
 
 function AiIcon({name, size = 20}: {name: IconName; size?: number}) {
@@ -88,9 +90,14 @@ function ResultCard({card, onNavigate}: {card: MaxAiCard; onNavigate: () => void
   </article>;
 }
 
-function Conversation({open, pathname, cancelRef, onNavigate}: {open: boolean; pathname: string; cancelRef: CancelRef; onNavigate: () => void}) {
+function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextDraft: DraftRequest; open: boolean; pathname: string; cancelRef: CancelRef; onNavigate: () => void}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(nextDraft?.text ?? '');
+  const [appliedDraft, setAppliedDraft] = useState(nextDraft);
+  if (nextDraft !== appliedDraft) {
+    setAppliedDraft(nextDraft);
+    if (nextDraft) setDraft(nextDraft.text);
+  }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [stopped, setStopped] = useState(false);
@@ -118,7 +125,7 @@ function Conversation({open, pathname, cancelRef, onNavigate}: {open: boolean; p
     cancelRef.current = stop;
     return () => {cancelRef.current = null; generation.current += 1; request.current?.abort();};
   }, [cancelRef, stop]);
-  useEffect(() => {if (open) input.current?.focus({preventScroll: true});}, [open]);
+  useEffect(() => {if (open) input.current?.focus({preventScroll:true});}, [open]);
   useEffect(() => {
     if (!open || !messages.length) return;
     latest.current?.scrollIntoView({block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
@@ -215,7 +222,7 @@ function Conversation({open, pathname, cancelRef, onNavigate}: {open: boolean; p
   </>;
 }
 
-function AssistantDialog({open, onClosed, launcher}: {open: boolean; onClosed: () => void; launcher: MutableRefObject<HTMLButtonElement | null>}) {
+function AssistantDialog({open, onClosed, launcher, nextDraft}: {nextDraft: DraftRequest; open: boolean; onClosed: () => void; launcher: MutableRefObject<HTMLButtonElement | null>}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<(() => void) | null>(null);
   const pathname = usePathname();
@@ -251,7 +258,7 @@ function AssistantDialog({open, onClosed, launcher}: {open: boolean; onClosed: (
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
   }}>
     <header className="max-ai-header"><div className="max-ai-avatar"><AiIcon name="spark" size={24}/></div><div><h2 id={title}>Max AI</h2><p>Your AI travel assistant</p></div><button className="max-ai-close" type="button" onClick={close} aria-label="Close Max AI"><AiIcon name="close"/></button></header>
-    {isPending ? <div className="max-ai-initializing" role="status">Getting your travel assistant ready…</div> : <Conversation key={session?.user.id ?? 'guest'} open={open} pathname={pathname} cancelRef={cancelRef} onNavigate={close}/>}
+    {isPending ? <div className="max-ai-initializing" role="status">Getting your travel assistant ready…</div> : <Conversation key={session?.user.id ?? 'guest'} open={open} pathname={pathname} cancelRef={cancelRef} nextDraft={nextDraft} onNavigate={close}/>}
   </dialog>;
 }
 
@@ -261,11 +268,26 @@ function MaxAiWidget() {
   const pathname = usePathname();
   const desktopScope = pathname === '/' ? '.trip-home' : pathname === '/book' ? '.booking-workflow' : null;
   const launcher = useRef<HTMLButtonElement>(null);
-  const onClosed = useCallback(() => setOpen(false), []);
+  const [nextDraft,setNextDraft] = useState<DraftRequest>(null);
+  const onClosed = useCallback(() => {setOpen(false); setNextDraft(null);}, []);
   useEffect(() => { if (launcher.current) return observeLauncherPlacement(launcher.current, desktopScope); }, [desktopScope]);
+  useEffect(() => {
+    const request = (event: Event) => {
+      const text = (event as CustomEvent<unknown>).detail;
+      if (typeof text !== 'string' || !text.trim() || text.length > MAX_MESSAGE_LENGTH) return;
+      setNextDraft({text});
+      setHasOpened(true);
+      setOpen(true);
+    };
+    window.addEventListener('maxtravel:compose-message',request);
+    return () => window.removeEventListener('maxtravel:compose-message',request);
+  }, []);
   return <>
-    <button ref={launcher} className="max-ai-launcher" type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}><span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></button>
-    {hasOpened && <AssistantDialog open={open} onClosed={onClosed} launcher={launcher}/>}
+    <button ref={launcher} className={`max-ai-launcher${pathname === '/' ? ' home-concierge-launcher' : ''}`} type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}>
+      {pathname === '/' ? <><span className="max-ai-launcher-icon"><StitchSymbol name="smart_toy" size={20}/></span><span><small>Concierge</small><strong>Ask Max AI</strong></span></> :
+        <><span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></>}
+    </button>
+    {hasOpened && <AssistantDialog open={open} onClosed={onClosed} launcher={launcher} nextDraft={nextDraft}/>}
     <div className="max-ai-mobile-clearance" aria-hidden="true"/>
   </>;
 }

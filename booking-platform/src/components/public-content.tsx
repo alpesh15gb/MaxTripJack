@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
+import {maxAiGatewayConfiguration} from "@/lib/max-ai-provider";
+import {conversationConfigured} from "@/lib/max-ai-conversation";
+import HomeDesk from "./home-desk";
+import {StitchSymbol} from "./stitch-symbol";
+import {officeDirectionsHref} from "@/lib/business-profile";
 import SeoJsonLd from "@/components/seo-json-ld";
 import {getCompanyProfile} from "@/lib/company-settings";
 import {getPublicPage} from "@/lib/public-pages";
@@ -123,12 +128,27 @@ export async function FlightGuideView({ guide }: { guide: FlightGuide }) {
 /** Rendered by the server and passed through the interactive homepage as children. */
 export async function HomePublicIntro() {
   const businessProfile=await getCompanyProfile();
+  const localWeekday=new Intl.DateTimeFormat("en-US",{weekday:"long",timeZone:businessProfile.hours.timezone}).format(new Date());
   return <section className="home-public-intro studio-concierge" aria-labelledby="home-public-heading">
-    <div className="studio-concierge-band"><div><h2 id="home-public-heading">Visit {businessProfile.locationName}</h2><p>Speak with our team about flights, hotels, holiday packages, visas and travel insurance.</p><div className="studio-concierge-actions"><a href={businessProfile.phoneHref}><TravelIcon name="user" size={18}/>Call our team</a><Link href="/customer-support">Find the right help <TravelIcon name="arrow" size={18}/></Link></div></div>
-    <div className="studio-office-note"><TravelIcon name="pin" size={25}/><h3>Office address and hours</h3><p>{businessProfile.address.display}</p><p><strong>{businessProfile.hours.display}</strong></p><Link href="/office">Office details & directions →</Link><a href={businessProfile.emailHref}>{businessProfile.email}</a></div></div>
-    <p className="studio-uat-note">The online platform is currently In Testing. Test searches and checkout are not live travel bookings.</p>
-    <nav className="home-public-links" aria-label="Travel planning and agency information"><Link href="/flights">Flight planning</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/flight-booking-guide">Booking guide</Link><Link href="/passport-renewal-guide">Passport help</Link><Link href="/visa-guide">Visa planning</Link><Link href="/travel-insurance-guide">Travel insurance</Link><Link href="/cruise-holidays-guide">Cruises</Link><Link href="/holiday-packages-guide">Holiday packages</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/about">About MaxTravel</Link></nav>
-    <nav className="home-public-links" aria-label="Browse travel catalogues"><Link href="/hotels">Explore the hotel directory</Link><Link href="/flights/routes">Explore the flight route directory</Link></nav>
-    <h3 className="home-public-routes-heading">Start with the right airport pair</h3><RouteGuideCards/><SeoJsonLd id="maxtravel-business-schema" data={homeDiscoveryGraph(businessProfile)}/>
+    <div className="studio-concierge-band">
+      <section className="stitch-office-card">
+        <header><span><StitchSymbol name="apartment" size={24}/></span><div><small className="stitch-wide-only">Walk-in center</small><h2 id="home-public-heading">Visit {businessProfile.locationName}</h2><small className="stitch-phone-only">{businessProfile.address.addressRegion} office</small></div>{businessProfile.hours.days.some(day=>day===localWeekday) && <b className="stitch-desk-status">Open today</b>}</header>
+        <div className="stitch-office-facts">
+          <div><TravelIcon name="pin"/><span><strong>Office address</strong><address>{businessProfile.address.display}</address></span></div>
+          <div><TravelIcon name="clock"/><span><strong>Desk timings</strong>{businessProfile.hours.display}</span></div>
+          <div><StitchSymbol name="mail"/><span><strong>Direct email</strong><a href={businessProfile.emailHref}>{businessProfile.email}</a></span></div>
+        </div>
+        {businessProfile.mapsHref === officeDirectionsHref && <a className="stitch-office-map" href={businessProfile.mapsHref}><span><TravelIcon name="pin" size={16}/> Get directions on Google Maps</span></a>}
+        <div className="stitch-office-actions"><a href={businessProfile.phoneHref}><StitchSymbol name="call" size={16}/>Call our team</a><a href={businessProfile.mapsHref}><StitchSymbol name="location_on" size={16}/>Get directions</a></div>
+      </section>
+      <HomeDesk enabled={Boolean(maxAiGatewayConfiguration()) && conversationConfigured()}/>
+    </div>
+    <SeoJsonLd id="maxtravel-business-schema" data={homeDiscoveryGraph(businessProfile)}/>
   </section>;
+}
+
+export function HomeRouteGuides() {
+  return <><section className="stitch-route-guides"><h3 className="home-public-routes-heading">Start with the right airport pair &amp; terminal checklist</h3><RouteGuideCards/></section>
+    <nav className="home-public-links" aria-label="Travel planning and agency information"><Link href="/flights">Flight planning</Link><Link href="/domestic-flights">Domestic flights</Link><Link href="/international-flights">International flights</Link><Link href="/flight-booking-guide">Booking guide</Link><Link href="/passport-renewal-guide">Passport help</Link><Link href="/visa-guide">Visa planning</Link><Link href="/travel-insurance-guide">Travel insurance</Link><Link href="/cruise-holidays-guide">Cruises</Link><Link href="/holiday-packages-guide">Holiday packages</Link><Link href="/pricing-transparency">Pricing transparency</Link><Link href="/about">About MaxTravel</Link></nav>
+    <nav className="home-public-links" aria-label="Browse travel catalogues"><Link href="/hotels">Explore the hotel directory</Link><Link href="/flights/routes">Explore the flight route directory</Link></nav></>;
 }

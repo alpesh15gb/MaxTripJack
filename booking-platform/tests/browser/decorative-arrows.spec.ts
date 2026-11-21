@@ -2,9 +2,12 @@ import {test,expect,expectNoHorizontalOverflow,capture} from './fixtures';
 
 test('office navigation and booking companion use font-independent decorative arrows',async({page,provider},testInfo)=>{
   await page.goto('/book');
-  const office=page.locator('.travel-business-nav');
+  await expect(page.getByRole('contentinfo')).toBeVisible();
+  const directory = page.locator('.concierge-mobile-directory > summary');
+  if (await directory.isVisible()) await directory.click();
+  const office=page.getByRole('link',{name:'Visit our office',exact:true});
   await expect(office).toHaveAttribute('href','/office');
-  await expect(office).toHaveText('Our office');
+  await expect(office).toHaveText('Visit our office');
   const officeIcon=office.locator('svg');
   await expect(officeIcon).toHaveAttribute('aria-hidden','true');
   await expect(officeIcon).toHaveAttribute('width','14');
@@ -23,11 +26,8 @@ test('office navigation and booking companion use font-independent decorative ar
   // The planning photo replaces this redundant decoration; retained SVG markup
   // stays font-independent without introducing another visible compass.
   await expect(compass.locator('svg')).toBeHidden();
-  if(testInfo.project.name==='desktop-1440'){
-    await expect(officeIcon).toBeVisible();
-    await expect(office).toHaveAccessibleName('Our office');
-  }
-  else await expect(office).toBeHidden();
+  await expect(officeIcon).toBeVisible();
+  await expect(office).toHaveAccessibleName('Visit our office');
   await expectNoHorizontalOverflow(page);
   await capture(page,testInfo,'font-independent-booking-arrows');
   expect(provider.requests('/api/payments/create')).toHaveLength(0);

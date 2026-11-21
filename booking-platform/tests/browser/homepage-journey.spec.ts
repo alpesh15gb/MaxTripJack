@@ -7,6 +7,7 @@ test('a featured destination opens a stay search with the selected hotel dates a
   await pickHomeDate(planner, 'Check-in', departure);
   await pickHomeDate(planner, 'Check-out', returning);
   await setHomeTravellers(planner, {adults:2});
+  if((page.viewportSize()?.width??1440)<=700)await page.getByText('Travel planning guides and directories',{exact:true}).click();
   await page.getByRole('group', {name:'Preview a destination'}).getByRole('button', {name:'Dubai'}).click();
   await page.getByRole('link', {name:'Find stays in Dubai'}).click();
   await page.waitForURL(url => url.pathname === '/book');
@@ -48,6 +49,11 @@ test('family can choose cabin on homepage without losing search context', async 
   await page.goto('/');
   const form=page.locator('.home-search-form');
   await pickHomeDate(form,'Departure',departure);
+  const cabinShortcuts=form.getByRole('group',{name:'Quick cabin selection'});
+  if(await cabinShortcuts.isVisible()){
+    await cabinShortcuts.getByRole('button',{name:'Premium economy'}).click();
+    await expect(form.locator('.travellers-picker>small')).toContainText('Premium economy');
+  }
   // Children, infants and cabin are inside the Travellers & class field, after the dates.
   await setHomeTravellers(form,{adults:2,children:1,infants:1,cabin:'Business'});
   await expect(form.locator('.travellers-trigger')).toContainText('4 Travellers');
@@ -149,3 +155,17 @@ for (const entry of [
     }
   });
 }
+
+test('popular pairs and multi-city carry the selected first leg into the editable itinerary', async ({page,provider}) => {
+  await page.goto('/');
+  const planner=page.getByRole('region',{name:'Plan your trip'});
+  await planner.getByRole('button',{name:'Set route to Hyderabad to Dubai'}).click();
+  await expect(planner.getByLabel('From airport',{exact:true})).toHaveValue('Hyderabad (HYD)');
+  await expect(planner.getByLabel('To airport',{exact:true})).toHaveValue('Dubai (DXB)');
+  await planner.getByRole('button',{name:'Multi-city',exact:true}).click();
+  await expect(page.getByRole('combobox',{name:'Journey type',exact:true})).toHaveValue('MULTI');
+  await expect(page.getByRole('group',{name:'Flight 2',exact:true}).getByRole('combobox',{name:'To airport',exact:true})).toHaveValue('');
+  expect(new URL(page.url()).searchParams.get('from')).toBe('HYD');
+  expect(new URL(page.url()).searchParams.get('to')).toBe('DXB');
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);
+});

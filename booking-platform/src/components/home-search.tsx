@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { HomePackages } from "./home-packages";
 import "@/app/home-packages.css";
-import Image from "next/image";
+import { useCompanyProfile } from "./company-profile-context";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition, type ReactNode } from "react";
 import AirportPicker from "@/components/airport-picker";
@@ -14,10 +14,12 @@ import {bookingSearchInput,searchFormIsValid} from '@/lib/booking-search-input';
 import {invalidateBackgroundSearch} from '@/lib/background-search';
 import useBackgroundSearch from './use-background-search';
 import FareDatePicker from './fare-date-picker';
-import TravellersPicker from './travellers-picker';
+import TravellersPicker, {cabinChoices} from './travellers-picker';
 import useFareCalendar from './use-fare-calendar';
 import "@/app/search-pickers.css";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
+import {StitchSymbol} from "./stitch-symbol";
+import {HomeDisclosure} from "./home-disclosure";
 
 type Product = "FLIGHT" | "HOTEL";
 type SearchDraft = {
@@ -29,16 +31,15 @@ type SearchDraft = {
   cabin: string;
 };
 const destinations = [
-  { name: "The Maldives", image: "/travel/maldives.jpg", alt: "Turquoise lagoon and overwater villas in the Maldives", detail: "Lagoons and overwater villas" },
-  { name: "Goa", image: "/travel/goa.jpg", alt: "Goa's coastline", detail: "Beach days and coastal cafés" },
-  { name: "Dubai", image: "/travel/dubai.jpg", alt: "Dubai's skyline", detail: "Skyline views and desert sunsets" },
-  { name: "Bali", image: "/travel/bali.jpg", alt: "Ulun Danu Beratan temple reflected in a lake in Bali", detail: "Lakeside temples and island stays" },
+  { name: "Goa", slug: "goa", airports: "GOI/GOX", detail: "Beach days, coastal cafés and heritage quarters", theme: "Coastal escape" },
+  { name: "The Maldives", slug: "maldives", airports: "MLE", detail: "Turquoise lagoons and overwater villas", theme: "Island stays" },
+  { name: "Dubai", slug: "dubai", airports: "DXB", detail: "Skyline panoramas and desert sunsets", theme: "City breaks" },
+  { name: "Bali", slug: "bali", airports: "DPS", detail: "Lakeside temples and island jungle stays", theme: "Island discovery" },
+  { name: "Paris", slug: "paris", airports: "CDG", detail: "Boulevard cafés and distinctive boutique hotels", theme: "European escapes" },
 ];
-const heroDestinations = [
-  { name: "Paris", image: "/travel/paris-evening.webp", alt: "The Eiffel Tower and the Seine at blue hour" },
-  ...destinations,
-];
-
+const hubs = [destinations[4], destinations[1], destinations[0], destinations[2], destinations[3]];
+const cities: Record<string,string> = { HYD:"Hyderabad", DEL:"New Delhi", BOM:"Mumbai", GOI:"Goa", DXB:"Dubai", BLR:"Bengaluru" };
+const popularPairs = [["HYD","DEL"], ["DEL","BOM"], ["BOM","GOI"], ["HYD","DXB"], ["DEL","BLR"], ["BLR","HYD"]];
 function shiftDate(value: string, days: number) {
   return new Date(Date.parse(`${value}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
 }
@@ -61,10 +62,11 @@ function readAirportFields(form: HTMLFormElement | null) {
   return from && to ? { from: from.value, to: to.value } : null;
 }
 
-export default function HomeSearch({ children }: { children: ReactNode }) {
+export default function HomeSearch({ children, offers, guides }: { children: ReactNode; offers: ReactNode; guides: ReactNode }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
-  const [featured, setFeatured] = useState(heroDestinations[0]);
+  const company = useCompanyProfile();
+  const [featured, setFeatured] = useState<typeof destinations[number] | null>(null);
   const [product, setProduct] = useState<Product>("FLIGHT");
   const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
   const [airportRevision, setAirportRevision] = useState(0);
@@ -89,7 +91,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   const [navigating, startNavigation] = useTransition();
   const nights = Math.round((Date.parse(end) - Date.parse(date)) / 86400000);
   const featuredStay = new URLSearchParams({
-    product: "HOTEL", city: featured.name === "The Maldives" ? "Maldives" : featured.name,
+    product: "HOTEL", city: featured?.name.replace(/^The /, "") ?? "",
     date: drafts.HOTEL.date, end: drafts.HOTEL.end, adults: String(drafts.HOTEL.adults),
   });
 
@@ -134,7 +136,7 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     setAirportRevision(value => value + 1);
   }
 
-  function advancedSearch() {
+  function advancedSearch(multiCity = false) {
     backgroundSearch.pause();
     const data = form.current ? new FormData(form.current) : new FormData();
     const params = new URLSearchParams({ product, date, adults: String(adults) });
@@ -142,7 +144,8 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
       params.set("from", String(data.get("from") || ""));
       params.set("to", String(data.get("to") || ""));
       params.set("cabin", cabin); params.set("children", String(childCount)); params.set("infants", String(infants));
-      if (roundTrip) params.set("returnDate", end);
+      if (multiCity) params.set("journey", "multi");
+      else if (roundTrip) params.set("returnDate", end);
     } else {
       params.set("end", end); params.set("city", String(data.get("city") || ""));
       params.set("hotelIds", String(data.get("hotelIds") || ""));
@@ -196,38 +199,48 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
     startNavigation(() => router.push(`/book?${params}`));
   }
 
-  return <div className="trip-home">
+  const selectPair = (from: string, to: string) => {
+    setAirports({ from: `${cities[from]} (${from})`, to: `${cities[to]} (${to})` });
+    setCodes({from, to});
+    setAirportRevision(value => value + 1);
+    setNotice("");
+    backgroundSearch.interact();
+  };
+  const hubLinks = <div role="group" aria-label="Preview a destination" className="stitch-hubs">
+    <span>Trending hubs</span>
+    {hubs.map(hub => <button key={hub.slug} type="button" aria-label={hub.name} aria-pressed={featured === hub} onClick={() => setFeatured(hub)}>{hub.name} <span>({hub.airports})</span></button>)}
+    {featured && <Link href={`/book?${featuredStay}`}>Find stays in {featured.name.replace(/^The /,"the ")} <TravelIcon name="arrow" size={14}/></Link>}
+  </div>;
+  return <div className="trip-home stitch-home">
     <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={openSearch} />
     <main id="main-content">
-      <section className="home-intro" aria-labelledby="home-title">
-        <div className="studio-hero-copy">
+      <section className="stitch-home-hero" aria-labelledby="home-title">
+        <svg aria-hidden="true" focusable="false" className="stitch-flight-paths" viewBox="0 0 1440 600" fill="none">
+          <path d="M-100 480C200 400 450 180 800 240C1150 300 1300 120 1600 80" stroke="currentColor" strokeDasharray="8 8" strokeWidth="2"/>
+          <path d="M100 580C360 480 620 310 940 340C1260 370 1420 220 1680 180" stroke="currentColor" strokeDasharray="6 6" strokeWidth="1.5"/>
+          <g fill="currentColor"><circle cx="800" cy="240" r="5"/><circle cx="940" cy="340" r="4"/><circle cx="450" cy="380" r="4"/><circle cx="1200" cy="190" r="6"/></g>
+        </svg>
+        <div className="stitch-home-wrap">
+          <div className="stitch-office-line"><span><i aria-hidden="true"/> {company.address.addressLocality} office · {company.hours.opens} – {company.hours.closes} IST</span>{company.gstNumber && <span>GST registered · {company.gstNumber}</span>}<a href={company.phoneHref}>Concierge hotline <b>{company.phone}</b></a></div>
           <h1 id="home-title">Find your <em>next escape.</em></h1>
-          <p>Flights, distinctive stays and holidays from Goa to Paris.</p>
-          <div className="home-hero-actions">
-            <Link className="hero-stay-link" href={`/book?${featuredStay}`}>Find stays in {featured.name === "The Maldives" ? "the Maldives" : featured.name} <TravelIcon name="arrow" size={17} /></Link>
-            <a className="hero-search-link" href="#discover">Explore destinations</a>
-          </div>
-        </div>
-        <div className="studio-hero-photo">
-          <Image src={featured.image} alt={featured.alt} fill sizes="100vw" preload={featured === heroDestinations[0]} />
-          <span role="status"><TravelIcon name="pin" size={15} />{featured.name}</span>
-        </div>
-        <div className="hero-destination-picker" role="group" aria-label="Preview a destination">
-          {heroDestinations.map(destination => (
-            <button key={destination.name} type="button" aria-pressed={featured === destination} onClick={() => setFeatured(destination)}>
-              {destination.name}
-            </button>
-          ))}
+          <p>Flights, distinctive stays and <span className="stitch-wide-only">curated boutique </span>holidays from Goa to Paris.<span className="stitch-wide-only"> Compare live availability and review the full price with our Secunderabad concierge team.</span></p>
+          <div className="stitch-hubs-desktop">{hubLinks}</div>
         </div>
       </section>
 
       <section id="trip-search" className="home-search-card" aria-label="Plan your trip" tabIndex={-1}>
-        <div className="home-search-top">
-          <div className="home-search-heading"><div aria-hidden="true"><TravelIcon name={product === "FLIGHT" ? "airplane" : "bed"} size={21} /></div><h2>{product === "FLIGHT" ? "Find a flight" : "Find a stay"}</h2></div>
-          <div className="home-product-tabs" aria-label="Booking type"><button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><TravelIcon name="plane" />Flights</button><button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><TravelIcon name="hotel" />Hotels</button></div>
+        <div className="stitch-product-nav">
+          <div className="home-product-tabs" aria-label="Booking type">
+            <button type="button" aria-pressed={product === "FLIGHT"} onClick={() => changeProduct("FLIGHT")}><StitchSymbol name="flight_takeoff"/>Flights</button>
+            <button type="button" aria-pressed={product === "HOTEL"} onClick={() => changeProduct("HOTEL")}><StitchSymbol name="hotel"/>Hotels</button>
+            <Link href="/packages"><StitchSymbol name="beach_access"/>Holiday packages</Link>
+            <Link href="/visa-guide"><StitchSymbol name="assignment_turned_in"/>Visas</Link>
+            <Link href="/travel-insurance-guide"><StitchSymbol name="verified_user"/>Travel insurance</Link>
+          </div>
+          <Link className="stitch-assurance" href="/pricing-transparency">Book with assurance <b>Pricing transparency</b></Link>
         </div>
         <form ref={form} className="home-search-form" aria-describedby={notice ? "home-search-error" : undefined} onChange={clearCorrectableNotice} onSubmit={submit}>
-          <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}<button type="button" className="home-advanced-link" onClick={advancedSearch}>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}<TravelIcon name="chevron" size={13} /></button></div>
+          <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><button className="stitch-multicity" type="button" onClick={() => advancedSearch(true)}>Multi-city</button></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}{product === "FLIGHT" && <div className="stitch-cabin-shortcuts" role="group" aria-label="Quick cabin selection"><span>Cabin class</span>{cabinChoices.map(([value,label])=><button type="button" key={value} aria-pressed={cabin === value} onClick={()=>updateDraft({cabin:value})}>{label}</button>)}</div>}<button type="button" className="home-advanced-link" onClick={() => advancedSearch()} aria-label={product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}><span>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}</span><StitchSymbol name="tune" size={16}/></button></div>
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
             {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode onCodeChange={setFromCode} /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode onCodeChange={setToCode} /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
             <FareDatePicker name="date" label={product === "FLIGHT" ? "Departure" : "Check-in"} value={date} min={today} fares={showFlightFares ? outbound.days : undefined} onChange={value => {
@@ -235,36 +248,36 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
               updateDraft({ date: value, end: end >= minimumEnd ? end : shiftDate(value, product === "HOTEL" ? 1 : 3) });
             }} />
             {(product === "HOTEL" || roundTrip) && <FareDatePicker name="end" label={product === "FLIGHT" ? "Return" : "Check-out"} value={end} min={product === "HOTEL" ? shiftDate(date, 1) : date} rangeStart={date} helper={product === "HOTEL" && nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : undefined} onChange={value => updateDraft({ end: value })} />}
+            {product === "FLIGHT" && !roundTrip && <button className="stitch-add-return" type="button" onClick={() => setRoundTrip(true)}><span>Return</span><strong>Select date</strong><small>Compare round-trip fares</small></button>}
             <TravellersPicker product={product} adults={adults} childCount={childCount} infants={infants} cabin={cabin} onChange={updateDraft} />
-            <button className="home-search-submit" disabled={navigating} type="submit"><TravelIcon name="search" size={19} /><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
+            {product === "FLIGHT" && <div className="stitch-popular"><span><span className="stitch-wide-only">Popular pairs</span><span className="stitch-phone-only"><StitchSymbol name="local_fire_department" size={14}/> Popular from Secunderabad &amp; Mumbai</span></span><div>{popularPairs.map(([from,to]) => <button type="button" key={from+to} aria-label={`Set route to ${cities[from]} to ${cities[to]}`} onClick={() => selectPair(from,to)}>{from} <span aria-hidden="true">→</span> {to}</button>)}</div></div>}
+            <button className="home-search-submit" disabled={navigating} type="submit"><StitchSymbol name="search" size={21}/><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
           </div>
           {navigating&&<p role="status" className="home-navigation-status">Opening your search… Live availability will load on the next screen.</p>}
           {notice && <p id="home-search-error" className="home-search-error" role="alert">{notice}</p>}
         </form>
       </section>
 
-      <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Review the total and supplier rules</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Updates and documents in My trips</small></span></div></section>
+      <section className="home-confidence" aria-label="Plan with confidence"><div><i><StitchSymbol name="receipt_long" size={23}/></i><span><strong>Clear before checkout</strong><small>Review the total and supplier rules<span className="stitch-wide-only"> before making a payment.</span></small></span></div><div><i><StitchSymbol name="luggage" size={23}/></i><span><strong>Details that matter</strong><small>Fares, baggage &amp; cancellation rules<span className="stitch-wide-only"> for the option you choose.</span></small></span></div><div><i><StitchSymbol name="folder_shared" size={23}/></i><span><strong>Your trip in 1 place</strong><small>Updates and documents in My trips<span className="stitch-wide-only">, from payment status to booking confirmation.</span></small></span></div></section>
 
-      <section id="discover" className="home-discover" aria-labelledby="discover-heading">
-        <div className="home-section-heading">
-          <div><h2 id="discover-heading">Where to next?</h2></div>
-          <Link href="/book?product=HOTEL">Search all stays <TravelIcon name="arrow" size={18} /></Link>
-        </div>
-        <div className="home-destinations">
-          {[destinations[1], destinations[0], ...destinations.slice(2)].map(destination => (
-            <Link className="home-destination" href={`/book?product=HOTEL&city=${encodeURIComponent(destination.name === "The Maldives" ? "Maldives" : destination.name)}`} key={destination.name} aria-label={`Explore stays in ${destination.name}`}>
-              <Image className="home-destination-photo" src={destination.image} alt="" fill sizes="(max-width: 700px) 50vw, (max-width: 1280px) 40vw, 520px" loading="lazy" />
-              <span className="home-destination-shade" aria-hidden="true" />
-              <div><h3>{destination.name}</h3><p>{destination.detail}</p></div>
-              <span className="home-destination-arrow"><TravelIcon name="arrow" /></span>
-            </Link>
-          ))}
-        </div>
+      {offers}
+      <section id="discover" className="stitch-discover stitch-home-wrap" aria-labelledby="discover-heading">
+        <div className="stitch-section-title"><div><span className="stitch-wide-only">Curated exploration</span><h2 id="discover-heading">Where to next?<span className="stitch-wide-only"> Curated getaways</span></h2><p className="stitch-phone-only">Explore destinations with live stay comparisons</p></div><Link href="/hotels">View all<span className="stitch-wide-only"> destinations</span><TravelIcon name="arrow" size={15}/></Link></div>
+        <div className="stitch-destinations">{destinations.map(place=>{
+          const city = place.name.replace(/^The /,"");
+          const search = new URLSearchParams({ product:"HOTEL",city,date:drafts.HOTEL.date,end:drafts.HOTEL.end,adults:String(drafts.HOTEL.adults) });
+          return <Link className={`stitch-getaway stitch-getaway-${place.slug}`} key={place.slug} href={`/book?${search}`} aria-label={`Explore stays in ${place.name}`}>
+            <span className="stitch-getaway-photo" aria-hidden="true"/><span className="stitch-getaway-tag">{place.theme}</span><div><h3>{place.name}</h3><p>{place.detail}</p></div>
+          </Link>;
+        })}</div>
       </section>
 
       <HomePackages />
 
       {children}
+      <div className="stitch-home-wrap stitch-guides-wrap"><HomeDisclosure className="stitch-extra-guides" title="Travel planning guides and directories">
+        <div className="stitch-hubs-mobile">{hubLinks}</div>{guides}
+      </HomeDisclosure></div>
 
     </main>
     <TravelFooter />

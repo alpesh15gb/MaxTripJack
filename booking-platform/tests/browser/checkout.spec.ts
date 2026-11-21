@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import type { ProviderFixture } from './fixtures';
-import { test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
+import {toggleResultSearch, mainNavigation, test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
 
 async function selectVisibleFare(page: Page, label = 'Check fare & continue') {
   const comparison = page.locator('.flight-shopping-list .fare-comparison').first();
@@ -45,7 +45,7 @@ test('fare comparison selects a server fare id and shows a reviewed party total'
   expect(provider.requests('/api/travel/review')).toHaveLength(1);
   expect(provider.requests('/api/travel/review')[0].body).toEqual({ searchId, priceIds: ['onward-standard'] });
   const summary = page.getByRole('complementary', { name: 'Your journey summary' });
-  await summary.getByText('Price breakdown', { exact: true }).click();
+  await expect(summary.locator('.checkout-price-breakdown')).toHaveAttribute('open','');
   await expect(summary.locator('.booking-total').getByText('₹6,540', { exact: true })).toBeVisible();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
@@ -144,8 +144,21 @@ test('dismissing and resuming payment reuses the same order and never claims con
   await openReviewedFlight(page);
   await showPaymentReview(page);
   await expectNoHorizontalOverflow(page);
+  provider.overrides['GET /api/travel/promo'] = { body: { offers: [{ code:'TESTONLY',discountMinor:1000,minimumMinor:0,expiresAt:new Date(Date.now()+86400000).toISOString() }] } };
+  const choose = page.getByRole('button',{name:'Choose a preferred payment method'});
+  await choose.click();
+  const sheet = page.getByRole('dialog',{name:'Payment options'});
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByText('TESTONLY',{exact:true})).toBeVisible();
+  await sheet.getByRole('radio',{name:'UPI',exact:true}).check();
+  await capture(page,testInfo,'payment-options');
+  await sheet.getByRole('button',{name:'Done'}).click();
+  await expect(sheet).not.toBeVisible();
+  await expect(page.getByRole('button',{name:'UPI',exact:true})).toBeFocused();
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
   await capture(page, testInfo, 'payment-review-before-checkout');
   await openSyntheticPayment(page);
+  expect(await page.evaluate('window.__syntheticGateway.options.prefill')).toEqual({method:'upi',email:'traveller@example.test',contact:'+919876543210'});
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/create')[0].body).toMatchObject({ quoteId, acceptedTotalMinor: 654000,
     guests: { email: 'traveller@example.test', phone: '9876543210', travellers: [{ pt: 'ADULT', fN: 'Aarav', lN: 'Example' }] },
@@ -647,7 +660,7 @@ test('a deliberate new search removes an obsolete sign-in selection without anot
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).not.toBeNull();
  provider.search={...flightResults(),searchId:'11111111-1111-4111-8111-111111111112'};
  await page.getByRole('button',{name:'Back to flights',exact:true}).click();
- await page.locator('#booking-search > summary').click();
+ await toggleResultSearch(page);
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
  await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
  await expect.poll(()=>provider.requests('/api/travel/search').length).toBe(2);
@@ -752,7 +765,7 @@ test('flight verification dismisses on Back to flights and only the new fare rea
 test('same-book Next Link cannot reset a created payment or start another search',async({page,provider})=>{
  await openReviewedFlight(page);await showPaymentReview(page);await openSyntheticPayment(page);await page.evaluate('window.__syntheticGateway.dismiss()');
  const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
- await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Hotels',exact:true}).click();
+ await (await mainNavigation(page)).getByRole('link',{name:'Hotels',exact:true}).click();
  await expect(page.getByRole('alert').filter({hasText:'Finish checking your current payment before starting a different search.'})).toBeVisible();
  await expect(page.getByRole('form',{name:'Review and travellers',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Resume secure checkout',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);
@@ -765,7 +778,7 @@ test('same-book Next Link cannot reset unresolved checkout recovery or enable a 
  provider.overrides['GET /api/payments/status']={body:{found:false,quoteId,canResume:false,checkoutResolved:false,status:'OUTCOME_UNCONFIRMED',message:'An interrupted payment is unresolved. Do not create another payment.'}};
  await openFlightSearch(page,{auto:false});const recovery=page.getByRole('region',{name:'Interrupted checkout',exact:true});await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');
  const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
- await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Hotels',exact:true}).click();
+ await (await mainNavigation(page)).getByRole('link',{name:'Hotels',exact:true}).click();
  await expect(page.getByRole('alert').filter({hasText:'Choose “Book a different trip” to start a new search and keep your previous checkout.'})).toBeVisible();
  await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Search stays',exact:true})).toHaveCount(0);
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);expect(provider.requests('/api/payments/status')).toHaveLength(1);

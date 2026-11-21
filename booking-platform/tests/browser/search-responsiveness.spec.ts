@@ -1,5 +1,5 @@
 import type {Request} from '@playwright/test';
-import {test,expect,flight,departure,returning,searchId,hotelOption,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
+import {toggleResultSearch, test,expect,flight,departure,returning,searchId,hotelOption,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
 
 for(const product of ['FLIGHT','HOTEL'] as const){
  test(`${product} shows visible feedback while supplier response is held`,async({page,provider},testInfo)=>{
@@ -108,7 +108,7 @@ test('hotel rates and room actions render before optional content; stale content
   await expect(page.getByRole('button',{name:/Choose room/})).toBeEnabled();
   await expect.poll(()=>contentRequested).toBe(true);await expect(page.locator('#booking-pending')).toHaveCount(0);
   provider.search={searchId:'11111111-1111-4111-8111-111111111119',results:{hotels:[{tjHotelId:'10001',name:'New Stay',customerEstimateMinor:900000}]}};
-  await page.locator('#booking-search>summary').click();await page.getByRole('button',{name:'Search stays',exact:true}).click();
+  await toggleResultSearch(page);await page.getByRole('button',{name:'Search stays',exact:true}).click();
   await expect(page.getByRole('article',{name:'New Stay'})).toContainText('₹9,000');
  }finally{release();}
  await expect(page.getByText('Old search address',{exact:true})).toHaveCount(0);
@@ -218,7 +218,7 @@ test('leaving the search and reopening the same hotel rejects the old metadata g
   await expect(rooms).toBeVisible();
   await rooms.getByRole('button',{name:'Back to stays',exact:true}).click();
   provider.search={searchId:newerSearchId,results:{hotels:[{tjHotelId:'10001',name:'New Search Stay',customerEstimateMinor:1840000,property:{address:'Current search address',amenities:[]}}]}};
-  await page.locator('#booking-search>summary').click();
+  await toggleResultSearch(page);
   await page.getByRole('button',{name:'Search stays',exact:true}).click();
   await page.getByRole('article',{name:'New Search Stay'}).getByRole('button',{name:/Choose room/}).click();
   await expect(rooms.getByRole('heading',{name:'New Search Stay',exact:true})).toBeVisible();

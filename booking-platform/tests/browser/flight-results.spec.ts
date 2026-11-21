@@ -58,7 +58,8 @@ test('flight shopping preserves local dates, airport identity and party fare con
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
  const geometry=await cards.first().evaluate(node=>{const r=node.getBoundingClientRect();return {scrollY,viewportHeight:innerHeight,cardTop:r.top,cardBottom:r.bottom};});
  await testInfo.attach('flight-viewport-geometry',{body:JSON.stringify(geometry),contentType:'application/json'});
- for(const selector of ['#flight-results-title','.results-heading .results-count']){
+ const headingSelectors=(page.viewportSize()?.width??1440)<=760?['.concierge-page-name strong']:['#flight-results-title','.results-heading .results-count'];
+ for(const selector of headingSelectors){
   const bounds=await page.locator(selector).evaluate(node=>{const box=node.getBoundingClientRect();const range=document.createRange();range.selectNodeContents(node);const text=range.getBoundingClientRect();return {left:box.left,right:box.right,textLeft:text.left,textRight:text.right,viewport:innerWidth};});
   expect(bounds.left).toBeGreaterThanOrEqual(0);expect(bounds.right).toBeLessThanOrEqual(bounds.viewport);
   expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.left-1);expect(bounds.textRight).toBeLessThanOrEqual(bounds.right+1);

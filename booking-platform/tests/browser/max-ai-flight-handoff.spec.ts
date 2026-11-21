@@ -1,4 +1,4 @@
-import {test,expect,departure,searchId,flight,flightResults,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
+import {toggleResultSearch, test,expect,departure,searchId,flight,flightResults,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
 
 const criteria=()=>({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'2',children:'0',infants:'0',cabin:'ECONOMY'});
 const snapshot=()=>({...flightResults(),criteria:criteria(),expiresAt:new Date(Date.now()+600_000).toISOString()});
@@ -65,13 +65,14 @@ test('an AI flight result restores the same owned search and exact criteria befo
   // Extra URL fields cannot replace the authoritative saved search criteria.
   await page.goto(`/book?product=FLIGHT&flightSearch=${searchId}&from=DEL&to=BOM&adults=9&autoSearch=1`);
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
-  await expect(page.locator('#booking-search>summary')).toContainText('BOM → DEL');
+  const airports = page.locator('#booking-search>summary .booking-airport-field');
+  await expect(airports).toHaveText([/^FromBOM/, /^ToDEL/]);
   await expect(page.locator('#booking-search>summary')).toContainText('2 travellers');
-  await page.locator('#booking-search>summary').click();
+  await toggleResultSearch(page);
   await page.locator('.booking-party-picker>summary').click();
   await expect(page.getByRole('combobox',{name:'Adults',exact:true})).toHaveValue('2');
   await expect(page.getByLabel('Departure',{exact:true})).toHaveValue(departure);
-  await page.locator('#booking-search>summary').click();
+  await toggleResultSearch(page);
   await expectNoHorizontalOverflow(page);await capture(page,info,'max-ai-owned-flight-handoff');
   await page.locator('.flight-shopping-list .fare-comparison>summary').click();
   await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();

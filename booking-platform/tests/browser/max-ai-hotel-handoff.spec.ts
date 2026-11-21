@@ -1,7 +1,7 @@
 import type {Page} from '@playwright/test';
 import type {MaxAiResponse} from '../../src/lib/max-ai-contract';
 import {travelDateLabel} from '../../src/lib/travel-date';
-import {test, expect, capture, departure, searchId, expectNoHorizontalOverflow, type ProviderFixture} from './fixtures';
+import {test, expect, capture, departure, searchId, expectNoHorizontalOverflow, toggleResultSearch, type ProviderFixture} from './fixtures';
 
 // Synthetic inventory only. The AI links carry a public destination label;
 // availability, dates and occupancy must still come from the owned snapshot.
@@ -55,7 +55,7 @@ async function expectPreservedCriteria(page: Page) {
   const summary = page.locator('#booking-search>summary');
   await expect(summary).toContainText(destination);
   await expect(summary).not.toContainText('Selected destination');
-  await summary.click();
+  await toggleResultSearch(page);
   const form = page.getByRole('form', {name: 'Search availability', exact: true});
   await expect(form.getByLabel('Destination', {exact: true})).toHaveValue(destination);
   await expect(form.locator('input[name="hotelIds"]')).toHaveValue(hotelId);
@@ -70,7 +70,7 @@ async function expectPreservedCriteria(page: Page) {
   await expect(first.getByLabel('Child 1 age at check-in', {exact: true})).toHaveValue('6');
   await expect(second.getByRole('combobox', {name: 'Adults', exact: true})).toHaveValue('2');
   await expect(second.getByRole('combobox', {name: 'Children', exact: true})).toHaveValue('0');
-  await summary.click();
+  await toggleResultSearch(page);
 }
 
 for (const handoff of ['property', 'compare-all'] as const) {

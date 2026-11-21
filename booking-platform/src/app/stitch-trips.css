@@ -1,0 +1,183 @@
+body:has(.concierge-trips) { background:#f7f8fb; }
+.trips-workspace .hub-book-mobile { display:none; }
+body .page-shell.concierge-trips {
+  --hub-navy: #001736;
+  --hub-ink: #101c30;
+  --hub-blue: #0758a4;
+  --hub-muted: #536176;
+  --hub-paper: #f2f4f7;
+  --hub-border: #e6eaf0;
+  --hub-shadow: 0 4px 16px rgb(23 48 78 / 7%);
+  display: block;
+  width: min(1350px, calc(100% - 72px));
+  max-width: none;
+  margin: 0 auto;
+  padding: 24px 0;
+  color: var(--hub-ink);
+  font-family: var(--font-stitch-body), sans-serif;
+}
+.concierge-trips :is(h1,h2,h3,dd) { font-family: var(--font-stitch-display), sans-serif; }
+.concierge-trips .trip-crumbs { display:flex; align-items:center; gap:10px; margin:0 0 17px; font-size:11px; text-transform:uppercase; letter-spacing:.045em; }
+.concierge-trips .trip-crumbs a { color:var(--hub-muted); text-decoration:none; }
+.concierge-trips.trips-workspace .trips-content>.page-heading {
+  display:flex; align-items:center; gap:18px; padding:32px 28px; margin:0;
+  background:#fff; border:1px solid var(--hub-border); border-radius:15px; box-shadow:var(--hub-shadow);
+}
+.concierge-trips:has(.hub-browser) .trips-content>.page-heading { border-bottom:0; border-radius:15px 15px 0 0; }
+.concierge-trips .hub-avatar { display:grid; place-items:center; width:62px; height:62px; flex:none; border-radius:15px; background:var(--hub-navy); color:white; font:750 23px/1 var(--font-stitch-display),sans-serif; }
+.concierge-trips .hub-identity { min-width:0; }
+.concierge-trips .page-heading h1 { margin:0; color:var(--hub-navy); font:750 clamp(22px,2.1vw,32px)/1.2 var(--font-stitch-display),sans-serif; letter-spacing:-.045em; overflow-wrap:anywhere; }
+.concierge-trips .page-heading p { display:flex; align-items:center; gap:6px; margin:4px 0 0; color:var(--hub-muted); font-size:13px; line-height:1.5; }
+.concierge-trips .page-heading p .stitch-symbol { color:var(--hub-blue); }
+.concierge-trips .page-heading .trips-heading-actions { margin:0 0 0 auto; padding:0; display:flex; align-items:center; gap:14px; }
+.concierge-trips .hub-metrics { display:flex; gap:10px; }
+.concierge-trips .hub-metrics div { display:grid; padding:8px 14px; border-radius:9px; background:var(--hub-paper); }
+.concierge-trips .hub-metrics small, .concierge-trips .hub-booking-title small, .concierge-trips .hub-stay-dates dt {
+  text-transform:uppercase; font-size:10px; font-weight:750; letter-spacing:.06em; color:var(--hub-muted);
+}
+.concierge-trips .hub-metrics b { font-size:15px; }
+body .concierge-trips .trips-heading-actions .primary, body .concierge-trips .trip-record-actions a[href$="/document"] { background:var(--hub-navy); color:white; border:0; }
+.concierge-trips .trips-heading-actions :is(.primary,.secondary), .concierge-trips .trip-record-actions .secondary { border-radius:8px; padding:9px 14px; font-size:13px; margin:0; }
+.concierge-trips .hub-browser { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:20px 28px; background:white; border:1px solid var(--hub-border); border-radius:0 0 15px 15px; box-shadow:var(--hub-shadow); }
+.concierge-trips .hub-search { display:flex; align-items:center; flex:1 1 280px; max-width:56%; min-width:0; gap:8px; padding:0 12px; color:var(--hub-muted); background:var(--hub-paper); border-radius:8px; }
+.concierge-trips .hub-search input { min-width:0; width:100%; border:0; box-shadow:none; background:transparent; min-height:44px; padding:8px 0; font-size:14px; color:var(--hub-ink); }
+.concierge-trips .hub-product-filters, .concierge-trips .hub-date-filters { display:flex; align-items:center; gap:6px; }
+.concierge-trips .hub-product-filters>span { font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:.05em; color:var(--hub-muted); }
+.concierge-trips :is(.hub-product-filters,.hub-date-filters) button, .concierge-trips .hub-sync { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:44px; white-space:nowrap; padding:7px 12px; border:0; border-radius:7px; background:var(--hub-paper); color:var(--hub-ink); font:650 13px/1.25 var(--font-stitch-body),sans-serif; }
+.concierge-trips .hub-product-filters button[aria-pressed="true"] { color:white; background:var(--hub-navy); }
+.concierge-trips :is(.hub-product-filters,.hub-date-filters) b { font-size:11px; }
+.concierge-trips .hub-dashboard-tools { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:32px 0 26px; }
+.concierge-trips .hub-date-filters { padding:3px; gap:2px; background:#e9edf2; border-radius:10px; }
+.concierge-trips .hub-date-filters button { background:transparent; }
+.concierge-trips .hub-date-filters button[aria-pressed="true"] { background:white; color:var(--hub-navy); box-shadow:0 2px 5px rgb(20 44 70 / 11%); }
+.concierge-trips .hub-date-filters button[aria-pressed="true"] b { background:var(--hub-blue); color:white; }
+.concierge-trips .hub-date-filters b { padding:2px 5px; border-radius:9px; background:#dfe5ec; }
+.concierge-trips .hub-sync { color:var(--hub-blue); border:1px solid var(--hub-border); }
+.concierge-trips .hub-sync-mobile { display:none; }
+.concierge-trips .trips-dashboard { display:grid; grid-template-columns:minmax(0,2.1fr) minmax(245px,1fr); gap:26px; align-items:start; }
+.concierge-trips .trips-list,.concierge-trips .trip-date-group { display:grid; gap:18px; }
+.concierge-trips .trip-date-group>header { display:block; padding:0; border:0; margin:6px 0 0; }
+.concierge-trips .trip-date-group>header h2 { font:650 16px/1.35 var(--font-stitch-display),sans-serif; color:var(--hub-ink); }
+.concierge-trips .trip-date-group>header p { font-size:12px; }
+.concierge-trips .trip-date-group:first-child>header { position:absolute; inline-size:1px; block-size:1px; clip-path:inset(50%); overflow:hidden; }
+.concierge-trips .trips-loaded-scope { margin:16px 0 0; font-size:12px; color:var(--hub-muted); }
+.concierge-trips .trip-record,.concierge-trips .trips-support-card,.concierge-trips .trips-checklist { min-width:0; padding:0; overflow:hidden; border:1px solid var(--hub-border); background:#fff; border-radius:13px; box-shadow:var(--hub-shadow); }
+.concierge-trips .hub-summary { display:grid; grid-template-areas:"heading" "reference" "facts"; grid-template-columns:minmax(0,1fr); gap:16px 0; padding:0 20px 18px; }
+.concierge-trips .hub-summary.with-photo { grid-template-columns:minmax(140px, .85fr) minmax(0,1.75fr); grid-template-areas:"heading heading" "reference reference" "photo facts"; column-gap:18px; }
+.concierge-trips .hub-booking-heading { grid-area:heading; display:flex; align-items:center; gap:10px; min-width:0; margin:0 -20px; padding:15px 20px; background:#f2f4f8; }
+.concierge-trips .hub-product-icon { display:grid; place-items:center; width:36px; height:36px; flex:none; color:var(--hub-blue); background:#e4edf9; border-radius:8px; }
+.concierge-trips .hub-summary:has(.hub-stay-dates) .hub-product-icon { color:#086f53; background:#e0f3ec; }
+.concierge-trips .hub-booking-title { flex:1; min-width:0; line-height:1.2; }
+.concierge-trips .hub-booking-title h2 { margin:3px 0 0; font:730 20px/1.25 var(--font-stitch-display),sans-serif; letter-spacing:-.025em; color:var(--hub-navy); overflow-wrap:anywhere; }
+.concierge-trips .trip-status { flex:none; max-width:45%; font-size:12px; line-height:1.25; padding:5px 9px; }
+.concierge-trips .trip-status.is-confirmed { color:#006744; background:#d5f6e8; }
+.concierge-trips .hub-reference { grid-area:reference; display:flex; gap:10px 20px; align-items:start; flex-wrap:wrap; margin:0; border-radius:7px; background:#f5f7fa; padding:10px 12px; }
+.concierge-trips .hub-reference div { flex:1 1 auto; min-width:0; }
+.concierge-trips .hub-reference dt { font-size:11px; color:var(--hub-muted); }
+.concierge-trips .hub-reference dd,.concierge-trips .hub-stay-dates dd { color:var(--hub-navy); font-weight:680; margin:0; overflow-wrap:anywhere; line-height:1.45; font-size:14px; }
+.concierge-trips .hub-property-photo { grid-area:photo; position:relative; min-height:130px; overflow:hidden; border-radius:10px; background:#e4eaf0; }
+.concierge-trips .hub-property-photo :is(.hotel-property-thumb,figure,img) { display:block; padding:0; margin:0; width:100%; height:100%; border-radius:inherit; }
+.concierge-trips .hub-property-photo .hotel-property-thumb { position:absolute; inset:0; }
+.concierge-trips .hub-property-photo img { object-fit:cover; }
+.concierge-trips .hub-booking-facts { grid-area:facts; min-width:0; align-self:center; }
+.concierge-trips .hub-stay-dates { display:grid; grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:8px; margin:0; }
+.concierge-trips .hub-stay-dates div { border-radius:8px; background:var(--hub-paper); padding:10px; }
+.concierge-trips .hub-party { display:flex; align-items:center; color:var(--hub-ink); margin:10px 0 0; gap:8px; font-size:14px; }
+.concierge-trips .hub-party .stitch-symbol { color:var(--hub-blue); }
+.concierge-trips .hub-room { display:flex; align-items:center; gap:7px; margin:13px 0 0; color:var(--hub-navy); font:680 16px/1.4 var(--font-stitch-display),sans-serif; overflow-wrap:anywhere; }
+.concierge-trips .hub-room small,.concierge-trips .hub-stay-mobile { display:none; }
+.concierge-trips .hub-room .stitch-symbol { color:var(--hub-blue); }
+.concierge-trips .hub-room+.hub-party { margin:4px 0 0; }
+.concierge-trips .hub-inclusions { display:flex; align-items:start; gap:6px; flex-wrap:wrap; margin:12px 0 0; padding:0; list-style:none; }
+.concierge-trips .hub-inclusions li { display:inline-flex; align-items:center; gap:5px; max-width:100%; overflow-wrap:anywhere; padding:4px 8px; border-radius:6px; background:#e9effc; color:#192f53; font-size:12px; }
+.concierge-trips .hub-inclusions li:first-child { background:#e1f4eb; color:#15503c; }
+.concierge-trips .trip-journeys { padding:0; }
+.concierge-trips .trip-journey { border:0; background:#f4f7fb; border-radius:8px; padding:12px 16px; }
+.concierge-trips .trip-journey-line { color:var(--hub-blue); }
+.concierge-trips .trip-journey-line svg { background:#f4f7fb; }
+.concierge-trips .trip-journey strong { font:750 25px/1.3 var(--font-stitch-display),sans-serif; color:var(--hub-navy); }
+.concierge-trips .trip-record-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--hub-border); }
+.concierge-trips .trip-record-actions .secondary { background:#eef1f5; border:0; color:var(--hub-ink); }
+.concierge-trips .trip-record-actions a[href$="/document"] { order:-1; }
+.concierge-trips .trip-status-note { margin:0 20px 15px; }
+.concierge-trips .trip-management { margin:0; border-top:1px solid var(--hub-border); background:#fff; }
+.trips-workspace.concierge-trips .trips-support { display:flex; flex-direction:column; align-items:stretch; gap:16px; min-width:0; }
+.concierge-trips .trips-support-card,.concierge-trips .trips-checklist { padding:20px; }
+.concierge-trips .hub-rail-heading,.concierge-trips .hub-desk { display:flex; align-items:center; gap:12px; }
+.concierge-trips .hub-rail-heading { justify-content:space-between; border-bottom:1px solid var(--hub-border); padding-bottom:12px; color:var(--hub-blue); font-size:11px; font-weight:750; letter-spacing:.06em; text-transform:uppercase; }
+.concierge-trips .hub-desk { padding:16px 0 12px; }
+.concierge-trips .hub-desk .hub-avatar { width:44px; height:44px; border-radius:10px; background:#e3eeff; color:var(--hub-blue); }
+.concierge-trips .trips-support :is(h2,p) { color:var(--hub-ink); }
+.concierge-trips .trips-support h2 { margin:0; font:700 18px/1.3 var(--font-stitch-display),sans-serif; }
+.concierge-trips .hub-desk p { margin:3px 0 0; font-size:12px; }
+.concierge-trips .hub-desk-note { margin:0 0 14px; padding:10px 12px; background:#f4f6fa; border-radius:6px; font-size:13px; }
+.concierge-trips .trips-support .trips-support-card a { display:flex; width:100%; margin:8px 0 0; border:0; border-radius:7px; }
+body .concierge-trips .trips-support .primary { background:#007b59; color:white; }
+.concierge-trips .trips-support .secondary { background:#edf1f6; color:var(--hub-ink); }
+.concierge-trips .trips-checklist>a { display:block; padding-block:6px; color:var(--hub-blue); }
+
+@media(max-width:1050px) {
+  .concierge-trips .hub-product-filters { flex-wrap:wrap; justify-content:flex-end; }
+  .concierge-trips .trips-dashboard { grid-template-columns:minmax(0,1fr) minmax(218px,.48fr); gap:16px; }
+}
+@media(max-width:760px) {
+  body .page-shell.concierge-trips { width:calc(100% - 28px); padding:10px 0; }
+  .concierge-trips .trip-crumbs { display:none; }
+  .concierge-trips.trips-workspace .trips-content>.page-heading { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; border:1px solid var(--hub-border); border-radius:14px; gap:9px; padding:12px; text-align:left; }
+  .concierge-trips .hub-avatar { width:43px; height:43px; border-radius:50%; font-size:17px; }
+  .concierge-trips .page-heading h1 { font-size:17px; }
+  .concierge-trips .hub-identity h1 span { position:absolute; clip-path:inset(50%); width:1px; height:1px; overflow:hidden; }
+  .concierge-trips .page-heading p { font-size:11px; }
+  .concierge-trips .hub-metrics { display:none; }
+  .concierge-trips .page-heading .trips-heading-actions { flex:none; gap:4px; flex-direction:row; }
+  .concierge-trips .trips-heading-actions :is(.primary,.secondary) { width:auto; min-height:44px; padding:5px 10px; gap:4px; font-size:12px; border-radius:20px; }
+  .concierge-trips .hub-book-mobile { display:inline; }
+  .concierge-trips .hub-book-desktop { display:none; }
+  .concierge-trips .hub-browser { display:grid; grid-template-columns:minmax(0,1fr) 44px; gap:5px 0; margin:10px 0 0; padding:0; border:0; box-shadow:none; background:transparent; }
+  .concierge-trips .hub-search { background:#fff; max-width:none; border:1px solid var(--hub-border); border-right:0; border-radius:9px 0 0 9px; }
+  .concierge-trips .hub-product-filters,.concierge-trips .hub-date-filters { flex-wrap:nowrap; max-width:100%; overflow:auto; scrollbar-width:thin; justify-content:start; }
+  .concierge-trips .hub-product-filters>span { display:none; }
+  .concierge-trips .hub-product-filters { grid-column:1/-1; }
+  .concierge-trips :is(.hub-product-filters,.hub-date-filters) button { flex:none; padding:6px 10px; font-size:12px; }
+  .concierge-trips .hub-product-filters button { background:#fff; border-radius:22px; }
+  .concierge-trips .hub-product-filters button[aria-pressed="true"] { background:var(--hub-navy); }
+  .concierge-trips .hub-dashboard-tools { margin:6px 0 12px; gap:4px; }
+  .concierge-trips .hub-date-filters { flex:1; min-width:0; }
+  .concierge-trips .hub-dashboard-tools .hub-sync { display:none; }
+  .concierge-trips .hub-sync-mobile { display:inline-flex; width:44px; padding:0; background:white; border-left:0; border-radius:0 9px 9px 0; }
+  .concierge-trips .trips-dashboard { display:block; }
+  .concierge-trips .trips-support { margin-top:16px; }
+  .concierge-trips .hub-summary,.concierge-trips .hub-summary.with-photo { grid-template-columns:minmax(0,1fr); grid-template-areas:"heading" "reference" "facts"; gap:12px; padding:0 12px 15px; }
+  .concierge-trips .hub-booking-heading { position:relative; gap:8px; padding:12px; margin:0 -12px; }
+  .concierge-trips .hub-booking-title h2 { font-size:18px; }
+  .concierge-trips .hub-booking-heading .trip-status { font-size:11px; }
+  .concierge-trips .hub-property-photo { grid-area:heading; min-height:172px; margin:0 -12px; border-radius:0; }
+  .concierge-trips .hub-summary.with-photo:has(img) .hub-booking-heading { z-index:1; flex-direction:column; align-items:start; justify-content:space-between; min-height:172px; background:linear-gradient(180deg,#00173688 0%,transparent 36%,#001736ed 100%); }
+  .concierge-trips .with-photo:has(img) .hub-product-icon { display:none; }
+  .concierge-trips .with-photo:has(img) .hub-booking-title { order:2; flex:none; }
+  .concierge-trips .with-photo:has(img) .hub-booking-title h2,.concierge-trips .with-photo:has(img) .hub-booking-title small { color:white; }
+  .concierge-trips .with-photo:has(img) .hub-booking-title h2 { font-size:21px; }
+  .concierge-trips .with-photo:has(img) .trip-status { align-self:end; }
+  .concierge-trips .hub-reference { gap:7px; padding:8px 10px; }
+  .concierge-trips .hub-reference div { flex:1 1 44%; }
+  .concierge-trips .hub-reference div:nth-child(2) { order:3; flex:1 0 100%; display:flex; align-items:baseline; gap:5px; }
+  .concierge-trips .hub-reference div:nth-child(2) dd { color:var(--hub-muted); font-size:11px; }
+  .concierge-trips .hub-property-photo:has(.hotel-photo-unavailable) { display:none; }
+  .concierge-trips .hub-reference dd,.concierge-trips .hub-stay-dates dd { font-size:13px; }
+  .concierge-trips .hub-reference dt { text-transform:uppercase; font-size:10px; font-weight:700; }
+  .concierge-trips .hub-stay-dates { gap:6px; }
+  .concierge-trips .hub-booking-facts:has(.hub-stay-mobile) { display:grid; grid-template-columns:minmax(0,1fr); gap:11px; }
+  .concierge-trips .hub-booking-facts:has(.hub-stay-mobile):has(.hub-room) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .concierge-trips .hub-stay-dates,.concierge-trips .hub-booking-facts:has(.hub-stay-mobile)>.hub-party { display:none; }
+  .concierge-trips .hub-stay-mobile,.concierge-trips .hub-room { display:flex; gap:8px; align-items:start; margin:0; }
+  .concierge-trips .hub-stay-mobile>.stitch-symbol,.concierge-trips .hub-room>.stitch-symbol { padding:5px; border-radius:6px; color:var(--hub-blue); background:#e7eefb; }
+  .concierge-trips .hub-stay-mobile small,.concierge-trips .hub-room small { display:block; color:var(--hub-muted); text-transform:uppercase; font:700 10px/1.35 var(--font-stitch-body),sans-serif; letter-spacing:.05em; }
+  .concierge-trips .hub-stay-mobile strong,.concierge-trips .hub-room { color:var(--hub-navy); font:680 14px/1.4 var(--font-stitch-display),sans-serif; }
+  .concierge-trips .hub-stay-mobile div>span { display:block; margin-top:3px; color:var(--hub-muted); font-size:12px; }
+  .concierge-trips .hub-inclusions { grid-column:1/-1; margin-top:0; }
+  .concierge-trips .hub-party { font-size:13px; }
+  .concierge-trips .trip-record-actions { padding:10px 12px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .concierge-trips .trip-record-actions .secondary { width:100%; padding:7px; font-size:12px; }
+  .concierge-trips .trip-record-actions a[href$="/document"] { grid-column:1/-1; }
+  .concierge-trips .trip-status-note { margin:0 12px 12px; }
+}

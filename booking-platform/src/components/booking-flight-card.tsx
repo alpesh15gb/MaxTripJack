@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import AirlineLogo from './airline-logo';
 import FareOptionsRail from './fare-options-rail';
 import FlightSegmentDetails from './flight-segment-details';
+import { TravelIcon } from './travel-icon';
 import { durationLabel, flightStops, groupLabel, journeyMinutes, refundLabel, type Flight, type FlightFare } from '@/lib/booking-presentation';
 import { displayMoney } from '@/lib/display-money';
 import { comparableFareEstimate, haveComparableCurrency, orderFareOffers } from '@/lib/fare-display';
@@ -114,7 +115,7 @@ export default function BookingFlightCard({
     return { fare, name, price, compatible };
   }) : [];
 
-  return <article className={`white-card booking-record live-flight-card${readOnly ? ' is-readonly' : ''}${expanded && !readOnly ? ' is-choosing-fare' : ''}${selected ? ' is-selected' : ''}${noCompatibleFare ? ' has-no-compatible-fare' : ''}`}>
+  return <article data-single-fare={offers.length===1||undefined} data-overnight={dayChange?true:undefined} className={`white-card booking-record live-flight-card${readOnly ? ' is-readonly' : ''}${expanded && !readOnly ? ' is-choosing-fare' : ''}${selected ? ' is-selected' : ''}${noCompatibleFare ? ' has-no-compatible-fare' : ''}`}>
     <div className="flight-result-top">
       <div className="airline-identity">
         <AirlineLogo code={first?.fD.aI.code} name={first?.fD.aI.name} />
@@ -123,6 +124,7 @@ export default function BookingFlightCard({
           <small>{flight.sI.map(segment => [segment.fD.aI.code, segment.fD.fN].filter(Boolean).join(' ')).filter(Boolean).join(' · ') || groupName}</small>
         </div>
       </div>
+      {headlineFacts.some(fact=>fact.startsWith('Checked '))&&<span className="flight-mobile-bag"><TravelIcon name="bag" size={14}/>{headlineFacts.find(fact=>fact.startsWith('Checked '))?.slice(8)} baggage</span>}
     </div>
     {combo ? <div className="combo-itinerary">
       <strong>Complete itinerary</strong>
@@ -142,8 +144,8 @@ export default function BookingFlightCard({
           <small>{travelDateLabel(first?.dt)}</small>
         </div>
         <div className="flight-route-track">
-          <small className="flight-total-duration">{minutes === null ? durationLabel(null) : `Total journey ${durationLabel(minutes)}`}</small>
-          <span aria-hidden="true" />
+          <small className="flight-total-duration">{minutes !== null && <span className={connections.length ? undefined : 'sr-only'}>Total journey </span>}{durationLabel(minutes)}</small>
+          <span className="flight-track-drawing" aria-hidden="true"><i/><TravelIcon name="airplane" size={15}/></span>
           <small>{stops === null ? 'Stop details unavailable' : stops === 0 ? 'Non-stop' : `${stops} stop${stops === 1 ? '' : 's'} · ${flight.sI.slice(0, -1).map(segment => segment.aa.code).join(', ')}`}</small>
           {connections.map((label, index) => <small className="flight-connection-note" key={index}>{label}</small>)}
         </div>
@@ -159,7 +161,7 @@ export default function BookingFlightCard({
         <FlightSegmentDetails segments={flight.sI} group={group} />
         {headlineFacts.length > 0 && <div className="flight-headline-facts">
           <span>Adult fare conditions</span>
-          <ul aria-label="Known details for the displayed adult fare">{headlineFacts.map(fact => <li key={fact}>{fact}</li>)}</ul>
+          <ul aria-label="Known details for the displayed adult fare">{headlineFacts.map(fact => <li key={fact}><TravelIcon name={fact.startsWith('Cabin ') || fact.startsWith('Checked ') ? 'bag' : 'receipt'} size={14}/>{fact}</li>)}</ul>
         </div>}
       </div>
     </>}

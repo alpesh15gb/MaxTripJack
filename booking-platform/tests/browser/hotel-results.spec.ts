@@ -1,5 +1,5 @@
 import {travelDateLabel} from '../../src/lib/travel-date';
-import {test,expect,capture,departure,returning,searchId,expectNoHorizontalOverflow} from './fixtures';
+import {toggleResultSearch, test,expect,capture,departure,returning,searchId,expectNoHorizontalOverflow} from './fixtures';
 import type {Page} from '@playwright/test';
 async function filters(page:Page,open:boolean){
  const dialog=page.getByRole('dialog',{name:'Filter stays',exact:true});
@@ -98,7 +98,7 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await page.evaluate(async()=>{await document.fonts.ready;await new Promise<void>(resolve=>{let last=scrollY,stable=0,frames=0;function tick(){stable=Math.abs(scrollY-last)<1?stable+1:0;last=scrollY;if(stable>=8||++frames>=120)resolve();else requestAnimationFrame(tick);}requestAnimationFrame(tick);});});
  const geometry=await cards.first().evaluate(node=>{const rect=(element:Element|null)=>{const r=element!.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height};};return {scrollY,viewportHeight:innerHeight,card:rect(node),name:rect(node.querySelector('h3')),cta:rect(node.querySelector('button')),activeElement:document.activeElement?.id};});
  await testInfo.attach('hotel-loaded-viewport-geometry',{body:JSON.stringify(geometry,null,2),contentType:'application/json'});
- expect(geometry.scrollY).toBeGreaterThan(0);
+ await expect(cards.first()).toBeInViewport();
  expect(geometry.name.top).toBeGreaterThanOrEqual(0);expect(geometry.name.bottom).toBeLessThan(geometry.viewportHeight);
  expect(geometry.cta.top).toBeLessThan(geometry.viewportHeight*1.5);
  const viewport=await page.screenshot({path:testInfo.outputPath(`hotel-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});
@@ -107,9 +107,9 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(page.locator('#booking-search>summary')).toContainText('Goa');
  await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(departure));
  await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(returning));
- await page.locator('#booking-search>summary').click();await expect(page.getByLabel('Destination',{exact:true})).toBeFocused();
+ await toggleResultSearch(page);await expect(page.getByLabel('Destination',{exact:true})).toBeFocused();
  await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
- await expect(cards).toHaveCount(3);await page.locator('#booking-search>summary').click();
+ await expect(cards).toHaveCount(3);await toggleResultSearch(page);
  await filters(page,true);
  await page.getByLabel('Maximum stay total (₹)',{exact:true}).fill('5000');await expect(cards).toHaveCount(1);await expect(cards.first()).toHaveAttribute('aria-label','Bay Stay');
  await filters(page,false);await page.getByRole('button',{name:'Remove budget filter'}).click();await expect(cards).toHaveCount(3);await filters(page,true);
@@ -147,10 +147,10 @@ test('unsubmitted hotel date edits preserve searched totals; a fresh search rese
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002,10003',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
  const cards=page.locator('.hotel-shopping-card');await expect(cards).toHaveCount(3);
  const original=await cards.first().locator('.hotel-stay-price').innerText();
- await page.locator('#booking-search>summary').click();
+ await toggleResultSearch(page);
  const changed=new Date(returning+'T00:00:00Z');changed.setUTCDate(changed.getUTCDate()+1);
  await page.getByLabel('Check-out',{exact:true}).fill(changed.toISOString().slice(0,10));
- await page.locator('#booking-search>summary').click();
+ await toggleResultSearch(page);
  await expect(cards.first().locator('.hotel-stay-price')).toHaveText(original,{useInnerText:true});
  await cards.first().getByRole('button',{name:'Choose room'}).click();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10002'});
@@ -160,7 +160,7 @@ test('unsubmitted hotel date edits preserve searched totals; a fresh search rese
  await filters(page,true);
  await page.getByLabel('Property name',{exact:true}).fill('Palm');await expect(cards).toHaveCount(1);
  provider.search={searchId:'11111111-1111-4111-8111-111111111119',results:{hotels}};
- await filters(page,false);await page.locator('#booking-search>summary').click();await page.getByRole('button',{name:'Search stays',exact:true}).click();
+ await filters(page,false);await toggleResultSearch(page);await page.getByRole('button',{name:'Search stays',exact:true}).click();
  await expect(cards).toHaveCount(3);await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(changed.toISOString().slice(0,10)));
  await filters(page,true);await expect(page.getByLabel('Property name',{exact:true})).toHaveValue('');await filters(page,false);
  expect(provider.requests('/api/travel/search')).toHaveLength(2);expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -173,6 +173,6 @@ test('reduced motion keeps post-search result navigation immediate',async({page,
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002,10003',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
  await expect(page.locator('.hotel-shopping-card')).toHaveCount(3);
  await expect.poll(()=>page.evaluate(()=>(window as unknown as {__resultScrollBehaviors:ScrollBehavior[]}).__resultScrollBehaviors)).toEqual(['auto']);
- await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+ await expect(page.locator('.hotel-shopping-card').first()).toBeInViewport();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
 });

@@ -1,4 +1,5 @@
 import { test, expect, bookingId, departure, returning, capture, expectNoHorizontalOverflow } from "./fixtures";
+import path from "node:path";
 import type { BookingStatusDetails } from "../../src/lib/booking-status";
 
 const detailsPath = `/api/bookings/${bookingId}/details`;
@@ -6,7 +7,13 @@ const detailsKey = `GET ${detailsPath}`;
 const statusPath = `/my-trips/${bookingId}`;
 
 function details(product: "FLIGHT" | "HOTEL" = "FLIGHT", status = "BOOKING_PENDING"): BookingStatusDetails {
+  const stay = product === "HOTEL" && status === "CONFIRMED" ? {
+    property: { amenities: [], address: "Synthetic Goa Road", photos: Array.from({length:3}, (_, index)=>({
+      url:`https://i.travelapi.com/lodging/123/synthetic-voucher-${index}.jpg`, isHero:index===0,
+    })) }, rooms: ["Garden room"], meal: "Breakfast", inclusions: ["Breakfast for booked guests"],
+  } : undefined;
   return {
+    stay,
     id: bookingId,
     reference: "MT-SYNTHETIC-STATUS",
     product,
@@ -28,6 +35,9 @@ function details(product: "FLIGHT" | "HOTEL" = "FLIGHT", status = "BOOKING_PENDI
 for (const product of ["FLIGHT", "HOTEL"] as const) {
   test(`${product} status separates captured payment from supplier confirmation and updates automatically`, async ({ page, provider }, testInfo) => {
     await page.clock.install({ time: new Date() });
+    if (product === "HOTEL") await page.route("https://i.travelapi.com/lodging/123/synthetic-voucher-*.jpg", route => route.fulfill({
+      contentType:"image/jpeg",path:path.resolve("public/travel/goa.jpg"),
+    }));
     provider.overrides[detailsKey] = { body: details(product) };
     await page.goto(statusPath);
     await expect(page.getByRole("heading", { level: 1, name: "We’re confirming your booking." })).toBeVisible();
@@ -56,6 +66,9 @@ for (const product of ["FLIGHT", "HOTEL"] as const) {
       await expect(confirmation).toContainText("TEST-TICKET");
     }
     if (product === "HOTEL") {
+      await expect(confirmation).toContainText("Garden room");
+      await expect(confirmation).toContainText("Breakfast for booked guests");
+      await expect(confirmation.getByRole("img")).toHaveCount(await page.evaluate(()=>matchMedia("(max-width:700px)").matches)?1:3);
       await expect(confirmation).toContainText("Synthetic Guest");
       await expect(confirmation).toContainText("Room 2 · Guest on this stay");
       await expect(confirmation).toContainText("2 rooms · 5 guests");

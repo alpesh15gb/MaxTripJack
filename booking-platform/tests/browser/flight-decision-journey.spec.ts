@@ -29,7 +29,11 @@ for(const width of [null,320])test(`aligned fare decisions expose duplicate labe
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['decision-second']});
 });
 
-for(const unknown of [false,true])test(`complete return selection shows exact dates and ${unknown?'unknown':'combined'} pre-review estimate`,async({page,provider},info)=>{
+for(const width of [null,320])for(const unknown of [false,true])test(`complete return selection shows exact dates and ${unknown?'unknown':'combined'} pre-review estimate${width?' at 320px':''}`,async({page,provider},info)=>{
+ if(width){
+  test.skip(!info.project.name.includes('mobile'),'Additional narrow phone coverage');
+  await page.setViewportSize({width,height:844});
+ }
  const results=flightResults(true);const outbound=results.results.searchResult.tripInfos.ONWARD[0],back=results.results.searchResult.tripInfos.RETURN![0];
  const next=new Date(returning+'T00:00:00Z');next.setUTCDate(next.getUTCDate()+1);
  back.sI[0].dt=returning+'T23:15:00';back.sI[0].at=next.toISOString().slice(0,10)+'T01:25:00';
@@ -42,13 +46,20 @@ for(const unknown of [false,true])test(`complete return selection shows exact da
  await expect(summary).toContainText('Search estimates are not a quote');
  const reviewAction=summary.getByRole('button',{name:'Review selected journey (2/2)'});
  await expect(reviewAction).toBeFocused();
- const viewport=page.viewportSize()!;
+ const visible=await page.evaluate(()=>{
+  const header=document.querySelector<HTMLElement>('.concierge-header');
+  const dock=document.querySelector<HTMLElement>('#booking-results .shopping-filter-actions');
+  return {
+   top:header&&['sticky','fixed'].includes(getComputedStyle(header).position)?Math.max(0,header.getBoundingClientRect().bottom):0,
+   bottom:dock&&getComputedStyle(dock).position==='fixed'&&dock.offsetHeight?dock.getBoundingClientRect().top:window.innerHeight,
+  };
+ });
  for(const element of [summary.locator('.selection-combined-total'),reviewAction]){
-  const box=await element.boundingBox();expect(box).not.toBeNull();expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.y+box!.height).toBeLessThanOrEqual(viewport.height);
+  const box=await element.boundingBox();expect(box).not.toBeNull();expect(box!.y).toBeGreaterThanOrEqual(visible.top);expect(box!.y+box!.height).toBeLessThanOrEqual(visible.bottom);
  }
  const summaryBox=await summary.boundingBox();expect(summaryBox).not.toBeNull();
- if(summaryBox!.height<=viewport.height-32){expect(summaryBox!.y).toBeGreaterThanOrEqual(0);expect(summaryBox!.y+summaryBox!.height).toBeLessThanOrEqual(viewport.height);}
- else{const lastLeg=await summary.locator('li').last().boundingBox();expect(lastLeg!.y+lastLeg!.height).toBeGreaterThan(0);}
+ if(summaryBox!.height<=visible.bottom-visible.top-16){expect(summaryBox!.y).toBeGreaterThanOrEqual(visible.top);expect(summaryBox!.y+summaryBox!.height).toBeLessThanOrEqual(visible.bottom);}
+ else{const lastLeg=await summary.locator('li').last().boundingBox();expect(lastLeg!.y+lastLeg!.height).toBeGreaterThan(visible.top);}
  await info.attach('completed-return-natural-viewport',{body:await page.screenshot(),contentType:'image/png'});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
 

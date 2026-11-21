@@ -261,7 +261,9 @@ test('room availability progress stays with the chosen property and prevents dup
   await expect(property.locator('#hotel-detail-title')).toHaveText('Palm House');
   await expect(property.locator('#hotel-room-options')).toContainText('Checking available rooms');
   await expect(property.getByRole('button',{name:'Continue with room',exact:true})).toHaveCount(0);
-  await naturalViewportEvidence(page,info,'property-room-availability-pending',[property.locator('#hotel-detail-title')]);
+  const propertyLink=property.locator('#hotel-room-options .stay-room-property-link');
+  await expect(propertyLink).toContainText('Palm House');
+  await naturalViewportEvidence(page,info,'property-room-availability-pending',[propertyLink,property.getByRole('heading',{name:'Checking available rooms'})]);
   // Exploring the property while availability loads must not start duplicate requests.
   await property.locator('.stay-rate-preview > .primary').click();
   await page.keyboard.press('Enter');release();
