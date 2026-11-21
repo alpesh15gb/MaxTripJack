@@ -95,7 +95,7 @@
 }
 .operations-shell .page-heading h1 {
   margin: 12px 0;
-  font: 400 clamp(38px, 4vw, 58px)/1.02 var(--travel-display);
+  font: 700 clamp(38px, 4vw, 58px)/1.02 var(--travel-display);
   letter-spacing: -.025em;
   line-height: 1.15;
   color: var(--brand-midnight);
@@ -1232,7 +1232,7 @@ body .ops-workspace .operations-sidebar {
   border-radius: 10px;
   padding: 13px 14px;
   min-height: 48px;
-  color: #d1e4df;
+  color: #d6e3ff;
 }
 body .ops-workspace .ops-nav-body nav a.selected-desk {
   background: var(--brand-slate);
@@ -1261,17 +1261,17 @@ body .ops-workspace .operations-main { padding: 32px clamp(20px, 3vw, 48px) 64px
 .ops-workspace .ops-register-bar form { flex: 1; }
 .ops-workspace .ops-register-bar input, .ops-workspace .ops-register-bar select {
   min-height: 46px;
-  background: #f8faf8;
-  border-color: #cbdad3;
+  background: #f7f9fc;
+  border-color: #dce2eb;
   border-radius: 9px;
 }
 .ops-workspace .ops-register-caption { padding: 8px 2px; line-height: 1.6; }
 .ops-workspace .ops-register-caption > p { font-weight: 700; }
 .ops-workspace .ops-register-caption > p span { font-weight: 400; }
-.ops-workspace .operations-table thead { background: #edf3ef; }
+.ops-workspace .operations-table thead { background: #eef3fa; }
 .ops-workspace .operations-table th { font-size: 12px; letter-spacing: .02em; }
 .ops-workspace .operations-table td { padding-block: 20px; }
-.ops-workspace .operations-table tbody tr:hover { background: #f7fbf8; }
+.ops-workspace .operations-table tbody tr:hover { background: #f7f9fc; }
 .ops-workspace .operations-table td button { color: var(--brand-slate); font-weight: 650; }
 .ops-dialog {
   border: 1px solid var(--brand-line);
@@ -1309,10 +1309,10 @@ body .ops-workspace .operations-main { padding: 32px clamp(20px, 3vw, 48px) 64px
 .ops-dialog { box-sizing: border-box; }
 .ops-dialog form, .ops-dialog fieldset, .ops-dialog label { min-width: 0; }
 .ops-dialog input, .ops-dialog select { box-sizing: border-box; max-width: 100%; min-width: 0; }
-/* Staff desk surfaces follow the shared navy and champagne palette. */
+/* Staff desk surfaces use the same navy and blue palette as customer pages. */
 body .ops-workspace { --ops-ink: var(--brand-midnight); --ops-muted: var(--brand-muted); --ops-line: var(--brand-line); background: var(--brand-page-sheen) var(--brand-ivory); color: var(--brand-midnight); }
-body .ops-workspace .operations-sidebar { background: var(--brand-midnight) var(--brand-night-sheen); border-right: 1px solid #c6a66b45; }
-.ops-workspace .ops-nav-caption { color: #efd7a8; letter-spacing: .12em; font-size: 9px; }
+body .ops-workspace .operations-sidebar { background: var(--brand-midnight) var(--brand-night-sheen); border-right: 1px solid #dce2eb33; }
+.ops-workspace .ops-nav-caption { color: #d6e3ff; letter-spacing: .12em; font-size: 9px; }
 .ops-workspace .ops-tools-caption { margin: 26px 12px 10px; padding-top: 22px; border-top: 1px solid #ffffff20; }
 body .ops-workspace .ops-nav-body nav a.selected-desk { background: var(--brand-gold) var(--brand-gold-sheen); color: var(--brand-midnight); }
 .ops-workspace .ops-nav-body nav a { color: #c9d4e5; font-size: 12px; min-height: 46px; }
@@ -1324,19 +1324,19 @@ body .ops-workspace .operations-main { padding-top: 36px; }
 .ops-workspace .ops-desk-heading {
   margin-bottom: 28px;
   padding: clamp(20px, 4vw, 36px);
-  border: 1px solid #c6a66b45;
+  border: 1px solid #dce2eb33;
   border-radius: 18px;
   background: var(--brand-midnight) var(--brand-night-sheen);
   color: var(--brand-ivory);
   box-shadow: 0 14px 32px #101c2c16;
 }
 .ops-workspace .ops-desk-heading h1 { color: inherit; font-size: clamp(32px, 3.5vw, 44px); line-height: 1.1; font-weight: 650; }
-.ops-workspace .ops-desk-heading p { font-size: 14px; color: #e4ddcf; }
+.ops-workspace .ops-desk-heading p { font-size: 14px; color: #dce2eb; }
 .ops-workspace .ops-eyebrow { color: var(--brand-slate); letter-spacing: .12em; font-size: 10px; }
-.ops-workspace .ops-desk-heading .ops-eyebrow { color: #efd7a8; }
+.ops-workspace .ops-desk-heading .ops-eyebrow { color: #d6e3ff; }
 body .ops-workspace .primary, .ops-dialog .primary { background: var(--brand-slate) var(--brand-night-sheen); border-color: var(--brand-slate); color: #fff; }
 body .ops-workspace .ops-desk-heading .primary { background: var(--brand-gold) var(--brand-gold-sheen); border-color: var(--brand-gold); color: var(--brand-midnight); }
-.ops-workspace :is(.operations-sidebar, .ops-desk-heading) :focus-visible { outline-color: #efd7a8; }
+.ops-workspace :is(.operations-sidebar, .ops-desk-heading) :focus-visible { outline-color: #d6e3ff; }
 .ops-workspace .secondary, .ops-dialog .secondary { color: var(--brand-midnight); border-color: var(--brand-line); background: #fff var(--brand-paper-sheen); }
 .ops-workspace .ops-register-bar { background: #fff var(--brand-paper-sheen); border-color: var(--brand-line); border-radius: 16px; box-shadow: 0 8px 24px #10263d09; }
 .ops-workspace .ops-register-bar input, .ops-workspace .ops-register-bar select { background: var(--brand-ivory); border-color: var(--brand-line); }
@@ -1354,7 +1354,7 @@ body .ops-workspace .ops-desk-heading .primary { background: var(--brand-gold) v
 .ops-dialog .ops-record-actions { background: var(--brand-ivory); }
 .ops-dialog .ops-record-context { background: var(--brand-tint) var(--brand-sand-sheen); }
 .operations-access { padding-top: 80px; }
-.operations-access > h1 { font: 400 clamp(34px, 5vw, 50px)/1.1 var(--travel-display, Georgia); letter-spacing: -.045em; color: var(--brand-midnight); }
+.operations-access > h1 { font: 700 clamp(34px, 5vw, 50px)/1.1 var(--travel-display, Georgia); letter-spacing: -.045em; color: var(--brand-midnight); }
 .operations-access .white-card { background: #fff var(--brand-paper-sheen); border: 1px solid var(--brand-line); border-radius: 18px; padding: 32px; box-shadow: 0 12px 40px #10263d09; }
 .operations-access .ops-eyebrow { color: var(--brand-slate); margin-top: 30px; }
 .operations-access .primary { background: var(--brand-slate) var(--brand-night-sheen); border-color: var(--brand-slate); color: #fff; }

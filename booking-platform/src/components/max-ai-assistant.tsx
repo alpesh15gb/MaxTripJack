@@ -266,7 +266,7 @@ function MaxAiWidget() {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
   const pathname = usePathname();
-  const desktopScope = pathname === '/' ? '.trip-home' : pathname === '/book' ? '.booking-workflow' : null;
+  const desktopScope = pathname === '/' ? '.trip-home' : pathname === '/book' ? '.booking-workflow' : 'body';
   const launcher = useRef<HTMLButtonElement>(null);
   const [nextDraft,setNextDraft] = useState<DraftRequest>(null);
   const onClosed = useCallback(() => {setOpen(false); setNextDraft(null);}, []);
@@ -283,8 +283,8 @@ function MaxAiWidget() {
     return () => window.removeEventListener('maxtravel:compose-message',request);
   }, []);
   return <>
-    <button ref={launcher} className={`max-ai-launcher${pathname === '/' ? ' home-concierge-launcher' : ''}`} type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}>
-      {pathname === '/' ? <><span className="max-ai-launcher-icon"><StitchSymbol name="smart_toy" size={20}/></span><span><small>Concierge</small><strong>Ask Max AI</strong></span></> :
+    <button ref={launcher} className={`max-ai-launcher${pathname === '/' ? ' home-max-ai-launcher' : ''}`} type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}>
+      {pathname === '/' ? <><span className="max-ai-launcher-icon"><StitchSymbol name="smart_toy" size={20}/></span><strong>Ask Max AI</strong></> :
         <><span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></>}
     </button>
     {hasOpened && <AssistantDialog open={open} onClosed={onClosed} launcher={launcher} nextDraft={nextDraft}/>}

@@ -1,0 +1,63 @@
+import { readdirSync } from 'node:fs';
+import { test, expect } from '@playwright/test';
+import { syntheticSession } from './fixtures';
+
+const examples = new Map([
+  ['/flights/[slug]', '/flights/mumbai-to-goa'],
+  ['/flights/routes/page/[page]', '/flights/routes/page/2'],
+  ['/hotels/[slug]', '/hotels/test-hotel-10001'],
+  ['/hotels/page/[page]', '/hotels/page/2'],
+  ['/my-trips/[id]', '/my-trips/33333333-3333-4333-8333-333333333333'],
+  ['/packages/[slug]', '/packages/kerala-at-your-pace'],
+]);
+const blankCataloguePages = new Set(['/flights/routes/page/2', '/hotels/page/2']);
+function pageFiles(directory: string): string[] {
+  return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
+    const path = `${directory}/${entry.name}`;
+    return entry.isDirectory() ? pageFiles(path) : entry.name === 'page.tsx' ? [path] : [];
+  });
+}
+
+const routes = pageFiles('src/app').map(file => {
+  const path = file.slice('src/app'.length).replace(/\/\([^/]+\)/g, '').replace(/\/page\.tsx$/, '') || '/';
+  return examples.get(path) ?? path;
+});
+
+for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
+  test(`Stitch theme on ${path}`, async ({page}) => {
+    await page.route('**/*', route => {
+      const url = new URL(route.request().url());
+      if (url.hostname !== '127.0.0.1') return route.abort();
+      if (url.pathname === '/api/auth/get-session') return route.fulfill({json: path === '/book' ? syntheticSession() : null});
+      return route.continue();
+    });
+    const response = await page.goto(path);
+    const expectedStatuses = path === '/stitch-unknown-page' ? [404] : blankCataloguePages.has(path) ? [200, 404] : [200];
+    expect(expectedStatuses).toContain(response?.status());
+    const body = page.locator('body');
+    await expect(body).toHaveClass(/\bstitch-theme\b/);
+    await expect(body).toHaveCSS('background-color', 'rgb(247, 249, 252)');
+    await expect(page.getByRole('main').getByRole('heading', {level: 1}).first()).toBeVisible();
+    const logo = page.locator('.maxtravel-logo:visible').first();
+    await expect(logo).toHaveAttribute('src', /maxtravel-logo\.jpg/);
+    await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    if (path === '/') {
+      const launcher = page.getByRole('button', {name: 'Open Max AI travel assistant'});
+      await expect(launcher).toContainText('Ask Max AI');
+      await expect(launcher).not.toContainText(/concierge/i);
+      await expect(page.locator('.stitch-ai-card h2')).toHaveText('Ask Max AI');
+    }
+    if (path.startsWith('/flights') || path.startsWith('/packages') || path === '/about') {
+      await expect(page.getByRole('main').getByRole('heading', {level: 1}).first()).toHaveCSS('font-family', /Plus Jakarta Sans/);
+    }
+    if (!path.startsWith('/operations')) {
+      await expect(page.locator('.concierge-header')).toBeVisible();
+      await expect(page.locator('.concierge-footer')).toBeVisible();
+    }
+    expect(await page.evaluate(async () => {
+      await document.fonts.ready;
+      const header = document.querySelector('.concierge-bar');
+      return Math.max(document.documentElement.scrollWidth, header ? header.scrollWidth : 0) <= innerWidth + 1;
+    })).toBe(true);
+  });
+}

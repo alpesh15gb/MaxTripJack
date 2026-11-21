@@ -3,15 +3,15 @@
 .company-settings>header {
   margin: 0 0 30px;
   padding: clamp(20px, 4vw, 36px);
-  border: 1px solid #c6a66b45;
+  border: 1px solid #dce2eb33;
   border-radius: 18px;
   background: var(--brand-midnight) var(--brand-night-sheen);
   color: var(--brand-ivory);
   box-shadow: 0 14px 32px #101c2c16;
 }
-.company-settings .ops-eyebrow{font-size:10px;font-weight:700;color:#efd7a8;letter-spacing:.12em}
+.company-settings .ops-eyebrow{font-size:10px;font-weight:700;color:#d6e3ff;letter-spacing:.12em}
 .company-settings h1{font-size:clamp(32px,3.5vw,44px);line-height:1.12;letter-spacing:-.045em;font-weight:650;margin:12px 0 16px}
-.company-settings>header>p:last-child{max-width:760px;font-size:14px;line-height:1.75;color:#e4ddcf;margin-bottom:0}
+.company-settings>header>p:last-child{max-width:760px;font-size:14px;line-height:1.75;color:#dce2eb;margin-bottom:0}
 .company-settings form{background:#fff var(--brand-paper-sheen);border:1px solid var(--brand-line);border-radius:18px;padding:32px}
 .company-settings fieldset{border:0;padding:0;margin:0;min-width:0}
 .company-settings legend{font-size:20px;letter-spacing:-.025em;font-weight:650;margin-bottom:26px}

@@ -1,9 +1,9 @@
 .max-ai-launcher { position:fixed; z-index:45; right:24px; bottom:calc(24px + var(--max-ai-lift,0px)); display:flex; align-items:center; gap:10px; min-height:54px; padding:9px 17px 9px 10px; border:1px solid #ffffff66; border-radius:18px; color:white; background:var(--brand-ink) var(--brand-night-sheen, none); box-shadow:0 8px 28px #10263d38; text-align:left; cursor:pointer; font:inherit; }
 .max-ai-launcher[hidden] { display:none; }
 .max-ai-mobile-clearance { display:none; }
-.max-ai-launcher-icon { width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#f0d7a8; background:#ffffff10; }
+.max-ai-launcher-icon { width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#d6e3ff; background:#ffffff10; }
 .max-ai-launcher strong { display:block; font-size:14px; line-height:1.3; letter-spacing:.1px; }
-.max-ai-launcher small { display:block; margin-top:2px; color:#ede5d7; font-size:10px; line-height:1.4; }
+.max-ai-launcher small { display:block; margin-top:2px; color:var(--brand-sand); font-size:10px; line-height:1.4; }
 .max-ai-launcher:hover { filter:brightness(1.12); }
 .max-ai-launcher:focus-visible { outline:3px solid var(--brand-amber); outline-offset:4px; }
 body:has(dialog[open]:not(.max-ai-dialog)) .max-ai-launcher { visibility:hidden; }

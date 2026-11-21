@@ -112,7 +112,7 @@ export default function LiveBooking({prefill={},checkoutConfigured=false,billing
     return()=>clearTimeout(timer);
   },[isPending,error,resolvedIdentity]);
   const changingIdentity=!isPending&&!error&&stableIdentity!==null&&stableIdentity.userId!==null&&stableIdentity.userId!==resolvedIdentity;
-  if(stableIdentity===null||changingIdentity)return <><TravelHeader/><main id="main-content" className="page-shell live-booking"><div className="white-card" role="status"><h1>{error?'Let’s reconnect your account.':'Getting your journey ready…'}</h1><p>{error?'We could not verify your session. Try again before continuing.':'Checking secure access to your booking workspace.'}</p>{error&&<button className="primary" type="button" onClick={()=>void refetch()}>Check secure session again</button>}</div></main></>;
+  if(stableIdentity===null||changingIdentity)return <><TravelHeader/><main id="main-content" className="page-shell live-booking"><div className="white-card" role="status"><h1>{error?'Let’s reconnect your account.':'Getting your journey ready…'}</h1><p>{error?'We could not verify your session. Try again before continuing.':'Checking secure access to your booking workspace.'}</p>{error&&<button className="primary" type="button" onClick={()=>void refetch()}>Check secure session again</button>}</div></main><TravelFooter/></>;
   return <BookingRouteWorkspace key={stableIdentity.revision} prefill={prefill} checkoutConfigured={checkoutConfigured} billingRequired={billingRequired}/>;
 }
 
@@ -1458,5 +1458,5 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       <p className="booking-environment-note">In Testing · No live bookings or payments</p>
       <Link className="inline-link" href="/my-trips">Already paid? Check My trips →</Link>
     </aside>}</div>
-  </main><TravelFooter compact/></>;
+  </main><TravelFooter/></>;
 }

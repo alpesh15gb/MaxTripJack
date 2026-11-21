@@ -110,7 +110,7 @@ for (const status of [401, 403, 503]) {
       assert.equal(state.dashboardRenders, 0);
       assert.ok(!html.includes("SYNTHETIC_PRIVATE_DASHBOARD"));
       assert.ok(html.includes("No reporting data has been loaded."));
-      assert.ok(html.includes('class="visibility-page"'));
+    assert.match(html, /class="[^"]*\bvisibility-page\b[^"]*"/);
       assert.ok(html.includes('class="visibility-notice"'));
       assert.deepEqual((exports.metadata as { robots: unknown }).robots, { index: false, follow: false });
     } finally { cleanup(); }

@@ -54,6 +54,12 @@ function distinctPropertyAmenities(values:string[]=[]){
 export default function HotelDetailView({name,property,metadataStatus='ready',context,options,roomsStatus,roomsError,busy,now,checkingOptionId,selectedOptionId,onBack,onRetry,onEditSearch,onReview,galleryOpen,onGalleryChange}:HotelDetailViewProps){
  const [localGallery,setLocalGallery]=useState(false),[mobileActionVisible,setMobileActionVisible]=useState(false);
  const detailRoot=useRef<HTMLElement>(null),detailEnd=useRef<HTMLDivElement>(null),roomSection=useRef<HTMLElement>(null);
+ const pendingRateStatus=useRef<HTMLParagraphElement>(null);
+ useEffect(()=>{
+  if (!busy || !checkingOptionId) return;
+  // The pending line appears below the rate button and may extend past the viewport.
+  pendingRateStatus.current?.scrollIntoView({block:'nearest',behavior:'instant'});
+ },[busy,checkingOptionId]);
  useEffect(()=>{
   const root=detailRoot.current,end=detailEnd.current,rooms=roomSection.current;if(!root||!end||!rooms||typeof IntersectionObserver==='undefined')return;
   let visible=false,atEnd=false,atRooms=false;
@@ -155,7 +161,7 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
        <div className="room-option-action stay-room-rate-action">
         <small>Estimated full stay total</small><strong id={`${planId}-price`}>{total===null?'Price unavailable':money(total)}</strong><p>{stayLabel}</p>
         <button type="button" className="primary" aria-describedby={`${groupId} ${planId} ${planId}-terms ${planId}-price`} disabled={busy||total===null} onClick={()=>onReview(option.optionId)}>{checking?'Checking your room…':'Continue with room'}</button>
-        {checking&&<p role="status">Checking your selected room rate. Nothing is reserved yet.</p>}
+        {checking&&<p ref={pendingRateStatus} role="status">Checking your selected room rate. Nothing is reserved yet.</p>}
        </div>
        <details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary><HotelCancellationTimeline value={option.cancellation}/></details>
       </article>;

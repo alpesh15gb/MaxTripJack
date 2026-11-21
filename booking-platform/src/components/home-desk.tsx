@@ -18,7 +18,7 @@ export default function HomeDesk({enabled}:{enabled:boolean}) {
     if (message.trim()) compose(message.trim());
   }
   return <section className="stitch-office-card stitch-ai-card">
-    <header><span><TravelIcon name="globe" size={24}/></span><div><small>Instant guidance</small><h2>{enabled ? "Ask Max AI Concierge" : "Travel planning desk"}</h2></div></header>
+    <header><span><TravelIcon name="globe" size={24}/></span><div><small>Instant guidance</small><h2>{enabled ? "Ask Max AI" : "Travel planning desk"}</h2></div></header>
     <p>Get help with airport connections, baggage, visa planning and your next hotel stay.</p>
     <div className="stitch-ai-questions">{questions.map(([question,url]) => enabled
       ? <button type="button" key={url} onClick={()=>compose(question)}>{question}<TravelIcon name="arrow" size={14}/></button>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "./brand-logo";
 import "@/app/operations-page-navigation.css";
 
 type OperationsPage = "enquiries" | "promos" | "reports" | "visibility" | "settings";
@@ -14,7 +15,7 @@ const pages: { page: OperationsPage; label: string }[] = [
 export default function OperationsPageNavigation({ active }: { active: OperationsPage }) {
   return <div className="ops-page-navigation">
     <div className="ops-page-navigation-top">
-      <Link href="/operations" className="ops-page-home"><span aria-hidden="true">M.</span><div><strong>MaxTravel</strong><small>Operations workspace</small></div></Link>
+      <Link href="/operations" className="ops-page-home" aria-label="MaxTravel operations workspace"><BrandLogo variant="operations"/><small>Operations workspace</small></Link>
       <Link href="/account" className="ops-page-account">Account <span aria-hidden="true">↗</span></Link>
     </div>
     <nav aria-label="Operations navigation">

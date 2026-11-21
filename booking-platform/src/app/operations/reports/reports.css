@@ -72,14 +72,14 @@ body .reports-page .reports-heading {
   padding: clamp(20px, 4vw, 36px);
   margin: 0 0 24px;
   background: var(--brand-midnight) var(--brand-night-sheen);
-  border: 1px solid #c6a66b45;
+  border: 1px solid #dce2eb33;
   border-radius: 18px;
   color: var(--brand-ivory);
   box-shadow: 0 14px 32px #101c2c16;
 }
 .reports-page .reports-heading h1 { font-size: clamp(32px, 3.5vw, 44px); font-weight: 650; letter-spacing: -.045em; line-height: 1.12; max-width: 760px; }
-.reports-page .reports-heading .reports-eyebrow { color: #efd7a8; font-size: 10px; letter-spacing: .12em; }
-.reports-page .reports-heading p:not(.reports-eyebrow) { color: #e4ddcf; font-size: 14px; line-height: 1.75; }
+.reports-page .reports-heading .reports-eyebrow { color: #d6e3ff; font-size: 10px; letter-spacing: .12em; }
+.reports-page .reports-heading p:not(.reports-eyebrow) { color: #dce2eb; font-size: 14px; line-height: 1.75; }
 .reports-page .reports-notice { background: #fff7ec; border: 1px solid #edddc7; border-radius: 12px; padding: 20px 24px; font-size: 12px; line-height: 1.8; }
 .reports-page .reports-notice > strong { color: var(--brand-midnight); font-size: 13px; }
 .reports-page button { background: var(--brand-slate) var(--brand-night-sheen); border-color: var(--brand-slate); border-radius: 9px; font-size: 12px; }
@@ -88,8 +88,8 @@ body .reports-page .reports-heading {
 .reports-page input, .reports-page select { border-color: var(--brand-line); border-radius: 9px; background: var(--brand-ivory); }
 .reports-page .reports-filter-rail { border-color: var(--brand-line); border-radius: 16px; }
 .reports-page .reports-results .reports-cards article:first-child { background: var(--brand-midnight) var(--brand-night-sheen); color: var(--brand-ivory); border-color: var(--brand-midnight); }
-.reports-page .reports-results .reports-cards article:first-child > span { color: #efd7a8; }
-.reports-page .reports-results .reports-cards article:first-child > :is(p, small) { color: #e4ddcf; }
+.reports-page .reports-results .reports-cards article:first-child > span { color: #d6e3ff; }
+.reports-page .reports-results .reports-cards article:first-child > :is(p, small) { color: #dce2eb; }
 .reports-page .reports-cards article { background: #fff var(--brand-paper-sheen); border-color: var(--brand-line); }
 .reports-page .reports-cards article > strong { font-variant-numeric: tabular-nums; }
 .reports-page .reports-chips button { color: var(--brand-slate); background: var(--brand-sand) var(--brand-sand-sheen); border-color: var(--brand-line); }

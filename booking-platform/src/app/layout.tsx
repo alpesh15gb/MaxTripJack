@@ -68,7 +68,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${travelDisplay.variable} ${bookingDisplay.variable} ${bookingBody.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col"><CompanyProfileProvider value={company}>{children}<MaxAiAssistant enabled={Boolean(maxAiGatewayConfiguration())&&conversationConfigured()}/></CompanyProfileProvider></body>
+      <body className="stitch-theme min-h-full flex flex-col"><CompanyProfileProvider value={company}>{children}<MaxAiAssistant enabled={Boolean(maxAiGatewayConfiguration())&&conversationConfigured()}/></CompanyProfileProvider></body>
     </html>
   );
 }

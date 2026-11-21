@@ -1,34 +1,52 @@
-/* The booking surfaces share the colours and type from the supplied Stitch design. */
-body:has(.concierge-header) {
-  --brand-midnight: #001736; --brand-slate: #0d2c54; --brand-ink: #111d33;
-  --brand-muted: #515c6c; --brand-line: #dce2eb; --brand-border: #dce2eb;
-  --brand-ivory: #fff; --brand-sand: #e9eef5; --brand-tint: #f2f4f7;
-  --brand-gold: #bcd9fd; --brand-gold-ink: #005bb3; --brand-amber: #bcd9fd;
-  --brand-light-gold: #e2efff; --brand-paper-sheen: none; --brand-page-sheen: none;
-  --brand-gold-sheen: none; --brand-night-sheen: linear-gradient(115deg,#001736,#0d2c54);
-  --brand-sand-sheen: linear-gradient(130deg,#f7f9fc,#edf1f6);
+/* Shared tokens for every MaxTravel page, including standalone operations and error states. */
+body.stitch-theme {
+  --brand-midnight: #001736;
+  --brand-slate: #0d2c54;
+  --brand-ink: #111d33;
+  --brand-action: #005bb3;
+  --brand-muted: #515c6c;
+  --brand-line: #dce2eb;
+  --brand-border: var(--brand-line);
+  --brand-ivory: #fff;
+  --brand-paper: var(--brand-ivory);
+  --brand-sand: #e9eef5;
+  --brand-tint: #f2f4f7;
+  --brand-gold: #bcd9fd;
+  --brand-gold-ink: var(--brand-action);
+  --brand-amber: var(--brand-gold);
+  --brand-light-gold: #e2efff;
+  --brand-paper-sheen: none;
+  --brand-page-sheen: none;
+  --brand-gold-sheen: none;
+  --brand-night-sheen: linear-gradient(115deg, #001736, #0d2c54);
+  --brand-sand-sheen: linear-gradient(130deg, #f7f9fc, #edf1f6);
+  --brand-shadow: 0 8px 24px rgb(13 44 84 / 8%);
+  --blue: var(--brand-action);
+  --ink: var(--brand-midnight);
+  --muted: var(--brand-muted);
+  --line: var(--brand-line);
+  --studio-paper: #f7f9fc;
+  --studio-ink: var(--brand-ink);
+  --studio-teal: var(--brand-action);
+  --travel-navy: var(--brand-ink);
   --travel-display: var(--font-stitch-display), sans-serif;
-  --blue: #005bb3; --ink: #001736; --muted: #536071; --line: #dce2eb;
+  color: #191c1e;
+  background: #f7f9fc;
   font-family: var(--font-stitch-body), sans-serif;
-  color: #191c1e; background: #f7f9fc;
 }
 @font-face {
   font-family: "Stitch Material Symbols"; font-style: normal; font-weight: 400;
   src: url("/brand/stitch-symbols.woff2") format("woff2"); font-display: block;
 }
 .stitch-symbol { font: 400 20px/1 "Stitch Material Symbols"; font-feature-settings: "liga"; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; flex-shrink: 0; -webkit-font-smoothing: antialiased; }
+.concierge-testing { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 10px; padding: 5px 12px; color: #0d2c54; background: #e8effa; font-size: 11px; }
 .concierge-header { position: sticky; top: 0; z-index: 25; flex: none; color: #001736; background: rgb(255 255 255 / 97%); box-shadow: 0 1px 8px rgb(13 44 84 / 6%); }
 html:has(.concierge-header) { scroll-padding-top: 84px; }
 html:has(.concierge-header.priority-desk) { scroll-padding-top: 114px; }
 .concierge-bar { width: 100%; max-width: 1280px; min-height: 80px; margin: 0 auto; padding: 0 48px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .concierge-header a, .concierge-footer a { text-decoration: none; }
-.concierge-brand-link, .concierge-brand { display: inline-flex; align-items: center; color: #001736; flex: none; }
-.concierge-brand { gap: 8px; white-space: nowrap; }
-.concierge-mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #001736; color: #fff; box-shadow: 0 2px 8px rgb(13 44 84 / 15%); }
-.concierge-brand strong { display: block; font: 700 16px/1 var(--font-stitch-display),sans-serif; letter-spacing: -.025em; }
-.concierge-brand em { font-style: normal; }
-.concierge-brand small { display: block; margin-top: 3px; color: #005bb3; font: 700 11px/14px var(--font-stitch-body),sans-serif; letter-spacing: .06em; text-transform: uppercase; }
-.concierge-header .maxtravel-logo, .concierge-footer .maxtravel-logo { max-width: 150px; height: auto; }
+.concierge-brand-link { display: inline-flex; align-items: center; flex: none; min-height: 44px; max-width: 100%; }
+.concierge-context-brand { display: none; }
 .concierge-header nav, .concierge-tools, .concierge-account, .concierge-hub, .concierge-tools-trips, .concierge-currency { display: flex; align-items: center; }
 .concierge-header nav { padding: 4px; border-radius: 12px; gap: 2px; background: #f2f4f7; }
 .concierge-header nav :is(a,button) { display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; min-height: 44px; padding: 6px 13px; color: #43474e; font: 600 12px/16px var(--font-stitch-body),sans-serif; white-space: nowrap; }
@@ -45,10 +63,10 @@ html:has(.concierge-header.priority-desk) { scroll-padding-top: 114px; }
 .concierge-hub i { color: #005bb3; background: #d6e3ff; }
 .concierge-currency .stitch-symbol,.concierge-tools-trips>.stitch-symbol { color: #005bb3; }
 .desktop-currency { display: inline-flex; align-items: center; gap: 8px; }
-.phone-currency,.phone-brand-plane,.phone-support-symbol { display: none; }
+.phone-currency,.phone-support-symbol { display: none; }
 .concierge-account-symbol { background: #001736; color: white; }
 .concierge-account-copy { display: grid; }
-.concierge-account-copy small { font-size: 10px; line-height: 13px; color: #43474e; }
+.concierge-account-copy small { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 13px; color: #43474e; }
 .concierge-account-copy b { font-size: 12px; line-height: 16px; color: #001736; }
 .concierge-priority { background: #001736; color: white; }
 .concierge-priority>div { max-width: 1280px; margin: auto; padding: 6px 48px; display: flex; align-items: center; gap: 24px; font-size: 11px; line-height: 16px; }
@@ -68,13 +86,12 @@ html body .travel-footer.concierge-footer { margin: 80px 0 0; padding: 64px max(
 html body .concierge-footer .travel-footer-policies { flex-direction: column; align-items: flex-start; gap: 6px; padding: 0; margin: 0; }
 html body .concierge-footer .travel-footer-policies a { min-height: auto; padding: 0; color: #455164; }
 html body .concierge-footer-grid h2 { margin: 0 0 6px; color: #001736; font: 700 16px/1.4 var(--font-stitch-display),sans-serif; }
-html body .concierge-footer-grid :is(p,a,span:not(.concierge-mark)) { color: #455164; }
+html body .concierge-footer-grid :is(p,a,span) { color: #455164; }
 html body .concierge-footer-grid :is(p,a):not(.concierge-brand-link), .concierge-footer-grid>div>span { margin: 0; font: 450 13px/1.55 var(--font-stitch-body),sans-serif; }
 html body .concierge-footer-grid .concierge-footer-call { color: #005bb3; font-size: 16px; font-weight: 700; }
 html body .concierge-footer a:hover { color: #005bb3; text-decoration: underline; }
 .concierge-mobile-directory { display: none; }
 .concierge-footer .concierge-brand-link { gap: 8px; color: #001736; font: 700 20px/28px var(--font-stitch-display),sans-serif; }
-.concierge-footer .concierge-brand-link .concierge-mark { width: 36px; height: 36px; }
 .concierge-footer-call { display: grid; gap: 3px; border-radius: 8px; background: #f2f4f7; padding: 8px 12px; }
 .concierge-footer-call strong { font: 600 12px/16px var(--font-stitch-body),sans-serif; }
 .concierge-footer-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 12px; background: #e9edf2; padding: 15px 20px; border-radius: 10px; margin-top: 34px; }
@@ -84,7 +101,7 @@ body:has(.concierge-header) .booking-workflow :is(h1,h2,h3,legend) { font-family
 body:has(.concierge-header) .booking-workflow.results-only> :is(.back,.booking-intro,.booking-progress) { position: absolute; overflow: hidden; clip-path: inset(50%); width: 1px; height: 1px; padding: 0; margin: 0; border: 0; }
 body:has(.concierge-header) .booking-workflow.results-only>.back:focus-visible { position: relative; clip-path: none; width: auto; height: auto; }
 body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
-@media (min-width:761px) and (max-width:1150px) {
+@media (min-width:761px) and (max-width:1279px) {
   .concierge-bar { padding-inline: 24px; gap: 12px; }
   .concierge-tools { gap: 6px; }
   .concierge-header nav :is(a,button) { padding-inline: 9px; }
@@ -97,14 +114,11 @@ body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
   .priority-desk .concierge-tools-trips { display: none; }
 }
 @media (max-width:760px) {
+  body.stitch-theme:not(:has(.has-dock)) { padding-bottom: 0; }
   html:has(.concierge-header),html:has(.concierge-header.priority-desk) { scroll-padding-top: 68px; }
   html:has(.concierge-header.has-dock) { scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .concierge-bar { padding: 0 16px; gap: 6px; min-height: 64px; }
-  .concierge-header .concierge-mark { width: 36px; height: 36px; }
-  .concierge-header .concierge-brand { gap: 4px; }
-  .concierge-header .concierge-brand-copy strong { font: 800 20px/1 var(--font-stitch-display),sans-serif; }
-  .concierge-header .concierge-brand-copy em { color: #005bb3; }
-  .concierge-header .concierge-brand-copy small,.concierge-priority,.concierge-account-copy,.concierge-tools-trips { display: none; }
+  .concierge-priority,.concierge-account-copy,.concierge-tools-trips { display: none; }
   .concierge-tools { gap: 4px; }
   .concierge-tools .concierge-account, .concierge-menu-button { padding: 0; place-items: center; width: 44px; min-height: 44px; background: none; }
   .concierge-tools .concierge-account { justify-content: center; }
@@ -113,9 +127,8 @@ body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
   .concierge-tools .desktop-hub, .concierge-tools .concierge-hub>span { display: none; }
   .concierge-currency { display: none; }
   .home-desk .concierge-currency { display: flex; order: -1; border-radius: 24px; }
-  .home-desk .desktop-currency,.home-desk .concierge-mark>.stitch-symbol,.home-desk .concierge-hub i>.stitch-symbol { display: none; }
+  .home-desk .desktop-currency,.home-desk .concierge-hub i>.stitch-symbol { display: none; }
   .home-desk .phone-currency { display: flex; align-items: center; gap: 4px; }
-  .home-desk .phone-brand-plane { display: inline-flex; transform: rotate(-45deg); }
   .home-desk .phone-support-symbol { display: inline-flex; }
   .concierge-header nav { background: #fff; }
   .concierge-header.has-dock nav { position: fixed; bottom: 0; inset-inline: 0; z-index: 30; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 0; width: 100%; border-radius: 0; box-shadow: 0 -4px 20px rgb(13 44 84 / 8%); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
@@ -123,10 +136,11 @@ body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
   .concierge-header nav .stitch-symbol,.concierge-header nav .concierge-phone-only,.concierge-header nav .concierge-nav-trips { display: inline-flex; }
   .concierge-header nav .concierge-desk-only { display: none; }
   .concierge-header nav [aria-current="page"] { background: transparent; color: #005bb3; box-shadow: none; font-weight: 750; }
-  .concierge-header.has-menu .concierge-brand-link,.concierge-header.has-menu .concierge-account { display: none; }
+  .concierge-header.contextual-header :is(.concierge-brand-link,.concierge-account) { display: none; }
   .concierge-header.has-menu .concierge-menu-button,.concierge-mobile-back,.concierge-tools .concierge-action-mobile { display: grid; place-items: center; min-width: 44px; height: 44px; background: transparent; border: none; border-radius: 50%; color: #005bb3; }
   .concierge-header .concierge-mobile-back { margin-left: -8px; color: #191c1e; }
   .concierge-page-name { display: block; min-width: 0; text-overflow: ellipsis; overflow: hidden; }
+  .concierge-context-brand { display: flex; width: fit-content; margin-bottom: 2px; }
   .concierge-page-name strong,.concierge-page-name small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .concierge-page-name strong { font: 650 16px/22px var(--font-stitch-display),sans-serif; letter-spacing: -.015em; }
   .concierge-page-name small { color: #43474e; font: 400 12px/16px var(--font-stitch-body),sans-serif; }
@@ -149,13 +163,32 @@ body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
   .concierge-footer-base { margin-top: 20px; }
 }
 
-body .home-concierge-launcher { gap: 8px; min-width: 0; width: auto; height: auto; min-height: 44px; padding: 8px 14px; border: 0; border-radius: 9999px; flex-direction: row; text-align: left; background: #001736; color: white; box-shadow: 0 8px 24px rgb(0 23 54 / 35%); }
-body .home-concierge-launcher .max-ai-launcher-icon { position: relative; width: 21px; height: 21px; background: none; color: #d6e3ff; }
-body .home-concierge-launcher .max-ai-launcher-icon::after { content: ""; position: absolute; top: 0; right: 0; width: 6px; height: 6px; background: #0073df; border-radius: 50%; }
-body .home-concierge-launcher small { display: block; margin: 0; font: 600 10px/12px var(--font-stitch-body),sans-serif; color: #adc7f8; }
-body .home-concierge-launcher strong { font: 700 12px/16px var(--font-stitch-body),sans-serif; }
+body .home-max-ai-launcher { gap: 8px; min-width: 0; width: auto; height: auto; min-height: 44px; padding: 8px 14px; border: 0; border-radius: 9999px; flex-direction: row; text-align: left; background: #001736; color: white; box-shadow: 0 8px 24px rgb(0 23 54 / 35%); }
+body .home-max-ai-launcher .max-ai-launcher-icon { position: relative; width: 21px; height: 21px; background: none; color: #d6e3ff; }
+body .home-max-ai-launcher .max-ai-launcher-icon::after { content: ""; position: absolute; top: 0; right: 0; width: 6px; height: 6px; background: #0073df; border-radius: 50%; }
+body .home-max-ai-launcher strong { font: 700 12px/16px var(--font-stitch-body),sans-serif; }
 @media (max-width:359px) {
   .concierge-bar { padding-inline: 10px; gap: 4px; }
-  .concierge-header .concierge-brand-copy strong { font-size: 18px; }
   .home-desk .concierge-currency { padding-inline: 8px; }
+}
+
+.concierge-footer-socials { display: flex; flex-wrap: wrap; gap: 6px; }
+html body .concierge-footer .concierge-footer-socials a { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 6px; border-radius: 8px; background: #f2f4f7; color: #005bb3; }
+
+/* Staff screens retain their own navigation and use the shared display type. */
+body.stitch-theme :is(.operations-main, .operations-access, .company-settings, .promo-admin, .enquiry-admin, .reports-page, .visibility-page) h1,
+body.stitch-theme .operations-restricted h2 {
+  font-family: var(--travel-display);
+  font-weight: 700;
+}
+body.stitch-theme .operations-restricted > h1 {
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+body.stitch-theme .operations-restricted a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--brand-action);
 }

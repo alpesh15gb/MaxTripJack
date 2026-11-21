@@ -15,7 +15,7 @@
 .visibility-heading p { color: #c9d9e4; font-size: 15px; line-height: 1.8; }
 .visibility-heading .visibility-eyebrow { color: #a6d5db; font-size: 11px; letter-spacing: 1.3px; }
 .visibility-button { background: white; color: #1b4772; border: 1px solid #cfdeeb; border-radius: 11px; min-height: 46px; font-size: 13px; font-weight: 650; padding: 12px 19px; }
-.visibility-notice { background: #fffcf2; border: 1px solid #e8dfc2; border-radius: 18px; padding: 25px 28px; font-size: 14px; line-height: 1.85; color: #655d45; }
+.visibility-notice { background: #fffcf2; border: 1px solid #dce7f8; border-radius: 18px; padding: 25px 28px; font-size: 14px; line-height: 1.85; color: #655d45; }
 .visibility-notice h2 { color: #685631; font-size: 20px; letter-spacing: -.3px; }
 .visibility-section { border: 1px solid #dfe7ed; border-radius: 20px; background: white; padding: 30px; margin: 25px 0; }
 .visibility-section h2 { font-size: 25px; letter-spacing: -.6px; margin-bottom: 16px; }
@@ -82,16 +82,16 @@ body .visibility-page { color: var(--brand-midnight); background: var(--brand-pa
 body .visibility-page .visibility-heading {
   background: var(--brand-midnight) var(--brand-night-sheen);
   color: var(--brand-ivory);
-  border: 1px solid #c6a66b45;
+  border: 1px solid #dce2eb33;
   border-radius: 18px;
   padding: clamp(20px, 4vw, 36px);
   box-shadow: 0 14px 32px #101c2c16;
 }
 .visibility-page .visibility-heading h1 { font-size: clamp(32px, 3.5vw, 44px); line-height: 1.12; letter-spacing: -.045em; font-weight: 650; }
-.visibility-page .visibility-heading .visibility-eyebrow { color: #efd7a8; font-size: 10px; letter-spacing: .12em; }
-.visibility-page .visibility-heading p:not(.visibility-eyebrow) { color: #e4ddcf; font-size: 14px; }
+.visibility-page .visibility-heading .visibility-eyebrow { color: #d6e3ff; font-size: 10px; letter-spacing: .12em; }
+.visibility-page .visibility-heading p:not(.visibility-eyebrow) { color: #dce2eb; font-size: 14px; }
 .visibility-page .visibility-button { background: var(--brand-gold) var(--brand-gold-sheen); color: var(--brand-midnight); border-color: var(--brand-gold); border-radius: 10px; }
-.visibility-page .visibility-heading :focus-visible { outline-color: #efd7a8; }
+.visibility-page .visibility-heading :focus-visible { outline-color: #d6e3ff; }
 .visibility-page .visibility-notice { background: #fff7ec; border-color: #edddc7; border-radius: 14px; }
 .visibility-page .visibility-section { border-color: var(--brand-line); border-radius: 16px; }
 .visibility-page .visibility-section h2 { color: var(--brand-midnight); font-size: 24px; }

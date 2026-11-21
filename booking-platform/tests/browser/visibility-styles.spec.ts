@@ -13,7 +13,7 @@ test('production visibility access boundary retains its scoped layout', async ({
   await expect(main.getByRole('heading', { name: 'Visibility dashboard', exact: true })).toBeVisible();
   await expect(main.getByRole('heading', { name: /Authorised access required|Access verification unavailable/ })).toBeVisible();
   await expect(main).toContainText('No reporting data has been loaded.');
-  await expect(main).toHaveCSS('background-color', 'rgb(250, 249, 246)');
+  await expect(main).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(main.locator('.visibility-notice')).toHaveCSS('border-radius', '14px');
   await expect(main).toHaveCSS('padding-left', page.viewportSize()!.width <= 600 ? '16px' : '40px');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -23,11 +23,17 @@ test('production visibility access boundary retains its scoped layout', async ({
 let compiled: Promise<{ script: string; css: string }> | undefined;
 function assets() {
   return compiled ??= build({
-    stdin: { contents: `import './src/app/visual-polish.css'; import {createRoot} from 'react-dom/client'; import Dashboard from './src/components/visibility-dashboard'; createRoot(document.getElementById('root')).render(<Dashboard/>);`, resolveDir: process.cwd(), loader: 'tsx' },
-    outfile: resolve('.visibility-browser-fixture/client.js'), bundle: true, write: false, platform: 'browser', format: 'iife', jsx: 'automatic', logLevel: 'silent',
+    stdin: { contents: `import './src/app/stitch-shell.css'; import {createRoot} from 'react-dom/client'; import Dashboard from './src/components/visibility-dashboard'; createRoot(document.getElementById('root')).render(<Dashboard/>);`, resolveDir: process.cwd(), loader: 'tsx' },
+    outfile: resolve('.visibility-browser-fixture/client.js'), bundle: true, write: false, platform: 'browser', format: 'iife', jsx: 'automatic', external: ['/brand/stitch-symbols.woff2'], logLevel: 'silent',
     plugins: [{ name: 'fixture-link', setup(plugin) {
       plugin.onResolve({ filter: /^next\/link$/ }, () => ({ path: 'link', namespace: 'fixture' }));
-      plugin.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ contents: "import {createElement} from 'react';export default function Link(props){return createElement('a',props);}", loader: 'js', resolveDir: process.cwd() }));
+      plugin.onResolve({ filter: /^next\/image$/ }, () => ({ path: 'image', namespace: 'fixture' }));
+      plugin.onLoad({ filter: /.*/, namespace: 'fixture' }, ({path}) => ({
+        contents: path === 'link'
+          ? "import {createElement} from 'react';export default function Link(props){return createElement('a',props);}"
+          : "import {createElement} from 'react';export default function Image({unoptimized,...props}){return createElement('img',props);}",
+        loader: 'js', resolveDir: process.cwd(),
+      }));
     } }],
   }).then(result => ({ script: result.outputFiles.find(file => file.path.endsWith('.js'))!.text, css: result.outputFiles.find(file => file.path.endsWith('.css'))!.text }));
 }
@@ -35,7 +41,7 @@ function assets() {
 async function clientShell(page: Page) {
   const asset = await assets();
   await page.route('**/__visibility_client_fixture.js', route => route.fulfill({ contentType: 'text/javascript', body: asset.script }));
-  await page.route('**/__visibility_client_fixture', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*,*::before,*::after{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif}${asset.css}</style></head><body><div id="root"></div><script src="/__visibility_client_fixture.js"></script></body></html>` }));
+  await page.route('**/__visibility_client_fixture', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*,*::before,*::after{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif}${asset.css}</style></head><body class="stitch-theme"><div id="root"></div><script src="/__visibility_client_fixture.js"></script></body></html>` }));
 }
 
 const snapshot: VisibilityLedgerSnapshot = {
@@ -50,7 +56,7 @@ test('actual visibility client shows responsive cards and removes stale values w
   await page.route('**/api/admin/visibility', route => route.fulfill(denied ? { status: 403, json: { error: 'Synthetic finance access revoked.' } } : { json: snapshot }));
   await page.goto('/__visibility_client_fixture');
   await expect(page.getByRole('button', { name: 'Refresh ledger' })).toBeEnabled();
-  await expect(page.locator('.visibility-heading')).toHaveCSS('background-color', 'rgb(16, 28, 44)');
+  await expect(page.locator('.visibility-heading')).toHaveCSS('background-color', 'rgb(0, 23, 54)');
   const metrics = page.locator('.visibility-metrics');
   await expect(metrics).toHaveCSS('display', 'grid');
   await expect(metrics).toHaveCSS('gap', '16px');

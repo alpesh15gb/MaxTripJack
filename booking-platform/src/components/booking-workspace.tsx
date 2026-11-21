@@ -231,7 +231,7 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
   const ready = !isPending && error?.status !== 401 && error?.status !== 403 && Boolean(session);
   const blocked = checking || Boolean(error);
   return <>
-    {(!ready || blocked) && <><TravelHeader active={admin ? undefined : "trips"}/><main className="page-shell trips-workspace" id="main-content"><h1>Your trips are private.</h1>{checking ? <p role="status">Checking secure account access…</p> : error && !signedOut ? <><p role="alert">{error.status === 403 ? "Access to these trips is no longer available. Check your account or contact support; this does not establish that you were signed out." : "We couldn’t verify account access. Your private trips are hidden; this does not establish that you were signed out or change any booking status."}</p><button type="button" className="primary" onClick={()=>void refetch()}>Check account access</button></> : <><p role="alert">Sign in to view your private booking updates. This does not change your payment or booking status.</p><Link className="primary" href={accountHref("/my-trips")}>Open account</Link></>}</main><TravelFooter compact/></>}
+    {(!ready || blocked) && <><TravelHeader active={admin ? undefined : "trips"}/><main className="page-shell trips-workspace" id="main-content"><h1>Your trips are private.</h1>{checking ? <p role="status">Checking secure account access…</p> : error && !signedOut ? <><p role="alert">{error.status === 403 ? "Access to these trips is no longer available. Check your account or contact support; this does not establish that you were signed out." : "We couldn’t verify account access. Your private trips are hidden; this does not establish that you were signed out or change any booking status."}</p><button type="button" className="primary" onClick={()=>void refetch()}>Check account access</button></> : <><p role="alert">Sign in to view your private booking updates. This does not change your payment or booking status.</p><Link className="primary" href={accountHref("/my-trips")}>Open account</Link></>}</main><TravelFooter/></>}
     {ready && <div hidden={blocked} inert={blocked}><PrivateBookingWorkspace key={`${session!.user.id}:${session!.session.id}:${session!.user.emailVerified}:${session!.user.phoneNumberVerified}`} admin={admin} paused={blocked} travellerName={session!.user.name || ""}/></div>}
   </>;
 }
@@ -395,6 +395,6 @@ function PrivateBookingWorkspace({ admin, paused, travellerName }: { admin: bool
         {hasMore && <div className="trips-load-more"><button className="secondary" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "Loading older trips…" : "Load older trips"}</button></div>}</div><TripSupport upcoming={upcoming}/></div>
       </>}
     </div></main>
-    <TravelFooter compact />
+    <TravelFooter />
   </>;
 }

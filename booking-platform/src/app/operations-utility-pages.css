@@ -9,18 +9,18 @@ main.promo-admin, main.enquiry-admin { width: min(1320px, 100%); max-width: 1320
   gap: 30px;
   padding: clamp(20px, 4vw, 36px);
   margin: 0 0 26px;
-  border: 1px solid #c6a66b45;
+  border: 1px solid #dce2eb33;
   border-radius: 18px;
   background: var(--brand-midnight) var(--brand-night-sheen);
   color: var(--brand-ivory);
   box-shadow: 0 14px 32px #101c2c16;
 }
-.promo-admin-heading .ops-utility-eyebrow, .enquiry-admin .enquiry-admin-top .ops-utility-eyebrow { color: #efd7a8; }
+.promo-admin-heading .ops-utility-eyebrow, .enquiry-admin .enquiry-admin-top .ops-utility-eyebrow { color: #d6e3ff; }
 .promo-admin h1, .enquiry-admin .enquiry-admin-top h1 { font-size: clamp(32px, 3.5vw, 44px); font-weight: 650; line-height: 1.12; letter-spacing: -.045em; margin: 0 0 16px; }
 .promo-admin-heading > div:first-child { max-width: 680px; }
-.promo-admin-heading p, .enquiry-admin .enquiry-admin-top p:not(.ops-utility-eyebrow) { font-size: 14px; line-height: 1.75; color: #e4ddcf; max-width: 68ch; margin: 0; }
+.promo-admin-heading p, .enquiry-admin .enquiry-admin-top p:not(.ops-utility-eyebrow) { font-size: 14px; line-height: 1.75; color: #dce2eb; max-width: 68ch; margin: 0; }
 .promo-admin-actions { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 10px; padding-top: 20px; }
-.promo-admin :is(.primary, .secondary), .enquiry-admin button { min-height: 44px; padding: 11px 16px; border-radius: 10px; font: 600 12px/1.5 var(--font-geist-sans), sans-serif; margin: 0; }
+.promo-admin :is(.primary, .secondary), .enquiry-admin button { min-height: 44px; padding: 11px 16px; border-radius: 10px; font: 600 12px/1.5 var(--font-stitch-body), sans-serif; margin: 0; }
 .promo-admin .primary, .enquiry-admin .enquiry-admin-filters > button, .enquiry-admin button.enquiry-admin-save { background: var(--brand-slate) var(--brand-night-sheen); border: 1px solid var(--brand-slate); color: #fff; }
 .promo-admin .secondary, .enquiry-admin button { background: #fff var(--brand-paper-sheen); border: 1px solid var(--brand-line); color: var(--brand-midnight); }
 .promo-admin-actions .primary, .enquiry-admin .enquiry-admin-top > button { background: var(--brand-gold) var(--brand-gold-sheen); border-color: var(--brand-gold); color: var(--brand-midnight); }
@@ -42,11 +42,11 @@ main.promo-admin, main.enquiry-admin { width: min(1320px, 100%); max-width: 1320
 .promo-code-card > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .promo-code-card .ops-utility-eyebrow { font-size: 9px; margin-bottom: 7px; }
 .promo-code-card h2 { font-size: 23px; line-height: 1.25; letter-spacing: -.025em; overflow-wrap: anywhere; margin: 0; }
-.promo-status { display: inline-flex; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--brand-line); color: var(--brand-muted); font-size: 11px; background: #f5f6f8; white-space: nowrap; }
+.promo-status { display: inline-flex; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--brand-line); color: var(--brand-muted); font-size: 11px; background: #f7f9fc; white-space: nowrap; }
 .promo-status.is-enabled { background: var(--brand-sand); color: var(--brand-slate); border-color: var(--brand-line); }
 .promo-code-card p { font-size: 12px; color: var(--brand-muted); line-height: 1.7; margin: 10px 0; }
 .promo-code-card .promo-discount { padding: 22px 0 18px; margin: 0; color: var(--brand-midnight); }
-.promo-discount strong { font: 600 38px/1.1 var(--font-geist-sans), sans-serif; letter-spacing: -.055em; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.promo-discount strong { font: 600 38px/1.1 var(--font-stitch-body), sans-serif; letter-spacing: -.055em; margin-right: 4px; font-variant-numeric: tabular-nums; }
 .promo-code-card footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px dashed var(--brand-line); margin-top: 20px; padding-top: 18px; }
 .promo-code-card footer p { margin: 0; }
 .promo-code-list .promo-empty { grid-column: 1 / -1; text-align: center; padding: 48px 24px; }
@@ -56,7 +56,7 @@ main.promo-admin, main.enquiry-admin { width: min(1320px, 100%); max-width: 1320
 .promo-access { background: #fff var(--brand-paper-sheen); border-color: var(--brand-line); }
 .promo-access a { display: inline-flex; min-height: 44px; align-items: center; margin-right: 20px; color: var(--brand-slate); font-size: 14px; }
 .promo-admin :focus-visible, .enquiry-admin :focus-visible { outline: 3px solid var(--brand-slate); outline-offset: 3px; }
-.promo-admin-heading :focus-visible, .enquiry-admin .enquiry-admin-top :focus-visible { outline-color: #efd7a8; }
+.promo-admin-heading :focus-visible, .enquiry-admin .enquiry-admin-top :focus-visible { outline-color: #d6e3ff; }
 .enquiry-admin .enquiry-admin-filters { background: #fff var(--brand-paper-sheen); border-color: var(--brand-line); border-radius: 16px; padding: 22px; gap: 16px; }
 .enquiry-admin :is(input, select, textarea) { min-height: 46px; border-color: var(--brand-line); color: var(--brand-midnight); background: var(--brand-ivory); border-radius: 9px; }
 .enquiry-admin label { color: #3d5069; }

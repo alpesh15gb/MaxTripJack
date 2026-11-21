@@ -26,7 +26,7 @@ export default function BookingStatusPage({ bookingId }: { bookingId: string }) 
     <TravelHeader active="trips" mobileTitle="Booking status" mobileSubtitle="Secure booking status" onMobileBack={()=>router.push('/my-trips')} />
     {(!ready || paused) && <main className="page-shell booking-status-page" id="main-content"><section className="booking-status-card booking-status-access"><p className="eyebrow">YOUR PRIVATE BOOKING</p><h1>Your booking updates are here.</h1>{checking ? <p role="status">Checking secure account access…</p> : signedOut ? <><p>Sign in to check this booking. Signing in does not change its payment or confirmation status.</p><Link className="primary" href={accountHref(`/my-trips/${bookingId}`)}>Sign in to view booking</Link></> : <><p role="alert">We couldn’t verify access to this booking. Your private details are hidden until access is confirmed.</p><button className="primary" onClick={() => void refetch()}>Check account access</button></>}</section></main>}
     {ready && <div hidden={paused} inert={paused}><PrivateBookingStatus key={session?`${bookingId}:${session.user.id}:${session.session.id}:${session.user.emailVerified}:${session.user.phoneNumberVerified}`:`${bookingId}:guest`} bookingId={bookingId} paused={paused} /></div>}
-    <TravelFooter compact />
+    <TravelFooter />
   </>;
 }
 

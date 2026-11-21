@@ -24,6 +24,6 @@ export default function AccountExperienceShell({ children, active = "account" }:
       <WorkspaceNavigation active={active} />
       <div className="account-workspace-content">{children}</div>
     </main>
-    <TravelFooter compact />
+    <TravelFooter />
   </div>;
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 import { headers } from "next/headers";
 import { unstable_rethrow } from "next/navigation";
 import VisibilityDashboard from "@/components/visibility-dashboard";
@@ -16,7 +17,8 @@ export default async function VisibilityPage() {
   } catch (error) {
     unstable_rethrow(error);
     const denied = error instanceof HttpError && (error.status === 401 || error.status === 403);
-    return <main className="visibility-page">
+    return <main className="visibility-page operations-restricted">
+      <Link href="/" className="operations-access-brand" aria-label="Max Travel home"><BrandLogo variant="operations"/></Link>
       <p className="visibility-eyebrow">PRIVATE OPERATIONS</p><h1>Visibility dashboard</h1>
       <section className="visibility-notice" role="status"><h2>{denied ? "Authorised access required" : "Access verification unavailable"}</h2>
         <p>{denied ? "Use a verified staff account with two-factor authentication and finance permission. No reporting data has been loaded." : "Reporting is unavailable until authentication can be verified. No reporting data has been loaded."}</p>

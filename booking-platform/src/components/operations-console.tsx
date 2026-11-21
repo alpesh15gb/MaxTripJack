@@ -458,7 +458,7 @@ export default function OperationsConsole() {
   if (!context)
     return (
       <main className="operations-access">
-        <Link href="/">Max Travel</Link>
+        <Link href="/" className="operations-access-brand" aria-label="Max Travel home"><BrandLogo variant="operations"/></Link>
         <p className="ops-eyebrow">Private staff workspace</p>
         <h1>Operations workspace</h1>
         <section className="white-card" role="status">
