@@ -1,5 +1,26 @@
 import {test,expect,capture,expectNoHorizontalOverflow} from './fixtures';
 
+test('a city can be dismissed, reopened and chosen by keyboard without submitting a search', async ({page, provider}) => {
+ provider.overrides['GET /api/travel/destinations'] = {body:{destinations:[
+  {region_id:'10', label:'Aurangabad, Maharashtra, India'}, {region_id:'12', label:'Aurangabad, Bihar, India'},
+ ]}};
+ await page.goto('/book?product=HOTEL');
+ const input = page.getByRole('combobox', {name:'Destination', exact:true});
+ await input.fill('Aurangabad');
+ const list = page.getByRole('listbox', {name:'Destination suggestions'});
+ await expect(list).toBeVisible();
+ await input.press('Escape');
+ await expect(list).toBeHidden();
+ await input.press('ArrowDown');
+ await input.press('ArrowDown');
+ await expect(list.getByRole('option', {selected:true})).toHaveText('Aurangabad, Bihar, India');
+ await input.press('Enter');
+ await expect(input).toHaveValue('Aurangabad, Bihar, India');
+ await expect(input).toBeFocused();
+ expect(provider.requests('/api/travel/destination-hotels')[0].body).toEqual({regionId:'12'});
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
+});
+
 test('editing or clearing a hotel destination removes old choices before another lookup',async({page},info)=>{
  let lookups=0;
  await page.route('**/api/travel/destinations?*',async route=>{
@@ -7,17 +28,17 @@ test('editing or clearing a hotel destination removes old choices before another
   await route.fulfill({json:{destinations:[{region_id:'699356',label:'GOA, INDIA'}]}});
  });
  await page.goto('/book?product=HOTEL');
- const input=page.getByRole('textbox',{name:'Destination',exact:true});
+ const input=page.getByRole('combobox',{name:'Destination',exact:true});
  await input.fill('Goa');
- await expect(page.getByRole('button',{name:'GOA, INDIA',exact:true})).toBeVisible();
+ await expect(page.getByRole('option',{name:'GOA, INDIA',exact:true})).toBeVisible();
  await input.fill('G');
- await expect(page.getByRole('group',{name:'Destination suggestions',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('listbox',{name:'Destination suggestions',exact:true})).toHaveCount(0);
  await expect(input).toHaveValue('G');
  expect(lookups).toBe(1);
  await input.fill('Goa');
- await expect(page.getByRole('button',{name:'GOA, INDIA',exact:true})).toBeVisible();
+ await expect(page.getByRole('option',{name:'GOA, INDIA',exact:true})).toBeVisible();
  await input.fill('');
- await expect(page.getByRole('group',{name:'Destination suggestions',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('listbox',{name:'Destination suggestions',exact:true})).toHaveCount(0);
  await expectNoHorizontalOverflow(page);
  await capture(page,info,'destination-cleared-without-stale-choices');
 });
@@ -31,23 +52,23 @@ test('an abandoned lookup cannot restore choices for a city the customer has rep
   await route.fulfill({json:{destinations:[{region_id:query==='Delhi'?'123':'699356',label:query==='Delhi'?'DELHI, INDIA':'GOA, INDIA'}]}}).catch(()=>{});
  });
  await page.goto('/book?product=HOTEL');
- const input=page.getByRole('textbox',{name:'Destination',exact:true});
+ const input=page.getByRole('combobox',{name:'Destination',exact:true});
  await input.fill('Goa');
- await expect(page.getByRole('button',{name:'GOA, INDIA',exact:true})).toBeVisible();
+ await expect(page.getByRole('option',{name:'GOA, INDIA',exact:true})).toBeVisible();
  await input.fill('Delhi');
- await expect(page.getByRole('button',{name:'GOA, INDIA',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('option',{name:'GOA, INDIA',exact:true})).toHaveCount(0);
  try{
   await expect.poll(()=>started).toBe(true);
   await input.fill('G');
  }finally{release();}
  await expect(input).toHaveValue('G');
- await expect(page.getByRole('group',{name:'Destination suggestions',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('listbox',{name:'Destination suggestions',exact:true})).toHaveCount(0);
 });
 
 test('an empty destination lookup gives practical guidance without operational jargon',async({page})=>{
  await page.route('**/api/travel/destinations?*',route=>route.fulfill({json:{destinations:[]}}));
  await page.goto('/book?product=HOTEL');
- const input=page.getByRole('textbox',{name:'Destination',exact:true});
+ const input=page.getByRole('combobox',{name:'Destination',exact:true});
  await input.fill('No matching city');
  await expect(page.getByRole('status').filter({hasText:'Try a nearby city or check the spelling.'})).toBeVisible();
  await expect(page.getByRole('main')).not.toContainText('synced by operations');
@@ -64,15 +85,15 @@ test('one city choice keeps continuation hidden and failed mapping can be retrie
   await route.fulfill(attempts===1?{status:503,json:{error:'Stays are temporarily unavailable. Try again.'}}:{json:{hotelIds:['10001'],nextCursor:'0:1',hasMore:true}});
  });
  await page.goto('/book?product=HOTEL');
- await page.getByRole('textbox',{name:'Destination',exact:true}).fill('Aurangabad');
- const choices=page.getByRole('group',{name:'Destination suggestions'});
- await expect(choices.getByRole('button')).toHaveCount(2);
- await choices.getByRole('button',{name:'Aurangabad, Maharashtra, India',exact:true}).click();
+ await page.getByRole('combobox',{name:'Destination',exact:true}).fill('Aurangabad');
+ const choices=page.getByRole('listbox',{name:'Destination suggestions'});
+ await expect(choices.getByRole('option')).toHaveCount(2);
+ await choices.getByRole('option',{name:'Aurangabad, Maharashtra, India',exact:true}).click();
  await expect(page.getByRole('status').filter({hasText:'Stays are temporarily unavailable'})).toBeVisible();
- await choices.getByRole('button',{name:'Aurangabad, Maharashtra, India',exact:true}).click();
+ await choices.getByRole('option',{name:'Aurangabad, Maharashtra, India',exact:true}).click();
  await expect(page.locator('input[name="hotelIds"]')).toHaveValue('10001');
  await expect(page.locator('input[name="destinationCursor"]')).toHaveValue('0:1');
  await expect(page.getByRole('main')).not.toContainText(/Hotel group|Next group|Hotel collection/);
- await expect(page.getByRole('button',{name:'Aurangabad, Maharashtra, India',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('option',{name:'Aurangabad, Maharashtra, India',exact:true})).toHaveCount(0);
  expect(attempts).toBe(2);
 });

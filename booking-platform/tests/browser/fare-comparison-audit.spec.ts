@@ -69,6 +69,16 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
  }
  const previous=card.getByRole('button',{name:'Previous fare options',exact:true}),next=card.getByRole('button',{name:'Next fare options',exact:true});
  await expect(previous).toBeVisible();await expect(next).toBeVisible();
+ const jump=card.getByRole('combobox',{name:'Jump to fare'});
+ await expect(jump.locator('option').last()).toHaveText('Corporate fare · Option 15 · ₹6,400');
+ await jump.selectOption('14');
+ await expect(offers.last().getByRole('heading')).toBeFocused();
+ await expect(offers.last().getByRole('heading')).toBeInViewport({ratio:.95});
+ await expect(jump.locator('option:checked')).toHaveText(/15 of 15$/);
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
+ await jump.selectOption('0');
+ await expect(offers.first().getByRole('heading')).toBeFocused();
+ await expect(previous).toBeDisabled();
  const start=await track.evaluate(node=>node.scrollLeft);await next.click();await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeGreaterThan(start);
  const advanced=await track.evaluate(node=>node.scrollLeft);await previous.click();await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeLessThan(advanced);
  if(isMobile&&browserName==='chromium'){
@@ -97,6 +107,7 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
   await expect(status).toBeInViewport({ratio:.95});await expect(checking).toBeInViewport({ratio:.95});
   for(const action of await offers.locator('.fare-option-action button').all())await expect(action).toBeDisabled();
   await expect(previous).toBeDisabled();await expect(next).toBeDisabled();
+  await expect(jump).toBeDisabled();
   // Repeated activation of either the chosen fare or a competing fare is inert.
   await offers.first().locator('.fare-option-action button').evaluate(node=>(node as HTMLButtonElement).click());
   await checking.evaluate(node=>(node as HTMLButtonElement).click());

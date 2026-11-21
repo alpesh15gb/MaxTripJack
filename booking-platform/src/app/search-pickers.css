@@ -11,7 +11,7 @@
 .fare-date-value em{font-style:normal;font-size:13px;font-weight:500;opacity:.78}
 .travellers-trigger strong{font-size:19px;font-weight:650}
 .fare-date small b{font-weight:700}
-.trip-home .home-search-input :is(.fare-date-trigger,.travellers-trigger,.fare-date-value,.travellers-trigger span){color:var(--brand-ivory,#faf9f6)}
+.trip-home .home-search-input :is(.fare-date-trigger,.travellers-trigger,.fare-date-value,.fare-date-value em,.travellers-trigger span){color:var(--brand-ink,#101c2c)}
 .trip-home .home-search-input:is(.fare-date,.travellers-picker)>small{display:block;margin-top:2px}
 
 /* Shared popover surface */
@@ -21,7 +21,7 @@
 
 /* Calendar */
 .fare-calendar{width:min(680px,100%)}
-.fare-calendar-head{position:absolute;top:14px;left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none}
+.fare-calendar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .fare-calendar-head button{pointer-events:auto;width:34px;height:34px;border:1px solid var(--brand-line,#ded6c8);border-radius:50%;background:white;color:var(--brand-ink,#101c2c);font-size:20px;line-height:1;cursor:pointer}
 .fare-calendar-head button:hover:not(:disabled){border-color:var(--brand-gold,#c6a66b);background:var(--brand-tint,#f3ede2)}
 .fare-calendar-head button:disabled{opacity:.35;cursor:default}
@@ -42,8 +42,8 @@
 .fare-band-low{color:#15803d}
 .fare-band-mid{color:var(--brand-muted,#526071)}
 .fare-band-high{color:#b45309}
-.trip-home .home-search-input small .fare-band-low{color:#86efac}
-.trip-home .home-search-input small :is(.fare-band-mid,.fare-band-high){color:var(--home-light-gold,#f0d7a8)}
+.trip-home .home-search-input small .fare-band-low{color:#146535}
+.trip-home .home-search-input small :is(.fare-band-mid,.fare-band-high){color:var(--brand-muted)}
 .fare-calendar-note{display:flex;align-items:center;gap:8px;margin:14px 0 0;padding-top:12px;border-top:1px solid var(--brand-line,#ded6c8);font-size:12px;color:var(--brand-muted,#526071)}
 .fare-calendar-note i{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:currentColor;color:#15803d}
 
@@ -68,7 +68,7 @@
 .travellers-done:hover{background:#e0c48c}
 
 @media (max-width:700px){
-  .fare-calendar,.travellers-panel{box-shadow:0 0 0 100vmax #101c2c73,0 -8px 30px #101c2c40}
+  .fare-calendar,.travellers-panel{box-shadow:0 -8px 30px #101c2c40}
   .fare-calendar{position:fixed;inset:auto 0 0 0;width:auto;max-height:82vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
   .fare-calendar-months{grid-template-columns:1fr;gap:18px}
   .travellers-panel{position:fixed;inset:auto 0 0 0;width:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
@@ -89,3 +89,65 @@
 .trip-home .home-search-input .fare-calendar small.fare-band-mid{color:var(--brand-muted,#526071)}
 .trip-home .home-search-input .fare-calendar small.fare-band-high{color:#b45309}
 .trip-home .home-search-input .travellers-cabins label:has(input:checked){color:var(--brand-ivory,#faf9f6)}
+
+.trip-home .search-picker-dialog {
+  margin: 0;
+  max-width: none;
+  overscroll-behavior: contain;
+}
+.trip-home .search-picker-dialog::backdrop { background: rgb(16 28 44 / 56%); }
+.trip-home .search-picker-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--brand-line);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+.trip-home .search-picker-title strong { font: 400 26px/1.12 var(--travel-display); }
+.trip-home .search-picker-title button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  color: var(--brand-ink);
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-line);
+  border-radius: 50%;
+}
+.trip-home .fare-calendar-head { position: static; pointer-events: auto; }
+.trip-home .fare-calendar-head strong { font-size: 14px; font-weight: 650; }
+.trip-home .fare-calendar-head .calendar-selection { text-align: center; color: var(--brand-muted); font-size: 13px; }
+.trip-home .calendar-selection strong { margin-inline-start: 4px; }
+.trip-home .fare-calendar { inset-inline-start: clamp(0px, calc(100% - 680px), 24%); }
+.trip-home .fare-calendar-days + .fare-calendar-days { margin-top: 2px; }
+.trip-home .fare-calendar-days button { scroll-margin-block: 64px 8px; }
+.trip-home .fare-date { position: static; }
+.trip-home .search-picker-dialog button:focus-visible { outline: 2px solid var(--brand-slate); outline-offset: 2px; }
+@media (max-width: 700px) {
+  html:has(.search-picker-dialog:modal) { overflow: hidden; }
+  .trip-home .search-picker-dialog:modal {
+    inset: auto 0 0;
+    width: 100%;
+    max-height: min(88dvh, 780px);
+    overflow-y: auto;
+    padding-top: 0;
+    animation: search-sheet-enter 180ms ease-out;
+  }
+  .trip-home .search-picker-title {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-block: 8px;
+    background: var(--brand-ivory);
+  }
+  @keyframes search-sheet-enter {
+    from { opacity: .85; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-home .search-picker-dialog:modal { animation: none; }
+}

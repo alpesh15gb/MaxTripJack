@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {includesBreakfast,hasFreeCancellation,filterRoomPlans} from '../src/lib/hotel-room-filters';
+import {includesBreakfast,hasFreeCancellation,filterRoomPlans,roomMealLabel} from '../src/lib/hotel-room-filters';
 const now=Date.parse('2026-11-16T10:00:00+05:30');
 const free={isRefundable:true,penalties:[{from:'2026-11-16T00:00:00+05:30',to:'2026-11-17T00:00:00+05:30',amount:0}]};
+test('customer-facing meal names preserve restrictions and unknown supplier descriptions',()=>{
+ assert.equal(roomMealLabel({mealBasis:'BB'}),'Breakfast included');
+ assert.equal(roomMealLabel({mealBasis:'ROOM_ONLY',inclusions:['Complimentary breakfast']}),'Room only');
+ assert.equal(roomMealLabel({inclusions:['Daily breakfast included']}),'Breakfast included');
+ assert.equal(roomMealLabel({mealBasis:'BREAKFAST_FOR_A_FEE'}),'BREAKFAST FOR A FEE');
+ assert.equal(roomMealLabel({mealBasis:'Dinner for one adult'}),'Dinner for one adult');
+ assert.equal(roomMealLabel({}),'Meal plan not supplied');
+});
 test('breakfast filters require an explicit included rate benefit',()=>{
  assert.equal(includesBreakfast({mealBasis:'BREAKFAST'}),true);
  assert.equal(includesBreakfast({mealBasis:'ROOM_ONLY',inclusions:['Breakfast included']}),false);

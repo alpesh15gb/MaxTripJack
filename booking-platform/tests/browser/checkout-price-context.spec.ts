@@ -55,8 +55,15 @@ test('hotel bundle comparison stays inclusive and final review identifies each g
  await expect(notice(page)).toContainText('Full stay · all selected rooms and guests');
  await fillGuests(page,['Aarav','Isha']);
  const summary=page.locator('.final-traveller-summary');
+ await expect(summary.getByRole('listitem').first()).toHaveCSS('display','grid');
+ const editContact=summary.getByRole('button',{name:'Edit contact details',exact:true});
+ expect((await editContact.boundingBox())!.height).toBeGreaterThanOrEqual(44);
  await expect(summary.getByRole('listitem').nth(0)).toContainText('Aarav Example');await expect(summary.getByRole('listitem').nth(0)).toContainText('Room 1');
  await expect(summary.getByRole('listitem').nth(1)).toContainText('Isha Example');await expect(summary.getByRole('listitem').nth(1)).toContainText('Room 2');
+ await summary.getByRole('button',{name:'Edit guest 2 details',exact:true}).click();
+ await expect(page.locator('[name="first-1"]')).toBeFocused();
+ await editContact.click();
+ await expect(page.locator('#guest-email')).toBeFocused();
  await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toContainText('₹12,000');
  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,hid:'10001',optionId:'two-room-bundle'});
  const stored=await page.evaluate(()=>JSON.stringify({history:history.state,session:{...sessionStorage}}));expect(stored).not.toContain('Isha');expect(stored).not.toContain('price-context@example.test');

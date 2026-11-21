@@ -88,6 +88,10 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
   });
   const [navigating, startNavigation] = useTransition();
   const nights = Math.round((Date.parse(end) - Date.parse(date)) / 86400000);
+  const featuredStay = new URLSearchParams({
+    product: "HOTEL", city: featured.name === "The Maldives" ? "Maldives" : featured.name,
+    date: drafts.HOTEL.date, end: drafts.HOTEL.end, adults: String(drafts.HOTEL.adults),
+  });
 
   function updateDraft(change: Partial<SearchDraft>) {
     setDrafts(current => ({ ...current, [product]: { ...current[product], ...change } }));
@@ -200,8 +204,8 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
           <h1 id="home-title">Find your <em>next escape.</em></h1>
           <p>Flights, distinctive stays and holidays from Goa to Paris.</p>
           <div className="home-hero-actions">
-            <a className="hero-explore-link" href="#discover">Explore destinations <TravelIcon name="arrow" size={17} /></a>
-            <a className="hero-search-link" href="#trip-search">Plan a trip</a>
+            <Link className="hero-stay-link" href={`/book?${featuredStay}`}>Find stays in {featured.name === "The Maldives" ? "the Maldives" : featured.name} <TravelIcon name="arrow" size={17} /></Link>
+            <a className="hero-search-link" href="#discover">Explore destinations</a>
           </div>
         </div>
         <div className="studio-hero-photo">
@@ -237,7 +241,6 @@ export default function HomeSearch({ children }: { children: ReactNode }) {
           {navigating&&<p role="status" className="home-navigation-status">Opening your search… Live availability will load on the next screen.</p>}
           {notice && <p id="home-search-error" className="home-search-error" role="alert">{notice}</p>}
         </form>
-        <p className="home-search-footnote"><TravelIcon name="check" size={14} />Compare first. Review the full price and rules before you pay.</p>
       </section>
 
       <section className="home-confidence" aria-label="Plan with confidence"><div><TravelIcon name="receipt" /><span><strong>Clear before checkout</strong><small>Review the total and supplier rules</small></span></div><div><TravelIcon name="bag" /><span><strong>The details that matter</strong><small>Fares, baggage & cancellation rules</small></span></div><div><TravelIcon name="shield" /><span><strong>Your trip, in one place</strong><small>Updates and documents in My trips</small></span></div></section>

@@ -240,3 +240,33 @@ for(const applied of [false,true])test(`expired checkout resets ${applied?'appli
  await reviewPayment(page);await expect(pay(page)).toHaveText('Agree & pay ₹6,540');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
+
+test('flight extras can be discarded before a save while an unconfirmed save still blocks payment',async({page,provider})=>{
+ const path='/api/travel/checkout-extras';
+ provider.overrides[`GET ${path}`]={body:{segments:[{id:'segment-1',tripIndex:0,label:'BOM → DEL',options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:50000}]}],travellerTypes:['ADULT'],choices:[]}};
+ await openFlight(page);await fillTraveller(page);
+ const disclosure=form(page).locator('.checkout-optional-extras');
+ await disclosure.locator('summary').click();
+ await disclosure.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+ const meal=disclosure.getByRole('combobox',{name:'Meal',exact:true});
+ await meal.selectOption('MEAL1');await expect(pay(page)).toBeDisabled();
+ await disclosure.locator('summary').click();
+ await page.getByRole('button',{name:'Review flight extras',exact:true}).click();
+ await expect(disclosure.locator('summary')).toBeFocused();
+ await disclosure.getByRole('button',{name:'Discard changes',exact:true}).click();
+ await expect(meal).toHaveValue('');await expect(pay(page)).toBeEnabled();
+ expect(provider.requests(path).filter(call=>call.method==='POST')).toHaveLength(0);
+ await meal.selectOption('MEAL1');
+ provider.overrides[`POST ${path}`]={status:502,body:{error:'The airline response was interrupted.'}};
+ await disclosure.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
+ await expect(disclosure.getByRole('alert')).toContainText('interrupted');
+ await expect(disclosure.getByRole('button',{name:'Discard changes'})).toHaveCount(0);
+ await expect(meal).toBeDisabled();await expect(pay(page)).toBeDisabled();
+ provider.overrides[`POST ${path}`]={body:{totalMinor:704000}};
+ await disclosure.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
+ await expect(pay(page)).toBeEnabled();await expect(pay(page)).toContainText('₹7,040');
+ await meal.selectOption('');await disclosure.getByRole('button',{name:'Discard changes',exact:true}).click();
+ await expect(meal).toHaveValue('MEAL1');await expect(pay(page)).toContainText('₹7,040');
+ expect(provider.requests(path).filter(call=>call.method==='POST')).toHaveLength(2);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});

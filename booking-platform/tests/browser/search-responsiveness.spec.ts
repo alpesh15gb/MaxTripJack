@@ -89,6 +89,8 @@ test('large flight response mounts fare details only when opened and retains all
  await disclosure.focus();await page.keyboard.press('Tab');
  await expect(first.getByRole('button',{name:'Back to flights',exact:true})).toBeFocused();
  await page.keyboard.press('Tab');
+ await expect(first.getByRole('combobox',{name:'Jump to fare'})).toBeFocused();
+ await page.keyboard.press('Tab');
  await expect(first.getByRole('button',{name:'Next fare options',exact:true})).toBeFocused();
  await page.keyboard.press('Tab');
  await expect(first.getByRole('button',{name:'Check fare & continue',exact:true}).first()).toBeFocused();

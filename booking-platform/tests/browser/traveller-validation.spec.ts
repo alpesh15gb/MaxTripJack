@@ -24,6 +24,14 @@ test('child and infant age errors retain corrections and block payment until the
  await summary.getByRole('button',{name:/Infant 3 · Date of birth/}).click();await expect(page.locator('[name="dob-2"]')).toBeFocused();
  await attemptPayment(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.locator('[name="dob-1"]').fill(birthForAge(5));await page.locator('[name="dob-2"]').fill(birthForAge(1));
+ await expect(summary).toHaveCount(0);
+ await expect(page.locator('[name="dob-1"]')).not.toHaveAttribute('aria-invalid','true');
+ await expect(page.locator('[name="first-0"]')).toHaveAttribute('autocomplete','section-traveller0 given-name');
+ await expect(page.locator('[name="first-1"]')).toHaveAttribute('autocomplete','section-traveller1 given-name');
+ await page.getByRole('button',{name:'Edit traveller 2 details',exact:true}).click();
+ await expect(page.locator('[name="first-1"]')).toBeFocused();
+ await page.getByRole('button',{name:'Edit contact details',exact:true}).click();
+ await expect(page.locator('#guest-email')).toBeFocused();
  await inlineReview(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  // Editing the live review never creates a payment. Consent belongs to Pay.
  await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);

@@ -10,7 +10,7 @@ import type {AvailableHotelOption} from './hotel-room-view';
 import HotelCancellationTimeline from './hotel-cancellation-timeline';
 import {money} from './booking-flight-card';
 import HotelRoomFilters from './hotel-room-filters';
-import {filterRoomPlans,type RoomPlanFilters} from '@/lib/hotel-room-filters';
+import {filterRoomPlans,roomMealLabel,type RoomPlanFilters} from '@/lib/hotel-room-filters';
 
 export type HotelDetailViewProps={name:string;property?:HotelPropertyDetails;metadataStatus?:HotelMetadataStatus;context:HotelStayContext|null;options:AvailableHotelOption[];roomsStatus:'loading'|'ready'|'error';roomsError?:string;busy:boolean;now:number|null;checkingOptionId?:string;selectedOptionId?:string;onBack:()=>void;onRetry:()=>void;onEditSearch?:()=>void;onReview:(optionId:string)=>void;galleryOpen?:boolean;onGalleryChange?:(open:boolean)=>void};
 function optionTotal(option:AvailableHotelOption){const value=option.pricing?.totalPrice;return typeof value==='number'&&Number.isFinite(value)&&value>0&&Number.isSafeInteger(Math.round(value*100))?Math.round(value*100):null;}
@@ -29,7 +29,18 @@ export function groupHotelRoomRates(options:AvailableHotelOption[]){
   const key=known?`rooms:${JSON.stringify(rooms!.map(room=>[room.id??null,room.name]))}`:`unknown:${option.optionId}`;
   const group=groups.get(key)??{key,label:hotelRoomLabel({roomInfo:rooms??[]}),options:[]};group.options.push(option);groups.set(key,group);
  }
- return [...groups.values()];
+ // Keep the entire room bundle together. Within each group, put rates that can
+ // be reviewed first, retaining supplier order for ties and unknown prices.
+ function byPrice(a:AvailableHotelOption,b:AvailableHotelOption){
+  const left=optionTotal(a),right=optionTotal(b);
+  if(left===right)return 0;
+  if(left===null)return 1;
+  if(right===null)return -1;
+  return left-right;
+ }
+ const ordered=[...groups.values()];
+ for(const group of ordered)group.options.sort(byPrice);
+ return ordered.sort((a,b)=>byPrice(a.options[0],b.options[0]));
 }
 /** Collapse formatting duplicates without turning supplier restrictions into benefits. */
 function distinctPropertyAmenities(values:string[]=[]){
@@ -91,12 +102,17 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
    <aside className="stay-rate-preview" aria-label="Stay price summary">
     <h3>{roomsStatus==='ready'&&lowest?hotelRoomLabel({roomInfo:lowest.option.roomInfo??[]}):'Room availability'}</h3>
     <p>{stayLabel}</p>
-    {roomsStatus==='loading'?<div className="stay-rate-loading" role="status"><strong>Checking room options…</strong><p>Explore the available property information while we check your rooms.</p></div>:roomsStatus==='error'?<p className="stay-muted">Room availability could not be checked. Open the room options to try again.</p>:lowest?<><dl className="stay-preview-facts"><div><dt>Meals</dt><dd>{lowest.option.mealBasis?.replaceAll('_',' ')||'Meal plan not supplied'}</dd></div><div><dt>Cancellation</dt><dd>{hotelCancellationLabel(lowest.option.cancellation,now??undefined)}</dd></div></dl><div className="stay-preview-price"><small>Estimated full stay total from</small><strong>{money(lowest.total)}</strong><span>{stayLabel}</span></div></>:<p>{noMatchingRates?'No rates match these preferences.':noPrices?'Room prices aren’t available.':'No room rates are available for these dates.'}</p>}
+    {roomsStatus==='loading'?<div className="stay-rate-loading" role="status"><strong>Checking room options…</strong><p>Explore the available property information while we check your rooms.</p></div>:roomsStatus==='error'?<p className="stay-muted">Room availability could not be checked. Open the room options to try again.</p>:lowest?<><dl className="stay-preview-facts"><div><dt>Meals</dt><dd>{roomMealLabel(lowest.option)}</dd></div><div><dt>Cancellation</dt><dd>{hotelCancellationLabel(lowest.option.cancellation,now??NaN)}</dd></div></dl><div className="stay-preview-price"><small>Estimated full stay total from</small><strong>{money(lowest.total)}</strong><span>{stayLabel}</span></div></>:<p>{noMatchingRates?'No rates match these preferences.':noPrices?'Room prices aren’t available.':'No room rates are available for these dates.'}</p>}
     <button type="button" className="primary" disabled={busy} onClick={roomAction}>{previewActionLabel}</button>
     {lowest&&<small className="stay-price-disclosure">The final price and conditions are checked at review. Nothing is reserved yet. Additional property-payable charges are not verified here.</small>}
    </aside>
   </div>
-  <section ref={roomSection} id="hotel-room-options" className="stay-rooms-section" aria-labelledby="hotel-room-options-title"><header><div><h2 id="hotel-room-options-title" tabIndex={-1}>Choose your room</h2><p>Compare meals, inclusions and cancellation terms for {stayLabel.toLowerCase()}.</p></div>{roomsStatus==='ready'&&options.length>0&&<span className="stay-rate-count" role="status">{filtersActive?`${filteredOptions.length} of ${options.length} rates match`:`${options.length} rate option${options.length===1?'':'s'}`}</span>}</header>
+  <section ref={roomSection} id="hotel-room-options" className="stay-rooms-section" aria-labelledby="hotel-room-options-title">
+   <header><div>
+    <a className="stay-room-property-link" href="#hotel-detail-title" onClick={event=>followSection(event,'hotel-detail-title')}>{name} <span aria-hidden="true">↑</span></a>
+    <h2 id="hotel-room-options-title" tabIndex={-1}>Choose your room</h2>
+    <p>{context&&<>{travelDateLabel(context.checkIn)} – {travelDateLabel(context.checkOut)} · </>}{stayLabel}</p>
+   </div>{roomsStatus==='ready'&&options.length>0&&<span className="stay-rate-count" role="status">{filtersActive?`${filteredOptions.length} of ${options.length} rates match`:`${options.length} rate option${options.length===1?'':'s'}`}</span>}</header>
    {roomsStatus==='ready'&&options.length>0&&<HotelRoomFilters options={options} filters={rateFilters} now={now} onChange={setRateFilters}/>}
    {roomsStatus==='ready'&&!lowest&&<div className="stay-room-state">
     <h3>{noMatchingRates?'No rates match these preferences':noPrices?'Room prices aren’t available':'No rooms available for this stay'}</h3>
@@ -118,7 +134,34 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
      <button type="button" className="secondary" disabled={busy} onClick={onBack}>Browse other stays</button>
     </div>
    </div>}
-   {roomsStatus==='ready'&&groups.length>0&&<div className="stay-room-groups">{groups.map((group,groupIndex)=><section className="stay-room-group" key={group.key} data-room-group={groupIndex} aria-label={`Room combination ${groupIndex+1}: ${group.label}`}><header className="stay-room-group-heading"><div><p className="stay-eyebrow">ROOM COMBINATION {groupIndex+1}</p><h3>{group.label}</h3></div><span>{group.options.length} rate plan{group.options.length===1?'':'s'}</span></header><div className="stay-room-rates">{group.options.map((option,index)=>{const total=optionTotal(option),selected=selectedOptionId===option.optionId,checking=busy&&checkingOptionId===option.optionId;return <article className={`room-option-card stay-room-rate${selected?' is-selected':''}`} key={option.optionId} data-room-option-id={option.optionId} aria-label={`Rate ${index+1}: ${hotelRoomLabel({roomInfo:option.roomInfo??[]})}`}><div className="stay-room-rate-main"><div className="stay-room-rate-heading"><div>{selected&&<span className="room-selection-label">Selected room rate</span>}<p className="stay-plan-label">Rate plan {index+1}</p>{(option.roomInfo?.length??0)>1&&<p className="stay-muted">This rate includes the room combination shown above.</p>}</div></div><dl className="stay-room-facts"><div><dt>Meal plan</dt><dd>{option.mealBasis?.replaceAll('_',' ')||'Meal plan not supplied'}</dd></div><div><dt>Cancellation</dt><dd>{hotelCancellationLabel(option.cancellation,now??undefined)}</dd></div></dl>{Boolean(option.inclusions?.length)&&<ul className="stay-rate-inclusions">{option.inclusions?.map((item,i)=><li key={`${item}-${i}`}>{item}</li>)}</ul>}{option.bookingNotes&&<p className="stay-booking-notes">{option.bookingNotes}</p>}</div><div className="room-option-action stay-room-rate-action"><small>Estimated full stay total</small><strong>{total===null?'Price unavailable':money(total)}</strong><p>{stayLabel}</p><button type="button" className="primary" disabled={busy||total===null} onClick={()=>onReview(option.optionId)}>{checking?'Checking your room…':'Continue with room'}</button><small>Current price and terms checked next</small>{checking&&<p role="status">Checking your selected room rate. Nothing is reserved yet.</p>}</div><details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary><HotelCancellationTimeline value={option.cancellation}/></details></article>;})}</div></section>)}</div>}
+   {roomsStatus==='ready'&&groups.length>0&&<div className="stay-room-groups">{groups.map((group,groupIndex)=>{
+    const groupId=`stay-room-group-${groupIndex}`;
+    return <section className="stay-room-group" key={group.key} data-room-group={groupIndex} aria-label={`Room combination ${groupIndex+1}: ${group.label}`}>
+     <header className="stay-room-group-heading">
+      <h3 id={groupId}>{group.label}</h3>
+      <span>{group.options.length} rate plan{group.options.length===1?'':'s'}</span>
+     </header>
+     <div className="stay-room-rates">{group.options.map((option,index)=>{
+      const total=optionTotal(option),selected=selectedOptionId===option.optionId,checking=busy&&checkingOptionId===option.optionId;
+      const planId=`${groupId}-plan-${index}`;
+      return <article className={`room-option-card stay-room-rate${selected?' is-selected':''}`} key={option.optionId} data-room-option-id={option.optionId} aria-label={`Rate ${index+1}: ${group.label}`} aria-describedby={planId}>
+       <div className="stay-room-rate-main">
+        {selected&&<span className="room-selection-label">Selected room rate</span>}
+        <h4 className="stay-plan-title" id={planId}>{roomMealLabel(option)}</h4>
+        <p className="stay-plan-cancellation" id={`${planId}-terms`}>{hotelCancellationLabel(option.cancellation,now??NaN)}</p>
+        {Boolean(option.inclusions?.length)&&<ul className="stay-rate-inclusions">{option.inclusions?.map((item,i)=><li key={`${item}-${i}`}>{item}</li>)}</ul>}
+        {option.bookingNotes&&<p className="stay-booking-notes">{option.bookingNotes}</p>}
+       </div>
+       <div className="room-option-action stay-room-rate-action">
+        <small>Estimated full stay total</small><strong id={`${planId}-price`}>{total===null?'Price unavailable':money(total)}</strong><p>{stayLabel}</p>
+        <button type="button" className="primary" aria-describedby={`${groupId} ${planId} ${planId}-terms ${planId}-price`} disabled={busy||total===null} onClick={()=>onReview(option.optionId)}>{checking?'Checking your room…':'Continue with room'}</button>
+        {checking&&<p role="status">Checking your selected room rate. Nothing is reserved yet.</p>}
+       </div>
+       <details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary><HotelCancellationTimeline value={option.cancellation}/></details>
+      </article>;
+     })}</div>
+    </section>;
+   })}</div>}
   </section>
   <div ref={detailEnd} className="stay-detail-end" aria-hidden="true"/>
   <div className="stay-mobile-action" aria-label="Quick room selection" hidden={!mobileActionVisible||(galleryOpen??localGallery)}><div><small>{roomsStatus==='ready'&&lowest?'Estimated full stay from':'Your room options'}</small><strong>{roomsStatus==='ready'&&lowest?money(lowest.total):roomsStatus==='loading'?'Checking availability…':noMatchingRates?'No matching rates':noPrices?'No room prices':stayUnavailable?'No rooms for these dates':'Availability unavailable'}</strong></div><button type="button" className="primary" disabled={busy} onClick={roomAction}>{roomActionLabel}</button></div>

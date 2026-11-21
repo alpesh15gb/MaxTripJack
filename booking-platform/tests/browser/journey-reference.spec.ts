@@ -94,8 +94,9 @@ test('room workspace and back preserve the exact filtered search without another
  const filters=page.getByRole('dialog',{name:'Filter stays',exact:true});if(await filters.isVisible())await filters.getByRole('button',{name:'Close filters',exact:true}).click();
  await page.getByRole('combobox',{name:'Sort stays',exact:true}).selectOption('price-desc');
  const choose=page.getByRole('button',{name:'Choose room',exact:true});await choose.click();
- await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#hotel-detail-title')).toBeFocused();
+ await expect(page.locator('#booking-results')).toBeHidden();await expect(page.locator('#hotel-room-options-title')).toBeFocused();
  await expect(page.getByRole('button',{name:'Continue with room',exact:true})).toBeVisible();
+ await page.locator('.stay-room-property-link').click();await expect(page.locator('#hotel-detail-title')).toBeFocused();
  await reference(page,testInfo,'journey-property-overview');
  await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeFocused();
  await reference(page,testInfo,'journey-room-workspace');

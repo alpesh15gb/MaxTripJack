@@ -10,6 +10,37 @@
 .fare-options-nav button:hover:not(:disabled) { border-color: var(--brand-gold-ink, #785A25); background: var(--brand-sand, #EDE5D7); }
 .fare-options-nav button:disabled { opacity: .42; cursor: default; }
 .fare-options-nav button:focus-visible { outline: 2px solid var(--brand-midnight, #101C2C); outline-offset: 2px; }
+.fare-options-nav .fare-jump {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  min-width: 0;
+  margin: 0;
+  color: var(--brand-slate, #24364b);
+}
+.fare-options-nav .fare-jump span { font-size: 13px; font-weight: 600; }
+.fare-options-nav .fare-jump select {
+  width: 160px;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--brand-line, #d9d4cb);
+  border-radius: 9px;
+  background-color: white;
+  color: var(--brand-midnight, #101c2c);
+  font: inherit;
+  cursor: pointer;
+}
+.fare-options-nav .fare-jump select:focus-visible,
+.fare-option-heading h4:focus-visible { outline: 2px solid var(--brand-gold-ink, #785a25); outline-offset: 2px; }
+.fare-options-nav > div { flex-shrink: 0; }
+@container (max-width: 380px) {
+  .fare-options-nav:has(.fare-jump) { align-items: end; }
+  .fare-options-nav .fare-jump { display: grid; gap: 2px; }
+}
 .fare-decision-grid {
   --fare-card-gap: 12px;
   --fare-card-width: calc(100% - 28px);
@@ -91,3 +122,78 @@
 
 .journey-flow .flight-selection-summary{scroll-margin-top:16px}
 .journey-flow .flight-selection-summary #review-selected-journey{scroll-margin-bottom:16px}
+
+.flight-segments-content { padding-block: 0 12px; }
+.flight-segments-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flight-segments-list > li { min-width: 0; }
+.flight-segments-list .flight-segment {
+  display: grid;
+  gap: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--brand-line, #d9d4cb);
+  border-radius: 10px;
+  background: var(--brand-ivory, #faf9f6);
+}
+.flight-segment-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+  margin-bottom: 10px;
+  color: var(--brand-midnight, #101c2c);
+}
+.flight-segment-header span,
+.flight-stop small,
+.flight-local-time-note { font-size: 13px; line-height: 1.45; color: var(--brand-muted, #596675); }
+.flight-stop { position: relative; display: grid; grid-template-columns: minmax(76px, max-content) minmax(0, 1fr); gap: 20px; }
+.flight-stop + .flight-stop { padding-top: 12px; }
+.flight-stop-time, .flight-stop-place { display: grid; align-content: start; gap: 1px; }
+.flight-stop-time strong { font-size: 16px; line-height: 1.3; color: var(--brand-midnight, #101c2c); font-variant-numeric: tabular-nums; }
+.flight-stop-place { position: relative; padding-inline-start: 12px; }
+.flight-stop-place span { font-size: 14px; line-height: 1.45; font-weight: 600; overflow-wrap: anywhere; color: var(--brand-slate, #24364b); }
+.flight-stop-place::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
+  border: 2px solid var(--brand-gold-ink, #785a25);
+  border-radius: 50%;
+  background: var(--brand-ivory, #faf9f6);
+}
+.flight-stop:has(+ .flight-stop) .flight-stop-place::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  bottom: -18px;
+  left: 0;
+  border-inline-start: 1px solid var(--brand-gold, #c6a66b);
+}
+.flight-stop + .flight-stop .flight-stop-place::before { background: var(--brand-gold-ink, #785a25); }
+.flight-segment-transfer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+  padding: 7px 12px;
+  border-radius: 6px;
+  background: var(--brand-sand, #ede5d7);
+  color: var(--brand-midnight, #101c2c);
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.flight-local-time-note { display: block; margin-top: 8px; }
+@media (prefers-reduced-motion: no-preference) {
+  .flight-segments-content { animation: flight-segments-reveal 160ms ease-out; }
+  @keyframes flight-segments-reveal { from { opacity: .65; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+}

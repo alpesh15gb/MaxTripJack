@@ -99,7 +99,7 @@ for (const handoff of ['property', 'compare-all'] as const) {
     await expect(page.locator('#hotel-detail-title')).toHaveText(hotelName);
     const rate = page.locator('[data-room-option-id="exact-ai-two-room-combination"]');
     await expect(rate).toContainText('₹9,661.05');
-    await expect(rate).toContainText('BREAKFAST');
+    await expect(rate.getByRole('heading',{name:'Breakfast included'})).toBeVisible();
     await expect(page.locator('.room-option-card')).toHaveCount(1);
     await expect(page.locator('.stay-date-strip')).toContainText(travelDateLabel(departure));
     await expect(page.locator('.stay-date-strip')).toContainText(travelDateLabel(checkOut));

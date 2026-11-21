@@ -1,5 +1,20 @@
 import { test, expect, departure, returning, expectNoHorizontalOverflow, pickHomeDate, setHomeTravellers } from './fixtures';
 
+test('a featured destination opens a stay search with the selected hotel dates and party', async ({page, provider}) => {
+  await page.goto('/');
+  const planner = page.getByRole('region', {name:'Plan your trip'});
+  await planner.getByRole('button', {name:'Hotels', exact:true}).click();
+  await pickHomeDate(planner, 'Check-in', departure);
+  await pickHomeDate(planner, 'Check-out', returning);
+  await setHomeTravellers(planner, {adults:2});
+  await page.getByRole('group', {name:'Preview a destination'}).getByRole('button', {name:'Dubai'}).click();
+  await page.getByRole('link', {name:'Find stays in Dubai'}).click();
+  await page.waitForURL(url => url.pathname === '/book');
+  expect(Object.fromEntries(new URL(page.url()).searchParams)).toMatchObject({product:'HOTEL',city:'Dubai',date:departure,end:returning,adults:'2'});
+  await expect(page.getByRole('combobox', {name:'Destination',exact:true})).toHaveValue('Dubai');
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);
+});
+
 for (const width of [320, 768]) {
   test(`homepage airport names and codes fit at ${width}px`, async ({page}) => {
     await page.setViewportSize({width, height: 900});
@@ -73,7 +88,7 @@ test('switching travel products preserves each homepage search draft', async ({p
   await hotels.click();
   await expect(form.locator('.travellers-trigger')).toContainText('1 Adult');
   await form.getByLabel('Destination', {exact: true}).fill('Goa');
-  await form.getByRole('button', {name: 'Goa, India', exact: true}).click();
+  await form.getByRole('option', {name: 'Goa, India', exact: true}).click();
   await pickHomeDate(form, 'Check-in', returning);
   await setHomeTravellers(form, {adults: 2});
   const hotelEnd = await form.locator('input[name="end"]').inputValue();

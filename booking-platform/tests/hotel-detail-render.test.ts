@@ -37,6 +37,15 @@ test('property overview is available while rates load and retains the exact stay
  assert.match(html,/Checking available rooms/);assert.match(html,/A supplied address/);assert.match(html,/Parking/);
  assert.doesNotMatch(html,/Guest rating|Book now|Free cancellation|per night/i);
 });
+test('room groups surface the lowest eligible full stays and keep tied and unpriced plans reachable',async()=>{
+ const option=(optionId:string,room:string,totalPrice:number)=>({optionId,roomInfo:[{name:room}],pricing:{totalPrice}});
+ const html=await render({options:[
+  option('a-unknown','Twin',NaN),option('b-mid','Garden',5600),option('a-mid','Twin',6100),
+  option('a-low','Twin',4200),option('a-tied','Twin',4200),option('c-unknown','Suite',0),
+ ]});
+ const ids=[...html.matchAll(/data-room-option-id="([^"]+)"/g)].map(match=>match[1]);
+ assert.deepEqual(ids,['a-low','a-tied','a-mid','a-unknown','b-mid','c-unknown']);
+});
 test('missing metadata and failed or empty rates have explicit non-blocking recovery states',async()=>{
  const unavailable=await render({metadataStatus:'unavailable',roomsStatus:'error',roomsError:'Try again safely.'});
  assert.match(unavailable,/Property photos unavailable right now/);assert.match(unavailable,/Property category unavailable right now/);
@@ -50,8 +59,8 @@ test('rates retain exact IDs, complete multi-room composition and customer total
  assert.match(html,/data-room-option-id="exact-option-A"/);assert.match(html,/data-room-option-id="exact-option-B"/);
  assert.match(html,/Twin \+ Double/);assert.match(html,/Selected room rate/);
  assert.match(html,/<div class="stay-preview-price"><small>Estimated full stay total from<\/small><strong>₹8,765\.43<\/strong><span>2 nights · 2 rooms · 4 guests<\/span><\/div>/);
- for(const total of ['₹8,765.43','₹9,000'])assert.ok(html.includes(`<small>Estimated full stay total</small><strong>${total}</strong><p>2 nights · 2 rooms · 4 guests</p>`));
- assert.match(html,/Cancellation terms require review/);assert.match(html,/ROOM ONLY/);assert.match(html,/Wi-Fi/);
+ for(const [group,total] of ['₹8,765.43','₹9,000'].entries())assert.ok(html.includes(`<small>Estimated full stay total</small><strong id="stay-room-group-${group}-plan-0-price">${total}</strong><p>2 nights · 2 rooms · 4 guests</p>`));
+ assert.match(html,/Cancellation terms require review/);assert.match(html,/Room only/);assert.match(html,/Wi-Fi/);
  assert.equal((html.match(/>Continue with room<\/button>/g)??[]).length,2);
  assert.doesNotMatch(html,/<button[^>]*aria-pressed=[^>]*>Continue with room<\/button>/);
  assert.doesNotMatch(html,/free.cancellation|per night|taxes included|discount/i);

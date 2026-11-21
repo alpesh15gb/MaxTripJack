@@ -13,7 +13,7 @@
   align-items: center;
   gap: 4px 8px;
 }
-.booking-workflow .checkout-promo .checkout-promo-heading label { margin: 0; font-size: 15px; font-weight: 650; }
+.booking-workflow .checkout-promo .checkout-promo-heading label { margin: 0; font-size: 15px; font-weight: 650; color: var(--brand-midnight, #101c2c); }
 .checkout-promo p { margin: 0; }
 .checkout-promo-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .booking-workflow .booking-review .checkout-promo-entry input { min-width: 0; width: 100%; min-height: 44px; margin: 0; }
@@ -28,8 +28,8 @@
   line-height: 1.25;
   white-space: normal;
 }
-.booking-workflow .booking-review .checkout-promo .checkout-offers-toggle { border-color: transparent; color: #006756; background: transparent; }
-.checkout-promo > small { color: #52675e; font-size: 12px; line-height: 1.4; }
+.booking-workflow .booking-review .checkout-promo .checkout-offers-toggle { border-color: transparent; color: var(--brand-gold-ink, #725321); background: transparent; text-decoration: underline; text-underline-offset: 3px; }
+.checkout-promo > small { color: var(--brand-muted, #526071); font-size: 12px; line-height: 1.5; }
 .checkout-promo-offers[hidden] { display: none; }
 .checkout-promo-offers ul { display: grid; gap: 8px; list-style: none; padding: 0; margin: 0; }
 .checkout-promo-offers li {
@@ -39,9 +39,9 @@
   justify-content: space-between;
   gap: 8px;
   padding: 12px;
-  border: 1px solid #d4e3d9;
+  border: 1px solid var(--brand-line, #ded6c8);
   border-radius: 10px;
-  background: #f5f9f6 linear-gradient(135deg, #fbfdfb, #e8f2e9);
+  background: var(--brand-ivory, #faf9f6) var(--brand-sand-sheen);
 }
 .checkout-promo :is(strong, small, button) { overflow-wrap: anywhere; }
 .checkout-promo-offers small { display: block; margin-block-start: 4px; }

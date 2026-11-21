@@ -41,7 +41,7 @@ test('homepage hotel selection preserves selected destination and one-room adult
   await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Hotels', exact: true }).click();
   const form = page.locator('.home-search-form');
   await form.getByLabel('Destination', { exact: true }).fill('Goa');
-  await form.getByRole('button', { name: 'Goa, India', exact: true }).click();
+  await form.getByRole('option', { name: 'Goa, India', exact: true }).click();
   await pickHomeDate(form, 'Check-in', departure);
   await pickHomeDate(form, 'Check-out', returning);
   await setHomeTravellers(form, { adults: 3 });
@@ -140,7 +140,7 @@ test('a typed hotel city is not searched until an available destination is selec
   await page.goto(`/book?${query}`);
   await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Choose a destination from the suggestions');
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
-  await page.getByRole('button', { name: 'Goa, India', exact: true }).click();
+  await page.getByRole('option', { name: 'Goa, India', exact: true }).click();
   await page.getByRole('button', { name: 'Search stays', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No stays found', exact: true })).toBeVisible();
   expect(provider.requests('/api/travel/search')).toHaveLength(1);

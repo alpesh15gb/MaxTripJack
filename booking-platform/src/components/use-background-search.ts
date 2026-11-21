@@ -28,7 +28,11 @@ export default function useBackgroundSearch({form,read,enabled,formKey='',editin
   if(!latest.current.interactive)return;
   const dateField=event?.target instanceof HTMLInputElement&&event.target.type==='date';
   delay.current=editingResults&&dateField?400:1000;
-  touched.current=true;invalidateBackgroundSearch();schedule();
+  // Text edits already fired input. Their blur-time change may arrive after a
+  // destination has warmed, immediately before the traveller submits it.
+  const textCommit=event?.type==='change'&&event.target instanceof HTMLInputElement&&['text','search'].includes(event.target.type);
+  if(!textCommit)invalidateBackgroundSearch();
+  touched.current=true;schedule();
  },[editingResults,schedule]);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;cancelTimer();};},[cancelTimer]);
  useEffect(()=>{

@@ -94,7 +94,7 @@ test('hotel NAME opens property overview, gallery, room rate, review and reversi
  await expect(page.getByRole('dialog')).not.toBeVisible();await expect(gallery).toBeFocused();await expect(page).not.toHaveURL(/gallery=1/);
  await gallery.click();await page.goBack();await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('#hotel-detail-title')).toBeVisible();
  await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeInViewport();
- const breakfast=page.locator('.room-option-card').filter({hasText:'₹9,200'});await expect(breakfast).toContainText('BREAKFAST');
+ const breakfast=page.locator('.room-option-card').filter({hasText:'₹9,200'});await expect(breakfast.getByRole('heading',{name:'Breakfast included'})).toBeVisible();
  await expect(page.locator('.room-option-card')).toHaveCount(2);await capture(page,testInfo,'hotel-room-rate-comparison');
  await breakfast.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'exact-breakfast'}]);

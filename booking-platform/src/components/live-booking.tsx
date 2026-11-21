@@ -57,6 +57,7 @@ import {initialReviewPriceChange,selectedFlightEstimate,selectedFlightsInJourney
 import type {ReviewTerm} from '@/lib/review-term-changes';
 import CheckoutPromo from './checkout-promo';
 import CheckoutExtras from './checkout-extras';
+import {CheckoutPartySummary} from './checkout-party-summary';
 import BookingFlightCard,{money} from './booking-flight-card';
 import FlightResultShortcuts,{FlightResultColumns} from './flight-result-shortcuts';
 import FlightResultsControls, {FlightDesktopFilters} from './flight-results-controls';
@@ -237,7 +238,18 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   useEffect(()=>{
     if(quote)return;
     const frame=requestAnimationFrame(()=>{
-      if(roomView&&rooms){if(galleryOpen)return;if(restoreSelectedRate.current&&selectedRoom){restoreSelectedRate.current=false;const rate=document.querySelector<HTMLElement>(`[data-room-option-id="${CSS.escape(selectedRoom.optionId)}"]`);if(rate){rate.querySelector<HTMLButtonElement>('button.primary')?.focus({preventScroll:true});rate.scrollIntoView({behavior:'auto',block:'center'});return;}}const heading=document.getElementById('hotel-detail-title');heading?.focus({preventScroll:true});document.getElementById('booking-rooms')?.scrollIntoView({behavior:'auto',block:'start'});}
+      if(roomView&&rooms){
+        if(galleryOpen)return;
+        if(restoreSelectedRate.current&&selectedRoom){
+          restoreSelectedRate.current=false;
+          const rate=document.querySelector<HTMLElement>(`[data-room-option-id="${CSS.escape(selectedRoom.optionId)}"]`);
+          if(rate){rate.querySelector<HTMLButtonElement>('button.primary')?.focus({preventScroll:true});rate.scrollIntoView({behavior:'auto',block:'center'});return;}
+        }
+        const showRates=window.history.state?.hotelSection==='rooms';
+        const heading=document.getElementById(showRates?'hotel-room-options-title':'hotel-detail-title');
+        heading?.focus({preventScroll:true});
+        document.getElementById(showRates?'hotel-room-options':'booking-rooms')?.scrollIntoView({behavior:'auto',block:'start'});
+      }
       else if(restoreRoomReturn.current){restoreRoomReturn.current=false;const saved=roomReturn.current;if(saved?.trigger.isConnected){saved.trigger.focus({preventScroll:true});window.scrollTo({top:saved.scrollY,behavior:'auto'});}else {document.getElementById('hotel-results-title')?.focus({preventScroll:true});window.scrollTo({top:readHotelBrowse(results?.searchId??'').scrollY??0,behavior:'auto'});}}
     });
     return()=>cancelAnimationFrame(frame);
@@ -472,21 +484,40 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   // summary is returned by reviewSupplier from the quote's persisted search.
   // Never validate against the editable search form or URL prefill.
   const reviewedSearch:PartySearch|undefined=quote?.summary&&(quote.product==='FLIGHT'&&quote.summary.date?{product:'FLIGHT',date:quote.summary.date,returnDate:quote.summary.returnDate,legs:quote.summary.legs,adults:quote.summary.adults,children:quote.summary.children??0,infants:quote.summary.infants??0}:quote.product==='HOTEL'&&quote.summary.checkIn&&quote.summary.checkOut?{product:'HOTEL',checkIn:quote.summary.checkIn,checkOut:quote.summary.checkOut,adults:quote.summary.adults,childrenAges:quote.summary.childrenAges??[],rooms:quote.summary.rooms}:undefined);
-  function validatedGuests(form:HTMLFormElement){
+  function checkGuestFields(form:HTMLFormElement){
     if(!quote)return null;
     const values=new FormData(form);
     const guests=guestsFromForm(values,party,quote.product==='HOTEL'?hotelParty.map(person=>person.roomIndex):undefined);
-      const issues=guestDetailsIssues(guests,reviewedSearch,quote.review);
-      const today=indiaToday();
-      const nativeFields=Array.from(form.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('.booking-traveller-fields input, .booking-traveller-fields select, .booking-traveller-fields textarea')).filter(field=>field.willValidate);
-      for(const field of nativeFields)if(field instanceof HTMLInputElement&&/^dob-\d+$/.test(field.name))field.max=today;
-      // noValidate suppresses only the browser's first-error popup. Retain all
-      // required/type/pattern/length/range/step/custom checks, including fields
-      // omitted from optional GST/emergency payloads and closed details.
-      for(const issue of guestNativeIssues(nativeFields,today))if(!issues.some(existing=>existing.path===issue.path))issues.push(issue);
-      if(issues.length){showGuestErrors(issues);return null;}
-      setGuestErrors([]);
-    return guests;
+    const issues=guestDetailsIssues(guests,reviewedSearch,quote.review);
+    const today=indiaToday();
+    const nativeFields=Array.from(form.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('.booking-traveller-fields input, .booking-traveller-fields select, .booking-traveller-fields textarea')).filter(field=>field.willValidate);
+    for(const field of nativeFields)if(field instanceof HTMLInputElement&&/^dob-\d+$/.test(field.name))field.max=today;
+    // Collect native and supplier conditions together, including fields inside closed disclosures.
+    for(const issue of guestNativeIssues(nativeFields,today))if(!issues.some(existing=>existing.path===issue.path))issues.push(issue);
+    return {guests,issues};
+  }
+  function validatedGuests(form:HTMLFormElement){
+    const checked=checkGuestFields(form);
+    if(!checked)return null;
+    if(checked.issues.length){showGuestErrors(checked.issues);return null;}
+    setGuestErrors([]);
+    return checked.guests;
+  }
+  function updateGuestDetails(form:HTMLFormElement,field:EventTarget){
+    updateTravellerSummary(form);
+    if(!(field instanceof HTMLInputElement||field instanceof HTMLSelectElement)||!guestErrors.length)return;
+    const name=field.name;
+    if(!fieldIssues(name).length)return;
+    const checked=checkGuestFields(form);
+    if(!checked)return;
+    const remaining=checked.issues.filter(issue=>guestIssueField(issue.path).name===name);
+    setGuestErrors(current=>{
+      const previous=current.filter(issue=>guestIssueField(issue.path).name===name);
+      if(previous.length===remaining.length&&previous.every((issue,index)=>issue.message===remaining[index].message&&issue.path===remaining[index].path))return current;
+      const first=current.indexOf(previous[0]);
+      if(first===-1)return current;
+      return [...current.slice(0,first),...remaining,...current.slice(first+1).filter(issue=>guestIssueField(issue.path).name!==name)];
+    });
   }
   // Wait for refreshed requirements and restored fields before validating. A
   // price refresh never opens payment and requires a new explicit confirmation.
@@ -967,11 +998,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       if(mounted.current&&generation===hotelGeneration.current){setRooms({searchId,hid:hotel.tjHotelId,name:hotel.name,options:detail.options,property:detail.property??hotel.property});setRoomsStatus('ready');}
     }catch(error){if(mounted.current&&generation===hotelGeneration.current&&!controller.signal.aborted){setRoomsStatus('error');setRoomsError(error instanceof Error?error.message:'Room availability could not be checked. Try again.');if(error instanceof BookingApiError&&[404,409].includes(error.status)&&/search.*(expired|no longer available)|expired.*search/i.test(error.message)){setFreshSearchRequired(true);setMessage(error.message);}}}
   }
-  function chooseHotel(hotel:Hotel,trigger:HTMLElement){
+  function chooseHotel(hotel:Hotel,trigger:HTMLElement,section:'overview'|'rooms'='overview'){
     const searchId=hotel.originSearchId??results?.searchId;if(!searchId||busyRef.current||loadingMoreHotels||!dismissSelectionGate())return;
     roomReturn.current={trigger,scrollY:window.scrollY};writeHotelBrowse(searchId,{scrollY:window.scrollY});
     window.history.replaceState(null,'',hotelJourneyUrl(results?.searchId??searchId));
-    window.history.pushState({hotelEntry:'detail'},'',hotelJourneyUrl(searchId,hotel.tjHotelId));
+    window.history.pushState({hotelEntry:'detail',hotelSection:section},'',hotelJourneyUrl(searchId,hotel.tjHotelId));
     setRooms({searchId,hid:hotel.tjHotelId,name:hotel.name,options:[],property:hotel.property});setRoomView(true);setGalleryOpen(false);setSelectedRoom(null);setMessage('');
     void loadHotelRooms(hotel,searchId);
   }
@@ -1092,20 +1123,20 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       scrollToSection('booking-feedback');
     }}
   }
-  function editTravellerDetails(){
-    const first=checkoutForm.current?.elements.namedItem('first-0');
-    if(first instanceof HTMLElement){first.focus({preventScroll:true});first.scrollIntoView({behavior:'auto',block:'nearest'});}
+  function editGuestField(name:string){
+    const field=checkoutForm.current?.elements.namedItem(name);
+    if(field instanceof HTMLElement){field.focus({preventScroll:true});field.scrollIntoView({behavior:'instant',block:'center'});}
   }
   function showCheckoutSummary(){
     const heading=document.getElementById('checkout-summary-heading');
     heading?.focus({preventScroll:true});
     heading?.scrollIntoView({behavior:'instant',block:'start'});
   }
-  function showCancellationRules(){
-    const conditions=document.getElementById('booking-fare-conditions');
-    if(!(conditions instanceof HTMLDetailsElement))return;
-    conditions.open=true;
-    const summary=conditions.querySelector('summary');
+  function showCheckoutDisclosure(id:string){
+    const details=document.getElementById(id);
+    if(!(details instanceof HTMLDetailsElement))return;
+    details.open=true;
+    const summary=details.querySelector('summary');
     summary?.focus({preventScroll:true});
     summary?.scrollIntoView({behavior:'instant',block:'start'});
   }
@@ -1309,22 +1340,22 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         <div className={`booking-expiry${expired||needsReview?' is-expired':''}`} role={expired||needsReview?'alert':undefined}><div><strong>{payment?'Payment order created':expired||needsReview?'We’ll check the latest price when you continue':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':expired||needsReview?'Your details are kept. You’ll see any changes before choosing Agree & pay.':'We’ll check the price again if needed before payment.'}</p></div>{busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}{!payment&&!paymentUncertain&&selection&&<button type="button" className="secondary" disabled={busy} onClick={()=>void review(selection,true)}>{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</button>}</div>
         {Boolean(quote.review.alerts)&&<div className="info-message"><strong>Supplier update</strong><SupplierPolicy title="Review these fare alerts" value={quote.review.alerts}/></div>}
         {guestErrors.length>0&&<section id="traveller-errors" className="guest-error-summary" role="alert" aria-labelledby="traveller-errors-title" tabIndex={-1}><h3 id="traveller-errors-title">Check these details before payment</h3><p>Your entries are kept. Correct the highlighted fields before paying.</p><ul>{guestErrors.map((issue,index)=><li key={`${issue.path}:${index}`}><button type="button" onClick={()=>focusGuestIssue(issue)}>{guestIssueLabel(issue)}: {issue.message}</button></li>)}</ul></section>}
-        <fieldset id="booking-traveller-details" className="booking-traveller-fields" onChange={()=>{if(checkoutForm.current)updateTravellerSummary(checkoutForm.current);}} disabled={!checkoutConfigured||checkoutLocked} hidden={!checkoutConfigured}>
+        <fieldset id="booking-traveller-details" className="booking-traveller-fields" onChange={event=>{if(checkoutForm.current)updateGuestDetails(checkoutForm.current,event.target);}} disabled={!checkoutConfigured||checkoutLocked} hidden={!checkoutConfigured}>
           {party.map((pt,index)=>{
             const dobRequired=pt!=='ADULT'||Boolean(quote.review.conditions?.dob?.adobr);
             const panRequired=panRequiredForTraveller(quote.review,quote.product==='HOTEL'?hotelParty:party.map(pt=>({pt})),index);
             const passportField=<label>Passport number{passportRequired?'':' (optional)'}<input {...fieldProps(`passport-${index}`)} name={`passport-${index}`} required={passportRequired} maxLength={30} autoComplete="off"/>{fieldError(`passport-${index}`)}</label>;
             const expiryField=<label>Passport expiry{expiryRequired?'':' (optional)'}<input {...fieldProps(`expiry-${index}`)} name={`expiry-${index}`} required={expiryRequired} type="date"/>{fieldError(`expiry-${index}`)}</label>;
             const nationalityField=<label>Passport nationality · 2-letter code<input {...fieldProps(`nationality-${index}`)} name={`nationality-${index}`} required={passportRequired} pattern="[A-Za-z]{2}" maxLength={2} placeholder="IN"/>{fieldError(`nationality-${index}`)}</label>;
-            const panField=pt==='ADULT'?<label>PAN{panRequired?'':' (optional)'}<input {...fieldProps(`pan-${index}`,`pan-hint-${index}`)} name={`pan-${index}`} onChange={event=>{if(event.currentTarget.validity.valid)setGuestErrors(current=>current.filter(issue=>guestIssueField(issue.path).name!==`pan-${index}`));}} required={panRequired} pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" maxLength={10} autoComplete="off" autoCapitalize="characters" spellCheck={false}/><small id={`pan-hint-${index}`} className="document-field-hint">{panRequired?quote.product==='HOTEL'?'This room rate requires PAN for the primary guest only.':'The airline requires PAN for this fare.':'Leave blank if you don’t wish to add it.'}</small>{fieldError(`pan-${index}`)}</label>:null;
+            const panField=pt==='ADULT'?<label>PAN{panRequired?'':' (optional)'}<input {...fieldProps(`pan-${index}`,`pan-hint-${index}`)} name={`pan-${index}`} required={panRequired} pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" maxLength={10} autoComplete="off" autoCapitalize="characters" spellCheck={false}/><small id={`pan-hint-${index}`} className="document-field-hint">{panRequired?quote.product==='HOTEL'?'This room rate requires PAN for the primary guest only.':'The airline requires PAN for this fare.':'Leave blank if you don’t wish to add it.'}</small>{fieldError(`pan-${index}`)}</label>:null;
             const documentFields=[{key:"passport",required:passportRequired,field:passportField},{key:"expiry",required:expiryRequired,field:expiryField},{key:"nationality",required:passportRequired,field:nationalityField},{key:"pan",required:panRequired,field:panField}].filter(item=>item.field);
-            return <fieldset key={index} className="traveller-card"><legend>{quote.product==='HOTEL'?`Room ${hotelParty[index].roomIndex+1} · `:''}{pt==='ADULT'?'Adult':pt==='CHILD'?'Child':'Infant'} {index+1}</legend><p className="muted">Enter the name exactly as shown on the travel document.</p>{checkoutSession&&<SavedProfileFill index={index} type={pt}/>}<div className="form-row traveller-identity"><label>Title<select {...fieldProps(`title-${index}`)} name={`title-${index}`} defaultValue={pt==='ADULT'?'Mr':'Master'}><option>Mr</option><option>Ms</option><option>Mrs</option><option>Master</option><option>Miss</option></select>{fieldError(`title-${index}`)}</label><label>First name<input {...fieldProps(`first-${index}`)} name={`first-${index}`} required maxLength={80} autoComplete="given-name"/>{fieldError(`first-${index}`)}</label><label>Last name<input {...fieldProps(`last-${index}`)} name={`last-${index}`} required maxLength={80} autoComplete="family-name"/>{fieldError(`last-${index}`)}</label>{dobRequired&&<label>Date of birth<input {...fieldProps(`dob-${index}`)} name={`dob-${index}`} type="date" max={indiaToday()} required/>{fieldError(`dob-${index}`)}</label>}</div>{!dobRequired&&<details><summary>Add date of birth (optional)</summary><label>Date of birth<input {...fieldProps(`dob-${index}`)} name={`dob-${index}`} type="date" max={indiaToday()}/>{fieldError(`dob-${index}`)}</label></details>}{documentFields.some(item=>item.required)&&<div className="required-documents"><h4>Required for this booking</h4><div className="form-row">{documentFields.filter(item=>item.required).map(item=><div className="document-field" key={item.key}>{item.field}</div>)}</div></div>}{documentFields.some(item=>!item.required)&&<details><summary>Travel documents (optional for this fare)</summary><div className="form-row">{documentFields.filter(item=>!item.required).map(item=><div className="document-field" key={item.key}>{item.field}</div>)}</div></details>}</fieldset>;
+            return <fieldset key={index} className="traveller-card"><legend>{quote.product==='HOTEL'?`Room ${hotelParty[index].roomIndex+1} · `:''}{pt==='ADULT'?'Adult':pt==='CHILD'?'Child':'Infant'} {index+1}</legend><p className="muted">Enter the name exactly as shown on the travel document.</p>{checkoutSession&&<SavedProfileFill index={index} type={pt}/>}<div className="form-row traveller-identity"><label>Title<select {...fieldProps(`title-${index}`)} name={`title-${index}`} autoComplete={`section-traveller${index} honorific-prefix`} defaultValue={pt==='ADULT'?'Mr':'Master'}><option>Mr</option><option>Ms</option><option>Mrs</option><option>Master</option><option>Miss</option></select>{fieldError(`title-${index}`)}</label><label>First name<input {...fieldProps(`first-${index}`)} name={`first-${index}`} required maxLength={80} autoComplete={`section-traveller${index} given-name`}/>{fieldError(`first-${index}`)}</label><label>Last name<input {...fieldProps(`last-${index}`)} name={`last-${index}`} required maxLength={80} autoComplete={`section-traveller${index} family-name`}/>{fieldError(`last-${index}`)}</label>{dobRequired&&<label>Date of birth<input {...fieldProps(`dob-${index}`)} name={`dob-${index}`} type="date" autoComplete={`section-traveller${index} bday`} max={indiaToday()} required/>{fieldError(`dob-${index}`)}</label>}</div>{!dobRequired&&<details><summary>Add date of birth (optional)</summary><label>Date of birth<input {...fieldProps(`dob-${index}`)} name={`dob-${index}`} type="date" autoComplete={`section-traveller${index} bday`} max={indiaToday()}/>{fieldError(`dob-${index}`)}</label></details>}{documentFields.some(item=>item.required)&&<div className="required-documents"><h4>Required for this booking</h4><div className="form-row">{documentFields.filter(item=>item.required).map(item=><div className="document-field" key={item.key}>{item.field}</div>)}</div></div>}{documentFields.some(item=>!item.required)&&<details><summary>Travel documents (optional for this fare)</summary><div className="form-row">{documentFields.filter(item=>!item.required).map(item=><div className="document-field" key={item.key}>{item.field}</div>)}</div></details>}</fieldset>;
           })}
-          <section id="booking-contact-details" className="booking-contact"><h3>Where should we send your trip details?</h3><p className="muted">Booking updates and confirmation will go to these contact details.</p>{!checkoutSession&&<p className="guest-checkout-note"><strong>Booking as a guest.</strong> No account or code needed. Your confirmation and updates go to this email; sign in with it later to manage the trip in My trips. <Link href={accountHref('/book?'+new URLSearchParams(submittedSearch).toString())}>Sign in instead</Link></p>}<div className="form-row"><label>Email<input {...fieldProps('email')} name="email" type="email" autoComplete="email" defaultValue={verifiedEmail||customerEmail(checkoutSession?.user)} required/>{fieldError('email')}</label><label>Indian mobile number<input {...fieldProps('phone')} name="phone" type="tel" inputMode="numeric" autoComplete="tel-national" pattern="[6-9][0-9]{9}" defaultValue={/^\+91[6-9][0-9]{9}$/.test(verifiedPhone||checkoutSession?.user.phoneNumber||'')?(verifiedPhone||checkoutSession?.user.phoneNumber||'').slice(3):''} required placeholder="10-digit mobile number"/>{fieldError('phone')}</label></div></section>
+          <section id="booking-contact-details" className="booking-contact"><h3>Where should we send your trip details?</h3><p className="muted">Booking updates and confirmation will go to these contact details.</p>{!checkoutSession&&<p className="guest-checkout-note"><strong>Booking as a guest.</strong> No account or code needed. Your confirmation and updates go to this email; sign in with it later to manage the trip in My trips. <Link href={accountHref('/book?'+new URLSearchParams(submittedSearch).toString())}>Sign in instead</Link></p>}<div className="form-row"><label>Email<input {...fieldProps('email')} name="email" type="email" autoComplete="section-contact email" defaultValue={verifiedEmail||customerEmail(checkoutSession?.user)} required/>{fieldError('email')}</label><label>Indian mobile number<input {...fieldProps('phone')} name="phone" type="tel" inputMode="numeric" autoComplete="section-contact tel-national" pattern="[6-9][0-9]{9}" defaultValue={/^\+91[6-9][0-9]{9}$/.test(verifiedPhone||checkoutSession?.user.phoneNumber||'')?(verifiedPhone||checkoutSession?.user.phoneNumber||'').slice(3):''} required placeholder="10-digit mobile number"/>{fieldError('phone')}</label></div></section>
           <details open={gstRequired}><summary>GST billing details{gstRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>GST number<input {...fieldProps('gstNumber')} name="gstNumber" onChange={event=>setGstEntered(Boolean(event.target.value.trim()))} required={gstRequired} minLength={15} maxLength={15}/>{fieldError('gstNumber')}</label><label>Registered business name<input {...fieldProps('gstName')} name="gstName" required={gstRequired||gstEntered} maxLength={35}/>{fieldError('gstName')}</label><label>Billing address<input {...fieldProps('gstAddress')} name="gstAddress" maxLength={70}/>{fieldError('gstAddress')}</label></div></details>
           <details open={emergencyRequired}><summary>Emergency contact{emergencyRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>Contact name<input {...fieldProps('emergencyName')} name="emergencyName" onChange={event=>setEmergencyEntered(Boolean(event.target.value.trim()))} required={emergencyRequired} maxLength={100}/>{fieldError('emergencyName')}</label><label>Contact email<input {...fieldProps('emergencyEmail')} name="emergencyEmail" required={emergencyRequired||emergencyEntered} type="email"/>{fieldError('emergencyEmail')}</label><label>Contact phone with country code<input {...fieldProps('emergencyPhone')} name="emergencyPhone" required={emergencyRequired||emergencyEntered} type="tel" minLength={10} maxLength={20}/>{fieldError('emergencyPhone')}</label></div></details>
           {extrasResetNotice&&<p className="info-message" role="status">Flight extras were reset when the price was refreshed. Choose any extras again, or continue without extras.</p>}
-          {quote.product==='FLIGHT'&&<details className="checkout-optional-extras"><summary><span>Seats, meals & extra baggage</span><small>{extrasPending?'Apply your changes to continue':'Optional · continue without extras below'}</small></summary><CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={total=>{extrasApplied.current=true;setPromoRevision(n=>n+1);setExtrasResetNotice(false);setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total,discountMinor:0,promoCode:null}:current);}}/></details>}
+          {quote.product==='FLIGHT'&&<details id="booking-flight-extras" className="checkout-optional-extras"><summary><span>Seats, meals & extra baggage</span><small>{extrasPending?'Changes to review':'Optional'}</small></summary><CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={total=>{extrasApplied.current=true;setPromoRevision(n=>n+1);setExtrasResetNotice(false);setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total,discountMinor:0,promoCode:null}:current);}}/></details>}
         </fieldset>
         <details id="booking-fare-conditions" className="review-conditions" open={cancellationNeedsAttention}><summary>Fare conditions, cancellation & documents</summary>{hasCancellationTerms?(quote.product==='HOTEL'&&quote.review.option?.cancellation?<HotelCancellationTimeline value={quote.review.option.cancellation}/>:<SupplierPolicy title="Cancellation and fare rules" value={cancellationTerms}/>):<section className="supplier-policy" aria-label="Cancellation and fare rules"><h4>Cancellation and fare rules</h4><p className="policy-note">Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.</p></section>}<section className="supplier-policy" aria-label="Required booking details"><h4>Required booking details</h4>{requiredBookingDetails.length?<ul className="fare-features">{requiredBookingDetails.map(detail=><li key={detail}>{detail}</li>)}</ul>:<p className="policy-note">No additional documents are requested in this review. Traveller names must match their travel documents.</p>}</section></details>
         </div>
@@ -1344,24 +1375,18 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
             <p className="muted">For all travellers{quote.product==='HOTEL'?' and all rooms':''}. {quote.product==='HOTEL'?'Check the supplier terms for any charges payable at the property.':'Supplier taxes and applicable booking charges are included in the reviewed total.'}</p>
           </details>
           <div className="checkout-summary-policy">
-            <button type="button" className="inline-link" aria-controls="booking-fare-conditions" onClick={showCancellationRules}>View cancellation rules</button>
+            <button type="button" className="inline-link" aria-controls="booking-fare-conditions" onClick={()=>showCheckoutDisclosure('booking-fare-conditions')}>View cancellation rules</button>
           </div>
           {checkoutConfigured&&<>
-            <section className="booking-payment-review" aria-labelledby="checkout-contact-preview-title">
-              <div className="checkout-contact-preview-heading">
-                <h4 id="checkout-contact-preview-title">{quote.product==='HOTEL'?'Guests & contact':'Travellers & contact'}</h4>
-                <button type="button" className="inline-link" disabled={checkoutLocked} onClick={editTravellerDetails}>{quote.product==='HOTEL'?'Edit guest details':'Edit traveller details'}</button>
-              </div>
-              {currentTravellerSummary&&(currentTravellerSummary.names.some(Boolean)||currentTravellerSummary.email||currentTravellerSummary.phone)?<div className="final-traveller-summary">
-                {currentTravellerSummary.names.some(Boolean)&&<ul>{currentTravellerSummary.names.map((name,index)=>name&&<li key={index}><strong>{name}</strong> · {quote.product==='HOTEL'&&<span className="final-traveller-room">Room {hotelParty[index]?.roomIndex+1} · </span>}{party[index]?.toLowerCase()}</li>)}</ul>}
-                {currentTravellerSummary.email&&<p>Email: <strong>{currentTravellerSummary.email}</strong></p>}
-                {currentTravellerSummary.phone&&<p>Mobile: <strong>{currentTravellerSummary.phone}</strong></p>}
-              </div>:<p className="muted">Your details will appear here as you enter them.</p>}
-            </section>
+            <CheckoutPartySummary party={party} roomIndexes={quote.product==='HOTEL'?hotelParty.map(guest=>guest.roomIndex):undefined}
+              entered={currentTravellerSummary} disabled={checkoutLocked} onEdit={editGuestField}/>
             <CheckoutPromo key={`${quote.quoteId}:${promoRevision}`} quoteId={quote.quoteId} needsConfirmation={uncertainPromoQuote===quote.quoteId} disabled={checkoutLocked||expired||needsReview||extrasPending} onBusy={pending=>{busyRef.current=pending;setBusy(pending);if(pending)setActivity('Confirming promo total');}} onUncertain={uncertain=>setUncertainPromoQuote(uncertain?quote.quoteId:null)} onUpdate={result=>setQuote(current=>current?.quoteId===result.quoteId?{...current,totalMinor:result.totalMinor,discountMinor:result.discountMinor,promoCode:result.code}:current)}/>
             {billingRequired&&<BillingFields addressRequired={quote.product==='FLIGHT'} disabled={checkoutLocked}/>}
             {uncertainPromoQuote===quote.quoteId&&<div className="info-message" role="status" aria-label="Promo total confirmation"><p>{expired||needsReview?'Your promo total is unconfirmed. Check the latest price to continue with a fresh quote.':'Payment is paused until you apply or remove the promo code to confirm the total.'}</p></div>}
-            {extrasPending&&<p className="muted" role="status">{expired||needsReview?'Check the latest price, then choose your extras again.':'Apply your optional extras before paying.'}</p>}
+            {extrasPending&&<div className="checkout-pending-extras">
+              <p role="status">{expired||needsReview?'Check the latest price, then choose your extras again.':'Your flight extras need review before you pay.'}</p>
+              {!expired&&!needsReview&&<button type="button" className="inline-link" aria-controls="booking-flight-extras" onClick={()=>showCheckoutDisclosure('booking-flight-extras')}>Review flight extras</button>}
+            </div>}
             {!payment&&!paymentUncertain&&<p id="checkout-consent" className="checkout-acknowledgement">By paying, you accept the total, supplier rules and <Link href="/terms-and-conditions" target="_blank" rel="noopener noreferrer">booking terms</Link>. Confirmation follows once the supplier accepts your booking.</p>}
             <div className={`checkout-submit-action${!paymentUncertain?' mobile-booking-action':''}`}>
               <div className="mobile-action-total"><button type="button" className="checkout-summary-jump" aria-label="View booking summary" aria-controls="booking-summary" onClick={showCheckoutSummary}><small>View summary</small><strong>{money(quote.totalMinor)}</strong></button></div>

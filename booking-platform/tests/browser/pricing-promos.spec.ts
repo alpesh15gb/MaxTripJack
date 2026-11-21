@@ -139,10 +139,10 @@ test('duplicate supplier destinations present one city choice',async({page,provi
  provider.overrides['GET /api/travel/destinations']={body:{destinations:[{region_id:'1001',label:'Hyderabad, India'},{region_id:'1002',label:'Hyderabad, India'}]}};
  await page.goto('/book?product=HOTEL');
  await page.getByLabel('Destination',{exact:true}).fill('Hyderabad');
- const choices=page.getByRole('group',{name:'Destination suggestions',exact:true});
- await expect(choices.getByRole('button')).toHaveCount(1);
+ const choices=page.getByRole('listbox',{name:'Destination suggestions',exact:true});
+ await expect(choices.getByRole('option')).toHaveCount(1);
  await expect(choices).not.toContainText(/Hotel collection|Hotel group/);
  await expectNoHorizontalOverflow(page);await capture(page,info,'one-city-destination');
- await choices.getByRole('button',{name:'Hyderabad, India',exact:true}).click();
+ await choices.getByRole('option',{name:'Hyderabad, India',exact:true}).click();
  expect(provider.requests('/api/travel/destination-hotels')[0].body).toMatchObject({regionId:'1001'});
 });

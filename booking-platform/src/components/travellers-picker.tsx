@@ -1,5 +1,6 @@
 'use client';
-import {useEffect,useId,useRef,useState} from 'react';
+import {useCallback,useId,useRef,useState} from 'react';
+import SearchPickerDialog from './search-picker-dialog';
 
 const cabins=[['ECONOMY','Economy'],['PREMIUM_ECONOMY','Premium economy'],['BUSINESS','Business'],['FIRST','First']] as const;
 export const cabinLabel=(value:string)=>cabins.find(([key])=>key===value)?.[1]??'Economy';
@@ -23,13 +24,7 @@ export default function TravellersPicker({product,adults,childCount:children,inf
 }){
  const id=useId(),root=useRef<HTMLDivElement>(null);
  const [open,setOpen]=useState(false);
- useEffect(()=>{
-  if(!open)return;
-  const away=(event:PointerEvent)=>{if(root.current&&!root.current.contains(event.target as Node))setOpen(false);};
-  const escape=(event:globalThis.KeyboardEvent)=>{if(event.key==='Escape'){setOpen(false);root.current?.querySelector<HTMLButtonElement>('.travellers-trigger')?.focus();}};
-  document.addEventListener('pointerdown',away);document.addEventListener('keydown',escape);
-  return()=>{document.removeEventListener('pointerdown',away);document.removeEventListener('keydown',escape);};
- },[open]);
+ const close=useCallback(()=>setOpen(false),[]);
  const flight=product==='FLIGHT';
  const total=adults+(flight?children+infants:0);
  const set=(patch:Partial<{adults:number;children:number;infants:number;cabin:string}>)=>{
@@ -43,7 +38,7 @@ export default function TravellersPicker({product,adults,childCount:children,inf
    <span id={`${id}-value`}><strong>{total}</strong> {flight?(total===1?'Traveller':'Travellers'):(total===1?'Adult':'Adults')}</span>
   </button>
   <small>{flight?cabinLabel(cabin):'1 room'}</small>
-  {open&&<div className="travellers-panel" id={`${id}-panel`} role="dialog" aria-label={flight?'Travellers and cabin class':'Guests'}>
+  {open&&<SearchPickerDialog className="travellers-panel" id={`${id}-panel`} label={flight?'Travellers and cabin class':'Guests'} onDismiss={close}>
    <Stepper label="Adults" hint={flight?'12 years and above':'Per room'} value={adults} min={1} max={flight?9:4} onChange={value=>set({adults:value})}/>
    {flight&&<>
     <Stepper label="Children" hint="2–11 years" value={children} min={0} max={9-adults} onChange={value=>set({children:value})}/>
@@ -54,6 +49,6 @@ export default function TravellersPicker({product,adults,childCount:children,inf
     <p>Up to 9 adults and children. Ages apply on the travel date.</p>
    </>}
    <button type="button" className="travellers-done" onClick={()=>{setOpen(false);root.current?.querySelector<HTMLButtonElement>('.travellers-trigger')?.focus();}}>Done</button>
-  </div>}
+  </SearchPickerDialog>}
  </div>;
 }

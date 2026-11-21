@@ -14,7 +14,7 @@ export function hotelComparisonAmenities(values?:string[]){
  return amenities.sort((a,b)=>usefulness(a)-usefulness(b)).slice(0,3);
 }
 
-export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore,onEditSearch,active=true}:{active?:boolean;hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;onEditSearch?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement)=>void}){
+export default function HotelResults<T extends HotelResult>({hotels,context,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore,onEditSearch,active=true}:{active?:boolean;hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;onEditSearch?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement,section?:'overview'|'rooms')=>void}){
  const [filters,setFilters]=useState(()=>readHotelBrowse(searchId).filters??{...emptyHotelFilters}),[sort,setSort]=useState(()=>readHotelBrowse(searchId).sort??'price'),[expanded,setExpanded]=useState(false);
  const drawer=useRef<HTMLDialogElement>(null),filterTrigger=useRef<HTMLButtonElement>(null);
  const filterHelpId=useId();
@@ -80,7 +80,7 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
     const propertyHref=hotelJourneyUrl(hotel.originSearchId??searchId,hotel.tjHotelId);
     return <article className="white-card booking-record booking-hotel-card hotel-shopping-card" key={hotel.tjHotelId} aria-label={hotel.name}>
      <div className="hotel-card-photo">
-      <a href={propertyHref} aria-label={`View ${hotel.name} photos and details`} onClick={event=>{if(event.button===0&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onChoose(hotel,event.currentTarget);}}}>
+      <a href={propertyHref} aria-label={`View ${hotel.name} property details`} onClick={event=>{if(event.button===0&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onChoose(hotel,event.currentTarget);}}}>
        <HotelPropertyMedia name={hotel.name} photos={hotel.property?.photos} metadataStatus={contentState} showPhotoCount/>
       </a>
      </div>
@@ -99,7 +99,7 @@ export default function HotelResults<T extends HotelResult>({hotels,context,busy
        <small className="hotel-price-review-note">Final price and terms checked at review.</small>
       </div>
       {busy&&checkingHotelId===hotel.tjHotelId&&<p className="booking-selection-status" role="status">Checking available rooms… Your stay is not reserved yet.</p>}
-      <button type="button" className="primary" aria-describedby={`hotel-name-${hotel.tjHotelId}`} disabled={busy} onClick={event=>onChoose(hotel,event.currentTarget)}>{busy&&checkingHotelId===hotel.tjHotelId?'Checking rooms…':<>Choose room <span aria-hidden="true">→</span></>}</button>
+      <button type="button" className="primary" aria-describedby={`hotel-name-${hotel.tjHotelId}`} disabled={busy} onClick={event=>onChoose(hotel,event.currentTarget,'rooms')}>{busy&&checkingHotelId===hotel.tjHotelId?'Checking rooms…':<>Choose room <span aria-hidden="true">→</span></>}</button>
      </div>
     </article>;
    })}</div>

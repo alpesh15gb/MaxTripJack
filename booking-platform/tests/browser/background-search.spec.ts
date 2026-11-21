@@ -253,7 +253,7 @@ test('homepage hotel warmup carries the selected property batch into Search acro
   await pickHomeDate(form, 'Check-out', returning);
   await setHomeTravellers(form, { adults: 2 });
   await form.getByLabel('Destination', { exact: true }).fill('Goa');
-  await form.getByRole('button', { name: 'Goa, India', exact: true }).click();
+  await form.getByRole('option', { name: 'Goa, India', exact: true }).click();
   await warmAfterEdit(page, observed, 1, false);
   expect(observed.warm[0].intent).toMatch(/^[a-f0-9-]{36}$/i);
   expect(observed.warm[0].body).toMatchObject({ product: 'HOTEL', hotelIds: ['10001', '10002'], checkIn: departure, checkOut: returning, rooms: [{ adults: 2, children: 0, childAge: [] }] });

@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import AirlineLogo from './airline-logo';
 import FareOptionsRail from './fare-options-rail';
+import FlightSegmentDetails from './flight-segment-details';
 import { durationLabel, flightStops, groupLabel, journeyMinutes, refundLabel, type Flight, type FlightFare } from '@/lib/booking-presentation';
 import { displayMoney } from '@/lib/display-money';
 import { comparableFareEstimate, haveComparableCurrency, orderFareOffers } from '@/lib/fare-display';
@@ -105,7 +106,13 @@ export default function BookingFlightCard({
     return connectionLabel(segment, flight.sI[index + 1], group);
   }).filter(label => label.startsWith('Transfer between') || !label.includes('not supplied'));
   const actionLabel = selectionMode === 'leg' ? `Choose this ${groupName.toLowerCase()} fare` : 'Check fare & continue';
-  const visibleAction = expanded ? 'Hide fares' : 'View fares';
+  const visibleAction = expanded ? 'Hide fares' : noCompatibleFare ? 'See alternatives' : 'View fares';
+  const fareChoices = showFares ? offers.map(fare => {
+    const name = fareDecisionLabel(fare, offers);
+    const price = comparableFareEstimate(fare, 'INR');
+    const compatible = isCompatible(fare);
+    return { fare, name, price, compatible };
+  }) : [];
 
   return <article className={`white-card booking-record live-flight-card${readOnly ? ' is-readonly' : ''}${expanded && !readOnly ? ' is-choosing-fare' : ''}${selected ? ' is-selected' : ''}${noCompatibleFare ? ' has-no-compatible-fare' : ''}`}>
     <div className="flight-result-top">
@@ -149,19 +156,9 @@ export default function BookingFlightCard({
         </div>
       </div>
       <div className="flight-result-details">
-        <details className="flight-segment-details">
-          <summary>Flight details</summary>
-          {flight.sI.map((segment, index) => <div className="flight-segment" key={index}>
-            <strong>{segment.fD.aI.name} · {[segment.fD.aI.code, segment.fD.fN].filter(Boolean).join(' ')}</strong>
-            <p>{airportDecisionLabel(segment.da)} → {airportDecisionLabel(segment.aa)}</p>
-            <p>{travelDateTimeLabel(segment.dt)} → {travelDateTimeLabel(segment.at)}</p>
-            <p>Segment duration: {segmentDurationLabel(segment.duration)}</p>
-            {index < flight.sI.length - 1 && <p className="muted">{connectionLabel(segment, flight.sI[index + 1], group)}</p>}
-          </div>)}
-          <p className="muted">All times are local to each airport.</p>
-        </details>
+        <FlightSegmentDetails segments={flight.sI} group={group} />
         {headlineFacts.length > 0 && <div className="flight-headline-facts">
-          <span>Adult fare shown</span>
+          <span>Adult fare conditions</span>
           <ul aria-label="Known details for the displayed adult fare">{headlineFacts.map(fact => <li key={fact}>{fact}</li>)}</ul>
         </div>}
       </div>
@@ -225,14 +222,15 @@ export default function BookingFlightCard({
           <p id={termsId} className="fare-details-unavailable fare-shared-terms">Totals are estimates for all travellers. Check the final price, cancellation and change fees, seat inclusions and eligibility at review.</p>
         </>}
         {offers.length === 0 && <p className="muted">No fare options were supplied for this flight.</p>}
-        {offers.length > 0 && <FareOptionsRail count={offers.length} locked={busy} readOnly={readOnly}>{offers.map((fare, index) => {
-          const compatible = isCompatible(fare);
-          const price = comparableFareEstimate(fare, 'INR');
+        {offers.length > 0 && <FareOptionsRail
+          options={fareChoices.map(({name, price, compatible}) => [name, price === null ? 'Price at review' : money(price), !compatible && 'Incompatible fare'].filter(Boolean).join(' · '))}
+          locked={busy}
+          readOnly={readOnly}
+        >{fareChoices.map(({fare, name: fareName, price, compatible}, index) => {
           const difference = compatible && price !== null && baselinePrice !== null ? price - baselinePrice : 0;
           const isSelected = selectedFareId === fare.id;
           const checking = busy && checkingFareId === fare.id;
           const fareHeadingId = `${id}-offer-${index}`;
-          const fareName = fareDecisionLabel(fare, offers);
           const rows = fareDecisionDetails(fare, compatible && price !== null ? baseline : undefined);
           const passengerBaggage = Object.entries(fare.fD).filter(([kind]) => kind !== 'ADULT').map(([kind, detail]) =>
             <p className="fare-passenger-baggage muted" key={kind}>{kind.toLowerCase()}: cabin baggage {baggageDecisionLabel(detail.bI?.cB).replace(/^Not supplied$/, 'not supplied')} · checked baggage {baggageDecisionLabel(detail.bI?.iB).replace(/^Not supplied$/, 'not supplied')}</p>
@@ -267,7 +265,7 @@ export default function BookingFlightCard({
             aria-describedby={termsId}
           >
             <div className="fare-option-heading">
-              <h4 id={fareHeadingId}>{fareName}</h4>
+              <h4 id={fareHeadingId} tabIndex={-1}>{fareName}</h4>
               <strong>{price === null ? 'Price at review' : money(price)}</strong>
               {showBaseline && (fare.id === baseline?.id || difference > 0) && <p className="fare-price-comparison">
                 {difference > 0 ? `+${money(difference)} vs lowest shown fare` : 'Lowest shown estimate'}

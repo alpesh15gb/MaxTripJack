@@ -1,5 +1,30 @@
 import {test,expect,capture,expectNoHorizontalOverflow} from './fixtures';
 
+test('search pickers are dismissible sheets on phones and anchored panels on desktop', async ({page}, info) => {
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.goto('/');
+ const mobile = info.project.name === 'mobile-390';
+ for (const field of ['.fare-date-trigger', '.travellers-trigger']) {
+  const trigger = page.locator(field).first();
+  await trigger.click();
+  const panel = page.locator('dialog.search-picker-dialog[open]');
+  await expect(panel).toBeVisible();
+  expect(await panel.evaluate(node => node.matches(':modal'))).toBe(mobile);
+  if (mobile) {
+   const bounds = await panel.boundingBox();
+   expect(bounds!.x).toBe(0);
+   expect(bounds!.y + bounds!.height).toBeCloseTo(page.viewportSize()!.height,0);
+   await expect(panel).toHaveCSS('animation-name','none');
+   await page.locator('.home-search-submit').evaluate(node => (node as HTMLElement).focus());
+   expect(await panel.evaluate(node => node.contains(document.activeElement))).toBe(true);
+  }
+  await panel.getByRole('button',{name:/^Close /}).click();
+  await expect(panel).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expectNoHorizontalOverflow(page);
+ }
+});
+
 test('date picker Escape closes from month navigation and restores the field',async({page,provider},testInfo)=>{
  await page.goto('/');
  const field=page.getByRole('button',{name:/^Departure /});await field.click();

@@ -39,6 +39,9 @@ for(const width of [320,390])test(`${width}px hotel totals and room actions stay
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
  const cards=page.locator('.hotel-shopping-card');
  await expect(cards).toHaveCount(2);
+ const missingPhoto=cards.first().locator('.hotel-card-photo');
+ await expect(missingPhoto).toContainText('Property photos not available');
+ expect((await missingPhoto.boundingBox())!.height).toBeLessThanOrEqual(64);
  await page.evaluate(async()=>{await document.fonts.ready;});
  // A document overflow assertion alone misses prices wrapped at the decimal.
  const amountBounds=async(selector:string,index:number)=>page.locator(selector).nth(index).evaluate(node=>{
@@ -125,7 +128,8 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(page.locator('#hotel-detail-title')).toHaveText('Palm House');
  await expect(page.getByRole('heading',{level:1,name:'Choose your room',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{level:2,name:'Choose your room',exact:true})).toHaveCount(1);
- await expect(page.locator('#hotel-detail-title')).toBeFocused();
+ await expect(page.locator('#hotel-room-options-title')).toBeFocused();
+ await expect(page.locator('#hotel-room-options-title')).toBeInViewport();
  expect(provider.requests('/api/travel/hotel-detail')[0].body).toMatchObject({searchId,hid:'10001'});
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/search')[0].body).toMatchObject({checkIn:departure,checkOut:returning});expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-shopping-room-options');
