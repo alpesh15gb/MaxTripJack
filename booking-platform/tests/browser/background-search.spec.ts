@@ -6,15 +6,16 @@ const warmPath = '/api/travel/search/warm';
 const searchPath = '/api/travel/search';
 type SearchCall = { body: Record<string, unknown>; intent?: string };
 function observeSearches(page: Page) {
- const warm: SearchCall[] = [], search: SearchCall[] = [];
+ const preload: SearchCall[] = [], warm: SearchCall[] = [], search: SearchCall[] = [];
  let completedWarm = 0;
  page.on('request', request => {
   const path = new URL(request.url()).pathname;
   if (request.method() !== 'POST' || ![warmPath, searchPath].includes(path)) return;
-  (path === warmPath ? warm : search).push({ body: request.postDataJSON(), intent: request.headers()['x-search-intent'] });
+  const calls=path===searchPath?search:request.headers()['x-search-preload']==='1'?preload:warm;
+  calls.push({ body: request.postDataJSON(), intent: request.headers()['x-search-intent'] });
  });
- page.on('requestfinished', request => { if (new URL(request.url()).pathname === warmPath) completedWarm++; });
- return { warm, search, completed: () => completedWarm };
+ page.on('requestfinished', request => { if (new URL(request.url()).pathname === warmPath&&request.headers()['x-search-preload']!=='1') completedWarm++; });
+ return { preload, warm, search, completed: () => completedWarm };
 }
 function flightQuery() {
  return '/book?' + new URLSearchParams({ product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: '1' });
@@ -38,31 +39,39 @@ async function warmAfterEdit(page: Page, observed: ReturnType<typeof observeSear
 
 test.beforeEach(async ({ page }) => { await page.clock.install({ time: new Date() }); });
 
-test('passive homepage defaults and focus never start a supplier warmup', async ({ page, provider }) => {
+test('homepage starts its default flight before interaction and leaves an empty hotel search alone', async ({ page, provider }) => {
  const observed = observeSearches(page);
  await page.goto('/');
  const form = page.locator('.home-search-form');
  await expect(form.getByRole('button', { name: 'Search flights', exact: true })).toBeVisible();
+ await expect.poll(()=>observed.preload.length).toBe(1);
+ expect(observed.preload[0].body).toMatchObject({ product:'FLIGHT',from:'BOM',to:'DEL',adults:1,cabin:'ECONOMY' });
+ expect(observed.preload[0].body.date).toEqual(await form.locator('[name="date"]').inputValue());
  await form.getByLabel('From airport', { exact: true }).focus();
  await page.clock.fastForward(3000);
  expect(observed.warm).toHaveLength(0); expect(observed.search).toHaveLength(0);
  await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Hotels', exact: true }).click();
  await form.getByLabel('Destination', { exact: true }).focus();
  await page.clock.fastForward(3000);
+ expect(observed.preload).toHaveLength(1);
  expect(observed.warm).toHaveLength(0); expect(observed.search).toHaveLength(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 for (const product of ['FLIGHT', 'HOTEL'] as const) {
- test(`${product} complete saved criteria stay passive until the traveller edits`, async ({ page }) => {
+ test(`${product} complete prefilled criteria start once and the submit reuses them`, async ({ page }) => {
   const observed = observeSearches(page);
   await page.goto(product === 'FLIGHT' ? flightQuery() : hotelQuery());
   const form = page.getByRole('form', { name: 'Search availability' });
   await expect(form).toBeVisible();
+  await expect.poll(()=>observed.preload.length).toBe(1);
   await form.getByLabel(product === 'FLIGHT' ? 'Departure' : 'Check-in', { exact: true }).focus();
   await page.clock.fastForward(3000);
   expect(observed.warm).toHaveLength(0); expect(observed.search).toHaveLength(0);
   await expect(page.locator('#booking-results')).toHaveCount(0);
+  await form.getByRole('button',{name:product==='FLIGHT'?'Search flights':'Search stays',exact:true}).click();
+  await expect.poll(()=>observed.search.length).toBe(1);
+  expect(observed.search[0]).toEqual(observed.preload[0]);
  });
 }
 
@@ -244,9 +253,11 @@ for (const product of ['FLIGHT', 'HOTEL'] as const) {
 test('homepage hotel warmup carries the selected property batch into Search across navigation', async ({ page, provider }) => {
  const observed = observeSearches(page), gate = held();
  provider.search = { searchId, results: { hotels: [{ tjHotelId: '10001', name: 'Selected destination stay', customerEstimateMinor: 800000 }] } };
+ // Hold the initial flight warmup too so selecting a hotel must start its own request.
  await page.route(`**${warmPath}`, async route => { await gate.promise; await route.fulfill({ json: { status: 'ready' } }).catch(() => {}); });
  try {
   await page.goto('/');
+  await expect.poll(()=>observed.preload.length).toBe(1);
   await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Hotels', exact: true }).click();
   const form = page.locator('.home-search-form');
   await pickHomeDate(form, 'Check-in', departure);

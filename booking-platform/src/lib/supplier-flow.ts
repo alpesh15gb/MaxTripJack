@@ -34,7 +34,7 @@ export async function searchSupplier(criteria:Search,actor:Actor,timing=new Sear
    if(prepared){correlationId=prepared.correlationId;return prepared.data as Awaited<ReturnType<typeof tripjack>>;}
   }
   if(criteria.product==='FLIGHT'){const supplierRequest=flightSearch(criteria);return cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest),undefined,undefined,status=>timing.flightCache(status));}
-  const listing=await cachedHotelSearch(hotelSearch(criteria,correlationId),correlationId,id=>tripjack('HOTEL',paths.HOTEL.search,hotelSearch(criteria,id)));
+  const listing=await cachedHotelSearch(hotelSearch(criteria,correlationId),correlationId,id=>tripjack('HOTEL',paths.HOTEL.search,hotelSearch(criteria,id)),undefined,status=>timing.hotelCache(status));
   correlationId=listing.correlationId;return listing.data;
  }),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
  // The provider host is currently hardcoded UAT. Record provenance at creation;

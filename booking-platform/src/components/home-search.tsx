@@ -106,7 +106,7 @@ export default function HomeSearch({ children, offers, guides, assistantEnabled 
     if(product==='FLIGHT'&&roundTrip)data.set('returnDate',end);else data.delete('returnDate');
     return bookingSearchInput(data,{product,adults,children:childCount,infants,hotelOccupancy:[{adults,childAge:[]}]});
   }
-  const backgroundSearch=useBackgroundSearch({form,enabled:!navigating&&!destinationResolving,read:()=>{
+  const backgroundSearch=useBackgroundSearch({form,preloadOnMount:true,enabled:!navigating&&!destinationResolving,read:()=>{
     if(!form.current||!searchFormIsValid(form.current))return null;
     try{return currentSearchInput(new FormData(form.current));}catch{return null;}
   }});

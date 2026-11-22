@@ -41,7 +41,9 @@ test("ttl zero disables caching and the env value is bounded", async () => {
  assert.equal(flightSearchCacheTtl({ FLIGHT_SEARCH_CACHE_TTL_MS: "99999999" }), 300000);
  assert.equal(flightSearchCacheTtl({ FLIGHT_SEARCH_CACHE_TTL_MS: "abc" }), 300000);
  assert.equal(flightSearchCacheTtl({}), 300000, "listings stay valid for five minutes by default");
+ assert.equal(flightSearchCacheTtl({ FLIGHT_SEARCH_CACHE_TTL_MS: "" }), 300000);
  assert.equal(hotelSearchCacheTtl({}), 300000);
+ assert.equal(hotelSearchCacheTtl({ HOTEL_SEARCH_CACHE_TTL_MS: " " }), 300000);
  assert.equal(hotelSearchCacheTtl({ HOTEL_SEARCH_CACHE_TTL_MS: "0" }), 0);
 });
 

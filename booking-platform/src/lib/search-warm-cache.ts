@@ -31,14 +31,16 @@ export function createSearchWarmCache(now:()=>number=Date.now){
   :!consumer.sessionFingerprint&&(!consumer.actor||consumer.actor.userId.startsWith('guest:'))&&owner.peer===consumer.peer;
  const markConsumed=(key:string)=>{consumed.delete(key);consumed.set(key,now()+90_000);while(consumed.size>256)consumed.delete(consumed.keys().next().value!);};
  return {
-  async warm(intent:string,criteria:Search,scope:WarmScope,load:()=>Promise<WarmSupplierResult>):Promise<'ready'|'skipped'>{
+  async warm(intent:string,criteria:Search,scope:WarmScope,load:()=>Promise<WarmSupplierResult>,onLoad=false):Promise<'ready'|'skipped'>{
    if(!validSearchIntent(intent))return 'skipped';prune();
    const key=digest(intent),criteriaKey=digest(canonical(criteria));
    if(consumed.has(key))return 'skipped';
    const previous=entries.get(key);
    if(previous)return previous.criteria===criteriaKey&&canonical(previous.scope)===canonical(scope)&&(await previous.work)?'ready':'skipped';
-   const owner=scope.sessionFingerprint?`session:${scope.sessionFingerprint}`:scope.actor?actorKey(scope.actor):`anonymous:${scope.peer}`;
-   if(active.has(owner)||active.size>=MAX_ACTIVE)return 'skipped';
+   const scopeKey=scope.sessionFingerprint?`session:${scope.sessionFingerprint}`:scope.actor?actorKey(scope.actor):`anonymous:${scope.peer}`;
+   const owner=onLoad?`preload:${scopeKey}`:scopeKey;
+   // Keep capacity for edited searches during a burst of automatic page loads.
+   if(active.has(owner)||active.size>=(onLoad?MAX_ACTIVE-1:MAX_ACTIVE))return 'skipped';
    while(entries.size>=MAX_ENTRIES){const old=[...entries].find(([,value])=>!value.pending);if(!old)return 'skipped';remove(...old);}
    active.add(owner);
    const entry:Entry={criteria:criteriaKey,scope:structuredClone(scope),started:now(),expires:now()+TTL,pending:true,claimed:false,bytes:0,work:Promise.resolve(null)};

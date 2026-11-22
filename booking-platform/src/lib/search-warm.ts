@@ -2,15 +2,16 @@ import 'server-only';
 import {randomUUID} from 'node:crypto';
 import {flightSearch,hotelSearch,type Search} from './providers/contracts';
 import {tripjack,paths} from './providers/tripjack';
-import {cachedFlightSearch,cachedHotelSearch,flightSearchCacheTtl} from './flight-search-cache';
+import {cachedFlightSearch,cachedHotelSearch,flightSearchCacheTtl,hasCachedFlightSearch,hasCachedHotelSearch,hotelSearchCacheTtl} from './flight-search-cache';
 import {requestLimit} from './request-limit';
 import {searchWarmCache,type WarmScope} from './search-warm-cache';
 import {validateSearchCriteria} from './search-validation';
 
-export async function warmSupplierSearch(criteria:Search,scope:WarmScope,intent:string){
+export async function warmSupplierSearch(criteria:Search,scope:WarmScope,intent:string,onLoad=false){
  if(process.env.SEARCH_PREWARM_ENABLED==='false')return 'skipped';
- if(criteria.product==='FLIGHT'&&flightSearchCacheTtl()===0)return 'skipped';
+ if((criteria.product==='FLIGHT'?flightSearchCacheTtl():hotelSearchCacheTtl())===0)return 'skipped';
  validateSearchCriteria(criteria);
+ if(onLoad&&(criteria.product==='FLIGHT'?hasCachedFlightSearch(flightSearch(criteria)):hasCachedHotelSearch(hotelSearch(criteria,''))))return 'ready';
  return searchWarmCache.warm(intent,criteria,scope,async()=>{
   // These are separate from normal search limits. Reserving cache capacity before
   // awaiting limits also caps concurrent speculative DB/provider work.
@@ -26,5 +27,5 @@ export async function warmSupplierSearch(criteria:Search,scope:WarmScope,intent:
   }
   const listing=await cachedHotelSearch(hotelSearch(criteria,randomUUID()),randomUUID(),id=>tripjack('HOTEL',paths.HOTEL.search,hotelSearch(criteria,id)),undefined,track);
   return {data:listing.data,correlationId:listing.correlationId,...(freshUntil!==undefined?{freshUntil}:{})};
- });
+ },onLoad);
 }

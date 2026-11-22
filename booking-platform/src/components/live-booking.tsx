@@ -646,8 +646,9 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   },[selectedFares,shownGroup,allSelected]);
   const verificationActive=signInRequired||signInWithoutSelection;
   const checkoutStarted=Boolean(quote)||verificationActive||Boolean(busy&&verificationSelection);
-  const canWarmSearch=!busy&&!roomView&&!checkoutStarted&&!payment&&!paymentUncertain&&!recoveryBlocked;
-  const backgroundSearch=useBackgroundSearch({form:searchForm,formKey:JSON.stringify(searchPrefill),enabled:canWarmSearch,editingResults:hasFullSearchResults,read:()=>{
+  const canWarmSearch=!busy&&!destinationResolving&&!roomView&&!checkoutStarted&&!payment&&!paymentUncertain&&!recoveryBlocked;
+  const preloadSearch=Boolean(prefill.date&&!prefill.autoSearch&&!prefill.resumeSelection&&!prefill.flightSearch&&!prefill.browseSearch&&!prefill.searchInvalid);
+  const backgroundSearch=useBackgroundSearch({form:searchForm,formKey:JSON.stringify(searchPrefill),enabled:canWarmSearch,editingResults:hasFullSearchResults,preloadOnMount:preloadSearch,read:()=>{
     if(busyRef.current||!searchForm.current||!searchFormIsValid(searchForm.current))return null;
     try{return bookingSearchInput(new FormData(searchForm.current),{product,adults,children,infants,multiCity,legCount,hotelOccupancy});}catch{return null;}
   }});

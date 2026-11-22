@@ -24,6 +24,6 @@ test('Journey Studio photo showcase is clearly labelled and never presented as b
  for(const image of await page.locator('.package-card-photo img').all()){await image.scrollIntoViewIfNeeded();await expect.poll(()=>image.evaluate(node=>(node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);}
  await page.evaluate(()=>scrollTo(0,0));await capture(page,testInfo,'studio-package-real-photo-layout-samples');await expectNoHorizontalOverflow(page);
  await page.goto('/packages/goa-layout-sample');await expect(page.getByRole('heading',{level:1})).toHaveText('Goa — layout sample');await expect(page.locator('.package-cover img')).toBeVisible();await expect.poll(()=>page.locator('.package-cover img').evaluate(node=>(node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);await expect(page.locator('.package-contact-actions a')).toHaveCount(0);await capture(page,testInfo,'studio-package-detail-real-photo-layout-sample');await expectNoHorizontalOverflow(page);
- // The only write-free POST allowed is the public fare-calendar refresh request.
- expect(provider.calls.filter(call=>call.method!=='GET'&&call.path!=='/api/travel/fare-calendar')).toHaveLength(0);
+ // The homepage can prepare availability without starting a search or booking.
+ expect(provider.calls.filter(call=>call.method!=='GET'&&!['/api/travel/fare-calendar','/api/travel/search/warm'].includes(call.path))).toHaveLength(0);
 });

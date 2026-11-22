@@ -23,8 +23,8 @@ async function harness(){
  const compile=async(path:string)=>{const result=await build({entryPoints:[path],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'boundaries',setup(p){p.onResolve({filter:/.*/},args=>Object.hasOwn(mocks,args.path)?{path:args.path,namespace:'mock'}:undefined);p.onLoad({filter:/.*/,namespace:'mock'},args=>({contents:mocks[args.path],loader:'js'}));}}]});const compiled={exports:{} as {POST:(request:Request)=>Promise<Response>}};new Function('module','exports','require',result.outputFiles[0].text)(compiled,compiled.exports,require);return compiled.exports.POST;};
  const warm=await compile('src/app/api/travel/search/warm/route.ts'),search=await compile('src/app/api/travel/search/route.ts');
  const before=process.env.BETTER_AUTH_URL;process.env.BETTER_AUTH_URL='https://booking.example.test';
- const call=(handler:typeof warm,body:unknown,intent:string,origin='https://booking.example.test')=>handler(new Request('https://booking.example.test/api/travel/search',{method:'POST',headers:{origin,'Content-Type':'application/json','X-Search-Intent':intent},body:JSON.stringify(body)}));
- return {state,warm:(body:unknown,intent:string,origin?:string)=>call(warm,body,intent,origin),search:(body:unknown,intent:string)=>call(search,body,intent),cleanup(){delete global[key];delete global.maxtravelSearchWarmV1;delete global.maxtravelFlightSearchCacheV1;if(before===undefined)delete process.env.BETTER_AUTH_URL;else process.env.BETTER_AUTH_URL=before;}};
+ const call=(handler:typeof warm,body:unknown,intent:string,origin='https://booking.example.test',preload=false)=>handler(new Request('https://booking.example.test/api/travel/search',{method:'POST',headers:{origin,'Content-Type':'application/json','X-Search-Intent':intent,...(preload?{'X-Search-Preload':'1'}:{})},body:JSON.stringify(body)}));
+ return {state,warm:(body:unknown,intent:string,origin?:string)=>call(warm,body,intent,origin),preload:(body:unknown,intent:string)=>call(warm,body,intent,undefined,true),search:(body:unknown,intent:string)=>call(search,body,intent),cleanup(){delete global[key];delete global.maxtravelSearchWarmV1;delete global.maxtravelFlightSearchCacheV1;if(before===undefined)delete process.env.BETTER_AUTH_URL;else process.env.BETTER_AUTH_URL=before;}};
 }
 
 test('separate real handlers share warm hotel correlation, emit no warm cookies/writes and apply current markup on actual submit',async()=>{
@@ -63,4 +63,36 @@ test('mismatched occupancy/owner and failed speculative budget fall back to norm
 test('flight warm adopts the same prepared listing without bypassing normal search persistence',async()=>{
  const h=await harness(),intent=randomUUID();const flight={product:'FLIGHT',from:'HYD',to:'DEL',date:future(30),adults:1,children:0,infants:0,cabin:'ECONOMY'};
  try{assert.equal((await h.warm(flight,intent)).status,200);assert.equal(h.state.calls.length,1);assert.equal(h.state.queries.length,0);assert.equal((await h.search(flight,intent)).status,200);assert.equal(h.state.calls.length,1);assert.equal(h.state.queries.filter(row=>row.sql.startsWith('INSERT INTO supplier_searches')).length,1);}finally{h.cleanup();}
+});
+
+test('a repeated hotel preload spends no supplier budget and regular search can use the shared listing',async()=>{
+ const h=await harness(),first=randomUUID(),second=randomUUID();
+ try{
+  assert.deepEqual(await (await h.preload(criteria,first)).json(),{status:'ready'});
+  const budget=h.state.limits.length;
+  assert.deepEqual(await (await h.preload(criteria,second)).json(),{status:'ready'});
+  assert.equal(h.state.limits.length,budget);
+  assert.equal(h.state.calls.length,1);
+  const submitted=await h.search(criteria,second);
+  assert.equal(submitted.status,200);
+  assert.match(submitted.headers.get('Server-Timing')??'',/hotel_cache;desc="hit"/);
+  assert.equal(h.state.calls.length,1);
+ }finally{h.cleanup();}
+});
+
+test('an edited destination can warm while the same shopper’s initial flight preload is pending',async()=>{
+ const h=await harness(),flight={product:'FLIGHT',from:'BOM',to:'DEL',date:future(14),adults:1,cabin:'ECONOMY'};
+ let release!:()=>void;
+ h.state.gate=new Promise<void>(resolve=>{release=resolve;});
+ try {
+  const loading=h.preload(flight,randomUUID());
+  for(let attempt=0;attempt<100&&h.state.calls.length<1;attempt++)await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(h.state.calls.length,1);
+  const edited=h.warm(criteria,randomUUID());
+  for(let attempt=0;attempt<100&&h.state.calls.length<2;attempt++)await new Promise(resolve=>setTimeout(resolve,5));
+  assert.deepEqual(h.state.calls.map(call=>call.product),['FLIGHT','HOTEL']);
+  release();
+  assert.deepEqual(await (await loading).json(),{status:'ready'});
+  assert.deepEqual(await (await edited).json(),{status:'ready'});
+ }finally{release();h.cleanup();}
 });

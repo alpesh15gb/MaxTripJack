@@ -34,7 +34,7 @@ function evictSettled(needsSlot = false) {
 
 const DEFAULT_TTL_MS = 300_000;
 function boundedTtl(value: string | undefined) {
- const raw = Number(value ?? DEFAULT_TTL_MS);
+ const raw = Number(value?.trim() || DEFAULT_TTL_MS);
  return Number.isFinite(raw) && raw >= 0 ? Math.min(raw, 300_000) : DEFAULT_TTL_MS;
 }
 /** Listings stay valid for five minutes by default; review always re-prices. */
@@ -46,14 +46,28 @@ export function hotelSearchCacheTtl(env: Record<string, string | undefined> = pr
 }
 
 type HotelListing<T> = { data: T; correlationId: string };
+function hotelListingKey(payload: Record<string, unknown>) {
+ const { correlationId: _ignored, ...criteria } = payload; void _ignored;
+ return {hotelListing:criteria};
+}
+function freshEntry(key: string, ttl: number, now: number) {
+ const entry = entries.get(key);
+ return ttl>0&&entry&&now-entry.at<(entry.pending?MAX_PENDING_MS:Math.min(ttl,entry.ttl))?entry:undefined;
+}
+/** Page loads can reuse ready or in-flight work without spending supplier budget. */
+export function hasCachedFlightSearch(payload: unknown) {
+ return Boolean(freshEntry(JSON.stringify(payload),flightSearchCacheTtl(),Date.now()));
+}
+export function hasCachedHotelSearch(payload: Record<string, unknown>) {
+ return Boolean(freshEntry(JSON.stringify(hotelListingKey(payload)),hotelSearchCacheTtl(),Date.now()));
+}
 /** Hotel listings are bound to the supplier correlation ID that produced them,
  * so the cached value keeps that ID and later room pricing uses the same one. */
 export function cachedHotelSearch<T>(
  payload: Record<string, unknown>, correlationId: string, load: (correlationId: string) => Promise<T>,
  ttl = hotelSearchCacheTtl(), onLookup?: (status: FlightSearchCacheStatus, freshUntil?: number) => void,
 ): Promise<HotelListing<T>> {
- const { correlationId: _ignored, ...criteria } = payload; void _ignored;
- return cachedFlightSearch({ hotelListing: criteria }, async () => ({ data: await load(correlationId), correlationId }), ttl, undefined, onLookup);
+ return cachedFlightSearch(hotelListingKey(payload), async () => ({ data: await load(correlationId), correlationId }), ttl, undefined, onLookup);
 }
 
 export async function cachedFlightSearch<T>(
@@ -63,13 +77,14 @@ export async function cachedFlightSearch<T>(
  if (ttl === 0) { onLookup?.("disabled",now); return load(); }
  const key = JSON.stringify(payload);
  prune(now);
- const hit = entries.get(key);
- if (hit && (hit.pending || now - hit.at < Math.min(ttl, hit.ttl))) {
+ const hit = freshEntry(key,ttl,now);
+ if (hit) {
   entries.delete(key); entries.set(key, hit);
   onLookup?.(hit.pending ? "coalesced" : "hit",hit.at+Math.min(ttl,hit.ttl));
   return hit.value as Promise<T>;
  }
- if (hit) remove(key, hit);
+ const stale = entries.get(key);
+ if (stale) remove(key, stale);
  evictSettled(true);
  // All slots can be occupied by active requests. Stay bounded without evicting
  // them; this distinct search still runs normally and is simply not stored.

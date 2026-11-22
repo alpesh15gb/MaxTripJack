@@ -5,6 +5,7 @@ export class SearchTiming {
  private readonly started: number;
  private readonly durations = new Map<SearchStage, number>();
  private flightCacheStatus?: FlightSearchCacheStatus;
+ private hotelCacheStatus?: FlightSearchCacheStatus;
  private warmCacheStatus?: 'miss'|'hit'|'joined';
  constructor(private readonly now: () => number = () => performance.now()) { this.started = now(); }
  async measure<T>(stage: SearchStage, work: () => Promise<T>): Promise<T> {
@@ -16,6 +17,7 @@ export class SearchTiming {
   try { return work(); } finally { this.durations.set(stage, Math.max(0, this.now() - start)); }
  }
  flightCache(status: FlightSearchCacheStatus) { this.flightCacheStatus = status; }
+ hotelCache(status: FlightSearchCacheStatus) { this.hotelCacheStatus = status; }
  warmCache(status:'miss'|'hit'|'joined'){this.warmCacheStatus=status;}
- header() { return [...[...this.durations, ['total', Math.max(0, this.now() - this.started)] as const].map(([name, duration]) => `${name};dur=${duration.toFixed(1)}`), ...(this.flightCacheStatus ? [`flight_cache;desc="${this.flightCacheStatus}"`] : []),...(this.warmCacheStatus?[`search_warm;desc="${this.warmCacheStatus}"`]:[])].join(', '); }
+ header() { return [...[...this.durations, ['total', Math.max(0, this.now() - this.started)] as const].map(([name, duration]) => `${name};dur=${duration.toFixed(1)}`), ...(this.flightCacheStatus ? [`flight_cache;desc="${this.flightCacheStatus}"`] : []),...(this.hotelCacheStatus?[`hotel_cache;desc="${this.hotelCacheStatus}"`]:[]),...(this.warmCacheStatus?[`search_warm;desc="${this.warmCacheStatus}"`]:[])].join(', '); }
 }

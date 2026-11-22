@@ -11,6 +11,6 @@ export async function POST(request:Request){
   sameOrigin(request);const intent=request.headers.get('X-Search-Intent');
   if(!validSearchIntent(intent)||process.env.SEARCH_PREWARM_ENABLED==='false')return new Response(null,{status:204,headers:{'Cache-Control':'private, no-store'}});
   const criteria=await body(request,searchSchema);
-  return json({status:await warmSupplierSearch(criteria,readSearchWarmScope(request),intent)});
+  return json({status:await warmSupplierSearch(criteria,readSearchWarmScope(request),intent,request.headers.get('X-Search-Preload')==='1')});
  }catch{return new Response(null,{status:204,headers:{'Cache-Control':'private, no-store'}});}
 }
