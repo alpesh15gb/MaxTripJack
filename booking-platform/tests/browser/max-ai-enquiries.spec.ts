@@ -1,5 +1,5 @@
 import type {Locator, Page} from '@playwright/test';
-import type {EnquiryDraft, EnquiryReceipt, EnquiryService, EnquirySubmission} from '../../src/lib/travel-enquiry-contract';
+import type {EnquiryDraft, EnquiryReceipt, EnquiryService, ItineraryEnquirySubmission} from '../../src/lib/travel-enquiry-contract';
 import {test, expect, capture, departure, returning, expectNoHorizontalOverflow, syntheticSession, type ProviderFixture} from './fixtures';
 
 const chat = 'POST /api/travel/max-ai';
@@ -84,7 +84,7 @@ for (const service of ['VISA', 'INSURANCE', 'HOLIDAY', 'CRUISE'] as const) {
     const requests = provider.requests('/api/travel/enquiries');
     expect(requests).toHaveLength(1);
     expect(requests[0].body).toMatchObject({consent: true, draft: {...drafts[service], ...(service === 'VISA' ? {destination: 'Dubai, United Arab Emirates'} : {})}, contact: {name: 'Private Enquiry Contact', email: 'enquiry.private@example.test', preferredChannel: channel}});
-    const submitted = requests[0].body as EnquirySubmission;
+    const submitted = requests[0].body as ItineraryEnquirySubmission;
     expect(submitted.requestId).toMatch(/^[a-f0-9-]{36}$/);
     if (channel !== 'EMAIL') expect(submitted.contact.phone).toBe('+919876543210');
     const aiRequests = JSON.stringify(provider.requests('/api/travel/max-ai'));
@@ -123,7 +123,7 @@ test('uncertain save checks and retries use the original request and frozen cont
   await form.getByRole('button', {name: 'Submit enquiry', exact: true}).click();
   await expect(form.getByText('The save outcome is not confirmed.', {exact: false})).toBeVisible();
   await expect(form.getByLabel('Your name', {exact: true})).toBeDisabled();
-  const first = provider.requests('/api/travel/enquiries')[0].body as EnquirySubmission;
+  const first = provider.requests('/api/travel/enquiries')[0].body as ItineraryEnquirySubmission;
   await form.getByRole('button', {name: 'Check save status', exact: true}).click();
   await expect(form.getByRole('status')).toContainText('No saved result is available yet');
   expect(provider.requests('/api/travel/enquiries')[1].query.requestId).toBe(first.requestId);
@@ -236,7 +236,7 @@ test('advanced supplied details survive review and explicitly cleared preference
   provider.overrides[submit] = {body: {enquiry: received('HOLIDAY')}};
   await form.getByRole('button', {name: 'Submit enquiry', exact: true}).click();
   await expect(page.getByRole('region', {name: 'Enquiry saved'})).toBeVisible();
-  const payload = provider.requests('/api/travel/enquiries')[0].body as EnquirySubmission;
+  const payload = provider.requests('/api/travel/enquiries')[0].body as ItineraryEnquirySubmission;
   expect(payload.draft).toMatchObject({nationality: 'India', purpose: 'Honeymoon', countryOfResidence: 'India', departureCity: 'Hyderabad', durationNights: 5});
   expect(payload.draft.budgetRupees).toBeUndefined();
   expect(payload.draft.budgetBasis).toBeUndefined();

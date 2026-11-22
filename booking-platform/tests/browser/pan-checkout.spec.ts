@@ -14,7 +14,7 @@ for(const panRequired of [false,true,'false'] as const)test(`hotel PAN ${JSON.st
   await form.locator(`[name="last-${index}"]`).fill('Guest');
  }
  await form.getByLabel('Email',{exact:true}).fill('checkout@example.test');
- await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+ await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
  await expect(form.locator('[name="pan-1"]')).not.toHaveAttribute('required');
  await expect(form.locator('[name="pan-1"]')).not.toBeVisible();
  if(panRequired===true){

@@ -1,3 +1,4 @@
+import {formatBookingDate} from '../../src/lib/travel-date';
 import {test, expect, flight, departure, returning, searchId, openFlightSearch, expectNoHorizontalOverflow} from './fixtures';
 import type {Flight} from '../../src/lib/booking-presentation';
 
@@ -58,7 +59,7 @@ test('the incompatible fare notice fits above its expanded comparison and close 
   await disclosure.click();
   await comparison.getByRole('button', {name: 'Edit flight search', exact: true}).click();
   await expect(page.getByLabel('Departure', {exact: true})).toBeFocused();
-  await expect(page.getByLabel('Return date', {exact: true})).toHaveValue(returning);
+  await expect(page.getByLabel('Return date', {exact: true})).toHaveValue(formatBookingDate(returning));
   await comparison.getByRole('button', {name: 'Change outbound fare', exact: true}).click();
   await expect(page.getByRole('heading', {name: 'Choose your outbound flight'})).toBeFocused();
   await expect(page.getByRole('region', {name: 'Selected flight context'})).toContainText('Standard fare');
@@ -78,7 +79,7 @@ test('when there are no flights, edit search opens the retained dates without su
   await expect(search.getByLabel('From airport', {exact: true})).toHaveValue('BOM');
   await expect(search.getByLabel('To airport', {exact: true})).toHaveValue('DEL');
   const date = search.getByLabel('Departure', {exact: true});
-  await expect(date).toHaveValue(departure);
+  await expect(date).toHaveValue(formatBookingDate(departure));
   await expect(date).toBeFocused();
   await expect(date).toBeInViewport();
   expect(provider.requests('/api/travel/search')).toHaveLength(1);

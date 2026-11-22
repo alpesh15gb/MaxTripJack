@@ -44,6 +44,7 @@ test('actual PostgreSQL migration and dedicated queue isolate booking events, mo
   const business=async()=>digest({orders:(await db.query('SELECT to_jsonb(o) AS row FROM orders o ORDER BY id')).rows,payments:(await db.query('SELECT to_jsonb(p) AS row FROM payments p ORDER BY id')).rows,refunds:(await db.query('SELECT * FROM refunds')).rows,notifications:(await db.query('SELECT * FROM customer_notifications')).rows});
   const original={events:await heldEvents(),legacy:await legacyRows(),business:await business()};
   await db.exec(await readFile('db/025-safar-enquiry-destination.sql','utf8'));
+  await db.exec(await readFile('db/033-office-enquiries.sql','utf8'));
   assert.equal(await heldEvents(),original.events);assert.equal(await legacyRows(),original.legacy);assert.equal(await business(),original.business);
   assert.equal((await db.query<{n:number}>('SELECT count(*)::int AS n FROM travel_enquiries WHERE crm_receiver IS NULL AND crm_environment IS NULL')).rows[0].n,2);
   assert.equal((await db.query(claimSafarEnquirySql,[randomUUID()])).rows.length,0,'Sixteen ordinary events and old enquiries cannot enter the Safar queue');
@@ -52,6 +53,12 @@ test('actual PostgreSQL migration and dedicated queue isolate booking events, mo
   const transaction=((run:Parameters<NonNullable<Parameters<typeof saveEnquiry>[2]>>[0])=>db.transaction(async tx=>run({query:async(sql:string,values:unknown[])=>{const result=await tx.query(sql,values);return {rows:result.rows,rowCount:result.affectedRows??result.rows.length};}} as never))) as Parameters<typeof saveEnquiry>[2];
   const input:EnquirySubmission={requestId:randomUUID(),consent:true,draft:{service:'VISA',destination:'Synthetic destination',travelWindow:'December 2030',adults:1,childAges:[],nationality:'Indian',purpose:'Tourism'},contact:{name:'Synthetic customer',email:'synthetic@example.test',preferredChannel:'EMAIL'}};
   const actor={userId:'synthetic-owner',companyId:null};
+  for(const service of ['BUS','PARTNERSHIP'] as const){
+    const office=await saveEnquiry(actor,{...input,requestId:randomUUID(),draft:{service,subject:'Synthetic enquiry',message:'A local booking desk request.'}},transaction);
+    assert.equal(office.crmStatus,'OFFICE');
+    await assert.rejects(db.query("UPDATE travel_enquiries SET crm_receiver='safar',crm_environment='live' WHERE id=$1",[office.id]),/travel_enquiries_office_destination_check/);
+  }
+  assert.equal((await db.query(claimSafarEnquirySql,[randomUUID()])).rows.length,0,'Booking desk enquiries cannot enter the live queue.');
   process.env.SAFAR_ENQUIRY_MODE='test';const testReceipt=await saveEnquiry(actor,input,transaction);
   process.env.SAFAR_ENQUIRY_MODE='live';const liveReceipt=await saveEnquiry(actor,{...input,requestId:randomUUID()},transaction);
   assert.deepEqual(await saveEnquiry(actor,input,transaction),testReceipt,'Replaying a test enquiry after live configuration preserves test mode');

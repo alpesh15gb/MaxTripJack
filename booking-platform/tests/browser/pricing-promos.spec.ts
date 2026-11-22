@@ -1,7 +1,7 @@
 import {test,expect,expectNoHorizontalOverflow,capture,openFlightSearch,quoteId,searchId,reviewedQuote,departure,returning} from './fixtures';
 const id='11111111-1111-4111-8111-111111111111';
 test('flight seat selection shows the customer price before the extras total is applied',async({page,provider})=>{
- provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'seat-segment',tripIndex:0,label:'HYD → BOM · 15 Dec 2026 · 05:05',options:[{kind:'SEAT',code:'6A',label:'Seat 6A',amountMinor:90390}]}],travellerTypes:['ADULT'],choices:[]}};
+ provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'seat-segment',tripIndex:0,label:'HYD → BOM · 15 Dec 2026 · 05:05',options:[{kind:'SEAT',code:'6A',label:'Seat 6A',seatNumber:'6A',amountMinor:90390}]}],travellerTypes:['ADULT'],choices:[]}};
  provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:744390}};
  await openFlightSearch(page);
  await page.locator('.fare-comparison > summary').first().click();
@@ -13,7 +13,9 @@ test('flight seat selection shows the customer price before the extras total is 
  await expect(form.locator('.checkout-extras')).toContainText('HYD → BOM · 15 Dec 2026 · 05:05');
  const seat=form.getByRole('combobox',{name:'Seat',exact:true});
  await expect(seat.locator('option[value="6A"]')).toHaveText('Seat 6A · +₹903.90');
- await seat.selectOption('6A');
+ await form.getByText('Browse seats by row',{exact:true}).click();
+ await form.getByRole('button',{name:'Seat 6A · +₹903.90',exact:true}).click();
+ await expect(seat).toHaveValue('6A');
  await form.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
  await expect(form.locator('#booking-summary .booking-total')).toContainText('₹7,443.90');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -72,7 +74,7 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
  }
  const form=page.getByRole('form',{name:'Review and travellers'});
  await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');
- await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+ await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
  await page.route('**/api/travel/promo',route=>{const applied=Boolean(route.request().postDataJSON().code);return route.fulfill({json:{quoteId,totalMinor:applied?644000:654000,originalTotalMinor:654000,discountMinor:applied?10000:0,code:applied?'SAVE100':null}});});
  const promo=page.getByRole('region',{name:'Promo code',exact:true});await promo.getByLabel('Promo code',{exact:true}).fill('SAVE100');await promo.getByLabel('Promo code',{exact:true}).press('Enter');
  await expect(promo).toContainText('You save ₹100');await expect(page.locator('#booking-summary').getByRole('button',{name:/^Agree & pay /})).toContainText('6,440');

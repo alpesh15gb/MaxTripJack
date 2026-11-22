@@ -10,7 +10,7 @@ async function readyToPay(page: Page) {
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
   await form.getByLabel('Email', { exact: true }).fill('traveller@example.test');
-  await form.getByLabel('Indian mobile number', { exact: true }).fill('9876543210');
+  await form.getByLabel('Mobile number', { exact: true }).fill('9876543210');
   await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
   await page.locator('#booking-summary').getByRole('button', { name: /^Agree & pay / }).click();
 }

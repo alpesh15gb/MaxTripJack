@@ -39,6 +39,12 @@ body .page-shell.concierge-trips {
 body .concierge-trips .trips-heading-actions .primary, body .concierge-trips .trip-record-actions a[href$="/document"] { background:var(--hub-navy); color:white; border:0; }
 .concierge-trips .trips-heading-actions :is(.primary,.secondary), .concierge-trips .trip-record-actions .secondary { border-radius:8px; padding:9px 14px; font-size:13px; margin:0; }
 .concierge-trips .hub-browser { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:20px 28px; background:white; border:1px solid var(--hub-border); border-radius:0 0 15px 15px; box-shadow:var(--hub-shadow); }
+.booking-pnr-lookup { margin: 12px 0; padding: 0 16px; border: 1px solid var(--hub-border); border-radius: 12px; background: white; }
+.booking-pnr-lookup summary { min-height: 44px; padding: 12px 0; color: #005bb3; font-weight: 700; cursor: pointer; }
+.booking-pnr-lookup form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 12px; }
+.booking-pnr-lookup label { display: grid; gap: 5px; min-width: 0; }
+.booking-pnr-lookup input { min-height: 44px; max-width: 100%; text-transform: uppercase; }
+.booking-pnr-lookup [role=status]:empty { display: none; }
 .concierge-trips .hub-search { display:flex; align-items:center; flex:1 1 280px; max-width:56%; min-width:0; gap:8px; padding:0 12px; color:var(--hub-muted); background:var(--hub-paper); border-radius:8px; }
 .concierge-trips .hub-search input { min-width:0; width:100%; border:0; box-shadow:none; background:transparent; min-height:44px; padding:8px 0; font-size:14px; color:var(--hub-ink); }
 .concierge-trips .hub-product-filters, .concierge-trips .hub-date-filters { display:flex; align-items:center; gap:6px; }
@@ -181,3 +187,4 @@ body .concierge-trips .trips-support .primary { background:#007b59; color:white;
   .concierge-trips .trip-record-actions a[href$="/document"] { grid-column:1/-1; }
   .concierge-trips .trip-status-note { margin:0 12px 12px; }
 }
+.trips-workspace .trip-access-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }

@@ -7,7 +7,7 @@ import {bookingMigrations,migrateBookingSchema} from '../scripts/migrate.mjs';
 
 const connection = 'postgresql://synthetic-owner:private-secret@not-used.invalid/booking';
 
-test('booking migrations preserve one transaction and apply only pending catalogue migrations', async()=>{
+test('booking migrations preserve one transaction and apply only pending migrations', async()=>{
   const statements:string[]=[];const loaded:string[]=[];const reports:string[]=[];let released=false;let ended=false;
   const exit=await migrateBookingSchema({environment:{MIGRATION_DATABASE_URL:connection},
     createPool(value){assert.equal(value,connection);return {
@@ -17,9 +17,9 @@ test('booking migrations preserve one transaction and apply only pending catalog
     };},async readMigration(name){loaded.push(name);return `-- synthetic ${name}`;},
     report:message=>reports.push(message),reportError:message=>reports.push(message),
   });
-  assert.equal(exit,0);assert.deepEqual(loaded,['026-hotel-catalogue','027-flight-route-catalogue','028-hotel-catalogue-priority','029-hotel-catalogue-search','030-flight-fare-calendar','031-guest-checkout','032-flight-fare-calendar-verified']);
+  assert.equal(exit,0);assert.deepEqual(loaded,['026-hotel-catalogue','027-flight-route-catalogue','028-hotel-catalogue-priority','029-hotel-catalogue-search','030-flight-fare-calendar','031-guest-checkout','032-flight-fare-calendar-verified','033-office-enquiries']);
   assert.equal(statements[0],'BEGIN');assert.equal(statements[1],'SELECT pg_advisory_xact_lock(71266301)');
-  assert.equal(statements.at(-1),'COMMIT');assert.equal(statements.filter(s=>s.startsWith('INSERT INTO schema_migrations')).length,7);
+  assert.equal(statements.at(-1),'COMMIT');assert.equal(statements.filter(s=>s.startsWith('INSERT INTO schema_migrations')).length,8);
   assert.equal(released,true);assert.equal(ended,true);assert.doesNotMatch(reports.join('\n'),/private-secret|synthetic-owner|postgresql/);
   assert.equal(new Set(bookingMigrations).size,bookingMigrations.length);
 });

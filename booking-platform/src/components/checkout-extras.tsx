@@ -11,6 +11,30 @@ type Props = {
   onSaved: (total: number) => void;
 };
 const optionLabels = {BAGGAGE: "Extra baggage", MEAL: "Meal", SEAT: "Seat"} as const;
+type ExtraOption = CheckoutSegment['options'][number];
+const optionPrice = (option: ExtraOption) => option.amountMinor > 0 ? `+${displayMoney(option.amountMinor)}` : 'No additional charge';
+
+function SeatRows({options, selected, unavailable, onChoose}: {options:ExtraOption[];selected?:string;unavailable:Set<string>;onChoose:(code:string)=>void}) {
+  const rows = new Map<number, ExtraOption[]>();
+  for (const option of options) {
+    if (!option.seatNumber) continue;
+    const row = Number.parseInt(option.seatNumber, 10);
+    rows.set(row, [...(rows.get(row) ?? []), option]);
+  }
+  if (!rows.size) return null;
+  return <details className="checkout-seat-rows">
+    <summary>Browse seats by row</summary>
+    <p>Available seats reported by the airline, grouped by row.</p>
+    <div className="checkout-seat-map">
+      {[...rows].sort(([a],[b])=>a-b).map(([row,seats])=><div role="group" aria-label={`Row ${row}`} key={row}>
+        <strong>Row {row}</strong>
+        <div>{seats.sort((a,b)=>a.seatNumber!.localeCompare(b.seatNumber!)).map(seat=><button type="button" key={seat.code}
+          aria-pressed={seat.code===selected} aria-label={`${seat.label} · ${optionPrice(seat)}`} disabled={unavailable.has(seat.code)}
+          onClick={()=>onChoose(seat.code===selected?'':seat.code)}><strong>{seat.seatNumber}</strong><small>{optionPrice(seat)}</small>{seat.label.includes('Extra legroom')&&<small>Extra legroom</small>}</button>)}</div>
+      </div>)}
+    </div>
+  </details>;
+}
 
 function sameChoices(a: CheckoutChoice[], b: CheckoutChoice[]) {
   return a.length === b.length && a.every(choice => b.some(other =>
@@ -123,12 +147,13 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
               const options = segment.options.filter(option => option.kind === kind && !option.exitRow);
               if (!options.length) return null;
               const selected = choices.find(choice => choice.segmentId === segment.id && choice.travellerIndex === index && choice.kind === kind);
-              return <label key={kind}>{optionLabels[kind]}
+              const unavailable = new Set(kind==='SEAT'?choices.filter(choice=>choice.segmentId===segment.id&&choice.kind==='SEAT'&&choice.travellerIndex!==index).map(choice=>choice.code):[]);
+              return <div key={kind}><label>{optionLabels[kind]}
                 <select value={selected?.code ?? ""} onChange={event => choose(segment, index, kind, event.target.value)}>
                   <option value="">{kind === "SEAT" ? "Airline allocation" : "No extra"}</option>
-                  {options.map(option => <option key={option.code} value={option.code}>{option.label} · {option.amountMinor > 0 ? `+${displayMoney(option.amountMinor)}` : "No additional charge"}</option>)}
+                  {options.map(option => <option key={option.code} value={option.code} disabled={unavailable.has(option.code)}>{option.label} · {optionPrice(option)}</option>)}
                 </select>
-              </label>;
+              </label>{kind==='SEAT'&&<SeatRows options={options} selected={selected?.code} unavailable={unavailable} onChoose={code=>choose(segment,index,kind,code)}/>}</div>;
             })}
           </div>) : <p className="muted">No optional extras available for this flight.</p>}
       </fieldset>)}

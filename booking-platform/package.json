@@ -42,6 +42,7 @@
     "@vercel/oidc": "3.5.0",
     "better-auth": "^1.7.7",
     "jose": "6.2.12",
+    "libphonenumber-js": "1.13.17",
     "next": "16.4.6",
     "nodemailer": "10.1.4",
     "payglocal-js-client": "https://codeload.github.com/PayGlocal-Technologies/payglocal-js-client/tar.gz/5f6a93d61007b831e4d78555a15414e3f5c2e4c0",

@@ -1,3 +1,4 @@
+import {formatBookingDate} from '../../src/lib/travel-date';
 import type {Page} from '@playwright/test';
 import type {MaxAiResponse} from '../../src/lib/max-ai-contract';
 import {travelDateLabel} from '../../src/lib/travel-date';
@@ -59,8 +60,8 @@ async function expectPreservedCriteria(page: Page) {
   const form = page.getByRole('form', {name: 'Search availability', exact: true});
   await expect(form.getByLabel('Destination', {exact: true})).toHaveValue(destination);
   await expect(form.locator('input[name="hotelIds"]')).toHaveValue(hotelId);
-  await expect(form.getByLabel('Check-in', {exact: true})).toHaveValue(departure);
-  await expect(form.getByLabel('Check-out', {exact: true})).toHaveValue(checkOut);
+  await expect(form.getByLabel('Check-in', {exact: true})).toHaveValue(formatBookingDate(departure));
+  await expect(form.getByLabel('Check-out', {exact: true})).toHaveValue(formatBookingDate(checkOut));
   await expect(form.getByRole('combobox', {name: 'Rooms', exact: true})).toHaveValue('2');
   await expect(form.getByRole('combobox', {name: 'Guest nationality', exact: true})).toHaveValue('106');
   const first = form.getByRole('group', {name: 'Room 1 · Guests', exact: true});

@@ -18,6 +18,16 @@ function booking(id: string, reference: string, status: string, product = 'FLIGH
   };
 }
 
+test('a verified account can find a flight by airline PNR', async ({page, provider}) => {
+  provider.overrides['POST /api/bookings/lookup']={body:{matches:[{id:ids.ticket,reference:'MX-SYNTHETIC-TICKET'}],incomplete:false}};
+  await page.goto('/my-trips');
+  await page.getByText('Find a flight by PNR',{exact:true}).click();
+  await page.getByLabel('Airline PNR').fill('K5LQ72');
+  await page.getByRole('button',{name:'Find flight',exact:true}).click();
+  await expect(page.getByRole('link',{name:'Open booking MX-SYNTHETIC-TICKET'})).toHaveAttribute('href',`/my-trips/${ids.ticket}`);
+  expect(provider.requests('/api/bookings/lookup')[0].body).toEqual({pnr:'K5LQ72'});
+});
+
 test('My trips shows truthful booking states and keeps supplier confirmation within each record', async ({ page, provider }, testInfo) => {
   const photo = 'https://pix8.agoda.net/hotelImages/123/stay.jpg';
   const hotelBooking = booking(ids.hotel, 'MX-SYNTHETIC-HOTEL', 'CONFIRMED', 'HOTEL', 0);

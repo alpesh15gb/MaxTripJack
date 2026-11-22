@@ -133,7 +133,7 @@ test('checkout has one submit action on phones and keeps private details through
  await expect(form.getByRole('button',{name:/^Agree & pay /})).toHaveCount(1);
  await expect(form.getByRole('button',{name:'Choose flight extras',exact:true})).toBeHidden();
  await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');
- await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+ await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
  await form.getByRole('button',{name:'Change selection',exact:true}).click();
  const comparison=page.locator('.fare-comparison').first();if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();

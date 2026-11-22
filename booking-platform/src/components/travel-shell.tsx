@@ -48,7 +48,7 @@ export function TravelFooter() {
       <Link href="/packages">Holiday packages</Link>
       <Link href="/visa-guide">Visa assistance</Link>
       <Link href="/travel-insurance-guide">Travel insurance</Link>
-      <Link href="/contact">Bus enquiries</Link>
+      <Link href="/contact?topic=bus#office-enquiry">Bus enquiries</Link>
     </div>
     <div>
       <h2>Plan your trip</h2>
@@ -66,7 +66,7 @@ export function TravelFooter() {
       <span>{company.hours.display}</span>
       <Link href="/customer-support">Booking support</Link>
       <a href={company.emailHref}>Email us</a>
-      <a href={company.emailHref + '?subject=Partnership%20enquiry'}>Become a partner</a>
+      <Link href="/contact?topic=partner#office-enquiry">Become a partner</Link>
       <FooterPolicyLinks/>
     </div>
   </div>;

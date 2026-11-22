@@ -142,7 +142,7 @@ test('verified payment opens this booking status without claiming supplier confi
   const form = page.getByRole('form', { name: 'Review and travellers' });
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
-  await form.getByLabel('Indian mobile number', { exact: true }).fill('9876543210');
+  await form.getByLabel('Mobile number', { exact: true }).fill('9876543210');
   await expect(page.locator('#booking-summary .final-traveller-summary')).toContainText('Aarav Example');
   await expect(page.locator('#booking-review [name="consent"]')).toHaveCount(0);
   await page.locator('#booking-summary').getByRole('button', { name: /^Agree & pay / }).click();

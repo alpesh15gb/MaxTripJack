@@ -47,7 +47,7 @@ export default function TravellersPicker({product,adults,childCount:children,inf
   <button type="button" className="travellers-trigger" aria-haspopup="dialog" aria-expanded={open} aria-controls={`${id}-panel`} aria-labelledby={`${id}-label ${id}-value`} onClick={()=>setOpen(value=>!value)}>
    <span id={`${id}-value`}><strong>{total}</strong> {total===1?'Adult':flight?'Travellers':'Adults'}</span>
   </button>
-  <small>{flight?<>{cabinLabel(cabin)}<span className="stitch-add-child">+ Add infant / child</span></>:'1 room'}</small>
+  <small>{flight?cabinLabel(cabin):'1 room'}</small>
   {open&&<SearchPickerDialog fitToField className="travellers-panel" id={`${id}-panel`} label={flight?'Travellers and cabin class':'Guests'} onDismiss={close}>
    <Stepper label="Adults" hint={flight?'12 years and above':'Per room'} value={adults} min={1} max={flight?9:4} onChange={value=>set({adults:value})}/>
    {flight&&<>

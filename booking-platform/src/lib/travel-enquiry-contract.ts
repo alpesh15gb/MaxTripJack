@@ -5,7 +5,10 @@ import {maxAiSensitiveMessage} from './max-ai-sensitive';
 /** Shared public enquiry shape. Contact details are collected outside model chat. */
 export const enquiryServices=['VISA','INSURANCE','HOLIDAY','CRUISE'] as const;
 export type EnquiryService=typeof enquiryServices[number];
-export const enquiryServiceLabels:Record<EnquiryService,string>={VISA:'Visa assistance',INSURANCE:'Travel insurance',HOLIDAY:'Holiday package',CRUISE:'Cruise holiday'};
+export const officeEnquiryServices=['BUS','PARTNERSHIP'] as const;
+export const allEnquiryServices=[...enquiryServices,...officeEnquiryServices] as const;
+export type OfficeEnquiryService=typeof officeEnquiryServices[number];
+export const enquiryServiceLabels:Record<typeof allEnquiryServices[number],string>={VISA:'Visa assistance',INSURANCE:'Travel insurance',HOLIDAY:'Holiday package',CRUISE:'Cruise holiday',BUS:'Bus enquiry',PARTNERSHIP:'Partnership enquiry'};
 const text=(min:number,max:number)=>z.string().trim().min(min).max(max).refine(value=>!/[\u0000-\u001f\u007f]/.test(value),'Use plain text without control characters.');
 const date=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value=>Number.isFinite(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value,'Enter a valid calendar date.');
 export const enquiryDraftSchema=z.object({
@@ -51,6 +54,9 @@ export const enquiryDraftSchema=z.object({
   }
 });
 export type EnquiryDraft=z.infer<typeof enquiryDraftSchema>;
+const officeEnquiryDraftSchema=z.object({service:z.enum(officeEnquiryServices),subject:text(2,140),message:z.string().trim().min(10).max(1500).refine(value=>!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)&&!maxAiSensitiveMessage(value),'Remove sensitive information and use plain text.')}).strict();
+export const storedEnquiryDraftSchema=z.union([enquiryDraftSchema,officeEnquiryDraftSchema]);
+export type StoredEnquiryDraft=z.infer<typeof storedEnquiryDraftSchema>;
 
 export function enquiryDateError(draft:EnquiryDraft,today:string):string|null{
   return draft.travelStart&&draft.travelStart<today?'Your travel start date has passed. Update it or give a flexible travel window.':null;
@@ -66,11 +72,14 @@ export const enquiryContactSchema=z.object({
   if(value.preferredChannel!=='EMAIL'&&!value.phone)context.addIssue({code:'custom',path:['phone'],message:'Enter a phone number for your reply.'});
 });
 export type EnquiryContact=z.infer<typeof enquiryContactSchema>;
-export const enquirySubmitSchema=z.object({requestId:z.string().uuid(),draft:enquiryDraftSchema,contact:enquiryContactSchema,consent:z.literal(true)}).strict();
+const submissionSchema=z.object({requestId:z.string().uuid(),contact:enquiryContactSchema,consent:z.literal(true)}).strict();
+export const itineraryEnquirySubmitSchema=submissionSchema.extend({draft:enquiryDraftSchema});
+export type ItineraryEnquirySubmission=z.infer<typeof itineraryEnquirySubmitSchema>;
+export const enquirySubmitSchema=submissionSchema.extend({draft:storedEnquiryDraftSchema});
 export type EnquirySubmission=z.infer<typeof enquirySubmitSchema>;
 export type EnquiryStatus='NEW'|'CONTACTED'|'QUOTED'|'CLOSED';
-export type EnquiryCrmStatus='PENDING'|'DELIVERED'|'ACTION_REQUIRED'|'NOT_CONFIGURED'|'LEGACY_DELIVERY'|'DESTINATION_REVIEW';
-export type EnquiryReceipt={id:string;reference:string;service:EnquiryService;status:EnquiryStatus;createdAt:string;crmStatus:EnquiryCrmStatus;crmReference?:string;crmEnvironment?:'test'|'live'};
+export type EnquiryCrmStatus='PENDING'|'DELIVERED'|'ACTION_REQUIRED'|'NOT_CONFIGURED'|'LEGACY_DELIVERY'|'DESTINATION_REVIEW'|'OFFICE';
+export type EnquiryReceipt={id:string;reference:string;service:typeof allEnquiryServices[number];status:EnquiryStatus;createdAt:string;crmStatus:EnquiryCrmStatus;crmReference?:string;crmEnvironment?:'test'|'live'};
 
 export function enquirySummary(draft:EnquiryDraft):string[]{
   return [draft.destination,draft.travelWindow,

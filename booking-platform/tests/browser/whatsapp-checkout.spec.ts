@@ -50,7 +50,7 @@ test('WhatsApp verifies a new flight customer inside checkout without presenting
   const form = page.getByRole('form', { name: 'Review and travellers' });
   await expect(form).toBeVisible();
   await expect(form.getByLabel('Email', { exact: true })).toHaveValue('');
-  await expect(form.getByLabel('Indian mobile number', { exact: true })).toHaveValue('9876543210');
+  await expect(form.getByLabel('Mobile number', { exact: true })).toHaveValue('9876543210');
   await expect(page.locator('body')).not.toContainText(alias);
   expect(provider.requests(verifyPath)[0].body).toEqual({ phoneNumber: phone, code: '123456' });
   expect(provider.requests('/api/travel/search')).toHaveLength(1);

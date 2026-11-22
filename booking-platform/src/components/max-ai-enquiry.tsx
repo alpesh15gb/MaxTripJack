@@ -5,7 +5,7 @@ import {useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent} fro
 import {authClient} from '@/lib/auth-client';
 import {customerEmail} from '@/lib/customer-identity';
 import {indiaToday} from '@/lib/booking-presentation';
-import {enquiryDateError, enquiryServiceLabels, enquirySubmitSchema, enquirySummary, type EnquiryDraft, type EnquiryReceipt, type EnquirySubmission} from '@/lib/travel-enquiry-contract';
+import {enquiryDateError, enquiryServiceLabels, itineraryEnquirySubmitSchema, enquirySummary, type EnquiryDraft, type EnquiryReceipt, type ItineraryEnquirySubmission} from '@/lib/travel-enquiry-contract';
 import '@/app/enquiry-experience.css';
 
 function receipt(value: unknown): EnquiryReceipt | null {
@@ -42,7 +42,7 @@ export default function MaxAiEnquiry({draft, superseded = false}: {draft: Enquir
   const [saved, setSaved] = useState<EnquiryReceipt | null>(null);
   const [savedDestination, setSavedDestination] = useState('');
   const [status, setStatus] = useState('');
-  const submitted = useRef<EnquirySubmission | null>(null);
+  const submitted = useRef<ItineraryEnquirySubmission | null>(null);
   const inFlight = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const form = useRef<HTMLFormElement>(null);
@@ -78,7 +78,7 @@ export default function MaxAiEnquiry({draft, superseded = false}: {draft: Enquir
     setError('Check the highlighted details before sending your enquiry.');
   }
 
-  async function submit(payload: EnquirySubmission, checkOnly = false) {
+  async function submit(payload: ItineraryEnquirySubmission, checkOnly = false) {
     if (inFlight.current) return;
     const current = new AbortController();
     controller.current = current; inFlight.current = true;
@@ -130,7 +130,7 @@ export default function MaxAiEnquiry({draft, superseded = false}: {draft: Enquir
     for (const name of ['durationNights', 'budgetRupees']) if (data.has(name)) edited[name] = number(name);
     if (data.has('travellerAges')) edited.travellerAges = text('travellerAges') ? ageList(data.get('travellerAges')) : undefined;
     if (data.has('budgetRupees')) edited.budgetBasis = text('budgetRupees') ? text('budgetBasis') : undefined;
-    const parsed = enquirySubmitSchema.safeParse({
+    const parsed = itineraryEnquirySubmitSchema.safeParse({
       requestId: crypto.randomUUID(),
       draft: edited,
       contact: {name: text('name'), email: optional('email'), phone: optional('phone'), preferredChannel: channel},

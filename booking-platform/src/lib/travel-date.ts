@@ -23,3 +23,15 @@ export function travelDateTimeLabel(value: unknown): string {
   const parts = localDateParts(value);
   return parts?.time ? `${calendar.format(parts.date)} · ${parts.time}` : 'Date and time unavailable';
 }
+
+export function normalizeBookingDate(value: string): string {
+  const input = value.trim();
+  const parts = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(input);
+  const iso = parts ? `${parts[3]}-${parts[2]}-${parts[1]}` : input;
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) && localDateParts(iso) ? iso : '';
+}
+
+export function formatBookingDate(value: string): string {
+  const date = normalizeBookingDate(value);
+  return date ? `${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(0,4)}` : value;
+}

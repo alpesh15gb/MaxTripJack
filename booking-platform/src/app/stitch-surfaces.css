@@ -311,3 +311,6 @@ body.stitch-theme :is(#booking-review,#booking-rooms) .stay-booking-notes {
   .stitch-activity-icon .stitch-symbol,
   .stitch-pending-line, .stitch-pending-thumb, .stitch-pending-action { animation: none; }
 }
+.booking-date-input { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 6px; min-width: 0; }
+.booking-date-input .fare-date-icon-only { padding: 0; border: 0; min-width: 0; }
+.booking-date-input .fare-date-icon-only .fare-date-trigger { display: grid; place-items: center; min-height: 44px; min-width: 44px; padding: 0; border: 1px solid #a6b4c4; border-radius: 8px; color: #005bb3; background: #fff; }

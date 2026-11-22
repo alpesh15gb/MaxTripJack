@@ -1,3 +1,4 @@
+import {formatBookingDate} from '../../src/lib/travel-date';
 import path from 'node:path';
 import type {Page} from '@playwright/test';
 import {toggleResultSearch, mainNavigation,test,expect,capture,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
@@ -67,12 +68,9 @@ test('desktop Max AI keeps the room selection action clear', async ({page, provi
     const top = button.getBoundingClientRect().top;
     window.scrollBy({top: top - window.innerHeight + 62, behavior: 'instant'});
   });
-  const button = await action.boundingBox();
-  const assistant = await launcher.boundingBox();
-  expect(button!.x + button!.width).toBeGreaterThan(assistant!.x);
   await expect.poll(async () => {
     const a = await action.boundingBox(), b = await launcher.boundingBox();
-    return Boolean(a && b && (b.y + b.height <= a.y - 8 || b.y >= a.y + a.height + 8));
+    return Boolean(a && b && (a.x+a.width<=b.x-8 || b.x+b.width<=a.x-8 || b.y+b.height<=a.y-8 || b.y>=a.y+a.height+8));
   }).toBe(true);
   await action.click();
   await expect(page.locator('#booking-review-title')).toBeVisible();
@@ -143,7 +141,7 @@ for(const reason of ['expired','foreign'])test(`${reason} property deep link off
  await page.goto(detailUrl());await expect(page.locator('#booking-feedback')).toContainText('Search again');
  await expect(page.locator('#hotel-detail-title')).toHaveCount(0);
  expect(provider.requests('/api/travel/hotel-search-snapshot')).toHaveLength(1);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
+ await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(formatBookingDate(departure));await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(formatBookingDate(returning));
 });
 
 test('multi-room bundled rate preserves exact option and total through sign-in review boundary',async({page,provider})=>{
@@ -179,7 +177,7 @@ test('empty live rates retain the property overview and offer a reversible retur
  await expect(page.getByRole('button',{name:'View all 3 photos',exact:true})).toBeVisible();await capture(page,testInfo,'hotel-available-property-no-room-inventory');
  const checkIn=page.getByLabel('Check-in',{exact:true});
  await page.locator('#hotel-room-options').getByRole('button',{name:'Change stay dates',exact:true}).click();
- await expect(checkIn).toBeFocused();await expect(checkIn).toHaveValue(departure);await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
+ await expect(checkIn).toBeFocused();await expect(checkIn).toHaveValue(formatBookingDate(departure));await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(formatBookingDate(returning));
  await expect(page.locator('#hotel-detail-title')).toHaveText(name);await expect(page).toHaveURL(/stay=10001/);
  await page.locator('#hotel-room-options').getByRole('button',{name:'Browse other stays',exact:true}).click();await expect(title(page)).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -249,7 +247,7 @@ test('pointer-only property URL hydrates authoritative dates, destination, natio
  await toggleResultSearch(page);
  const form=page.getByRole('form',{name:'Search availability',exact:true});
  await expect(form.getByLabel('Destination',{exact:true})).toHaveValue(authoritative.city);await expect(form.locator('input[name="hotelIds"]')).toHaveValue('10001,10002');
- await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue(returning);await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('2');await expect(form.getByRole('combobox',{name:'Guest nationality',exact:true})).toHaveValue('222');
+ await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue(formatBookingDate(departure));await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue(formatBookingDate(returning));await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('2');await expect(form.getByRole('combobox',{name:'Guest nationality',exact:true})).toHaveValue('222');
  const first=form.getByRole('group',{name:'Room 1 · Guests',exact:true}),second=form.getByRole('group',{name:'Room 2 · Guests',exact:true});
  await expect(first.getByRole('combobox',{name:'Adults',exact:true})).toHaveValue('2');await expect(first.getByRole('combobox',{name:'Children',exact:true})).toHaveValue('0');
  await expect(second.getByRole('combobox',{name:'Adults',exact:true})).toHaveValue('1');await expect(second.getByRole('combobox',{name:'Children',exact:true})).toHaveValue('1');await expect(second.getByLabel('Child 1 age at check-in',{exact:true})).toHaveValue('7');

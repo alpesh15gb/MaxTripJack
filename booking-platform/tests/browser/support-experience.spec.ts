@@ -45,7 +45,8 @@ test('support booking task reaches an honest authentication gate and preserves a
  await page.getByRole('main').getByRole('link',{name:'Manage a booking',exact:true}).click();
  await expect(page).toHaveURL('/my-trips');
  await expect(page.getByRole('heading',{name:'Your trips are private.'})).toBeVisible();
- await expect(page.getByRole('main').getByRole('alert')).toHaveText('Sign in to view your private booking updates. This does not change your payment or booking status.');
- await expect(page.getByRole('link',{name:'Open account',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('Sign in using the email address on your booking');
+ await expect(page.getByRole('link',{name:'Sign in to view trips',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
+ await expect(page.getByRole('link',{name:'Find a flight by PNR',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips%3Flookup%3Dflight');
  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
 });

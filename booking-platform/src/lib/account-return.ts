@@ -10,6 +10,7 @@ export function safeAccountReturn(value: unknown): string {
     if (url.origin !== "https://account-return.invalid" || (!bookingStatus && !["/book", "/my-trips", "/travellers"].includes(url.pathname))) return "/my-trips";
     // Only non-sensitive search criteria may travel through authentication URLs.
     const safe = new URLSearchParams();
+    if (url.pathname === "/my-trips" && url.searchParams.get("lookup") === "flight") safe.set("lookup", "flight");
     const allowed = ["product", "from", "to", "date", "returnDate", "end", "adults", "children", "infants", "cabin", "city", "nationality", "rooms", "legs", "hotelIds", "regionId", "destinationCursor", "autoSearch"];
     if (url.pathname === "/book") for (const key of allowed) { const value = url.searchParams.get(key); if (value !== null) safe.set(key, value); }
     if (url.pathname === "/book" && url.searchParams.get("resumeSelection") === "1") {

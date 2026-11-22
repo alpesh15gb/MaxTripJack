@@ -19,7 +19,7 @@ async function fillDomesticTraveller(page: Page) {
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
   await form.getByLabel('Email', { exact: true }).fill('traveller@example.test');
-  await form.getByLabel('Indian mobile number', { exact: true }).fill('9876543210');
+  await form.getByLabel('Mobile number', { exact: true }).fill('9876543210');
 }
 
 async function showPaymentReview(page: Page) {
@@ -67,6 +67,26 @@ test('return journeys require one outbound and one return fare in canonical orde
   await page.getByRole('button', { name: /Review selected journey \(2\/2\)/ }).click();
   await expect(page.getByRole('form', { name: 'Review and travellers' })).toBeVisible();
   expect(provider.requests('/api/travel/review')[0].body).toEqual({ searchId, priceIds: ['onward-standard', 'return-standard'] });
+});
+
+test('payment options wait for passenger details and accept an international phone', async ({page, provider}) => {
+  provider.overrides['GET /api/travel/promo']={body:{offers:[]}};
+  await openReviewedFlight(page);
+  const form=page.getByRole('form',{name:'Review and travellers'});
+  const method=form.getByRole('button',{name:'Choose a preferred payment method'});
+  await method.click();
+  await expect(form.locator('.checkout-method-sheet')).not.toBeVisible();
+  expect(provider.requests('/api/travel/promo')).toHaveLength(0);
+  await expect(form.getByRole('textbox',{name:'First name',exact:true})).toHaveAttribute('aria-invalid','true');
+  await form.getByRole('textbox',{name:'First name',exact:true}).fill('Aarav');
+  await form.getByRole('textbox',{name:'Last name',exact:true}).fill('Example');
+  await form.locator('select[name="phoneCountryCode"]').selectOption('+44');
+  await form.getByRole('textbox',{name:'Mobile number',exact:true}).fill('7700900123');
+  await method.click();
+  await expect(page.locator('.checkout-method-sheet')).toBeVisible();
+  await page.getByRole('button',{name:'Back to booking review'}).click();
+  await openSyntheticPayment(page);
+  expect(provider.requests('/api/payments/create')[0]?.body).toMatchObject({guests:{phone:'+447700900123'}});
 });
 
 test('domestic adult documents remain optional rather than blocking checkout', async ({ page, provider }) => {
@@ -229,10 +249,12 @@ test('unknown local-time duration is not guessed and COMBO journeys are not conn
   await openFlightSearch(page, { roundTrip: true });
   await expect(page.locator('.combo-itinerary').getByText('Complete itinerary', { exact: true })).toBeVisible();
   const filters=page.getByRole('button',{name:/^Filters/});
-  if(await filters.isVisible())await filters.click();
-  await expect(page.getByRole('combobox', { name: 'Stops', exact: true })).toBeDisabled();
   const comboFilters=page.getByRole('dialog',{name:'Filter flights',exact:true});
-  if(await comboFilters.isVisible())await comboFilters.getByRole('button',{name:'Close filters',exact:true}).click();
+  if(await filters.isVisible()){
+    await filters.click();
+    await expect(comboFilters.getByRole('combobox',{name:'Stops',exact:true})).toBeDisabled();
+    await comboFilters.getByRole('button',{name:'Close filters',exact:true}).click();
+  }else await expect(page.getByText('Check stops for each flight in the complete itinerary.')).toBeVisible();
   await expect(page.locator('.combo-itinerary')).toContainText('BOM → DEL');
   await expect(page.locator('.combo-itinerary')).toContainText('DEL → BOM');
   await expect(page.locator('.flight-route-track')).toHaveCount(0);
@@ -506,7 +528,7 @@ test('flight review updates beside the editable details without a new step or an
  await openReviewedFlight(page);
  const launch=await page.evaluate(()=>({url:location.href,history:history.length}));
  await showPaymentReview(page);
- const phone=page.getByLabel('Indian mobile number',{exact:true});
+ const phone=page.getByLabel('Mobile number',{exact:true});
  await phone.press('Enter');
  await expect(phone).toBeFocused();
  expect(await page.evaluate(()=>({url:location.href,history:history.length}))).toEqual(launch);

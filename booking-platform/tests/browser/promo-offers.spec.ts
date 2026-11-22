@@ -9,7 +9,7 @@ async function reviewedCheckout(page: Page) {
   await form.getByLabel('First name', {exact: true}).fill('Aarav');
   await form.getByLabel('Last name', {exact: true}).fill('Example');
   await form.getByLabel('Email', {exact: true}).fill('traveller@example.test');
-  await form.getByLabel('Indian mobile number', {exact: true}).fill('9876543210');
+  await form.getByLabel('Mobile number', {exact: true}).fill('9876543210');
   return form;
 }
 

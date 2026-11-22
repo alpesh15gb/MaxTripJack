@@ -8,6 +8,7 @@ test('account return allows only customer workspaces and non-sensitive search co
  assert.equal(safeAccountReturn('/book?resumeSelection=evil'),'/book');
  assert.equal(safeAccountReturn('/travellers'),'/travellers');
  assert.equal(safeAccountReturn('/my-trips?token=secret'),'/my-trips');
+ assert.equal(safeAccountReturn('/my-trips?lookup=flight&pnr=K5LQ72'),'/my-trips?lookup=flight');
  assert.equal(accountHref('/book?from=BOM'),'/account?returnTo=%2Fbook%3Ffrom%3DBOM');
 });
 test('account return rejects external, encoded protocol-relative, control and internal auth URLs',()=>{

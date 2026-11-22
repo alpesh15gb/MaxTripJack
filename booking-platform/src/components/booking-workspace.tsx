@@ -14,6 +14,7 @@ import { isBookingConfirmed } from "@/lib/booking-status";
 import { refundStage, sortTrips, tripGroup, tripGroups } from "@/lib/trip-organiser";
 import HotelPropertyMedia from "./hotel-property-media";
 import type { HotelPropertyDetails } from "@/lib/hotel-presentation";
+import BookingLookup from "./booking-lookup";
 import FlightServices from "./flight-services";
 import CancellationRequest from "./cancellation-request";
 import CancellationProgress from "./cancellation-progress";
@@ -221,7 +222,7 @@ function BookingRecord({ booking, originalReference, onUpdate, onAccessLost }: {
   </article>;
 }
 
-export default function BookingWorkspace({ admin = false }: { admin?: boolean }) {
+export default function BookingWorkspace({ admin = false, openFlightLookup = false }: { admin?: boolean; openFlightLookup?: boolean }) {
   const { data: session, isPending, isRefetching, error, refetch } = authClient.useSession();
   const checking = isPending || isRefetching;
   const signedOut = !error && !session || error?.status === 401;
@@ -231,12 +232,12 @@ export default function BookingWorkspace({ admin = false }: { admin?: boolean })
   const ready = !isPending && error?.status !== 401 && error?.status !== 403 && Boolean(session);
   const blocked = checking || Boolean(error);
   return <>
-    {(!ready || blocked) && <><TravelHeader active={admin ? undefined : "trips"}/><main className="page-shell trips-workspace" id="main-content"><h1>Your trips are private.</h1>{checking ? <p role="status">Checking secure account access…</p> : error && !signedOut ? <><p role="alert">{error.status === 403 ? "Access to these trips is no longer available. Check your account or contact support; this does not establish that you were signed out." : "We couldn’t verify account access. Your private trips are hidden; this does not establish that you were signed out or change any booking status."}</p><button type="button" className="primary" onClick={()=>void refetch()}>Check account access</button></> : <><p role="alert">Sign in using the email address on your booking to see confirmations, payments and updates.</p><Link className="primary" href={accountHref("/my-trips")}>Sign in to view trips</Link></>}</main><TravelFooter/></>}
-    {ready && <div hidden={blocked} inert={blocked}><PrivateBookingWorkspace key={`${session!.user.id}:${session!.session.id}:${session!.user.emailVerified}:${session!.user.phoneNumberVerified}`} admin={admin} paused={blocked} travellerName={session!.user.name || ""}/></div>}
+    {(!ready || blocked) && <><TravelHeader active={admin ? undefined : "trips"}/><main className="page-shell trips-workspace" id="main-content"><h1>Your trips are private.</h1>{checking ? <p role="status">Checking secure account access…</p> : error && !signedOut ? <><p role="alert">{error.status === 403 ? "Access to these trips is no longer available. Check your account or contact support; this does not establish that you were signed out." : "We couldn’t verify account access. Your private trips are hidden; this does not establish that you were signed out or change any booking status."}</p><button type="button" className="primary" onClick={()=>void refetch()}>Check account access</button></> : <><p role="alert">Sign in using the email address on your booking to look up a flight by PNR or see your booking updates.</p><div className="trip-access-actions"><Link className="primary" href={accountHref("/my-trips")}>Sign in to view trips</Link><Link className="secondary" href={accountHref("/my-trips?lookup=flight")}>Find a flight by PNR</Link></div></>}</main><TravelFooter/></>}
+    {ready && <div hidden={blocked} inert={blocked}><PrivateBookingWorkspace key={`${session!.user.id}:${session!.session.id}:${session!.user.emailVerified}:${session!.user.phoneNumberVerified}`} admin={admin} paused={blocked} travellerName={session!.user.name || ""} emailVerified={session!.user.emailVerified} openFlightLookup={openFlightLookup}/></div>}
   </>;
 }
 
-function PrivateBookingWorkspace({ admin, paused, travellerName }: { admin: boolean; paused: boolean; travellerName: string }) {
+function PrivateBookingWorkspace({ admin, paused, travellerName, emailVerified, openFlightLookup }: { admin: boolean; paused: boolean; travellerName: string; emailVerified: boolean; openFlightLookup: boolean }) {
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -370,6 +371,7 @@ function PrivateBookingWorkspace({ admin, paused, travellerName }: { admin: bool
             <Link className="primary" href="/book" aria-label="Book new trip"><StitchSymbol name="add_circle" size={17}/><span className="hub-book-desktop">Book new trip</span><span className="hub-book-mobile">Book trip</span></Link>
           </div>
         </div>
+      {!admin&&!loading&&!error&&<BookingLookup emailVerified={emailVerified} initiallyOpen={openFlightLookup}/>}
       {loading ? <div className="trips-loading" role="status" aria-label="Loading your trips"><p>Gathering your journeys…</p><div className="booking-skeleton" /><div className="booking-skeleton" /></div> : error ? <section className="trips-empty trips-access"><span className="trips-empty-icon"><TravelIcon name="shield" size={29} /></span><p className="eyebrow">{accessError ? "YOUR TRIPS ARE PRIVATE" : "LET’S TRY THAT AGAIN"}</p><h2>{accessError ? "Let’s get you to your bookings." : "We couldn’t load your trips."}</h2><p role="alert">{error}</p><div>{accessError && <Link className="primary" href={accountHref("/my-trips")}>Sign in to view trips</Link>}{!accessError&&<button className="secondary" onClick={refresh}>Try again</button>}</div></section> : admin ? <div className="metric-grid">{Object.entries(metrics).map(([key, value]) => <div className="white-card metric" key={key}><span>{key.replaceAll("_", " ")}</span><strong>{value}</strong><small>Database records</small></div>)}</div> : bookings.length === 0 ? <section className="trips-empty trips-empty-discover"><Image className="trips-empty-photo" src="/travel/bali.jpg" alt="" fill sizes="(max-width: 750px) 100vw, 500px" /><span className="trips-empty-icon"><TravelIcon name="bag" size={31} /></span><p className="eyebrow">A BLANK PAGE. A WORLD OF POSSIBILITIES.</p><h2>Your next story starts here.</h2><p>No bookings are linked to this account yet. A weekend away, a long-awaited reunion, or somewhere completely new?</p><Link className="primary" href="/book">Find your next journey<TravelIcon name="arrow" size={17} /></Link><span>Already booked? Check you’re signed in to the right account.</span><Link className="trips-account-link" href="/account">Account & security</Link></section> : <>
         <div className="hub-browser">
           <label className="hub-search"><StitchSymbol name="search"/><span className="trips-visually-hidden">Search loaded bookings</span><input id="trip-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by booking reference, city or hotel…"/></label>

@@ -4,6 +4,8 @@ import {maxAiGatewayConfiguration} from "@/lib/max-ai-provider";
 import {conversationConfigured} from "@/lib/max-ai-conversation";
 import HomeDesk from "./home-desk";
 import {StitchSymbol} from "./stitch-symbol";
+import OfficeEnquiryForm from "./office-enquiry-form";
+import type {OfficeEnquiryService} from "@/lib/travel-enquiry-contract";
 import {officeDirectionsHref} from "@/lib/business-profile";
 import SeoJsonLd from "@/components/seo-json-ld";
 import {getCompanyProfile} from "@/lib/company-settings";
@@ -83,7 +85,7 @@ export function RouteGuideCards({ exclude }: { exclude?: string }) {
   </Link>)}</div>;
 }
 
-export async function PublicPageView({ page }: { page: PublicPage }) {
+export async function PublicPageView({page, contactTopic}: {page: PublicPage; contactTopic?: OfficeEnquiryService}) {
   const businessProfile=await getCompanyProfile();
   page=getPublicPage(page.slug,businessProfile)??page;
   const path = `/${page.slug}`;
@@ -98,7 +100,8 @@ export async function PublicPageView({ page }: { page: PublicPage }) {
         <div className="public-hero-copy"><p className="public-eyebrow">{assisted ? 'Assisted enquiry' : page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{(page.slug === "contact" || assisted) && <a className="public-button" href="#contact-options">{assisted ? `Discuss your ${assisted} enquiry` : 'See contact options'}<TravelIcon name="arrow" size={18} /></a>}{page.cta && !assisted && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}</div>
         <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />
       </header>
-      <div className="public-layout"><article className="public-article"><PlanningNotice /><ContentSections sections={page.sections} />
+      {page.slug==='flights'&&<p className="public-inline-links"><Link href="/my-trips?lookup=flight">Already booked? Find your flight by PNR <span aria-hidden="true">→</span></Link></p>}
+      <div className="public-layout"><article className="public-article">{contactTopic && <OfficeEnquiryForm key={contactTopic} service={contactTopic}/>}<PlanningNotice /><ContentSections sections={page.sections} />
         {page.showRoutes && <section className="public-section" aria-labelledby="route-guides-heading"><h2 id="route-guides-heading">Find your flight planning guide</h2><p><Link href="/flights/routes">Browse the flight route directory →</Link></p><RouteGuideCards /></section>}
         {page.questions && <Questions questions={page.questions} />}<ReviewDate value={page.reviewedAt} />
       </article><aside className="public-rail"><OfficeContactCard compact={!page.contact} id={page.slug === "contact" || assisted ? "contact-options" : undefined} /><section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section></aside></div>

@@ -1,3 +1,4 @@
+import {formatBookingDate} from '../../src/lib/travel-date';
 import {chooseFlightFilter,toggleResultSearch, test,expect,departure,searchId,flight} from './fixtures';
 
 test('reopening the same AI card reapplies its view without reloading the owned search or undoing native filter edits',async({page,provider})=>{
@@ -64,7 +65,7 @@ test('an original AI card restores its own inventory after an explicit different
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('IndiGo');
   await expect(page.locator('.flight-shopping-list .live-flight-card')).not.toContainText('New search airline');
   await toggleResultSearch(page);
-  await expect(page.getByLabel('Departure',{exact:true})).toHaveValue(departure);
+  await expect(page.getByLabel('Departure',{exact:true})).toHaveValue(formatBookingDate(departure));
   expect(provider.requests('/api/travel/flight-search-snapshot')).toHaveLength(2);
   expect(provider.requests('/api/travel/search')).toHaveLength(1);
   expect(provider.requests('/api/travel/search')[0].body).toMatchObject({date:newerDate});

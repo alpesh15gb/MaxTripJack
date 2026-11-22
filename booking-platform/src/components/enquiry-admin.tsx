@@ -4,16 +4,16 @@ import Link from 'next/link';
 import OperationsPageNavigation from './operations-page-navigation';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {authClient} from '@/lib/auth-client';
-import {enquiryContactSchema, enquiryDraftSchema, enquiryServiceLabels, enquiryServices, type EnquiryContact, type EnquiryDraft, type EnquiryReceipt, type EnquiryStatus} from '@/lib/travel-enquiry-contract';
+import {enquiryContactSchema, storedEnquiryDraftSchema, enquiryServiceLabels, allEnquiryServices, type EnquiryContact, type StoredEnquiryDraft, type EnquiryReceipt, type EnquiryStatus} from '@/lib/travel-enquiry-contract';
 import '@/app/enquiry-experience.css';
 import '@/app/operations-utility-pages.css';
 
-type Row = EnquiryReceipt & {version: number; updatedAt: string; draft: EnquiryDraft; contact: EnquiryContact; contactVerified: boolean; internalNote: string};
+type Row = EnquiryReceipt & {version: number; updatedAt: string; draft: StoredEnquiryDraft; contact: EnquiryContact; contactVerified: boolean; internalNote: string};
 type Filters = {q: string; service: string; status: string};
 const emptyFilters: Filters = {q: '', service: '', status: ''};
 const statuses: EnquiryStatus[] = ['NEW', 'CONTACTED', 'QUOTED', 'CLOSED'];
 const statusLabels: Record<EnquiryStatus, string> = {NEW: 'New', CONTACTED: 'Contacted', QUOTED: 'Quoted', CLOSED: 'Closed'};
-const crmLabels = {PENDING: 'Safar delivery pending', DELIVERED: 'Saved in Safar', ACTION_REQUIRED: 'Safar delivery needs attention', NOT_CONFIGURED: 'Safar not configured', LEGACY_DELIVERY: 'Delivered to previous CRM', DESTINATION_REVIEW: 'Review previous CRM destination'};
+const crmLabels = {PENDING: 'Safar delivery pending', DELIVERED: 'Saved in Safar', ACTION_REQUIRED: 'Safar delivery needs attention', NOT_CONFIGURED: 'Safar not configured', LEGACY_DELIVERY: 'Delivered to previous CRM', DESTINATION_REVIEW: 'Review previous CRM destination', OFFICE: 'Booking desk only'};
 const legacyDelivery = (row: Row) => row.crmStatus === 'LEGACY_DELIVERY' || row.crmStatus === 'DESTINATION_REVIEW';
 const retryEligible = (row: Row) => ['ACTION_REQUIRED', 'NOT_CONFIGURED'].includes(row.crmStatus) && (row.crmEnvironment === 'test' || row.crmEnvironment === 'live');
 
@@ -24,13 +24,14 @@ function isRow(value: unknown): value is Row {
     statuses.includes(item.status) && Object.hasOwn(crmLabels, item.crmStatus) && Number.isSafeInteger(item.version) &&
     (item.crmEnvironment === undefined || item.crmEnvironment === 'test' || item.crmEnvironment === 'live') &&
     typeof item.createdAt === 'string' && typeof item.updatedAt === 'string' && typeof item.internalNote === 'string' &&
-    enquiryDraftSchema.safeParse(item.draft).success && item.service === item.draft.service && enquiryContactSchema.safeParse(item.contact).success;
+    storedEnquiryDraftSchema.safeParse(item.draft).success && item.service === item.draft.service && enquiryContactSchema.safeParse(item.contact).success;
 }
 function when(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 'Date unavailable' : new Intl.DateTimeFormat('en-IN', {dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata'}).format(date);
 }
-function details(draft: EnquiryDraft): [string, string][] {
+function details(draft: StoredEnquiryDraft): [string, string][] {
+  if ('message' in draft) return [['Subject',draft.subject],['Request',draft.message]];
   return [
     ['Destination', draft.destination], ['Travel window', draft.travelWindow], ['Adults', String(draft.adults)], ['Children', draft.childAges.length ? draft.childAges.join(', ') + ' years' : 'None'],
     ['Departure city', draft.departureCity], ['Start date', draft.travelStart], ['End date', draft.travelEnd], ['Nights', draft.durationNights ? String(draft.durationNights) : undefined],
@@ -122,19 +123,19 @@ function EnquiryWorkspace() {
     {!ready ? <section><p role="status">{loading ? 'Checking access and loading enquiries…' : 'Enquiries are unavailable until access and the latest records can be checked.'}</p><Link href="/account">Account &amp; security</Link></section> : <>
       <form className="enquiry-admin-filters" aria-label="Filter enquiries" onSubmit={event => {event.preventDefault(); const data = new FormData(event.currentTarget); void load({q: String(data.get('q') ?? '').trim(), service: String(data.get('service') ?? ''), status: String(data.get('status') ?? '')}, 1);}}>
         <label>Search enquiries<input name="q" maxLength={100} defaultValue={filters.q} placeholder="Reference, destination or contact" disabled={Boolean(busyId)}/></label>
-        <label>Service<select name="service" aria-label="Service" defaultValue={filters.service} disabled={Boolean(busyId)}><option value="">All services</option>{enquiryServices.map(service => <option value={service} key={service}>{enquiryServiceLabels[service]}</option>)}</select></label>
+        <label>Service<select name="service" aria-label="Service" defaultValue={filters.service} disabled={Boolean(busyId)}><option value="">All services</option>{allEnquiryServices.map(service => <option value={service} key={service}>{enquiryServiceLabels[service]}</option>)}</select></label>
         <label>Status<select name="status" aria-label="Status" defaultValue={filters.status} disabled={Boolean(busyId)}><option value="">All statuses</option>{statuses.map(status => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></label>
         <button type="submit" disabled={loading || Boolean(busyId)}>Apply filters</button>
       </form>
       <p role="status">{loading ? 'Updating enquiries…' : `${total} enquir${total === 1 ? 'y' : 'ies'} · Page ${page}`}{!canManage ? ' · Read-only access' : ''}</p>
       {!rows.length && !loading && <section className="enquiry-admin-card"><h2>No enquiries match</h2><p>Try another service or status, or clear your search.</p></section>}
       <div className="enquiry-admin-list">{rows.map(row => <article key={`${row.id}:${row.version}`} className="enquiry-admin-card" aria-label={row.reference}>
-        <header><div><h2>{row.reference}</h2><p>{enquiryServiceLabels[row.service]} · {row.draft.destination}</p></div><div className="enquiry-admin-tags"><span className="enquiry-admin-tag">{statusLabels[row.status]}</span><span className="enquiry-admin-tag">{crmLabels[row.crmStatus]}</span>{!legacyDelivery(row) && <span className="enquiry-admin-tag">{row.crmEnvironment === 'test' ? 'Safar · Test enquiries' : row.crmEnvironment === 'live' ? 'Safar · Live enquiries' : 'Safar mode unavailable'}</span>}</div></header>
-        {row.crmStatus === 'DESTINATION_REVIEW' ? <p>This enquiry predates the Safar destination. Automatic delivery is held. Check its previous CRM destination before arranging any separate transfer; retry is disabled here.</p>
+        <header><div><h2>{row.reference}</h2><p>{enquiryServiceLabels[row.service]} · {'destination' in row.draft ? row.draft.destination : row.draft.subject}</p></div><div className="enquiry-admin-tags"><span className="enquiry-admin-tag">{statusLabels[row.status]}</span><span className="enquiry-admin-tag">{crmLabels[row.crmStatus]}</span>{!legacyDelivery(row) && row.crmStatus !== 'OFFICE' && <span className="enquiry-admin-tag">{row.crmEnvironment === 'test' ? 'Safar · Test enquiries' : row.crmEnvironment === 'live' ? 'Safar · Live enquiries' : 'Safar mode unavailable'}</span>}</div></header>
+        {row.crmStatus === 'OFFICE' ? null : row.crmStatus === 'DESTINATION_REVIEW' ? <p>This enquiry predates the Safar destination. Automatic delivery is held. Check its previous CRM destination before arranging any separate transfer; retry is disabled here.</p>
           : row.crmStatus === 'LEGACY_DELIVERY' ? <p>This receipt records delivery to the previous CRM, not confirmation in Safar. It will not be automatically resent to Safar.</p>
           : row.crmEnvironment === 'test' ? <p>This request belongs in Safar’s Test enquiries view, separate from live customer enquiries.</p>
           : !row.crmEnvironment ? <p>The Safar delivery mode is not recorded. Check the destination configuration before arranging delivery; retry is disabled here.</p> : null}
-        <p>{row.draft.travelWindow} · {row.draft.adults} adult{row.draft.adults === 1 ? '' : 's'}{row.draft.childAges.length ? ` · ${row.draft.childAges.length} ${row.draft.childAges.length === 1 ? 'child' : 'children'}` : ''}</p>
+        {'travelWindow' in row.draft && <p>{row.draft.travelWindow} · {row.draft.adults} adult{row.draft.adults === 1 ? '' : 's'}{row.draft.childAges.length ? ` · ${row.draft.childAges.length} ${row.draft.childAges.length === 1 ? 'child' : 'children'}` : ''}</p>}
         <div className="enquiry-admin-contact"><strong>{row.contact.name}</strong>{row.contact.email && <a href={`mailto:${row.contact.email}`}>{row.contact.email}</a>}{row.contact.phone && <a href={`tel:${row.contact.phone}`}>{row.contact.phone}</a>}<small>Preferred reply: {row.contact.preferredChannel === 'EMAIL' ? 'Email' : row.contact.preferredChannel === 'PHONE' ? 'Phone call' : 'WhatsApp'} · {row.contactVerified ? 'Verified contact' : 'Customer-provided contact; not verified'}</small></div>
         <details className="enquiry-admin-details"><summary>Travel details &amp; follow-up</summary><dl>{details(row.draft).map(([label, value]) => <div className="enquiry-admin-detail-pair" key={label}><dt>{label}</dt><dd>{value}</dd></div>)}{row.crmReference && <div className="enquiry-admin-detail-pair"><dt>{legacyDelivery(row) ? 'Previous CRM reference' : 'Safar reference'}</dt><dd>{row.crmReference}</dd></div>}</dl>
           {canManage ? <form className="enquiry-admin-edit" aria-label={`Update ${row.reference}`} onSubmit={event => {event.preventDefault(); const data = new FormData(event.currentTarget); void update(row, {status: String(data.get('status')), internalNote: String(data.get('internalNote') ?? '')});}}>

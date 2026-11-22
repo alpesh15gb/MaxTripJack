@@ -1,6 +1,26 @@
 import { readdirSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { syntheticSession } from './fixtures';
+import { syntheticSession, test as fixtureTest } from './fixtures';
+
+for (const [label, service] of [['Bus enquiries','BUS'],['Become a partner','PARTNERSHIP']] as const) {
+  fixtureTest(`${service.toLowerCase()} enquiry has a dedicated form and booking desk receipt`, async ({page,provider})=>{
+    const reference='ME-111111111111';
+    provider.overrides['POST /api/travel/enquiries']={status:201,body:{enquiry:{reference,service,crmStatus:'OFFICE'}}};
+    await page.goto('/');
+    const directory=page.locator('.concierge-mobile-directory > summary');
+    if(await directory.isVisible())await directory.click();
+    await page.getByRole('link',{name:label,exact:true}).click();
+    const form=page.locator('#office-enquiry form');
+    await form.getByLabel(service==='BUS'?'Pickup and destination':'Company name').fill('Synthetic subject');
+    await form.getByLabel(service==='BUS'?'Trip date, group size and requirements':'How would you like to work with us?').fill('A synthetic message for the booking desk.');
+    await form.getByLabel('Your name',{exact:true}).fill('Test Traveller');
+    await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');
+    await form.getByRole('checkbox').check();
+    await form.getByRole('button',{name:'Send enquiry'}).click();
+    await expect(page.locator('#office-enquiry').getByRole('status')).toContainText(reference);
+    expect(provider.requests('/api/travel/enquiries')[0].body).toMatchObject({draft:{service},consent:true});
+  });
+}
 
 const examples = new Map([
   ['/flights/[slug]', '/flights/mumbai-to-goa'],

@@ -267,7 +267,7 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
 
       {offers}
       <section id="discover" className="stitch-discover stitch-home-wrap" aria-labelledby="discover-heading">
-        <div className="stitch-section-title"><div><span className="stitch-wide-only">Curated exploration</span><h2 id="discover-heading">Where to next?<span className="stitch-wide-only"> Curated getaways</span></h2><p className="stitch-phone-only">Explore destinations with live stay comparisons</p></div><Link href="/hotels">View all<span className="stitch-wide-only"> destinations</span><TravelIcon name="arrow" size={15}/></Link></div>
+        <div className="stitch-section-title"><div><h2 id="discover-heading">Explore hotel destinations</h2><p>Compare stays and check live availability.</p></div><Link href="/hotels">Browse hotels<TravelIcon name="arrow" size={15}/></Link></div>
         <div className="stitch-destinations">{destinations.map(place=>{
           const city = place.name.replace(/^The /,"");
           const search = new URLSearchParams({ product:"HOTEL",city,date:drafts.HOTEL.date,end:drafts.HOTEL.end,adults:String(drafts.HOTEL.adults) });

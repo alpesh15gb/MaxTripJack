@@ -1,7 +1,8 @@
+import { bookingPhoneFromFields } from './booking-phone';
 import type { GuestIssue } from './guest-validation-rules';
 
 const travellerFields:Record<string,{name:string;label:string}>={ti:{name:'title',label:'Title'},fN:{name:'first',label:'First name'},lN:{name:'last',label:'Last name'},dob:{name:'dob',label:'Date of birth'},pNum:{name:'passport',label:'Passport number'},eD:{name:'expiry',label:'Passport expiry'},pNat:{name:'nationality',label:'Passport nationality'},pan:{name:'pan',label:'PAN'}};
-const contactFields:Record<string,{name:string;label:string}>={email:{name:'email',label:'Email'},phone:{name:'phone',label:'Indian mobile number'},'gstInfo.gstNumber':{name:'gstNumber',label:'GST number'},'gstInfo.registeredName':{name:'gstName',label:'Registered business name'},'gstInfo.address':{name:'gstAddress',label:'Billing address'},'gstInfo.email':{name:'email',label:'Email'},'gstInfo.mobile':{name:'phone',label:'Indian mobile number'},'contactInfo.ecn':{name:'emergencyName',label:'Emergency contact name'},'contactInfo.emails.0':{name:'emergencyEmail',label:'Emergency contact email'},'contactInfo.contacts.0':{name:'emergencyPhone',label:'Emergency contact phone'}};
+const contactFields:Record<string,{name:string;label:string}>={email:{name:'email',label:'Email'},phone:{name:'phone',label:'Mobile number'},'gstInfo.gstNumber':{name:'gstNumber',label:'GST number'},'gstInfo.registeredName':{name:'gstName',label:'Registered business name'},'gstInfo.address':{name:'gstAddress',label:'Billing address'},'gstInfo.email':{name:'email',label:'Email'},'gstInfo.mobile':{name:'phone',label:'Mobile number'},'contactInfo.ecn':{name:'emergencyName',label:'Emergency contact name'},'contactInfo.emails.0':{name:'emergencyEmail',label:'Emergency contact email'},'contactInfo.contacts.0':{name:'emergencyPhone',label:'Emergency contact phone'}};
 export function guestIssueField(path:string) {
   const normalized=path.replace(/^guests\./,'');
   const match=/^travellers\.(\d+)\.(\w+)$/.exec(normalized);
@@ -16,7 +17,8 @@ export function parseGuestIssues(value:unknown):GuestIssue[] {
 export function guestsFromForm(values:FormData,party:string[],roomIndexes?:number[]) {
   const get=(name:string)=>String(values.get(name)??'');
   const travellers=party.map((pt,index)=>({ti:get(`title-${index}`),pt,...(roomIndexes?{roomIndex:roomIndexes[index]}:{}),fN:get(`first-${index}`),lN:get(`last-${index}`),...(get(`dob-${index}`)?{dob:get(`dob-${index}`)}:{}),...(get(`passport-${index}`)?{pNum:get(`passport-${index}`)}:{}),...(get(`expiry-${index}`)?{eD:get(`expiry-${index}`)}:{}),...(get(`pan-${index}`)?{pan:get(`pan-${index}`).toUpperCase()}:{}),...(get(`nationality-${index}`)?{pNat:get(`nationality-${index}`).toUpperCase()}:{})}));
-  return {travellers,email:get('email'),phone:get('phone'),...(get('gstNumber')?{gstInfo:{gstNumber:get('gstNumber').toUpperCase(),registeredName:get('gstName'),email:get('email'),mobile:get('phone'),address:get('gstAddress')}}:{}),...(get('emergencyName')?{contactInfo:{ecn:get('emergencyName'),emails:[get('emergencyEmail')],contacts:[get('emergencyPhone')]}}:{})};
+  const phone=bookingPhoneFromFields(get('phone'),get('phoneCountryCode'));
+  return {travellers,email:get('email'),phone,...(get('gstNumber')?{gstInfo:{gstNumber:get('gstNumber').toUpperCase(),registeredName:get('gstName'),email:get('email'),mobile:phone,address:get('gstAddress')}}:{}),...(get('emergencyName')?{contactInfo:{ecn:get('emergencyName'),emails:[get('emergencyEmail')],contacts:[get('emergencyPhone')]}}:{})};
 }
 
 /** Preserve the form's pre-existing native constraints while showing all errors.

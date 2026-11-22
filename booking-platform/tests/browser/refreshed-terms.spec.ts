@@ -38,11 +38,11 @@ async function openHotel(page:Page,provider:ProviderFixture){
 }
 async function fillTraveller(page:Page){
  await form(page).getByLabel('First name',{exact:true}).fill('Aarav');await form(page).getByLabel('Last name',{exact:true}).fill('Example');
- await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+ await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Mobile number',{exact:true}).fill('9876543210');
 }
 async function retainedTraveller(page:Page){
  await expect(form(page).getByLabel('First name',{exact:true})).toHaveValue('Aarav');await expect(form(page).getByLabel('Last name',{exact:true})).toHaveValue('Example');
- await expect(form(page).getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');await expect(form(page).getByLabel('Indian mobile number',{exact:true})).toHaveValue('9876543210');
+ await expect(form(page).getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');await expect(form(page).getByLabel('Mobile number',{exact:true})).toHaveValue('9876543210');
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
 }
 async function reviewPayment(page:Page){await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(form(page).getByLabel('First name',{exact:true})).toBeVisible();}

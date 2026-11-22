@@ -15,7 +15,7 @@ async function fillGuests(page:Page,names:string[]){
   await form(page).getByLabel('Last name',{exact:true}).nth(index).fill('Example');
  }
  await form(page).getByLabel('Email',{exact:true}).fill('price-context@example.test');
- await form(page).getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+ await form(page).getByLabel('Mobile number',{exact:true}).fill('9876543210');
 }
 
 test('first roundtrip review explains the whole-party price increase and displays outbound before return',async({page,provider},info)=>{

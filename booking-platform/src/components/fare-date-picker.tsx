@@ -3,12 +3,12 @@ import {useCallback,useEffect,useId,useRef,useState,type KeyboardEvent} from 're
 import {compactRupees,type FareCalendarDay} from '@/lib/fare-calendar-core';
 import SearchPickerDialog from './search-picker-dialog';
 import {StitchSymbol} from './stitch-symbol';
+import {formatBookingDate} from '@/lib/travel-date';
 
 const monthName=new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
 const fullDate=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
 const shortDay=new Intl.DateTimeFormat('en-GB',{weekday:'short',timeZone:'UTC'});
 const longDay=new Intl.DateTimeFormat('en-GB',{weekday:'long',timeZone:'UTC'});
-const dayMonth=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
 const selectedDay=new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
 const iso=(time:number)=>new Date(time).toISOString().slice(0,10);
 const at=(date:string)=>Date.parse(`${date}T00:00:00Z`);
@@ -18,8 +18,8 @@ function nextMonth(start:string,count=1){const d=new Date(at(start));d.setUTCMon
 
 /** Date field with an inline two-month calendar. Prices are indicative "from"
  * fares per adult; the hidden input keeps native form submission unchanged. */
-export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper}:{
- name:string;label:string;value:string;min:string;max?:string;onChange:(value:string)=>void;
+export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper,iconOnly=false}:{
+ name?:string;label:string;value:string;min:string;max?:string;onChange:(value:string)=>void;iconOnly?:boolean;
  fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;
 }){
  const id=useId(),root=useRef<HTMLDivElement>(null),grid=useRef<HTMLDivElement>(null);
@@ -62,13 +62,13 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares,
  const canBack=view>monthStart(min);
  const canNext=!max||nextMonth(view)<=monthStart(max);
  const fare=fares?.[value];
- return <div className="home-search-input fare-date" ref={root}>
-  <span id={`${id}-label`} className="stitch-picker-caption"><StitchSymbol name="calendar_today" size={15}/>{label}</span>
-  <button type="button" className="fare-date-trigger" aria-haspopup="dialog" aria-expanded={open} aria-controls={open?`${id}-panel`:undefined} aria-labelledby={`${id}-label ${id}-value`} onClick={toggle}>
-   <span id={`${id}-value`} className="fare-date-value">{value?<><strong>{dayMonth.format(at(value))}</strong><em className="stitch-wide-only">’{value.slice(2,4)}, {shortDay.format(at(value))}</em><em className="stitch-phone-only">{longDay.format(at(value))}, {value.slice(0,4)}</em></>:'Choose a date'}</span>
+ return <div className={`home-search-input fare-date${iconOnly?' fare-date-icon-only':''}`} ref={root}>
+  {!iconOnly&&<span id={`${id}-label`} className="stitch-picker-caption"><StitchSymbol name="calendar_today" size={15}/>{label}</span>}
+  <button type="button" className="fare-date-trigger" aria-haspopup="dialog" aria-expanded={open} aria-controls={open?`${id}-panel`:undefined} aria-label={iconOnly?label:undefined} aria-labelledby={iconOnly?undefined:`${id}-label ${id}-value`} onClick={toggle}>
+   {iconOnly ? <StitchSymbol name="calendar_today" size={19}/> : <span id={`${id}-value`} className="fare-date-value">{value?<><strong>{formatBookingDate(value)}</strong><em className="stitch-wide-only">{shortDay.format(at(value))}</em><em className="stitch-phone-only">{longDay.format(at(value))}</em></>:'Choose a date'}</span>}
   </button>
-  <input type="hidden" name={name} value={value}/>
-  <small>{fare?<>from <b className={`fare-band-${fare.band}`}>₹{compactRupees(fare.minor)}</b></>:helper??' '}</small>
+  {name&&<input type="hidden" name={name} value={value}/>}
+  {!iconOnly&&<small>{fare?<>from <b className={`fare-band-${fare.band}`}>₹{compactRupees(fare.minor)}</b></>:helper??' '}</small>}
   {open&&<SearchPickerDialog id={`${id}-panel`} className="fare-calendar" label={`Choose ${label.toLowerCase()}`} onDismiss={close} onKeyDown={keys}>
    <div className="fare-calendar-head">
     <button type="button" aria-label="Previous month" disabled={!canBack} onClick={()=>browseMonth(-1)}>‹</button>

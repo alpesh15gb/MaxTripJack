@@ -1,3 +1,4 @@
+import {formatBookingDate} from '../../src/lib/travel-date';
 import {travelDateLabel} from '../../src/lib/travel-date';
 import {toggleResultSearch, test,expect,capture,departure,returning,searchId,expectNoHorizontalOverflow} from './fixtures';
 import type {Page} from '@playwright/test';
@@ -25,8 +26,8 @@ test('hotel search with no stays opens the existing search criteria from the emp
  await empty.getByRole('button',{name:'Edit stay search',exact:true}).click();
  await expect(page.getByLabel('Destination',{exact:true})).toBeFocused();
  await expect(page.getByLabel('Destination',{exact:true})).toHaveValue('Goa');
- await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(departure);
- await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
+ await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(formatBookingDate(departure));
+ await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(formatBookingDate(returning));
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(0);
 });
 
@@ -108,7 +109,7 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(departure));
  await expect(page.locator('#booking-search>summary')).toContainText(travelDateLabel(returning));
  await toggleResultSearch(page);await expect(page.getByLabel('Destination',{exact:true})).toBeFocused();
- await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(departure);await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(returning);
+ await expect(page.getByLabel('Check-in',{exact:true})).toHaveValue(formatBookingDate(departure));await expect(page.getByLabel('Check-out',{exact:true})).toHaveValue(formatBookingDate(returning));
  await expect(cards).toHaveCount(3);await toggleResultSearch(page);
  await filters(page,true);
  await page.getByLabel('Maximum stay total (₹)',{exact:true}).fill('5000');await expect(cards).toHaveCount(1);await expect(cards.first()).toHaveAttribute('aria-label','Bay Stay');

@@ -90,7 +90,7 @@ function schemaIssueMessage(path:string,fallback:string):string {
     fN:'Enter a first name (up to 80 characters).',lN:'Enter a last name (up to 80 characters).',
     dob:'Enter a valid calendar date.',eD:'Enter a valid calendar date.',pid:'Enter a valid calendar date.',
     pNum:'Enter a passport number with 4–30 characters.',pNat:'Enter the 2-letter passport nationality code, such as IN.',pan:'Enter PAN in the format ABCDE1234F.',
-    email:'Enter a valid email address.',phone:'Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9.',
+    email:'Enter a valid email address.',phone:'Enter a valid number for the selected country code.',
     'gstInfo.gstNumber':'Enter a 15-character GST number.','gstInfo.registeredName':'Enter the registered business name (up to 35 characters).','gstInfo.address':'Use up to 70 characters for the billing address.',
     'contactInfo.ecn':'Enter the emergency contact name (up to 100 characters).','contactInfo.emails.0':'Enter a valid emergency contact email.','contactInfo.contacts.0':'Enter an emergency contact phone with 10–20 characters.',
   };

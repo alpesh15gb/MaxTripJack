@@ -405,7 +405,7 @@ for(const product of ['FLIGHT','HOTEL'] as const){
   await form.getByLabel('First name',{exact:true}).fill('Aarav');
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('draft@example.test');
-  await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+  await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
   await expect(page.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
   await expect(page.locator('.final-traveller-summary')).toContainText('draft@example.test');
   await page.goBack();
@@ -431,7 +431,7 @@ for(const incomplete of [false,true]){
   await form.getByLabel('First name',{exact:true}).fill('Aarav');
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('original@example.test');
-  await form.getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+  await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
   await expect(page.locator('.final-traveller-summary')).toContainText('original@example.test');
   await form.getByLabel('First name',{exact:true}).fill(incomplete?'':'Isha');
   await form.getByLabel('Email',{exact:true}).fill('updated@example.test');

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { bookingPhoneFromFields, bookingPhoneParts } from '@/lib/booking-phone';
 import { displayMoney } from '@/lib/display-money';
 import type { CheckoutPromoOffer } from '@/lib/promo-offers';
 import type { RazorpayMethod } from '@/lib/razorpay-checkout-loader';
@@ -22,8 +23,9 @@ export function paymentPreference(form: HTMLFormElement) {
   const method = methods.find(item => item.id === form.querySelector<HTMLInputElement>('input[name="gateway-method"]')?.value);
   const email = form.querySelector<HTMLInputElement>('input[name="email"]')?.value.trim();
   const phone = form.querySelector<HTMLInputElement>('input[name="phone"]')?.value.trim();
-  if (!method || !email || !phone || !/^[6-9]\d{9}$/.test(phone)) return undefined;
-  return { method: method.id, email, contact: '+91' + phone };
+  const code = form.querySelector<HTMLSelectElement>('select[name="phoneCountryCode"]')?.value ?? '';
+  const contact = phone ? bookingPhoneParts(bookingPhoneFromFields(phone, code)) : null;
+  return method && email && contact ? {method: method.id, email, contact: contact.international} : undefined;
 }
 
 type Props = {
@@ -35,10 +37,11 @@ type Props = {
   hosted: boolean;
   disabled: boolean;
   offersDisabled: boolean;
+  beforeOpen: () => boolean;
   onApplyOffer: (code: string) => void;
 };
 
-export default function CheckoutPaymentMethods({quoteId, totalMinor, journey, discountMinor, appliedCode, hosted, disabled, offersDisabled, onApplyOffer}: Props) {
+export default function CheckoutPaymentMethods({quoteId, totalMinor, journey, discountMinor, appliedCode, hosted, disabled, offersDisabled, beforeOpen, onApplyOffer}: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const load = useRef<AbortController | null>(null);
   const offerToApply = useRef<string | null>(null);
@@ -48,7 +51,7 @@ export default function CheckoutPaymentMethods({quoteId, totalMinor, journey, di
   const [offerStatus, setOfferStatus] = useState<'loading' | 'ready' | 'unavailable'>('ready');
   const methodLabel = methods.find(item => item.id === selected)?.label;
   async function openOptions() {
-    if (disabled || !dialog.current || dialog.current.open) return;
+    if (disabled || !dialog.current || dialog.current.open || !beforeOpen()) return;
     setDraft(selected);
     dialog.current.showModal();
     setOffers([]);

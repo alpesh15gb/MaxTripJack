@@ -4,7 +4,7 @@ import {operationsAccess,administrator} from '@/lib/access';
 import {body,failure,HttpError,json,sameOrigin} from '@/lib/http';
 import {database,transaction} from '@/lib/db';
 import {adminEnquiry,enquirySelect,type EnquiryRow} from '@/lib/travel-enquiries';
-import {enquiryServices} from '@/lib/travel-enquiry-contract';
+import {allEnquiryServices} from '@/lib/travel-enquiry-contract';
 
 const status=z.enum(['NEW','CONTACTED','QUOTED','CLOSED']);
 export async function GET(request:Request){try{
@@ -13,8 +13,8 @@ export async function GET(request:Request){try{
   const params=new URL(request.url).searchParams,page=z.coerce.number().int().min(1).max(10000).parse(params.get('page')||1),q=z.string().trim().max(100).parse(params.get('q')||'');
   const values:unknown[]=[],conditions:string[]=[];
   if(params.get('status')){values.push(status.parse(params.get('status')));conditions.push(`e.status=$${values.length}`);}
-  if(params.get('service')){values.push(z.enum(enquiryServices).parse(params.get('service')));conditions.push(`e.service=$${values.length}`);}
-  if(q){values.push('%'+q.replace(/[\\%_]/g,c=>'\\'+c)+'%');conditions.push(`(e.reference ILIKE $${values.length} OR e.draft->>'destination' ILIKE $${values.length} OR e.contact->>'name' ILIKE $${values.length} OR e.contact->>'email' ILIKE $${values.length} OR e.contact->>'phone' ILIKE $${values.length})`);}
+  if(params.get('service')){values.push(z.enum(allEnquiryServices).parse(params.get('service')));conditions.push(`e.service=$${values.length}`);}
+  if(q){values.push('%'+q.replace(/[\\%_]/g,c=>'\\'+c)+'%');conditions.push(`(e.reference ILIKE $${values.length} OR e.draft->>'destination' ILIKE $${values.length} OR e.draft->>'subject' ILIKE $${values.length} OR e.contact->>'name' ILIKE $${values.length} OR e.contact->>'email' ILIKE $${values.length} OR e.contact->>'phone' ILIKE $${values.length})`);}
   const where=conditions.length?' WHERE '+conditions.join(' AND '):'';
   const [rows,count]=await Promise.all([database().query<EnquiryRow>(enquirySelect+where+` ORDER BY e.created_at DESC,e.id DESC LIMIT 26 OFFSET $${values.length+1}`,[...values,(page-1)*25]),database().query('SELECT count(*)::text AS total FROM travel_enquiries e'+where,values)]);
   return json({rows:rows.rows.slice(0,25).map(adminEnquiry),page,total:Number(count.rows[0].total),hasMore:rows.rows.length>25,canManage:actor.permissions.includes('bookings:reconcile'),canRetryCrm:actor.permissions.includes('integrations:manage')});

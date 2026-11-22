@@ -1,3 +1,4 @@
+import {formatBookingDate} from '../../src/lib/travel-date';
 import type {Page} from '@playwright/test';
 import {publicSupplierReview} from '../../src/lib/public-supplier-review';
 import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
@@ -35,7 +36,7 @@ async function reviewRoundTrip(page:Page,provider:ProviderFixture){
  await page.getByRole('button',{name:/Review selected journey \(2\/2\)/}).click();
  await expect(form(page)).toBeVisible();
  await form(page).getByLabel('First name',{exact:true}).fill('Aarav');await form(page).getByLabel('Last name',{exact:true}).fill('Example');
- await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Indian mobile number',{exact:true}).fill('9876543210');
+ await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Mobile number',{exact:true}).fill('9876543210');
  await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
  await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
 }
@@ -51,7 +52,7 @@ test('one-way review after switching from round trip shows only the departure an
   review:publicSupplierReview('FLIGHT',{conditions:{},tripInfos:[flight(),flight('RETURN')],fareRules:supplierRules()},
    {criteria,selectedTrips:[flight()]})});
  await openFlightSearch(page,{auto:false,roundTrip:true});
- await expect(page.getByLabel('Return date',{exact:true})).toHaveValue(returning);
+ await expect(page.getByLabel('Return date',{exact:true})).toHaveValue(formatBookingDate(returning));
  await page.getByRole('combobox',{name:'Journey type'}).selectOption('one-way');
  await expect(page.getByLabel('Return date',{exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Search flights',exact:true}).click();

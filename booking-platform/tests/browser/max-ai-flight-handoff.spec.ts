@@ -1,3 +1,4 @@
+import {formatBookingDate} from '../../src/lib/travel-date';
 import {toggleResultSearch, test,expect,departure,searchId,flight,flightResults,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
 
 const criteria=()=>({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'2',children:'0',infants:'0',cabin:'ECONOMY'});
@@ -71,7 +72,7 @@ test('an AI flight result restores the same owned search and exact criteria befo
   await toggleResultSearch(page);
   await page.locator('.booking-party-picker>summary').click();
   await expect(page.getByRole('combobox',{name:'Adults',exact:true})).toHaveValue('2');
-  await expect(page.getByLabel('Departure',{exact:true})).toHaveValue(departure);
+  await expect(page.getByLabel('Departure',{exact:true})).toHaveValue(formatBookingDate(departure));
   await toggleResultSearch(page);
   await expectNoHorizontalOverflow(page);await capture(page,info,'max-ai-owned-flight-handoff');
   await page.locator('.flight-shopping-list .fare-comparison>summary').click();

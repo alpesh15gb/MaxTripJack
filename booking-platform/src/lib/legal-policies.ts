@@ -322,3 +322,4 @@ export const legalPolicies: readonly LegalPolicy[] = [
   }
 ];
 export function getLegalPolicy(slug:string){return legalPolicies.find(policy=>policy.slug===slug);}
+export const legalContactEmail = 'cs@maxtravel.in';

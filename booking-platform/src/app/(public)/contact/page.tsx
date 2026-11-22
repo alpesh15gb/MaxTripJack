@@ -6,6 +6,7 @@ import { pageMetadata } from "@/lib/seo";
 const page = getPublicPage("contact")!;
 export async function generateMetadata(){const current=getPublicPage("contact",await getCompanyProfile())!;return pageMetadata("/contact",current.title,current.description);}
 
-export default function Page() {
-  return <PublicPageView page={page} />;
+export default async function Page({searchParams}: PageProps<'/contact'>) {
+  const {topic}=await searchParams;
+  return <PublicPageView page={page} contactTopic={topic==='bus'?'BUS':topic==='partner'?'PARTNERSHIP':undefined} />;
 }

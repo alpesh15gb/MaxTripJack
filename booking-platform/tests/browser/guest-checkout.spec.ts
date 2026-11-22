@@ -15,7 +15,7 @@ test('a signed-out guest goes from fare to payment without an email or WhatsApp 
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
   await form.getByLabel('Email', { exact: true }).fill('guest@example.test');
-  await form.getByLabel('Indian mobile number', { exact: true }).fill('9876543210');
+  await form.getByLabel('Mobile number', { exact: true }).fill('9876543210');
   await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
   await expect.poll(() => provider.requests('/api/payments/create').length).toBe(1);
   expect(provider.requests('/api/payments/create')[0].body).toMatchObject({ guests: { email: 'guest@example.test', phone: '9876543210' } });

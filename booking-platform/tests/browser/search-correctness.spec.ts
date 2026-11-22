@@ -1,4 +1,17 @@
 import {toggleResultSearch, test,expect,departure,returning,searchId, setHomeTravellers } from './fixtures';
+import {formatBookingDate} from '../../src/lib/travel-date';
+
+test('booking date picker shows day first and sends the selected ISO date',async({page,provider})=>{
+ await page.goto(`/book?product=FLIGHT&from=BOM&to=DEL&date=${departure}`);
+ const date=page.getByLabel('Departure',{exact:true});
+ await expect(date).toHaveValue(formatBookingDate(departure));
+ await page.getByRole('button',{name:'Departure calendar',exact:true}).click();
+ await page.getByRole('dialog',{name:'Choose departure calendar'}).locator(`[data-date="${returning}"]`).click();
+ await expect(date).toHaveValue(formatBookingDate(returning));
+ await page.getByRole('button',{name:'Search flights',exact:true}).click();
+ await expect(page.locator('#booking-results')).toBeVisible();
+ expect(provider.requests('/api/travel/search')[0].body).toMatchObject({date:returning});
+});
 
 test('correcting airport clears only stale local validation and preserves return date blocking',async({page,provider})=>{
  await page.goto(`/book?product=FLIGHT&from=BOM&to=BOM&date=${departure}`);

@@ -17,6 +17,8 @@
   --brand-paper-sheen: none;
   font-family: var(--font-stitch-body), Arial, sans-serif;
 }
+.booking-phone-fields { display: grid; grid-template-columns: minmax(85px,.7fr) minmax(0,1fr); gap: 8px; min-width: 0; }
+.booking-phone-fields :is(label, select, input) { min-width: 0; width: 100%; }
 body:has(.checkout-active, .booking-status-page) { background: #f7f9fc; }
 .checkout-active :is(h1,h2,h3,h4), .booking-status-page :is(h1,h2,h3,h4) {
   font-family: var(--font-stitch-display), Arial, sans-serif;
@@ -501,3 +503,10 @@ body .checkout-active:has(#booking-review) > :is(.back,.booking-intro) { display
  .stitch-voucher .voucher-mobile-actions a { min-height: 70px; }
  .stitch-voucher .voucher-property.with-gallery { margin: -16px -16px 10px; border-radius: 12px 12px 0 0; }
 }
+.checkout-seat-rows { margin-top: 8px; }
+.checkout-seat-rows > summary { min-height: 44px; padding-block: 10px; cursor: pointer; color: #005bb3; font-weight: 650; }
+.checkout-seat-rows p { margin: 0 0 8px; color: #536172; font-size: 13px; }
+.checkout-seat-map { max-height: 280px; overflow: auto; display: grid; gap: 8px; }
+.checkout-seat-map [role=group] > div { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 4px; }
+.checkout-seat-map button { display: grid; min-height: 44px; min-width: 62px; padding: 5px 8px; border: 1px solid #a6b4c4; border-radius: 7px; background: white; }
+.checkout-seat-map button[aria-pressed=true] { color: white; background: #005bb3; }
