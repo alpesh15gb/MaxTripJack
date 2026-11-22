@@ -41,6 +41,42 @@ export function hotelText(value: unknown, max = 500): string | undefined {
 export function hotelStringList(value: unknown): string[] {
   return Array.isArray(value) ? [...new Set(value.map(item => hotelText(item)).filter((item): item is string => Boolean(item)))].slice(0, 40) : [];
 }
+
+const rateNoteLabels = {
+  know_before_you_go: 'Know before you go',
+  'Special Instructions': 'Special instructions',
+  Instructions: 'Check-in instructions',
+} as const;
+
+/** Some room feeds put property instructions in the rate inclusions array. */
+export function hotelRateContent(inclusions: unknown, bookingNotes: unknown, noteLimit = 2000) {
+  const perks = new Set<string>();
+  const notes = new Set<string>();
+  let noteLength = 0;
+  const addNote = (value: string) => {
+    if (notes.has(value) || noteLength + value.length + (notes.size ? 2 : 0) > noteLimit) return;
+    noteLength += value.length + (notes.size ? 2 : 0);
+    notes.add(value);
+  };
+  const read = (value: unknown, instruction: boolean) => {
+    if (typeof value !== 'string' || value.length > 20_000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value)) return;
+    const text = value.trim();
+    if (!text) return;
+    if (/^[{\[]/.test(text)) {
+      try {
+        const data = hotelObject(JSON.parse(text));
+        for (const [key, label] of Object.entries(rateNoteLabels)) {
+          const note = data[key];
+          if (typeof note === 'string' && note.trim() && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(note)) addNote(`${label}\n${note.trim()}`);
+        }
+      } catch { /* A partial supplier envelope is not a reliable policy. */ }
+    } else if (instruction || text.length > 180) addNote(text);
+    else perks.add(text);
+  };
+  read(bookingNotes, true);
+  if (Array.isArray(inclusions)) for (const item of inclusions.slice(0, 40)) read(item, false);
+  return {inclusions:[...perks], bookingNotes:notes.size ? [...notes].join('\n\n') : null};
+}
 /** Exact supplier image locations observed in static content. Shared by normalization
  * and browser rendering; never fetch/proxy supplier URLs on the server. */
 export function safeHotelPhotoUrl(value: unknown): value is string {

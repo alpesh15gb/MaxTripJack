@@ -23,8 +23,10 @@ function FlightReviewLeg({segments, label, confirmedBoundary}: {
   const connected = confirmedBoundary && segments.every((segment, index) =>
     index === 0 || (segments[index - 1].aa.code === segment.da.code && segments[index - 1].isRs === segment.isRs));
   const duration = connected ? journeyMinutes({sI:segments, totalPriceList:[]}) : null;
-  const stops = connected ? segments.slice(0, -1).map(segment => segment.aa.city && segment.aa.city !== segment.aa.code
-    ? `${segment.aa.city} (${segment.aa.code})` : segment.aa.code) : [];
+  const stops = connected ? segments.slice(0, -1).map(({aa}) => {
+    const city = ['GOI','GOX'].includes(aa.code) && /^goa in$/i.test(aa.city??'') ? 'Goa' : aa.city;
+    return city && city !== aa.code ? `${city} (${aa.code})` : aa.code;
+  }) : [];
   const stopsLabel = !connected ? null : stops.length === 0 ? 'Non-stop'
     : `${stops.length} stop${stops.length > 1 ? 's' : ''} via ${stops.join(', ')}`;
   return <section className="review-flight-leg">

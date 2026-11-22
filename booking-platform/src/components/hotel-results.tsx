@@ -10,6 +10,7 @@ import {StitchSymbol} from './stitch-symbol';
 import type {AvailableHotelOption} from './hotel-room-view';
 import {hotelRoomLabel} from '@/lib/hotel-presentation';
 import {roomMealLabel} from '@/lib/hotel-room-filters';
+import BookingResultsHeading from './booking-results-heading';
 import {useCompanyProfile} from './company-profile-context';
 
 /** Keep supplier wording; prefer practical comparison facts and collapse formatting duplicates. */
@@ -63,17 +64,15 @@ export default function HotelResults<T extends HotelResult & {options?:Available
    <small>Star categories are supplied by the property provider. Guest review scores are unavailable.</small>
  </>;
  return <div className="hotel-shopping hotel-comparison">
-  <div className="hotel-shopping-toolbar">
-   <div className="hotel-results-heading">
-    <h2 id="hotel-results-title" tabIndex={-1}><span className="visually-hidden">Available stays</span><span aria-hidden="true">Showing {shown.length} {shown.length===1?'property':'properties'}{destination?` in ${destination}`:''}</span></h2>
-    <p role="status" aria-live="polite">{shown.length} of {hotels.length} loaded stays{hotels.length>0&&metadataStatus!=='ready'&&<span className="hotel-content-status">{metadataStatus==='loading'?'Adding property details…':'Some details unavailable.'}</span>}</p>
+  <div className="hotel-shopping-toolbar booking-results-toolbar">
+   <BookingResultsHeading id="hotel-results-title" title={`${shown.length} stay${shown.length===1?'':'s'}${destination?` in ${destination}`:' found'}`}
+    status={<>{shown.length} of {hotels.length} loaded stays{hotels.length>0&&metadataStatus!=='ready'&&<span className="hotel-content-status">{metadataStatus==='loading'?'Adding property details…':'Some details unavailable.'}</span>}</>}>
     {context&&<p className="hotel-search-dates" aria-label="Selected check-in and check-out dates">{travelDateLabel(context.checkIn)} – {travelDateLabel(context.checkOut)}</p>}
     <p className="hotel-search-scope">{stayLabel}</p>
-   </div>
+   </BookingResultsHeading>
    <div className="hotel-sort-filter"><label><span>Sort stays</span><select aria-label="Sort stays" value={sort} onChange={e=>setSort(e.target.value)}><option value="price">Lowest stay total</option><option value="price-desc">Highest stay total</option><option value="name">Property name</option><option value="supplier">Supplier order</option></select></label>
    <button ref={filterTrigger} className="secondary hotel-filter-toggle" type="button" aria-haspopup="dialog" aria-expanded={expanded} aria-controls="hotel-filter-dialog" onClick={()=>{if(drawer.current&&!drawer.current.open)drawer.current.showModal();setExpanded(true);}}>Filters{activeFilterCount?` (${activeFilterCount})`:''}</button>
-   {destination?.trim()&&<a className="hotel-map-action" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`} target="_blank" rel="noreferrer"><TravelIcon name="pin" size={14}/> Map</a>}</div>
-   <div className="hotel-sort-tabs" role="group" aria-label="Sort properties"><span>Sort by</span>{([['supplier','Supplier order'],['price','Price: low to high'],['price-desc','Price: high to low'],['name','Property name']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={sort===value} onClick={()=>setSort(value)}>{label}</button>)}</div>
+   {destination?.trim()&&<a className="hotel-map-action" aria-label="View destination on map" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`} target="_blank" rel="noreferrer"><TravelIcon name="pin" size={14}/> Map</a>}</div>
   </div>
   <aside id="hotel-search-filters" className="hotel-search-filters hotel-filter-sidebar" aria-label="Filter stays">
    {destination?.trim()&&<a className="hotel-location-map" data-map={/\bgoa\b/i.test(destination)?'goa':undefined} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`} target="_blank" rel="noreferrer">
@@ -91,17 +90,16 @@ export default function HotelResults<T extends HotelResult & {options?:Available
     {amenities.slice(0,4).map(item=><button type="button" key={item.id} aria-pressed={selectedAmenities.includes(item.id)} onClick={()=>toggleAmenity(item.id)}>{item.label}</button>)}
    </div>}
    {activeFilterCount>0&&<div className="hotel-active-filters" aria-label="Active hotel filters">{activeFilters.map(([key,value])=><button className="hotel-filter-chip" key={key} type="button" aria-label={`Remove ${key} filter`} onClick={()=>{update(key as keyof typeof filters,'');focusResults();}}>{key==='budget'?`Up to ₹${value} / stay`:key==='category'?`${value} stars`:key==='area'?`Area: ${value}`:value}<span aria-hidden="true"> ×</span></button>)}{amenities.filter(item=>selectedAmenities.includes(item.id)).map(item=><button className="hotel-filter-chip" key={item.id} type="button" aria-label={`Remove ${item.label} filter`} onClick={()=>{toggleAmenity(item.id);focusResults();}}>{item.label}<span aria-hidden="true"> ×</span></button>)}</div>}
-   <div className="booking-hotel-list">{shown.map((hotel,index)=>{
+   <div className="booking-hotel-list">{shown.map(hotel=>{
     const contentState=hotel.propertyContentStatus==='resolved'?'ready':hotel.propertyContentStatus==='unavailable'?'unavailable':hotel.propertyContentStatus==='pending'?'loading':metadataStatus;
     const total=knownHotelTotal(hotel),amenities=hotelComparisonAmenities(hotel.property?.amenities);
     const amenityList=amenities.length>0&&<ul className="hotel-amenity-list" aria-label="Property amenities">{amenities.slice(0,3).map(item=><li key={item.toLocaleLowerCase()}><span aria-hidden="true" className="stitch-symbol hotel-amenity-icon" data-icon={/pool/i.test(item)?'pool':/breakfast|restaurant/i.test(item)?'restaurant':'check_circle'}/>{item}</li>)}</ul>;
     const room=hotel.options?.find(option=>total!==null&&Math.round(option.pricing.totalPrice*100)===total);
-    const roomPhoto=room?.roomInfo?.length===1&&room.roomInfo[0].name?hotel.property?.photos?.find(photo=>photo.caption?.toLowerCase().includes(room.roomInfo![0].name.toLowerCase())):undefined;
     const propertyHref=hotelJourneyUrl(hotel.originSearchId??searchId,hotel.tjHotelId);
-    return <article className="white-card booking-record booking-hotel-card hotel-shopping-card" data-leading={index===0||undefined} key={hotel.tjHotelId} aria-label={hotel.name}>
+    return <article className="white-card booking-record booking-hotel-card hotel-shopping-card" key={hotel.tjHotelId} aria-label={hotel.name}>
      <div className="hotel-card-photo">
       <a href={propertyHref} aria-label={`View ${hotel.name} property details`} onClick={event=>{if(event.button===0&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onChoose(hotel,event.currentTarget);}}}>
-       <HotelPropertyMedia name={hotel.name} photos={hotel.property?.photos} metadataStatus={contentState} mosaic={index===0} showPhotoCount/>
+       <HotelPropertyMedia name={hotel.name} photos={hotel.property?.photos} metadataStatus={contentState} showPhotoCount/>
       </a>
      </div>
      <div className="hotel-result-content">
@@ -112,16 +110,13 @@ export default function HotelResults<T extends HotelResult & {options?:Available
       {hotel.property?.starRating ? <p className="hotel-property-category"><span aria-hidden="true">{'★'.repeat(Math.min(5,Math.max(0,Math.floor(hotel.property.starRating))))}</span> {hotel.property.starRating}-star property category</p> : null}
       {hotel.property?.city&&<p className="hotel-property-locality">{hotel.property.city}</p>}
       <p className="hotel-property-address">{hotel.property?.address||(contentState==='loading'?'Property details loading…':contentState==='unavailable'?'Property details unavailable right now':'Address details not supplied')}</p>
-      {index!==0&&amenityList}
+      {amenityList}
      </div>
-     {index===0&&amenityList}
      <div className={`hotel-result-action${room?' has-room-preview':''}`}>
       {room&&<div className="hotel-picked-room">
         <span className="hotel-room-kicker"><StitchSymbol name="hotel_class" size={15}/>Lowest priced room option</span>
-        {roomPhoto&&index===0&&<div className="hotel-room-preview-photo"><HotelPropertyMedia name={hotelRoomLabel(room)} photos={[roomPhoto]}/></div>}
         <strong>{hotelRoomLabel(room)}</strong>
         {room.mealBasis&&<small><StitchSymbol name="restaurant" size={15}/>{roomMealLabel(room)}</small>}
-        {room.inclusions?.slice(0,2).map((text,i)=><small key={i}><StitchSymbol name="check" size={15}/>{text}</small>)}
       </div>}
       <div className="hotel-stay-price">
        {total!==null?<><span>Estimated stay total</span><strong><span className="hotel-price-from">From </span>{money(total)}</strong></>:<strong className="hotel-price-unknown">Price available with rooms</strong>}

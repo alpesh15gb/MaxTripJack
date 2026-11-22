@@ -70,6 +70,7 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
   const [product, setProduct] = useState<Product>("FLIGHT");
   const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
   const [airportRevision, setAirportRevision] = useState(0);
+  const [destinationResolving,setDestinationResolving]=useState(false);
   const [hotelDestination,setHotelDestination] = useState({city:"",hotelIds:"",regionId:"",destinationCursor:""});
   const [drafts, setDrafts] = useState<Record<Product, SearchDraft>>(() => ({
     FLIGHT: initialDraft(),
@@ -105,7 +106,7 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
     if(product==='FLIGHT'&&roundTrip)data.set('returnDate',end);else data.delete('returnDate');
     return bookingSearchInput(data,{product,adults,children:childCount,infants,hotelOccupancy:[{adults,childAge:[]}]});
   }
-  const backgroundSearch=useBackgroundSearch({form,enabled:!navigating,read:()=>{
+  const backgroundSearch=useBackgroundSearch({form,enabled:!navigating&&!destinationResolving,read:()=>{
     if(!form.current||!searchFormIsValid(form.current))return null;
     try{return currentSearchInput(new FormData(form.current));}catch{return null;}
   }});
@@ -137,6 +138,7 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
   }
 
   function advancedSearch(multiCity = false) {
+    if(product==="HOTEL"&&destinationResolving)return;
     backgroundSearch.pause();
     const data = form.current ? new FormData(form.current) : new FormData();
     const params = new URLSearchParams({ product, date, adults: String(adults) });
@@ -166,7 +168,7 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (navigating) return;
+    if (navigating || (product === "HOTEL" && destinationResolving)) return;
     const data = new FormData(event.currentTarget);
     const from = String(data.get("from") || "").toUpperCase();
     const to = String(data.get("to") || "").toUpperCase();
@@ -242,7 +244,7 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
         <form ref={form} className="home-search-form" aria-describedby={notice ? "home-search-error" : undefined} onChange={clearCorrectableNotice} onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => setRoundTrip(false)} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => setRoundTrip(true)} />Round trip</label><button className="stitch-multicity" type="button" onClick={() => advancedSearch(true)}>Multi-city</button></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}{product === "FLIGHT" && <div className="stitch-cabin-shortcuts" role="group" aria-label="Quick cabin selection"><span>Cabin class</span>{cabinChoices.map(([value,label])=><button type="button" key={value} aria-pressed={cabin === value} onClick={()=>updateDraft({cabin:value})}>{label}</button>)}</div>}<button type="button" className="home-advanced-link" onClick={() => advancedSearch()} aria-label={product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}><span>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}</span><StitchSymbol name="tune" size={16}/></button></div>
           <div className={`home-search-fields ${product === "HOTEL" ? "is-hotel" : ""} ${roundTrip && product === "FLIGHT" ? "is-return" : ""}`}>
-            {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode onCodeChange={setFromCode} /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode onCodeChange={setToCode} /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} /><small>Select an available destination</small></div>}
+            {product === "FLIGHT" ? <div className="home-airports"><div className="home-search-input"><AirportPicker key={`from-${airportRevision}`} name="from" label="From airport" initialCode={airports.from} showSelectedCode onCodeChange={setFromCode} /></div><button className="home-swap" type="button" onClick={swapAirports} aria-label="Swap departure and arrival airports"><TravelIcon name="swap" size={16} /></button><div className="home-search-input"><AirportPicker key={`to-${airportRevision}`} name="to" label="To airport" initialCode={airports.to} showSelectedCode onCodeChange={setToCode} /></div></div> : <div className="home-search-input home-hotel-destination"><HotelDestination initialQuery={hotelDestination.city} initialHotelIds={hotelDestination.hotelIds.split(",").filter(Boolean)} initialRegionId={hotelDestination.regionId} initialDestinationCursor={hotelDestination.destinationCursor} onResolvingChange={setDestinationResolving} /><small>Select an available destination</small></div>}
             <FareDatePicker name="date" label={product === "FLIGHT" ? "Departure" : "Check-in"} value={date} min={today} fares={showFlightFares ? outbound.days : undefined} onChange={value => {
               const minimumEnd = product === "HOTEL" ? shiftDate(value, 1) : value;
               updateDraft({ date: value, end: end >= minimumEnd ? end : shiftDate(value, product === "HOTEL" ? 1 : 3) });
@@ -251,7 +253,7 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
             {product === "FLIGHT" && !roundTrip && <button className="stitch-add-return" type="button" onClick={() => setRoundTrip(true)}><span>Return</span><strong>Select date</strong><small>Compare round-trip fares</small></button>}
             <TravellersPicker product={product} adults={adults} childCount={childCount} infants={infants} cabin={cabin} onChange={updateDraft} />
             {product === "FLIGHT" && <div className="stitch-popular"><span><span className="stitch-wide-only">Popular pairs</span><span className="stitch-phone-only"><StitchSymbol name="local_fire_department" size={14}/> Popular from Secunderabad &amp; Mumbai</span></span><div>{popularPairs.map(([from,to]) => <button type="button" key={from+to} aria-label={`Set route to ${cities[from]} to ${cities[to]}`} onClick={() => selectPair(from,to)}>{from} <span aria-hidden="true">→</span> {to}</button>)}</div></div>}
-            <button className="home-search-submit" disabled={navigating} type="submit"><StitchSymbol name="search" size={21}/><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
+            <button className="home-search-submit" disabled={navigating||(product==="HOTEL"&&destinationResolving)} type="submit"><StitchSymbol name="search" size={21}/><span>{navigating ? "Opening your search…" : product === "FLIGHT" ? "Search flights" : destinationResolving ? "Finding your destination…" : "Search stays"}</span><TravelIcon name="arrow" size={17} /></button>
           </div>
           {navigating&&<p role="status" className="home-navigation-status">Opening your search… Live availability will load on the next screen.</p>}
           {notice && <p id="home-search-error" className="home-search-error" role="alert">{notice}</p>}

@@ -211,6 +211,76 @@ body.stitch-theme .public-refresh .package-quote {
   background: var(--stitch-light-surface);
 }
 
+/* Flights and stays share the same results hierarchy and controls. */
+body.stitch-theme .booking-workflow #booking-results .booking-results-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--stitch-outline);
+  border-radius: var(--stitch-card-radius);
+  background: var(--brand-ivory);
+  box-shadow: var(--stitch-card-depth);
+}
+body.stitch-theme .booking-workflow #booking-results .booking-results-heading {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+body.stitch-theme #booking-results .booking-results-heading h2 {
+  margin: 0;
+  color: var(--brand-midnight);
+  font: 760 clamp(17px,2vw,21px)/1.3 var(--font-stitch-display), sans-serif;
+}
+body.stitch-theme #booking-results .booking-results-heading h2:focus { outline: none; }
+body.stitch-theme #booking-results .booking-results-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+body.stitch-theme #booking-results .booking-results-heading :is(.booking-results-context,.booking-results-count) {
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  color: var(--brand-muted);
+  text-align: start;
+  font-size: 12px;
+  line-height: 1.4;
+}
+body.stitch-theme #booking-results .hotel-shopping-card .hotel-result-action .primary {
+  background: var(--brand-midnight) var(--stitch-action-surface);
+  color: white;
+}
+
+body.stitch-theme #booking-review .stitch-itinerary .review-stay {
+  padding: 14px;
+  border: 1px solid var(--stitch-outline);
+  border-radius: 12px;
+  background: var(--stitch-light-surface);
+}
+body.stitch-theme #booking-review .review-stay .review-room { align-items: start; }
+body.stitch-theme :is(#booking-review,#booking-rooms) .stay-booking-notes {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.stitch-theme :is(.public-refresh,.account-experience,.concierge-trips,.booking-workflow) :where(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--brand-action);
+  outline-offset: 3px;
+}
+
 @media (max-width: 700px) {
   .stitch-theme .stitch-search-pending { gap: 12px; }
   .stitch-search-route { gap: 10px; padding: 14px; grid-template-columns: auto minmax(0, 1fr); }
@@ -226,6 +296,11 @@ body.stitch-theme .public-refresh .package-quote {
     padding: 16px;
   }
   .stitch-theme .booking-summary.is-planning .booking-planning-photo { display: none; }
+  body.stitch-theme #booking-review .stitch-itinerary .review-stay { padding: 10px; }
+}
+@media (max-width: 760px) {
+  body.stitch-theme .booking-workflow #booking-results .booking-results-toolbar { gap: 8px; padding: 12px; }
+  body.stitch-theme #booking-results .booking-results-toolbar .booking-results-heading { flex: 1 1 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .stitch-activity-icon .stitch-symbol,

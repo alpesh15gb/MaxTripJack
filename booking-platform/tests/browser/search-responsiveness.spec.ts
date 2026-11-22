@@ -1,6 +1,29 @@
 import type {Request} from '@playwright/test';
 import {toggleResultSearch, test,expect,flight,departure,returning,searchId,hotelOption,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
 
+test('search stays waits for the selected destination to finish resolving',async({page,provider})=>{
+ let release!:()=>void;
+ const held=new Promise<void>(resolve=>{release=resolve;});
+ await page.route('**/api/travel/destination-hotels',async route=>{
+  await held;
+  await route.fulfill({json:{hotelIds:['10001'],nextCursor:null}});
+ });
+ provider.search={searchId,results:{hotels:[]}};
+ try{
+  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',date:departure,end:returning,adults:'1'}));
+  await page.getByRole('combobox',{name:'Destination',exact:true}).fill('Goa');
+  await page.getByRole('option',{name:'Goa, India',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Finding your destination…'})).toBeDisabled();
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);
+  release();
+  const search=page.getByRole('button',{name:'Search stays',exact:true});
+  await expect(search).toBeEnabled();
+  await search.click();
+  await expect(page.locator('#booking-results')).toBeVisible();
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ } finally {release();}
+});
+
 for(const product of ['FLIGHT','HOTEL'] as const){
  test(`${product} shows visible feedback while supplier response is held`,async({page,provider},testInfo)=>{
   let release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;});

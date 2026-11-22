@@ -1,5 +1,5 @@
 import { flightFareDetails } from "./flight-fare-details";
-import { hotelObject, hotelRoomInfo, hotelText, hotelStringList, hotelCancellation, hotelPropertyDetails, type HotelRoomOption } from "./hotel-presentation";
+import { hotelObject, hotelRoomInfo, hotelText, hotelRateContent, hotelCancellation, hotelPropertyDetails, type HotelRoomOption } from "./hotel-presentation";
 import { hotelListingId } from "./hotel-listing-id";
 import { minor,Search } from "./providers/contracts";
 import {customerTotal,type PricingRule} from "./pricing-calculation";
@@ -15,7 +15,8 @@ export function customerHotelOptions(source:unknown,rule?:PricingRule):{options:
   const totalPrice=customerTotal(minor(p.totalPrice),rule)/100;
   const roomInfo=hotelRoomInfo(o.roomInfo);
   const fee=(value:unknown)=>typeof value==="number"&&Number.isFinite(value)&&value>=0?value:undefined;
-  return [{optionId,optionType:hotelText(o.optionType),roomInfo,inclusions:hotelStringList(o.inclusions),mealBasis:hotelText(o.mealBasis),bookingNotes:hotelText(o.bookingNotes,10000),cancellation:hotelCancellation(o.cancellation),pricing:{totalPrice,currency:"INR",mf:fee(p.mf),mft:fee(p.mft)}}];
+  const {inclusions,bookingNotes}=hotelRateContent(o.inclusions,o.bookingNotes,10000);
+  return [{optionId,optionType:hotelText(o.optionType),roomInfo,inclusions,mealBasis:hotelText(o.mealBasis),bookingNotes:bookingNotes??undefined,cancellation:hotelCancellation(o.cancellation),pricing:{totalPrice,currency:"INR",mf:fee(p.mf),mft:fee(p.mft)}}];
  })};
 }
 export function customerHotelResults(source:unknown,rule?:PricingRule) {

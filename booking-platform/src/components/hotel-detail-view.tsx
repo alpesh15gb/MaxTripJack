@@ -156,14 +156,13 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
         <h4 className="stay-plan-title" id={planId}>{roomMealLabel(option)}</h4>
         <p className="stay-plan-cancellation" id={`${planId}-terms`}>{hotelCancellationLabel(option.cancellation,now??NaN)}</p>
         {Boolean(option.inclusions?.length)&&<ul className="stay-rate-inclusions">{option.inclusions?.map((item,i)=><li key={`${item}-${i}`}>{item}</li>)}</ul>}
-        {option.bookingNotes&&<p className="stay-booking-notes">{option.bookingNotes}</p>}
        </div>
        <div className="room-option-action stay-room-rate-action">
         <small>Estimated full stay total</small><strong id={`${planId}-price`}>{total===null?'Price unavailable':money(total)}</strong><p>{stayLabel}</p>
         <button type="button" className="primary" aria-describedby={`${groupId} ${planId} ${planId}-terms ${planId}-price`} disabled={busy||total===null} onClick={()=>onReview(option.optionId)}>{checking?'Checking your room…':'Continue with room'}</button>
         {checking&&<p ref={pendingRateStatus} role="status">Checking your selected room rate. Nothing is reserved yet.</p>}
        </div>
-       <details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary><HotelCancellationTimeline value={option.cancellation}/></details>
+       <details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary><HotelCancellationTimeline value={option.cancellation}/>{option.bookingNotes&&<section><h5>Property instructions</h5><p className="stay-booking-notes">{option.bookingNotes}</p></section>}</details>
       </article>;
      })}</div>
     </section>;

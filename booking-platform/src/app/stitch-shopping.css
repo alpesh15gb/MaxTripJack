@@ -123,7 +123,7 @@
   #booking-results .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison[open] { grid-area: 3/1/4/-1; }
 }
 
-#booking-results .hotel-shopping { display: grid; grid-template-columns: minmax(205px,23%) minmax(0,1fr); grid-template-rows: auto 1fr; gap: 14px 22px; }
+#booking-results .hotel-shopping { display: grid; grid-template-columns: minmax(202px,24%) minmax(0,1fr); grid-template-rows: auto 1fr; gap: 14px 22px; }
 #booking-results .hotel-shopping-toolbar {
   grid-area: 1/2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
   padding: 16px 18px; border: 0; border-radius: 15px; background: white; box-shadow: var(--shopping-shadow);
@@ -262,20 +262,17 @@
     left: 50%; bottom: max(9px,env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(calc(100% - 24px),490px); padding: 6px;
     border: 1px solid #d7e0ed; border-radius: 14px; background: #fffffff5; box-shadow: 0 6px 28px #0017362e; backdrop-filter: blur(10px);
   }
-  #booking-results .hotel-sort-filter { color: white; background: #001736; border-color: #001736; border-radius: 999px; }
   #booking-results .flight-dock-sort, #booking-results .hotel-sort-filter label, #booking-results .hotel-sort-filter .hotel-filter-toggle,
   #booking-results .hotel-map-action, #booking-results .shopping-filter-actions .flight-filter-trigger {
     display: flex; position: relative; flex: 1 1 0; justify-content: center; align-items: center; gap: 5px;
     min-width: 0; min-height: 44px; margin: 0; padding: 6px; border: 0; border-radius: 9px; color: #fff; background: #001736;
     font: 700 14px/1.35 var(--font-stitch-body),sans-serif; text-decoration: none;
   }
-  #booking-results .flight-dock-sort { background: #edf1f8; color: #001736; }
-  #booking-results .hotel-sort-filter :is(.hotel-map-action,label,.hotel-filter-toggle) { background: transparent; color: #fff; }
-  #booking-results .hotel-sort-filter > * + * { border-left: 1px solid #43546a; border-radius: 0; }
+  #booking-results .flight-dock-sort, #booking-results .hotel-sort-filter :is(label,.hotel-map-action) { background: #edf1f8; color: #001736; }
   #booking-results .flight-dock-sort select { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; min-height: 44px; cursor: pointer; }
   #booking-results .hotel-sort-filter label { flex: 2 1 0; padding: 0; }
   #booking-results .hotel-sort-filter label > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  #booking-results .hotel-sort-filter select { min-width: 0; width: 100%; min-height: 44px; cursor: pointer; text-align: center; appearance: none; font: 650 13px var(--font-stitch-body),sans-serif; padding: 6px 3px; border: 0; background: transparent; color: white; }
+  #booking-results .hotel-sort-filter select { min-width: 0; width: 100%; min-height: 44px; cursor: pointer; text-align: center; appearance: auto; font: 650 13px var(--font-stitch-body),sans-serif; padding: 6px; border: 0; background: transparent; color: #001736; }
   #booking-results .hotel-sort-filter select option { background: #fff; color: #001736; }
   #booking-results :is(.flight-dock-sort,.hotel-sort-filter label):focus-within { outline: 3px solid #4e93de; }
   html:has(.results-only #booking-results:not([hidden])) { scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom)); }

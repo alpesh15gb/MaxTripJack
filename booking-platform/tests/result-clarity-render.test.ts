@@ -82,7 +82,7 @@ test('hotel benefits omit negative metadata without implying an accessible shutt
 
 test('hotel comparison toolbar retains submitted dates beside the selected stay scope',()=>{
  const html=renderToStaticMarkup(createElement(HotelResults,{...hotelProps,context:roomProps.context}));
- const toolbar=html.slice(html.indexOf('class="hotel-shopping-toolbar"'),html.indexOf('<aside'));
+ const toolbar=html.slice(html.indexOf('class="hotel-shopping-toolbar booking-results-toolbar"'),html.indexOf('<aside'));
  assert.match(toolbar,/<p class="hotel-search-dates" aria-label="Selected check-in and check-out dates">31 Oct 2026 – 2 Nov 2026<\/p><p class="hotel-search-scope">2 nights · 2 rooms · 3 guests<\/p>/);
  assert.doesNotMatch(renderToStaticMarkup(createElement(HotelResults,hotelProps)),/hotel-search-dates/);
 });

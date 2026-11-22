@@ -5,6 +5,17 @@ import {publicSupplierReview} from '../src/lib/public-supplier-review';
 import {reviewGuestIssues,type GuestReview} from '../src/lib/guest-validation-rules';
 import type {Guests} from '../src/lib/providers/contracts';
 const guests={travellers:[{pt:'ADULT',ti:'Mr',fN:'Test',lN:'Adult'},{pt:'CHILD',ti:'Master',fN:'Test',lN:'Child'},{pt:'INFANT',ti:'Master',fN:'Test',lN:'Infant'}],email:'test@example.com',phone:'9876543210'} as Guests;
+test('supplier instructions embedded in inclusions are disclosed separately as readable notes',()=>{
+ const parsed=publicSupplierReview('HOTEL',{option:{inclusions:[
+  'Breakfast included',
+  JSON.stringify({know_before_you_go:'Bring identification.', 'Special Instructions':'Call to arrange transfers.', token:'PRIVATE_TOKEN'}),
+  '{"Instructions":"truncated supplier data',
+ ]}});
+ assert.deepEqual(parsed.option?.inclusions,['Breakfast included']);
+ assert.equal(parsed.option?.bookingNotes,'Know before you go\nBring identification.\n\nSpecial instructions\nCall to arrange transfers.');
+ assert.doesNotMatch(JSON.stringify(parsed),/PRIVATE_TOKEN|truncated supplier data|know_before_you_go/);
+ assert.equal(parsed.terms.find(term=>term.key==='inclusions')?.value,'Breakfast included');
+});
 test('public review allowlist excludes arbitrary fields at every raw boundary without mutating storage input',()=>{
  const privateData={token:'PRIVATE_TOKEN',account:'PRIVATE_ACCOUNT'};
  const raw={...privateData,conditions:{...privateData,st:180,isa:true,pcs:{pm:true,pped:false,...privateData},dob:{adobr:true,cdobr:false,idobr:true,...privateData},gst:{igm:true,...privateData},iecr:true,ipa:false},option:{...privateData,compliance:{...privateData,passportRequired:true,panRequired:true,gstType:'PASSTHROUGH'},bookingNotes:'Bring identification.',pricing:{mf:privateData,mft:privateData,totalPrice:99999},cancellation:{policy:'Cancellation rules',...privateData}},alerts:[privateData]};

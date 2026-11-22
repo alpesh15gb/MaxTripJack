@@ -20,7 +20,7 @@ test(`flight segment durations are readable without inventing unknown connection
 test(`hotel policy windows are readable and positive amount meaning stays unverified${narrow?' at 320px':''}`, async({page,provider},testInfo)=>{
  if(narrow)await page.setViewportSize({width:320,height:844});
  const policy={isRefundable:true,penalties:[{from:'2026-10-21T00:00:00',to:'2026-10-22T00:00:00',amount:0},{from:'2026-10-22T00:00:00',to:'2026-10-23T00:00:00',amount:1000}]};
- provider.quote=reviewedQuote({product:'HOTEL',summary:{city:'Goa',date:departure,end:returning,adults:1},review:{conditions:{},option:{optionId:'exact-policy-room',cancellation:policy}}});
+ provider.quote=reviewedQuote({product:'HOTEL',summary:{city:'Goa',checkIn:departure,checkOut:returning,adults:1},review:{conditions:{},option:{optionId:'exact-policy-room',cancellation:policy,inclusions:['Wi-Fi',JSON.stringify({'Special Instructions':'Bring photo ID at check-in.'})]}}});
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Policy fixture stay',customerEstimateMinor:800000}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[{optionId:'exact-policy-room',roomInfo:[{name:'Twin room'}],mealBasis:'Room only',pricing:{totalPrice:8000,currency:'INR'},cancellation:policy}]}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
@@ -37,8 +37,17 @@ test(`hotel policy windows are readable and positive amount meaning stays unveri
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-policy-windows-synthetic');expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await page.getByRole('button',{name:'Continue with room',exact:true}).click();
  await expect(page.locator('#booking-review-title')).toBeFocused();
- await expect(page.locator('#booking-review-title')).toHaveText('Guest details');
- await page.getByText('Fare conditions, cancellation & documents',{exact:true}).click();
+ await expect(page.locator('#booking-review-title')).toHaveText('Hotel stay');
+ const receipt=page.getByRole('region',{name:'Selected itinerary'});
+ await expect(receipt.locator('.review-room')).toContainText('Wi-Fi');
+ await expect(receipt).not.toContainText('{"Special Instructions"');
+ const instructions=receipt.getByText('Bring photo ID at check-in.',{exact:false});
+ await expect(instructions).toBeHidden();
+ await receipt.getByText('Room details & inclusions',{exact:true}).click();
+ await expect(instructions).toBeVisible();
+ await receipt.getByText('Room details & inclusions',{exact:true}).click();
+ await expect(page.getByText('Stay price breakdown',{exact:true})).toBeVisible();
+ await page.getByText('Stay conditions, cancellation & documents',{exact:true}).click();
  const reviewed=page.getByRole('region',{name:'Hotel cancellation windows'});await expect(reviewed).toContainText('The exact charge cannot be confirmed: the supplier has not specified the currency, units or calculation basis.');
  expect(provider.requests('/api/travel/review')).toHaveLength(1);expect(provider.requests('/api/travel/review')[0].body).toMatchObject({optionId:'exact-policy-room'});
  expect(provider.requests('/api/payments/create')).toHaveLength(0);

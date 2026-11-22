@@ -26,7 +26,7 @@ export default function SelectedJourneyReceipt({ flights, flightJourney, flightC
 }) {
   const nights = hotel?.checkIn && hotel.checkOut ? stayNights({checkIn:hotel.checkIn,checkOut:hotel.checkOut,guests:hotel.guests,rooms:hotel.rooms}) : null;
   return <section className="selected-itinerary compact-selected-itinerary stitch-itinerary" aria-label="Selected itinerary">
-    {!hotel && context}
+    {context}
     {!hotel && flightJourney && <p className="review-journey-type">{flightJourney}</p>}
     <div className="selected-journey-recap">
       {!hotel && !flights.some(flight=>flight.sI.length) && fallbackFlight && <div className="receipt-fallback-flight"><StitchSymbol name="flight" size={24}/><div><strong>{fallbackFlight.title}</strong><p>{travelDateLabel(fallbackFlight.date)}</p></div></div>}
@@ -34,7 +34,7 @@ export default function SelectedJourneyReceipt({ flights, flightJourney, flightC
         <div className="review-stay-heading">
           {hotel.property?.photos?.length ? <HotelPropertyMedia name={hotel.name} photos={hotel.property.photos} /> :
             <span className="review-stay-symbol"><TravelIcon name="hotel" size={28} /></span>}
-          <div className="review-stay-copy">{context}
+          <div className="review-stay-copy">
             {hotel.property?.starRating && <span className="review-category">{hotel.property.starRating}-star hotel</span>}
             <h3>{hotel.name}</h3>{(hotel.property?.address || hotel.property?.city) && <p><TravelIcon name="pin" size={15} /> {hotel.property.address || hotel.property.city}</p>}
           </div>

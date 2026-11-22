@@ -1,6 +1,6 @@
 import {publicReviewConditions,publicReviewCompliance} from './public-review-requirements';
-import {policyText,publicSupplierPolicy,publicSupplierAlerts} from './public-supplier-policy';
-import {hotelObject,hotelRoomInfo,hotelStringList,hotelText} from './hotel-presentation';
+import {publicSupplierPolicy,publicSupplierAlerts} from './public-supplier-policy';
+import {hotelObject,hotelRoomInfo,hotelRateContent,hotelText} from './hotel-presentation';
 import {reviewedTerms} from './reviewed-terms';
 import {oneWayRouteKeys,oneWayTrips,type AirportCriteria} from './flight-airport-scope';
 import {scopeFlightFareRules} from './flight-fare-rules';
@@ -13,5 +13,7 @@ export function publicSupplierReview(product:'FLIGHT'|'HOTEL',source:unknown,fli
   const routes=oneWayRouteKeys(flight.criteria,flight.selectedTrips.length?flight.selectedTrips:tripInfos);
   data={...raw,tripInfos,fareRules:scopeFlightFareRules(raw.fareRules,routes)};
  }
- return {terms:reviewedTerms(product,data),conditions:publicReviewConditions(data.conditions),fareRules:publicSupplierPolicy(data.fareRules),alerts:publicSupplierAlerts(data.alerts),...(data.option?{option:{roomInfo:hotelRoomInfo(option.roomInfo),inclusions:hotelStringList(option.inclusions),mealBasis:hotelText(option.mealBasis),optionType:hotelText(option.optionType),cancellation:publicSupplierPolicy(option.cancellation),compliance:publicReviewCompliance(option.compliance),bookingNotes:policyText(option.bookingNotes)}}:{})};
+ const rate=hotelRateContent(option.inclusions,option.bookingNotes);
+ const termsSource=product==='HOTEL'&&data.option?{...data,option:{...option,...rate}}:data;
+ return {terms:reviewedTerms(product,termsSource),conditions:publicReviewConditions(data.conditions),fareRules:publicSupplierPolicy(data.fareRules),alerts:publicSupplierAlerts(data.alerts),...(data.option?{option:{roomInfo:hotelRoomInfo(option.roomInfo),...rate,mealBasis:hotelText(option.mealBasis),optionType:hotelText(option.optionType),cancellation:publicSupplierPolicy(option.cancellation),compliance:publicReviewCompliance(option.compliance)}}:{})};
 }

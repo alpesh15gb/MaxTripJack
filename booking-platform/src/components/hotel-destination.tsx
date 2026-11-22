@@ -7,8 +7,9 @@ import { useClientReady } from "./use-client-ready";
 
 type Destination = { region_id: string; label: string };
 
-export default function HotelDestination({ initialQuery = "", initialHotelIds = [], initialRegionId = "", initialDestinationCursor = "" }: {
+export default function HotelDestination({ initialQuery = "", initialHotelIds = [], initialRegionId = "", initialDestinationCursor = "", onResolvingChange }: {
   initialQuery?: string; initialHotelIds?: string[]; initialRegionId?: string; initialDestinationCursor?: string;
+  onResolvingChange?: (resolving: boolean) => void;
 }) {
   const ready = useClientReady();
   const id = useId();
@@ -46,13 +47,14 @@ export default function HotelDestination({ initialQuery = "", initialHotelIds = 
     return () => { clearTimeout(timer); controller.abort(); };
   }, [query, region, ids.length]);
 
-  useEffect(() => () => mapping.current?.abort(), []);
+  useEffect(() => () => { mapping.current?.abort(); onResolvingChange?.(false); }, [onResolvingChange]);
   useEffect(() => {
     if (expanded && active >= 0) list.current?.children[active]?.scrollIntoView({ block: "nearest", behavior: "instant" });
   }, [expanded, active]);
 
   function edit(value: string) {
     mapping.current?.abort();
+    onResolvingChange?.(false);
     setBusy(false); setQuery(value); setRegion(""); setIds([]); setCursor("");
     setDestinations([]); setDismissed(false); setActive(-1); setNeedsSignIn(false);
     setMessage(value.trim().length >= 2 ? "Looking for destinations…" : "");
@@ -62,6 +64,7 @@ export default function HotelDestination({ initialQuery = "", initialHotelIds = 
     mapping.current?.abort();
     const controller = new AbortController();
     mapping.current = controller;
+    onResolvingChange?.(true);
     setBusy(true); setMessage(""); setActive(-1); setNeedsSignIn(false);
     try {
       const response = await fetch("/api/travel/destination-hotels", {
@@ -82,7 +85,7 @@ export default function HotelDestination({ initialQuery = "", initialHotelIds = 
     } catch (error) {
       if (!controller.signal.aborted) setMessage(error instanceof Error && error.name === "Error" ? error.message : "Stays are temporarily unavailable. Choose the destination again.");
     } finally {
-      if (!controller.signal.aborted) setBusy(false);
+      if (!controller.signal.aborted) { setBusy(false); onResolvingChange?.(false); }
     }
   }
 
