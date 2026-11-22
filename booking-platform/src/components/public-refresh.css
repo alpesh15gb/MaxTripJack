@@ -232,7 +232,7 @@ body .public-refresh.travel-app .package-main { padding-top: 12px; }
 body .public-refresh.travel-app .package-main--catalogue .package-heading { max-width: none; grid-template-columns: minmax(0, 1fr) 290px; margin-bottom: 24px; }
 body .public-refresh.travel-app .package-planning-note { border-color: var(--public-dark-line); }
 body .public-refresh.travel-app .package-planning-note > svg, body .public-refresh.travel-app .package-planning-note a { color: var(--public-gold); }
-body .public-refresh.travel-app .package-planning-note h2 { font: 650 31px/1.12 var(--public-display); }
+body .public-refresh.travel-app .package-planning-note h2 { font: 650 31px/1.15 var(--public-display); }
 body .public-refresh.travel-app .package-disclosure { border-color: var(--public-line); background: var(--public-sand-surface) var(--public-sand); color: var(--public-link); border-radius: 8px; padding: 18px 22px; }
 body .public-refresh.travel-app .package-disclosure p { font-size: 13px; line-height: 1.8; }
 body .public-refresh.travel-app .package-main--catalogue .package-discovery { border-color: var(--public-line); border-radius: 10px; background: var(--public-paper-surface) var(--public-paper); padding: 26px; box-shadow: none; }

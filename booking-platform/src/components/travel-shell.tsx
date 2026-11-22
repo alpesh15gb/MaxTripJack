@@ -17,10 +17,11 @@ export function TravelHeader({active, onProductChange, hotelHref = '/book?produc
   const home = path === '/';
   const trips = path === '/my-trips';
   const tripDetails = Boolean(path?.startsWith('/my-trips/'));
-  return <ConciergeHeader key={path} {...props} active={active} onProductChange={onProductChange} hotelHref={hotelHref}
+  const guide = path === '/visa-guide' ? 'visas' : path === '/travel-insurance-guide' ? 'insurance' : undefined;
+  return <ConciergeHeader key={path} {...props} active={active ?? guide} onProductChange={onProductChange} hotelHref={hotelHref}
     mobileTitle={mobileTitle ?? (trips ? 'My Trips' : tripDetails ? 'Booking details' : path === '/book' ? 'Find your trip' : undefined)}
-    dock={home || trips} priority={trips || tripDetails} isHome={home}
-    showTesting={!home && !trips && !tripDetails && path !== '/book'}/>;
+    dock={home || trips} isHome={home}
+    showTesting={path !== '/book'}/>;
 }
 
 function FooterPolicyLinks(){

@@ -87,6 +87,7 @@ export async function PublicPageView({ page }: { page: PublicPage }) {
   const businessProfile=await getCompanyProfile();
   page=getPublicPage(page.slug,businessProfile)??page;
   const path = `/${page.slug}`;
+  const assisted = page.slug === "visa-guide" ? "visa" : page.slug === "travel-insurance-guide" ? "travel insurance" : null;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: page.slug === "flights" ? "Flights" : page.title.split(" | ")[0], href: path }];
   const schema = editorialDiscoveryGraph({ ...page, path }, breadcrumbs, { businessProfile, fullBusinessProfile: page.businessSchema });
   return <div className="public-site public-refresh">
@@ -94,13 +95,13 @@ export async function PublicPageView({ page }: { page: PublicPage }) {
     <main id="main-content" className="public-main">
       <Breadcrumbs items={breadcrumbs} />
       <header className="public-hero public-hero--editorial">
-        <div className="public-hero-copy"><p className="public-eyebrow">{page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{page.slug === "contact" && <a className="public-button" href="#contact-options">See contact options<TravelIcon name="arrow" size={18} /></a>}{page.cta && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}</div>
+        <div className="public-hero-copy"><p className="public-eyebrow">{assisted ? 'Assisted enquiry' : page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{(page.slug === "contact" || assisted) && <a className="public-button" href="#contact-options">{assisted ? `Discuss your ${assisted} enquiry` : 'See contact options'}<TravelIcon name="arrow" size={18} /></a>}{page.cta && !assisted && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}</div>
         <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />
       </header>
       <div className="public-layout"><article className="public-article"><PlanningNotice /><ContentSections sections={page.sections} />
         {page.showRoutes && <section className="public-section" aria-labelledby="route-guides-heading"><h2 id="route-guides-heading">Find your flight planning guide</h2><p><Link href="/flights/routes">Browse the flight route directory →</Link></p><RouteGuideCards /></section>}
         {page.questions && <Questions questions={page.questions} />}<ReviewDate value={page.reviewedAt} />
-      </article><aside className="public-rail"><OfficeContactCard compact={!page.contact} id={page.slug === "contact" ? "contact-options" : undefined} /><section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section></aside></div>
+      </article><aside className="public-rail"><OfficeContactCard compact={!page.contact} id={page.slug === "contact" || assisted ? "contact-options" : undefined} /><section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section></aside></div>
       <RelatedLinks links={page.related} />
     </main><TravelFooter /><SeoJsonLd id="public-page-schema" data={schema} />
   </div>;

@@ -4,7 +4,7 @@ import { database,transaction } from "./db";
 import { owned, assertFresh, pricingRule, type Actor } from "./supplier-flow";
 import { tripjack, paths } from "./providers/tripjack";
 import { bookingBody, minor, type Guests } from "./providers/contracts";
-import { checkoutCatalogue, selectCheckoutExtras, type CheckoutChoice } from "./checkout-extras-contract";
+import { checkoutCatalogue, customerCheckoutOptions, selectCheckoutExtras, type CheckoutChoice } from "./checkout-extras-contract";
 import { customerTotal } from "./customer-pricing";
 import { HttpError } from "./http";
 import { requestLimit } from "./request-limit";
@@ -15,7 +15,9 @@ export async function extrasCatalogue(quoteId:string,actor:Actor){
  const search=await owned("supplier_searches",quote.search_id,actor);
  const seats=quote.review.conditions?.isa===true?await tripjack("FLIGHT","/fms/v1/seat",{bookingId:quote.supplier_booking_id}):{};
  assertFresh(quote.expires_at);
- let segments;try{segments=checkoutCatalogue(quote.review,seats);}catch{throw new HttpError(502,"Supplier extras are incomplete. Review the flight again.");}
+ const base=Number(quote.selection.checkoutBaseSupplierMinor??quote.supplier_minor);
+ const rule=await pricingRule("FLIGHT",actor);
+ let segments;try{segments=customerCheckoutOptions(checkoutCatalogue(quote.review,seats),base,rule);}catch{throw new HttpError(502,"Supplier extras are incomplete. Review the flight again.");}
  const orders=await database().query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(orders.rowCount)throw new HttpError(409,"Checkout has already started; extras are locked.");
  return {segments,travellerTypes:[...Array(search.criteria.adults).fill("ADULT"),...Array(search.criteria.children??0).fill("CHILD"),...Array(search.criteria.infants??0).fill("INFANT")],choices:quote.selection.checkoutExtras?.choices??[]};
 }

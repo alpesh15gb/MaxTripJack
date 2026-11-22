@@ -125,9 +125,12 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
 
   function openSearch(next: Product) {
     changeProduct(next);
-    const search = document.getElementById('trip-search');
-    search?.scrollIntoView({block:'start'});
-    search?.focus({preventScroll:true});
+    requestAnimationFrame(() => {
+      const search = document.getElementById('trip-search');
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      search?.focus({preventScroll: true});
+      search?.scrollIntoView({block: 'start', behavior: reducedMotion ? 'instant' : 'smooth'});
+    });
   }
 
   function swapAirports() {

@@ -170,6 +170,11 @@ body.stitch-theme .booking-workflow.booking-shopping:not(.has-journey, .is-searc
   box-shadow: var(--stitch-card-depth);
 }
 body.stitch-theme .booking-intro .booking-heading-icon { background: #e4efff; color: var(--brand-action); }
+body.stitch-theme .booking-workflow.journey-flow .booking-search-submit.primary:not(:disabled) {
+  background: #005bb3 var(--stitch-action-surface);
+  border-color: #0a3765;
+  color: #fff;
+}
 body.stitch-theme .booking-workflow .booking-search-panel:has(summary:not(.booking-criteria-strip)),
 body.stitch-theme .booking-workflow .booking-summary.is-planning {
   border-color: var(--stitch-outline);

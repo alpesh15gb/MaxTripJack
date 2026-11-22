@@ -234,14 +234,13 @@ body .trip-home.stitch-home .public-route-card :is(p,.public-route-action) { dis
 .stitch-getaway-maldives .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-maldives.webp"); }
 .stitch-getaway-dubai .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-dubai.webp"); }
 .stitch-getaway-bali .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-bali.webp"); }
-.stitch-getaway-paris .stitch-getaway-photo { background-image:url("/travel/stitch/desktop-paris.webp"); }
+.stitch-getaway-paris .stitch-getaway-photo { background-image:url("/travel/paris-evening.webp"); background-position:70% center; }
 
 @media (max-width:700px){
 .stitch-getaway-goa .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-goa.webp"); }
 .stitch-getaway-maldives .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-maldives.webp"); }
 .stitch-getaway-dubai .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-dubai.webp"); }
 .stitch-getaway-bali .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-bali.webp"); }
-.stitch-getaway-paris .stitch-getaway-photo { background-image:url("/travel/stitch/mobile-paris.webp"); }
 }
 .stitch-home .stitch-office-map { display:flex; align-items:center; justify-content:center; min-height:145px; margin-top:20px; border-radius:12px; background:#e3e9ef url("/travel/stitch/secunderabad-map.webp") center/cover; text-decoration:none; }
 .stitch-home .stitch-office-map span { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:18px; color:var(--s-ink); background:white; box-shadow:var(--s-shadow); font:650 12px var(--s-body); }

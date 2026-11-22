@@ -9,7 +9,6 @@ import {isMaxAiActionHref, type MaxAiAction, type MaxAiCard, type MaxAiResponse}
 import {enquiryDraftSchema, type EnquiryDraft} from '@/lib/travel-enquiry-contract';
 import MaxAiEnquiry from './max-ai-enquiry';
 import {observeLauncherPlacement} from './max-ai-launcher-placement';
-import {StitchSymbol} from './stitch-symbol';
 import '@/app/max-ai.css';
 
 const REQUEST_TIMEOUT_MS = 90_000;
@@ -195,7 +194,7 @@ function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextD
     <div className="max-ai-conversation-tools"><span>Ask. Explore. Travel.</span><button type="button" onClick={newChat}><AiIcon name="plus" size={15}/>New chat</button></div>
     <div className="max-ai-messages" aria-label="Conversation with Max AI" role="log" aria-live="polite" aria-relevant="additions">
       {!messages.length && <section className="max-ai-welcome" aria-labelledby={`${id}-welcome`}>
-        <div className="max-ai-welcome-mark"><AiIcon name="spark" size={31}/><span aria-hidden="true">✦</span></div>
+        <div className="max-ai-welcome-mark"><AiIcon name="spark" size={31}/></div>
         <p className="max-ai-eyebrow">YOUR NEXT JOURNEY STARTS HERE</p>
         <h3 id={`${id}-welcome`}>Where to next?</h3>
         <p>Find flights and stays, explore holidays and cruises, or ask our team about visas and travel insurance. I can also help with your existing bookings.</p>
@@ -284,7 +283,7 @@ function MaxAiWidget() {
   }, []);
   return <>
     <button ref={launcher} className={`max-ai-launcher${pathname === '/' ? ' home-max-ai-launcher' : ''}`} type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}>
-      {pathname === '/' ? <><span className="max-ai-launcher-icon"><StitchSymbol name="smart_toy" size={20}/></span><strong>Ask Max AI</strong></> :
+      {pathname === '/' ? <><span className="max-ai-launcher-icon"><AiIcon name="spark" size={20}/></span><strong>Ask Max AI</strong></> :
         <><span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></>}
     </button>
     {hasOpened && <AssistantDialog open={open} onClosed={onClosed} launcher={launcher} nextDraft={nextDraft}/>}

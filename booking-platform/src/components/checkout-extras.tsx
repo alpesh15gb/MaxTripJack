@@ -113,6 +113,7 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
     {segments === null ? <button type="button" className="secondary" disabled={disabled || loading} onClick={() => void load()}>
       {loading ? "Loading airline options…" : "Choose flight extras"}
     </button> : <>
+      <p className="muted">Prices include applicable booking charges. Apply your choices to recheck availability and see the updated total before payment.</p>
       {segments.map(segment => <fieldset disabled={disabled || loading || uncertain} key={segment.id}>
         <legend>{segment.label}</legend>
         {segment.options.some(option => !option.exitRow) ? types.map((type, index) => type === "INFANT" ? null :
@@ -125,7 +126,7 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
               return <label key={kind}>{optionLabels[kind]}
                 <select value={selected?.code ?? ""} onChange={event => choose(segment, index, kind, event.target.value)}>
                   <option value="">{kind === "SEAT" ? "Airline allocation" : "No extra"}</option>
-                  {options.map(option => <option key={option.code} value={option.code}>{option.label} · {displayMoney(option.amountMinor)}</option>)}
+                  {options.map(option => <option key={option.code} value={option.code}>{option.label} · {option.amountMinor > 0 ? `+${displayMoney(option.amountMinor)}` : "No additional charge"}</option>)}
                 </select>
               </label>;
             })}

@@ -1,5 +1,23 @@
 import {test,expect,expectNoHorizontalOverflow,capture,openFlightSearch,quoteId,searchId,reviewedQuote,departure,returning} from './fixtures';
 const id='11111111-1111-4111-8111-111111111111';
+test('flight seat selection shows the customer price before the extras total is applied',async({page,provider})=>{
+ provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'seat-segment',tripIndex:0,label:'HYD → BOM · 15 Dec 2026 · 05:05',options:[{kind:'SEAT',code:'6A',label:'Seat 6A',amountMinor:90390}]}],travellerTypes:['ADULT'],choices:[]}};
+ provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:744390}};
+ await openFlightSearch(page);
+ await page.locator('.fare-comparison > summary').first().click();
+ await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
+ const form=page.getByRole('form',{name:'Review and travellers'});
+ await expect(form.locator('.booking-concierge h3')).toHaveCSS('color','rgb(255, 255, 255)');
+ await form.locator('.checkout-optional-extras > summary').click();
+ await form.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+ await expect(form.locator('.checkout-extras')).toContainText('HYD → BOM · 15 Dec 2026 · 05:05');
+ const seat=form.getByRole('combobox',{name:'Seat',exact:true});
+ await expect(seat.locator('option[value="6A"]')).toHaveText('Seat 6A · +₹903.90');
+ await seat.selectOption('6A');
+ await form.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
+ await expect(form.locator('#booking-summary .booking-total')).toContainText('₹7,443.90');
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
 test('admin edits pricing with percentage service fee and can deactivate the rule',async({page,provider},info)=>{
  provider.overrides['GET /api/admin/pricing']={body:{rows:[{id,product:'HOTEL',company_id:null,markup_minor:'5000',markup_basis_points:1000,margin_basis_points:0,service_fee_minor:'2500',service_fee_basis_points:200,active:true}],total:1,page:1,hasMore:false}};
  provider.overrides['POST /api/admin/pricing']={body:{id:'22222222-2222-4222-8222-222222222222'}};

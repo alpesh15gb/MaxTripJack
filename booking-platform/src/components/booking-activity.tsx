@@ -17,7 +17,7 @@ export default function BookingActivity({ title, detail, product, takingLonger =
       <div className="stitch-activity-text">
         {heading ? <h1>{title}</h1> : <strong>{title}</strong>}
         {detail && <p>{detail}</p>}
-        {takingLonger && <p className="stitch-activity-delay">This is taking longer. You can keep waiting or edit your search.</p>}
+        {takingLonger && <p className="stitch-activity-delay">Still checking with the supplier. You can keep waiting or edit your search.</p>}
       </div>
     </div>
   );

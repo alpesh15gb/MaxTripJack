@@ -231,9 +231,25 @@ export async function expectFlightToolbarValuesFit(page: Page) {
     expect(size.available, `${label} must show the selected value rather than clip it`).toBeGreaterThanOrEqual(size.text);
   }
   const filters=page.getByRole('button',{name:/^Filters/});
-  if(await filters.isVisible())await filters.click();
+  if(!(await filters.isVisible())){
+    const sidebar=page.getByRole('complementary',{name:'Flight result controls'});
+    await expect(sidebar.getByRole('combobox')).toHaveCount(0);
+    await expect(sidebar.getByRole('button',{name:'Filter by Non-stop'})).toBeVisible();
+    return;
+  }
+  await filters.click();
   for(const label of ['Airline (any segment)','Stops'])await assertFits(label);
   if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();
+}
+
+export async function chooseFlightFilter(page: Page, field: 'Stops'|'Airline (any segment)'|'Departure time', value: string) {
+  const select=page.getByRole('combobox',{name:field,exact:true});
+  if(await select.isVisible()){await select.selectOption(value);return;}
+  const sidebar=page.getByRole('complementary',{name:'Flight result controls'});
+  const label=field==='Stops'?['Non-stop','1 stop','2 stops'][Number(value)]:value;
+  const times:Record<string,string>={EARLY:'Early morning',MORNING:'Morning',AFTERNOON:'Afternoon',EVENING:'Evening'};
+  const button=field==='Departure time'?sidebar.getByRole('button',{name:new RegExp(`^${times[value]} \\d`)}):sidebar.getByRole('button',{name:`Filter by ${label}`,exact:true});
+  await button.click();
 }
 
 /** Choose a day in the homepage fare calendar (label: Departure, Return, Check-in, Check-out). */

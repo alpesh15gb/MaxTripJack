@@ -8,7 +8,7 @@ import {useCompanyProfile} from './company-profile-context';
 import {StitchSymbol} from './stitch-symbol';
 
 export type HeaderProps = {
-  active?: 'flights' | 'hotels' | 'trips' | 'account' | 'packages';
+  active?: 'flights' | 'hotels' | 'trips' | 'account' | 'packages' | 'visas' | 'insurance';
   onProductChange?: (product: 'FLIGHT' | 'HOTEL') => void;
   hotelHref?: '/hotels' | '/book?product=HOTEL';
   mobileTitle?: string;
@@ -18,7 +18,7 @@ export type HeaderProps = {
   tripTools?: boolean;
 };
 
-export function ConciergeHeader({active, onProductChange, hotelHref, mobileTitle, mobileSubtitle, onMobileEdit, onMobileBack, tripTools, dock, priority, isHome, showTesting}: HeaderProps & {dock: boolean; priority: boolean; isHome: boolean; showTesting: boolean}) {
+export function ConciergeHeader({active, onProductChange, hotelHref, mobileTitle, mobileSubtitle, onMobileEdit, onMobileBack, tripTools, dock, isHome, showTesting}: HeaderProps & {dock: boolean; isHome: boolean; showTesting: boolean}) {
   const company = useCompanyProfile();
   const {data: session, isPending} = authClient.useSession();
   const navId = useId();
@@ -29,16 +29,12 @@ export function ConciergeHeader({active, onProductChange, hotelHref, mobileTitle
   return <>
     <a className="travel-skip" href="#main-content">Skip to main content</a>
     {showTesting && <div className="concierge-testing"><strong>In Testing</strong><span>No live bookings or payments</span></div>}
-    <header className={`concierge-header ${dock ? 'has-dock' : 'has-menu'}${priority ? ' priority-desk' : ''}${isHome ? ' home-desk' : ''}${!dock && mobileTitle ? ' contextual-header' : ''}`}>
-      {priority && <div className="concierge-priority"><div>
-        <a href={company.phoneHref}><i/>{company.address.addressLocality} priority desk <b>{displayPhone}</b></a>
-        <span>Boutique Travel Concierge &amp; Bespoke Itineraries</span><span><StitchSymbol name="language" size={14}/>₹ INR · EN</span>
-      </div></div>}
+    <header className={`concierge-header ${dock ? 'has-dock' : 'has-menu'}${isHome ? ' home-desk' : ''}${!dock && mobileTitle ? ' contextual-header' : ''}`}>
       <div className="concierge-bar">
         <Link href="/" aria-label="Max Travel home" className="concierge-brand-link"><BrandLogo/></Link>
         {!dock && mobileTitle && (onMobileBack ?
           <button className="concierge-mobile-back" type="button" aria-label="Go back" onClick={onMobileBack}><StitchSymbol name="arrow_back" size={22}/></button> :
-          <Link className="concierge-mobile-back" href={priority ? '/my-trips' : '/'} aria-label={priority ? 'Back to My trips' : 'Back to home'}><StitchSymbol name="arrow_back" size={22}/></Link>)}
+          <Link className="concierge-mobile-back" href={active === 'trips' ? '/my-trips' : '/'} aria-label={active === 'trips' ? 'Back to My trips' : 'Back to home'}><StitchSymbol name="arrow_back" size={22}/></Link>)}
         {mobileTitle && <div className="concierge-page-name">
           <Link href="/" aria-label="Max Travel home" className="concierge-context-brand"><BrandLogo variant="compact"/></Link>
           <strong>{mobileTitle}</strong>{mobileSubtitle && <small>{mobileSubtitle}</small>}
@@ -54,19 +50,19 @@ export function ConciergeHeader({active, onProductChange, hotelHref, mobileTitle
             return onProductChange ? <button key={product} type="button" aria-current={current} onClick={() => {setExpanded(false); onProductChange(product);}}>{content}</button>
               : <Link key={product} prefetch={false} href={flight ? '/book?product=FLIGHT' : hotelHref ?? '/book?product=HOTEL'} aria-current={current} onClick={() => setExpanded(false)}>{content}</Link>;
           })}
-          <Link href="/packages" aria-label="Packages" aria-current={active==='packages'?'page':undefined}><StitchSymbol name={priority ? 'luggage' : 'beach_access'} size={21}/><span className="concierge-desk-only">Holiday&nbsp;</span>Packages</Link>
-          <Link className="concierge-desk-only" href="/visa-guide">Visas</Link>
-          <Link className="concierge-desk-only" href="/travel-insurance-guide">Travel Insurance</Link>
-          <Link className="concierge-nav-trips" href="/my-trips" aria-current={active==='trips'?'page':undefined}><StitchSymbol name={priority ? 'confirmation_number' : 'luggage'} size={21}/>My Trips</Link>
-          <Link className="concierge-phone-only" href="/account" aria-current={active==='account'?'page':undefined}><StitchSymbol name="manage_accounts" size={21}/>{priority ? 'Profile' : 'Account'}</Link>
+          <Link href="/packages" aria-label="Packages" aria-current={active==='packages'?'page':undefined}><StitchSymbol name="beach_access" size={21}/><span className="concierge-desk-only">Holiday&nbsp;</span>Packages</Link>
+          <Link className="concierge-desk-only" href="/visa-guide" aria-current={active==='visas'?'page':undefined}>Visas</Link>
+          <Link className="concierge-desk-only" href="/travel-insurance-guide" aria-current={active==='insurance'?'page':undefined}>Travel Insurance</Link>
+          <Link className="concierge-nav-trips" href="/my-trips" aria-current={active==='trips'?'page':undefined}><StitchSymbol name="luggage" size={21}/>My Trips</Link>
+          <Link className="concierge-phone-only" href="/account" aria-current={active==='account'?'page':undefined}><StitchSymbol name="manage_accounts" size={21}/>Account</Link>
         </nav>
         <div className="concierge-tools">
           {tripTools && <><a href="#trip-search" className="concierge-action-mobile" aria-label="Search bookings"><StitchSymbol name="search" size={22}/></a><a href="#trip-updates" className="concierge-action-mobile" aria-label="Booking updates"><StitchSymbol name="notifications" size={22}/></a></>}
           {onMobileEdit && <button className="concierge-action-mobile" type="button" aria-label="Edit search" onClick={onMobileEdit}><StitchSymbol name="edit" size={20}/></button>}
           <a className={`concierge-hub${onMobileEdit || tripTools ? ' desktop-hub' : ''}`} href={company.phoneHref} aria-label={`Call the ${company.address.addressLocality} desk`}><span>{company.address.addressLocality} Hub<strong>{displayPhone}</strong></span><i><StitchSymbol name="call" size={18}/><span className="phone-support-symbol"><StitchSymbol name="support_agent" size={20}/></span></i></a>
           <span className="concierge-currency"><span className="desktop-currency"><StitchSymbol name="currency_rupee" size={18}/> INR · EN</span><span className="phone-currency"><StitchSymbol name="payments" size={16}/> INR ₹</span></span>
-          <Link className="concierge-tools-trips" href="/my-trips"><StitchSymbol name="luggage" size={20}/>My Trips</Link>
-          <Link className="concierge-account" href="/account" aria-label="My account" aria-current={active==='account'?'page':undefined}>{avatar}<span className="concierge-account-copy">{!priority && <small>{firstName ? `Hello, ${firstName}` : 'Hello, Guest'}</small>}<b>{isPending || priority || session ? 'Account' : 'Sign In'}</b></span></Link>
+          <Link className="concierge-tools-trips" href="/my-trips" aria-current={active==='trips'?'page':undefined}><StitchSymbol name="luggage" size={20}/>My Trips</Link>
+          <Link className="concierge-account" href="/account" aria-label="My account" aria-current={active==='account'?'page':undefined}>{avatar}<span className="concierge-account-copy"><small>{firstName ? `Hello, ${firstName}` : 'Hello, Guest'}</small><b>{isPending || session ? 'Account' : 'Sign in'}</b></span></Link>
           {!dock && <button className="concierge-menu-button" type="button" aria-label={expanded ? 'Close navigation' : 'Open navigation'} aria-expanded={expanded} aria-controls={navId} onClick={()=>setExpanded(!expanded)}>{mobileTitle ? avatar : <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>}</button>}
         </div>
       </div>

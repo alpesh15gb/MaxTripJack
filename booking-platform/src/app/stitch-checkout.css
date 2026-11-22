@@ -263,7 +263,7 @@ body .booking-workflow.checkout-active .booking-progress li.is-current > span { 
 }
 #booking-review .booking-concierge { grid-column: 1; }
 .stitch-voucher .booking-concierge { margin-top: 16px; }
-body .booking-concierge h3 { color: #fff; font: 700 15px/1.3 var(--font-stitch-display), Arial, sans-serif; margin: 0; }
+#booking-review .booking-concierge h3, body.stitch-theme .booking-concierge h3 { color: #fff; font: 700 15px/1.3 var(--font-stitch-display), Arial, sans-serif; margin: 0; }
 body .booking-concierge p { color: #dce8f9; font-size: 12px; margin: 4px 0 0; }
 .booking-concierge .concierge-symbol { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: #234268; }
 .booking-concierge a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 7px 14px; border-radius: 8px; background: #e5f0ff; color: #103e75; text-decoration: none; font-size: 13px; font-weight: 700; }
@@ -361,11 +361,7 @@ body .checkout-active:has(#booking-review) > :is(.back,.booking-intro) { display
 #booking-review .checkout-price-breakdown p.muted { font-size: 12px; line-height: 1.45; margin: 4px 0; }
 #booking-review .checkout-summary-policy { padding: 3px 0 8px; }
 #booking-review .checkout-submit-action + .checkout-party-summary { margin-top: 16px; border-top: 1px solid var(--review-line); }
-#booking-review .sheet-steps { display: flex; justify-content: space-between; gap: 4px; padding: 0 6px; margin: 0; position: relative; isolation: isolate; list-style: none; }
-#booking-review .sheet-steps::before { content: ''; position: absolute; z-index: -1; inset: 12px 11% auto; border-top: 2px solid #7aa9da; }
-#booking-review .sheet-steps li { display: grid; justify-items: center; gap: 4px; width: 25%; font-size: 11px; color: var(--review-muted); }
-#booking-review .sheet-steps li :is(span,strong) { display: grid; place-items: center; min-width: 26px; height: 26px; border-radius: 50%; background: #005bb3; color: white; }
-#booking-review .sheet-steps li strong { background: #001736; }
+#booking-review .sheet-payment-note { margin: 0; color: var(--review-muted); font-size: 13px; line-height: 1.5; }
 #booking-review .sheet-journey-summary { display: flex; align-items: center; gap: 11px; }
 #booking-review .sheet-journey-summary :is(.hotel-property-thumb,.sheet-journey-symbol) { width: 58px; height: 56px; flex: 0 0 58px; border-radius: 8px; overflow: hidden; background: #e3edf9; color: #164a80; }
 #booking-review .sheet-journey-summary .sheet-journey-symbol { display: grid; place-items: center; }

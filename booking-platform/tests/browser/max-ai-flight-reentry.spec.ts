@@ -1,4 +1,4 @@
-import {toggleResultSearch, test,expect,departure,searchId,flight} from './fixtures';
+import {chooseFlightFilter,toggleResultSearch, test,expect,departure,searchId,flight} from './fixtures';
 
 test('reopening the same AI card reapplies its view without reloading the owned search or undoing native filter edits',async({page,provider})=>{
   const direct=flight('ONWARD','indigo-direct'),other=flight('ONWARD','other-direct'),connecting=flight('ONWARD','indigo-connecting');
@@ -19,7 +19,7 @@ test('reopening the same AI card reapplies its view without reloading the owned 
   await sorts.getByRole('button',{name:'Cheapest',exact:true}).click();
   const filters=page.getByRole('button',{name:/^Filters(?: \(\d+\))?$/});
   if(await filters.isVisible())await filters.click();
-  await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('Other Air');
+  await chooseFlightFilter(page,'Airline (any segment)','Other Air');
   const close=page.getByRole('button',{name:'Close filters',exact:true});if(await close.isVisible())await close.click();
   await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);

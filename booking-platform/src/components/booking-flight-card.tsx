@@ -272,6 +272,7 @@ export default function BookingFlightCard({
               {showBaseline && (fare.id === baseline?.id || difference > 0) && <p className="fare-price-comparison">
                 {difference > 0 ? `+${money(difference)} vs lowest shown fare` : 'Lowest shown estimate'}
               </p>}
+              {showBaseline && difference > 0 && !rows.some(row => row.differs) && <p className="fare-details-unavailable">The airline hasn’t supplied an extra benefit for this fare. Check the rules before choosing it.</p>}
             </div>
             <dl className="fare-decision-dimensions">
               {rows.map(({ label, value, differs }) => <div key={label} className={differs ? 'fare-difference' : undefined}>

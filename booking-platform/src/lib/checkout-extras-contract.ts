@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { minor, type Search } from "./providers/contracts";
+import { customerTotal, type PricingRule } from "./pricing-calculation";
+import { travelDateTimeLabel } from "./travel-date";
 export const checkoutChoices=z.array(z.object({segmentId:z.string().min(1).max(100),travellerIndex:z.number().int().min(0).max(17),kind:z.enum(["BAGGAGE","MEAL","SEAT"]),code:z.string().min(1).max(100)}).strict()).max(972);
 export type CheckoutChoice=z.infer<typeof checkoutChoices>[number];
 export type CheckoutSegment={id:string;tripIndex:number;label:string;options:{kind:"BAGGAGE"|"MEAL"|"SEAT";code:string;label:string;amountMinor:number;exitRow?:boolean}[]};
@@ -13,9 +15,18 @@ export function checkoutCatalogue(review:unknown,seats:unknown):CheckoutSegment[
   const options:CheckoutSegment["options"]=[];
   for(const kind of ["BAGGAGE","MEAL"] as const)for(const option of list(obj(segment.ssrInfo)[kind]))if(typeof option.code==="string"&&typeof option.amount==="number"&&option.amount>=0)options.push({kind,code:option.code,label:typeof option.desc==="string"?option.desc:option.code,amountMinor:minor(option.amount)});
   for(const seat of list(obj(maps[segment.id]).sInfo))if(seat.isBooked===false&&typeof seat.code==="string"&&typeof seat.amount==="number"&&seat.amount>=0)options.push({kind:"SEAT",code:seat.code,label:`Seat ${String(seat.seatNo??seat.code)}${seat.isExitRow?" · Exit row":""}${seat.isLegRoom?" · Extra legroom":""}`,amountMinor:minor(seat.amount),exitRow:seat.isExitRow===true});
-  segments.push({id:segment.id,tripIndex,label:`${String(obj(segment.da).code??"")} → ${String(obj(segment.aa).code??"")} · ${String(segment.dt??"")}`,options});
+  segments.push({id:segment.id,tripIndex,label:`${String(obj(segment.da).code??"")} → ${String(obj(segment.aa).code??"")} · ${travelDateTimeLabel(segment.dt)}`,options});
  }
  if(segments.length>36)throw Error("Supplier itinerary has too many segments.");return segments;
+}
+
+/** Show the customer's price delta for each option, including variable charges.
+ * Fixed charges already included in the flight total must not be charged twice. */
+export function customerCheckoutOptions(segments: CheckoutSegment[], baseMinor: number, rule?: PricingRule): CheckoutSegment[] {
+ const baseTotal = customerTotal(baseMinor, rule);
+ return segments.map(segment => ({...segment, options: segment.options.map(option => ({
+  ...option, amountMinor: customerTotal(baseMinor + option.amountMinor, rule) - baseTotal,
+ }))}));
 }
 export function selectCheckoutExtras(review:unknown,seats:unknown,criteria:Extract<Search,{product:"FLIGHT"}>,choices:CheckoutChoice[]){
  const catalogue=checkoutCatalogue(review,seats),used=new Set<string>(),seatKeys=new Set<string>();

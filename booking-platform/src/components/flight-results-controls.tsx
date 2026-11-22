@@ -114,14 +114,18 @@ export function FlightDesktopFilters(props: FlightFilterFieldsProps & {flights: 
       <div className="stitch-facets-header"><h3>Filters</h3><button type="button" aria-label="Reset flight filters" onClick={()=>resetFlightFilters(props)} disabled={props.disabled}>Reset all</button></div>
       {props.airlineQuery&&<p className="flight-filter-note">Matching {props.airlineQuery} on every segment.</p>}
       {props.group!=='COMBO'&&<>
-        <section><div className="stitch-facet-heading"><h4>Stops</h4><select aria-label="Stops" value={props.stops} onChange={e=>props.onStops(e.target.value)}><option value="ALL">All</option><option value="0">Non-stop</option><option value="1">1 stop</option><option value="2">2 stops</option></select></div>
+        <section><div className="stitch-facet-heading"><h4>Stops</h4></div>
           {['Non-stop','1 stop','2 stops'].map((label,i)=>choice(String(i),label,props.stops,props.onStops,stopPrices.get(String(i))))}</section>
-        <section><div className="stitch-facet-heading"><h4>Departure time</h4><select aria-label="Departure time" value={props.departure} onChange={e=>props.onDeparture(e.target.value)}><option value="ALL">All</option>{Object.keys(departureLabels).map(key=><option key={key} value={key}>{departureLabels[key]}</option>)}</select></div>
+        <section><div className="stitch-facet-heading"><h4>Departure time</h4></div>
           <div className="stitch-time-grid">{[['EARLY','wb_twilight','Early morning','00–06'],['MORNING','wb_sunny','Morning','06–12'],['AFTERNOON','partly_cloudy_day','Afternoon','12–18'],['EVENING','nights_stay','Evening','18–00']].map(([key,icon,title,hours])=><button key={key} type="button" aria-pressed={props.departure===key} disabled={props.disabled} onClick={()=>props.onDeparture(props.departure===key?'ALL':key)}><StitchSymbol name={icon} size={18}/><strong>{title}</strong><small>{hours}</small></button>)}</div></section>
       </>}
-      {props.group==='COMBO'&&<section><div className="stitch-facet-heading"><h4>Stops</h4><select aria-label="Stops" disabled value="ALL"><option value="ALL">All</option></select></div><p className="flight-filter-note">Check stops for each flight in the complete itinerary.</p></section>}
-      <section><div className="stitch-facet-heading"><h4>Airlines</h4><select aria-label="Airline (any segment)" value={props.airline} disabled={props.disabled} onChange={e=>props.onAirline(e.target.value)}><option value="ALL">All</option>{props.airlines.map(name=><option key={name} value={name}>{name}</option>)}</select></div>
-        {props.airlines.slice(0,6).map(name=>choice(name,name,props.airline,props.onAirline,airlinePrices.get(name)))}</section>
+      {props.group==='COMBO'&&<section><div className="stitch-facet-heading"><h4>Stops</h4></div><p className="flight-filter-note">Check stops for each flight in the complete itinerary.</p></section>}
+      <section><div className="stitch-facet-heading"><h4>Airlines</h4></div>
+        {props.airlines.slice(0,6).map(name=>choice(name,name,props.airline,props.onAirline,airlinePrices.get(name)))}
+        {props.airlines.length>6&&<details className="stitch-more-airlines" open={props.airlines.slice(6).includes(props.airline)||undefined}>
+          <summary>More airlines ({props.airlines.length-6})</summary>
+          {props.airlines.slice(6).map(name=>choice(name,name,props.airline,props.onAirline,airlinePrices.get(name)))}
+        </details>}</section>
       <section className="stitch-facet-budget"><h4>Price range</h4>
         {Number.isFinite(min)&&max>min&&<><input aria-label="Maximum fare slider" type="range" min={min} max={max} step="1" value={props.budget?Math.max(min,Math.min(max,Number(props.budget)||max)):max} onChange={e=>props.onBudget(Number(e.target.value)===max?'':e.target.value)} disabled={props.disabled}/><div><small>{displayMoney(min*100)}</small><small>{displayMoney(max*100)}</small></div></>}
         <label>Maximum total for all travellers (₹)<input type="number" min="0" step="1" inputMode="numeric" placeholder="No limit" value={props.budget} disabled={props.disabled} onChange={e=>props.onBudget(e.target.value)}/></label>
@@ -167,7 +171,7 @@ export default function FlightResultsControls(props: Props) {
       quickControl.focus({preventScroll:true});
       return;
     }
-    const sidebar=toolbar.current?.closest('.flight-shopping')?.querySelector<HTMLSelectElement>('.flight-desktop-filters select');
+    const sidebar=toolbar.current?.closest('.flight-shopping')?.querySelector<HTMLButtonElement>('.flight-desktop-filters button:not(:disabled)');
     (sidebar ?? toolbar.current)?.focus({preventScroll:true});
   }
 

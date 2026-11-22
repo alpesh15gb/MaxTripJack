@@ -39,10 +39,10 @@
 #booking-results .flight-date-header h3 { display: inline; font: 700 14px var(--font-stitch-display),sans-serif; }
 #booking-results .flight-date-header p { margin: 2px 0; font-size: 12px; color: #536172; }
 #booking-results .flight-date-arrows button { width: 44px; height: 44px; border: 0; color: #005bb3; background: #edf3fb; border-radius: 8px; }
-#booking-results .flight-date-track { grid-auto-columns: minmax(72px,1fr); gap: 6px; scrollbar-color: #adbdcf transparent; }
+#booking-results .flight-date-track { grid-auto-columns: minmax(72px,1fr); gap: 6px; scrollbar-width: none; }
 #booking-results .flight-date-day { display: flex; flex-flow: row wrap; align-content: center; align-items: baseline; justify-content: center; gap: 1px 4px; min-height: 58px; border: 1px solid transparent; border-radius: 10px; background: #f2f4f7; box-shadow: none; }
 #booking-results .flight-date-day :is(time,strong), #booking-results .flight-date-day > span { font: 600 12px/1.5 var(--font-stitch-body),sans-serif; color: #33445d; }
-#booking-results .flight-date-day .flight-date-fare { flex-basis: 100%; color: #001736; font: 750 15px/1.4 var(--font-stitch-display),sans-serif; }
+#booking-results .flight-date-day .flight-date-fare { flex-basis: 100%; color: #001736; font: 750 13px/1.4 var(--font-stitch-display),sans-serif; overflow-wrap: anywhere; }
 #booking-results .flight-date-day .flight-date-fare-status { font-size: 12px; font-weight: 500; }
 #booking-results .flight-date-day[aria-current=date] { background: #001736; border-color: #001736; }
 #booking-results .flight-date-day[aria-current=date] :is(span,time,strong,small) { color: #fff; }
@@ -107,7 +107,11 @@
 #booking-results .live-flight-card .fare-comparison > summary small { margin-top: 2px; font: 500 14px/1.4 var(--font-stitch-body),sans-serif; color: #536172; }
 #booking-results .live-flight-card .fare-comparison > summary > strong small:last-child:not(:only-of-type) { display: none; }
 #booking-results .live-flight-card .choose-fare-label { display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; min-height: 44px; border-radius: 10px; padding: 8px 12px; background: #001736; color: #fff; font: 700 13px/1.35 var(--font-stitch-body),sans-serif; }
-#booking-results .live-flight-card .fare-comparison[open] > summary { justify-content: space-between; }
+#booking-results .live-flight-card .fare-comparison[open] > summary {
+  position: static;
+  min-height: 48px;
+  justify-content: space-between;
+}
 #booking-results .fare-comparison-options { padding: 16px 0 0; background: #fff; }
 #booking-results .fare-option { border-color: #dbe3ed; border-radius: 12px; background: #fff; }
 #booking-results .fare-option.is-lowest-fare { border-color: #8ab9eb; }
@@ -295,7 +299,7 @@
 #booking-results .stitch-facets-header button { width:auto; min-height:38px; padding:0 2px; border:0; background:transparent; color:#005bb3; font:700 13px var(--font-stitch-body),sans-serif; }
 #booking-results .stitch-flight-facets h4 { margin:0; color:#001736; font:700 12px/1.5 var(--font-stitch-body),sans-serif; letter-spacing:.06em; text-transform:uppercase; }
 #booking-results .stitch-facet-heading { margin-bottom:7px; }
-#booking-results .stitch-facet-heading select { width:auto; max-width:48%; min-height:30px; height:auto; padding:3px 6px; border:1px solid #e1e7ee; background:#fff; color:#536172; font:550 12px/1.3 var(--font-stitch-body),sans-serif; }
+#booking-results .stitch-more-airlines > summary { cursor:pointer; min-height:36px; padding:8px 0; color:#005bb3; font-size:13px; font-weight:650; }
 #booking-results .stitch-facet-option { display:flex; align-items:center; gap:8px; width:100%; min-height:35px; padding:3px 0; border:0; color:#17283e; background:transparent; font:550 14px/1.3 var(--font-stitch-body),sans-serif; text-align:start; }
 #booking-results .stitch-facet-option small { margin-inline-start:auto; font-size:12px; color:#536172; }
 #booking-results .stitch-facet-tick { flex:none; display:grid; place-items:center; width:16px; height:16px; border:1px solid #aebac9; border-radius:3px; }

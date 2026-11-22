@@ -39,13 +39,13 @@ test('private trips and temporary failures have distinct recovery states', async
   provider.overrides['GET /api/bookings'] = { status: 401, body: { error: 'Sign in to view your bookings.' } };
   await page.goto('/my-trips');
   await expect(page.getByRole('heading', { name: 'Let’s get you to your bookings.' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open account', exact: true })).toHaveAttribute('href', '/account?returnTo=%2Fmy-trips');
+  await expect(page.getByRole('link', { name: 'Sign in to view trips', exact: true })).toHaveAttribute('href', '/account?returnTo=%2Fmy-trips');
   await expect(page.getByRole('button', { name: 'Refresh booking updates' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Try again', exact: true })).toHaveCount(0);
   provider.overrides['GET /api/bookings'] = { status: 503, body: { error: 'Booking history is temporarily unavailable.' } };
   await page.reload();
   await expect(page.getByRole('heading', { name: 'We couldn’t load your trips.' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open account', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Sign in to view trips', exact: true })).toHaveCount(0);
   provider.overrides['GET /api/bookings'] = { body: { bookings: [], hasMore: false } };
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your next story starts here.' })).toBeVisible();

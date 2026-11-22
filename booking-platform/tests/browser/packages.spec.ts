@@ -32,7 +32,7 @@ test('home discovery uses published summaries and navigation fits narrow viewpor
  const nav=page.getByRole('navigation',{name:'Main navigation'});await expect(nav.getByRole('link',{name:'Packages',exact:true})).toBeVisible();
  const bounds=await nav.getByRole('link',{name:'Packages',exact:true}).evaluate(node=>{const r=node.getBoundingClientRect();return {left:r.left,right:r.right,width:innerWidth,height:r.height};});expect(bounds.left).toBeGreaterThanOrEqual(0);expect(bounds.right).toBeLessThanOrEqual(bounds.width);expect(bounds.height).toBeGreaterThanOrEqual(44);
  await page.locator('.home-package-plans').scrollIntoViewIfNeeded();await capture(page,testInfo,'home-published-packages');await expectNoHorizontalOverflow(page);
- await nav.getByRole('link',{name:'Packages',exact:true}).click();await expect(page.getByRole('heading',{name:'Travel packages',exact:true})).toBeVisible();
+ await nav.getByRole('link',{name:'Packages',exact:true}).click();await expect(page.getByRole('heading',{name:'Holiday packages',exact:true})).toBeVisible();
 });
 
 test('package duration copy uses singular and plural on cards, home and detail',async({page,provider})=>{

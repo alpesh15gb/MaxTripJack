@@ -100,14 +100,14 @@ test('an invalid new search stops a held AI snapshot and corrected input can sea
   await page.route('**/api/travel/flight-search-snapshot',async route=>{await held;await route.fulfill({json:snapshot()}).catch(()=>{}).finally(settle);});
   try{
     await page.goto('/book?'+new URLSearchParams({...criteria(),flightSearch:searchId}));
-    await expect(page.getByRole('heading',{name:'Restoring your flight search…',exact:true})).toBeVisible();
+    await expect(page.getByRole('status',{name:'Search and booking activity'}).getByText('Restoring your flight search…',{exact:true})).toBeVisible();
     await expect(page.getByLabel('Departure',{exact:true})).toBeEnabled();
     await expect(page.getByRole('button',{name:'▤ Stays',exact:true})).toBeEnabled();
     await page.locator('.booking-party-picker>summary').click();
     await page.getByRole('combobox',{name:'Children · age 2–11',exact:true}).selectOption('8');
     await page.getByRole('button',{name:'Search flights',exact:true}).click();
     await expect(page.getByText('Adults and children must total nine or fewer. Each infant needs an adult.',{exact:true})).toBeVisible();
-    await expect(page.getByRole('heading',{name:'Restoring your flight search…',exact:true})).toHaveCount(0);
+    await expect(page.getByRole('status',{name:'Search and booking activity'}).getByText('Restoring your flight search…',{exact:true})).toHaveCount(0);
     release();await settled;
     await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
     await expect(page.locator('.live-flight-card')).toHaveCount(0);
@@ -127,7 +127,7 @@ test('switching product supersedes a held AI flight snapshot without restoring s
   await page.route('**/api/travel/flight-search-snapshot',async route=>{await held;await route.fulfill({json:snapshot()});});
   try{
     await page.goto(`/book?product=FLIGHT&flightSearch=${searchId}`);
-    await expect(page.getByRole('heading',{name:'Restoring your flight search…',exact:true})).toBeVisible();
+    await expect(page.getByRole('status',{name:'Search and booking activity'}).getByText('Restoring your flight search…',{exact:true})).toBeVisible();
     await page.getByRole('button',{name:'▤ Stays',exact:true}).click();
     release();
     await expect(page.getByRole('button',{name:'Search stays',exact:true})).toBeVisible();

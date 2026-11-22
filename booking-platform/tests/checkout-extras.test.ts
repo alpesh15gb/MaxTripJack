@@ -1,11 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkoutCatalogue,selectCheckoutExtras,checkoutExtrasFulfilled } from "../src/lib/checkout-extras-contract";
+import { checkoutCatalogue,customerCheckoutOptions,selectCheckoutExtras,checkoutExtrasFulfilled } from "../src/lib/checkout-extras-contract";
+import { customerTotal } from "../src/lib/pricing-calculation";
 import { validateParty } from "../src/lib/guest-validation";
 import { searchSchema,bookingBody,type Guests } from "../src/lib/providers/contracts";
 const criteria={product:"FLIGHT" as const,from:"BOM",to:"DEL",date:"2027-01-01",adults:2,children:1,infants:1,cabin:"ECONOMY" as const};
 const review={tripInfos:[{sI:[{id:"one",da:{code:"BOM"},aa:{code:"JAI"},ssrInfo:{BAGGAGE:[{code:"BAG",amount:1000}],MEAL:[{code:"FOOD",amount:250}]}},{id:"two",da:{code:"JAI"},aa:{code:"DEL"},ssrInfo:{BAGGAGE:[{code:"BAG"}],MEAL:[{code:"FREE",amount:0}]}}]}]};
 const seats={tripSeatMap:{tripSeat:{one:{sInfo:[{code:"1A",seatNo:"1A",amount:500,isBooked:false},{code:"1B",amount:500,isBooked:true},{code:"EXIT",amount:1000,isBooked:false,isExitRow:true}]}}}};
+test("a 786 rupee seat shows the same customer price increase as checkout, without charging fixed fees again",()=>{
+ const source={tripInfos:[{sI:[{id:"one",da:{code:"HYD"},aa:{code:"BOM"},dt:"2026-12-15T05:05"}]}]};
+ const seatMap={tripSeatMap:{one:{sInfo:[{code:"6A",seatNo:"6A",amount:786,isBooked:false}]}}};
+ const baseline=400000,rule={markup_minor:10000,markup_basis_points:1500,service_fee_minor:2000};
+ const catalogue=checkoutCatalogue(source,seatMap);
+ const [segment]=customerCheckoutOptions(catalogue,baseline,rule);
+ assert.equal(segment.label,"HYD → BOM · 15 Dec 2026 · 05:05");
+ assert.equal(segment.options[0].amountMinor,90390);
+ assert.equal(segment.options[0].amountMinor,customerTotal(baseline+catalogue[0].options[0].amountMinor,rule)-customerTotal(baseline,rule));
+ assert.equal(customerCheckoutOptions(catalogue,baseline)[0].options[0].amountMinor,78600);
+});
 test("initial extras charge server options once and carry baggage across connections",()=>{const selected=selectCheckoutExtras(review,seats,criteria,[{segmentId:"one",travellerIndex:0,kind:"BAGGAGE",code:"BAG"},{segmentId:"one",travellerIndex:0,kind:"SEAT",code:"1A"},{segmentId:"two",travellerIndex:2,kind:"MEAL",code:"FREE"}]);assert.equal(selected.amountMinor,150000);assert.deepEqual(selected.travellers[0].ssrBaggageInfos,[{key:"one",code:"BAG"},{key:"two",code:"BAG"}]);assert.equal(checkoutCatalogue(review,seats)[0].options.some(o=>o.code==="1B"),false);});
 test("initial extras reject forged codes, duplicate seats, infants and exit rows",()=>{for(const choices of [[{segmentId:"one",travellerIndex:0,kind:"MEAL" as const,code:"FAKE"}],[{segmentId:"one",travellerIndex:3,kind:"MEAL" as const,code:"FOOD"}],[{segmentId:"one",travellerIndex:0,kind:"SEAT" as const,code:"EXIT"}],[{segmentId:"one",travellerIndex:0,kind:"SEAT" as const,code:"1A"},{segmentId:"one",travellerIndex:1,kind:"SEAT" as const,code:"1A"}]])assert.throws(()=>selectCheckoutExtras(review,seats,criteria,choices));});
 test("supplier success must include selected SSR codes per passenger and segment",()=>{const selected=selectCheckoutExtras(review,seats,criteria,[{segmentId:"one",travellerIndex:0,kind:"MEAL",code:"FOOD"}]);const guests={travellers:[{fN:"First",lN:"Guest",pt:"ADULT"},{fN:"Second",lN:"Guest",pt:"ADULT"},{fN:"Third",lN:"Guest",pt:"CHILD"},{fN:"Fourth",lN:"Guest",pt:"INFANT"}]};assert.equal(checkoutExtrasFulfilled({},guests,selected),false);assert.equal(checkoutExtrasFulfilled({travellerInfos:[{...guests.travellers[0],ssrMealInfos:[{key:"one",code:"FOOD"}]}]},guests,selected),true);});

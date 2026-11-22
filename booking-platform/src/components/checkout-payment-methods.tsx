@@ -77,9 +77,9 @@ export default function CheckoutPaymentMethods({quoteId, totalMinor, journey, di
       if (code && !offersDisabled) onApplyOffer(code);
     }}>
       <header><button className="sheet-back" aria-label="Back to booking review" type="button" onClick={() => dialog.current?.close()}>←</button>
-        <div><h2 id="checkout-sheet-title">Payment options</h2><p><TravelIcon name="shield" size={14}/>{hosted ? 'PayGlocal' : 'Razorpay'} secure checkout</p></div></header>
+        <div><h2 id="checkout-sheet-title">Payment options</h2><p><TravelIcon name="shield" size={14}/>{hosted ? 'PayGlocal' : 'Razorpay'} payment preview</p></div></header>
       <div className="sheet-body">
-        <ol className="sheet-steps" aria-label="Checkout progress"><li><StitchSymbol name="check" size={15}/> Selection</li><li><StitchSymbol name="check" size={15}/> Review</li><li aria-current="step"><strong>3</strong> Payment</li></ol>
+        <p className="sheet-payment-note">Choose a preferred method here. Payment starts after you complete your booking details and select Agree &amp; pay.</p>
         <section className="sheet-journey">
           <div className="sheet-journey-summary">
             {journey.photos?.length ? <HotelPropertyMedia name={journey.title} photos={journey.photos}/> : <span className="sheet-journey-symbol"><StitchSymbol name={journey.product==='HOTEL'?'apartment':'flight'} size={26}/></span>}

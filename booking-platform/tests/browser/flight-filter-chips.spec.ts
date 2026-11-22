@@ -1,4 +1,4 @@
-import {test,expect,flight,departure,searchId,expectNoHorizontalOverflow} from './fixtures';
+import {chooseFlightFilter,test,expect,flight,departure,searchId,expectNoHorizontalOverflow} from './fixtures';
 import type {Page} from '@playwright/test';
 import type {Flight} from '../../src/lib/booking-presentation';
 
@@ -26,9 +26,9 @@ test('visible chips undo each filter and clear all without resetting sort or rep
   const selectedSort=sorts.getByRole('button',{pressed:true});
   await sorts.getByRole('button',{name:'Fastest',exact:true}).click();
   await setFiltersOpen(page,true);
-  await page.getByRole('combobox',{name:'Stops',exact:true}).selectOption('0');
-  await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');
-  await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('MORNING');
+  await chooseFlightFilter(page,'Stops','0');
+  await chooseFlightFilter(page,'Airline (any segment)','IndiGo');
+  await chooseFlightFilter(page,'Departure time','MORNING');
   await page.getByRole('spinbutton',{name:'Maximum total for all travellers (₹)',exact:true}).fill('7000');
   await setFiltersOpen(page,false);await expect(cards).toHaveCount(1);
   const chips=page.getByRole('region',{name:'Active flight filters'});
@@ -60,8 +60,8 @@ test('visible chips undo each filter and clear all without resetting sort or rep
   await expect(cards).toHaveCount(5);
   await expect(chips.getByRole('button',{name:/^Remove /})).toHaveCount(0);
   await setFiltersOpen(page,true);
-  await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');
-  await page.getByRole('combobox',{name:'Departure time',exact:true}).selectOption('EVENING');
+  await chooseFlightFilter(page,'Airline (any segment)','IndiGo');
+  await chooseFlightFilter(page,'Departure time','EVENING');
   await setFiltersOpen(page,false);await expect(cards).toHaveCount(1);
   await nonstop.click();
   await expect(nonstop).toHaveAttribute('aria-pressed','true');

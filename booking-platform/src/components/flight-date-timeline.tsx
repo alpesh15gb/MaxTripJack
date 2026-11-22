@@ -3,7 +3,8 @@
 import {useCallback, useId, useLayoutEffect, useRef, useState, type KeyboardEvent} from 'react';
 import type {FlightTimelineDay} from '@/lib/nearby-flight-dates';
 import {travelDateLabel} from '@/lib/travel-date';
-import {compactRupees,type FareCalendarDay} from '@/lib/fare-calendar-core';
+import {type FareCalendarDay} from '@/lib/fare-calendar-core';
+import {displayMoney} from '@/lib/display-money';
 
 const weekday = new Intl.DateTimeFormat('en-GB', {weekday: 'short', timeZone: 'UTC'});
 const month = new Intl.DateTimeFormat('en-GB', {month: 'short', timeZone: 'UTC'});
@@ -112,7 +113,7 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
         const fare = showFares ? fares[day.date] : undefined;
         const checkingFare = showFares && checkingDates.has(day.date);
         const fareLabel = fare
-          ? `, indicative fare from ₹${Math.round(fare.minor / 100).toLocaleString('en-IN')} for 1 adult${fare.band === 'low' ? ', one of the lowest fares' : ''}`
+          ? `, indicative fare from ${displayMoney(fare.minor)} for 1 adult${fare.band === 'low' ? ', one of the lowest fares' : ''}`
           : showFares ? checkingFare ? ', checking fare' : ', fare not available yet' : '';
         return <button key={day.date} type="button" className="flight-date-day"
           data-flight-date={day.date} data-pending={pending || undefined}
@@ -129,7 +130,7 @@ export default function FlightDateTimeline({days, selectedDate, returnDate, pend
           }}>
           <span>{week}</span>
           <time dateTime={day.date}><strong>{value.getUTCDate()}</strong> {month.format(value)}</time>
-          {showFares && <small className={fare ? `flight-date-fare fare-band-${fare.band}` : 'flight-date-fare flight-date-fare-status'} aria-hidden="true">{fare ? `₹${compactRupees(fare.minor)}` : checkingFare ? 'Checking' : '—'}</small>}
+          {showFares && <small className={fare ? `flight-date-fare fare-band-${fare.band}` : 'flight-date-fare flight-date-fare-status'} aria-hidden="true">{fare ? displayMoney(fare.minor) : checkingFare ? 'Checking' : '—'}</small>}
         </button>;
       })}
     </div>
