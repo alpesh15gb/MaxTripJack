@@ -169,3 +169,30 @@ test('popular pairs and multi-city carry the selected first leg into the editabl
   expect(new URL(page.url()).searchParams.get('to')).toBe('DXB');
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
+test('the homepage date picker blocks underlying links and applies the chosen departure date',async({page})=>{
+  await page.goto('/');
+  const departureButton=page.getByRole('button',{name:/^Departure /});
+  const picker=page.getByRole('dialog',{name:'Choose departure'});
+  await departureButton.click();
+  await expect(picker).toHaveCSS('opacity','1');
+  await expect(picker).toHaveJSProperty('open',true);
+  expect(await picker.evaluate(dialog=>dialog.matches(':modal'))).toBe(true);
+
+  // Put a link at the click coordinates to exercise actual backdrop hit testing.
+  await page.evaluate(()=>{
+    const link=document.createElement('a');
+    link.id='underlaid-test-link';
+    link.href='/hotels';
+    link.style.cssText='position:fixed;inset:0;z-index:9999';
+    document.body.append(link);
+  });
+  await page.mouse.click(4,4);
+  await expect(picker).toHaveCount(0);
+  await expect(page).toHaveURL('/');
+  await page.locator('#underlaid-test-link').evaluate(link=>link.remove());
+
+  await departureButton.click();
+  await picker.locator(`[data-date="${returning}"]`).click();
+  await expect(picker).toHaveCount(0);
+  await expect(page.locator('.home-search-form [name="date"]')).toHaveValue(returning);
+});

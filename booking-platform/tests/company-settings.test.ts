@@ -17,6 +17,7 @@ test('company settings reject unsafe or ambiguous public details',()=>{
 });
 test('saved business details reach public copy and structured data',()=>{
  const profile=profileFromSettings(changed),page=getPublicPage('office',profile)!;
+ assert.equal(profile.phone,'+91 90000 00000');assert.equal(profile.phoneHref,'tel:+919000000000');
  const text=JSON.stringify(page);assert.ok(text.includes('12 Sample Road'));assert.ok(text.includes('Pune'));assert.ok(text.includes('10:00 - 18:00'));assert.ok(!text.includes('Golden Hawk'));assert.ok(!text.includes('Secunderabad'));
  const graph=businessStructuredData(profile);assert.equal(graph.email,'help@example.com');assert.equal(graph.name,'Sample Travel');
 });

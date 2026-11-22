@@ -32,6 +32,8 @@ body .trip-home.stitch-home .home-product-tabs :is(a,button) { display:inline-fl
 body .trip-home.stitch-home .home-product-tabs :is(a,button):hover { background:#eef4ff; }
 body .trip-home.stitch-home .home-product-tabs button[aria-pressed=true] { background:var(--s-ink); color:white; box-shadow:0 2px 6px #0d2c5419; }
 .stitch-home .stitch-assurance { display:inline-flex; align-items:center; gap:6px; color:var(--s-blue); margin-top:9px; font:600 12px var(--s-body); text-decoration:none; }
+.stitch-home .stitch-home-ai-trigger { min-height:44px; padding:6px 12px; border:0; border-radius:8px; background:#edf4ff; color:var(--s-blue); font:700 12px var(--s-body); cursor:pointer; }
+.stitch-home .stitch-home-ai-trigger:hover { background:#dcecff; }
 body .trip-home.stitch-home .home-search-form { padding:0; margin:0; }
 body .trip-home.stitch-home .home-search-options { display:flex; flex-wrap:wrap; flex-direction:row; align-items:center; justify-content:space-between; gap:8px; padding:13px 0; color:var(--s-ink); }
 body .trip-home.stitch-home .home-search-options fieldset { display:inline-flex; flex-wrap:wrap; gap:2px; width:auto; margin:0; border:0; padding:3px; border-radius:24px; background:#eceff4; }
@@ -172,6 +174,7 @@ body .trip-home.stitch-home .public-route-card :is(p,.public-route-action) { dis
   .stitch-home .stitch-home-hero { padding:12px 0; color:var(--s-ink); background:var(--s-paper); }
   .stitch-home .stitch-office-line { flex-wrap:wrap; gap:4px; font-size:10px; }
   .stitch-home .stitch-office-line>span { padding:5px 9px; background:#dae9ff; border:0; color:#113a70; }
+  .stitch-home .stitch-home-ai-trigger { margin-inline-start:auto; }
   .stitch-home .stitch-office-line a,.stitch-home .stitch-hubs-desktop { display:none; }
   .stitch-home .stitch-home-hero h1 { margin:12px 0 4px; font-size:clamp(26px,7vw,38px); letter-spacing:-.045em; }
   .stitch-home .stitch-home-hero h1 em { color:#004ba2; font-weight:650; }

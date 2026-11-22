@@ -15,7 +15,7 @@ export const businessProfile = {
   locationName: "MaxTravel Secunderabad",
   website: "https://maxtravel.in",
   positioning: "Competitive online travel prices. Real people. A real office. Reliable booking support.",
-  phone: "+91 7095-018-018",
+  phone: "+91 70950 18018",
   phoneE164: "+917095018018",
   phoneHref: "tel:+917095018018",
   email: "max@maxtravel.us",

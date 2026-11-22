@@ -79,10 +79,11 @@ export async function customerHotelDetail(searchId:string,hid:string,actor:Actor
  const hasListingProperty=Object.keys(listingProperty).length>1||listingProperty.amenities.length>0;
  return {...customerHotelOptions(data,rule),property:properties[hid]||hasListingProperty?mergeHotelPropertyDetails(properties[hid],listingProperty):undefined};
 }
-export async function reviewSupplier(searchId:string,selection:{priceIds?:string[];hid?:string;optionId?:string},actor:Actor){
+export async function reviewSupplier(searchId:string,selection:{priceIds?:string[];hid?:string;optionId?:string},actor:Actor,signal?:AbortSignal){
  await requestLimit(actor.userId,"supplier-review",30);
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
  if(search.service_kind)throw new HttpError(400,"Use the flight service review flow for this search.");
+ signal?.throwIfAborted();
  let data;let chosen:unknown;let flight:Parameters<typeof publicSupplierReview>[2];const reviewedAt=Date.now();
  if(search.product==="FLIGHT"){
   const groups=exactAirportGroups(search.results.searchResult?.tripInfos,search.criteria);
@@ -94,12 +95,12 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
    });
    flight={criteria:search.criteria,selectedTrips};
   }
-  chosen={priceIds};data=await tripjack("FLIGHT",paths.FLIGHT.review,chosen);if(data.bookingId)data.fareRules=await tripjack("FLIGHT","/fms/v2/farerule",{flowType:"REVIEW",id:data.bookingId});
+  chosen={priceIds};data=await tripjack("FLIGHT",paths.FLIGHT.review,chosen,false,"POST",signal);if(data.bookingId)data.fareRules=await tripjack("FLIGHT","/fms/v2/farerule",{flowType:"REVIEW",id:data.bookingId},false,"POST",signal);
  }else{
   if(!selection.hid||!selection.optionId)throw new HttpError(400,"Choose a hotel room option.");
   if(!search.criteria.hotelIds.includes(selection.hid))throw new HttpError(400,"Hotel not part of this search.");
   const reviewHash=hotelReviewHash(search.results,selection.hid,selection.optionId);
-  chosen={hid:selection.hid,optionId:selection.optionId,reviewHash,correlationId:search.correlation_id};data=await tripjack("HOTEL",paths.HOTEL.review,chosen);
+  chosen={hid:selection.hid,optionId:selection.optionId,reviewHash,correlationId:search.correlation_id};data=await tripjack("HOTEL",paths.HOTEL.review,chosen,false,"POST",signal);
  }
  const product=search.product as Product;
  if(product==="HOTEL"&&data.option?.inventory?.available===false)throw new HttpError(409,"Room option unavailable. Search again to choose another room.");
@@ -112,6 +113,7 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  const seconds=product==="FLIGHT"?Number(data.conditions?.st):90;
  if(!Number.isFinite(seconds)||seconds<30)throw new HttpError(409,"Supplier review session unavailable or too short. Review again.");
  const expiresAt=new Date(reviewedAt+Math.min(seconds,180)*1000);if(expiresAt.getTime()-Date.now()<30000)throw new HttpError(409,"Supplier review expired while loading the rules. Review again.");
+ signal?.throwIfAborted();
  const id=randomUUID();await database().query("INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",[id,searchId,actor.userId,actor.companyId,product,chosen,data,data.bookingId,supplierMinor,totalMinor,expiresAt]);
  return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:publicSupplierReview(product,data,flight)};
 }

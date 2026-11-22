@@ -23,7 +23,6 @@ export function ConciergeHeader({active, onProductChange, hotelHref, mobileTitle
   const {data: session, isPending} = authClient.useSession();
   const navId = useId();
   const [expanded, setExpanded] = useState(false);
-  const displayPhone = company.phone.replace(/^(\+91)(\d{5})(\d{5})$/, '$1 $2 $3');
   const firstName = session?.user?.name?.trim().split(/\s+/)[0];
   const avatar = <span className="concierge-account-symbol"><StitchSymbol name="person" size={18}/></span>;
   return <>
@@ -59,8 +58,8 @@ export function ConciergeHeader({active, onProductChange, hotelHref, mobileTitle
         <div className="concierge-tools">
           {tripTools && <><a href="#trip-search" className="concierge-action-mobile" aria-label="Search bookings"><StitchSymbol name="search" size={22}/></a><a href="#trip-updates" className="concierge-action-mobile" aria-label="Booking updates"><StitchSymbol name="notifications" size={22}/></a></>}
           {onMobileEdit && <button className="concierge-action-mobile" type="button" aria-label="Edit search" onClick={onMobileEdit}><StitchSymbol name="edit" size={20}/></button>}
-          <a className={`concierge-hub${onMobileEdit || tripTools ? ' desktop-hub' : ''}`} href={company.phoneHref} aria-label={`Call the ${company.address.addressLocality} desk`}><span>{company.address.addressLocality} Hub<strong>{displayPhone}</strong></span><i><StitchSymbol name="call" size={18}/><span className="phone-support-symbol"><StitchSymbol name="support_agent" size={20}/></span></i></a>
-          <span className="concierge-currency"><span className="desktop-currency"><StitchSymbol name="currency_rupee" size={18}/> INR · EN</span><span className="phone-currency"><StitchSymbol name="payments" size={16}/> INR ₹</span></span>
+          <a className={`concierge-hub${onMobileEdit || tripTools ? ' desktop-hub' : ''}`} href={company.phoneHref} aria-label={`Call the ${company.address.addressLocality} desk`}><span>{company.address.addressLocality} Hub<strong>{company.phone}</strong></span><i><StitchSymbol name="call" size={18}/><span className="phone-support-symbol"><StitchSymbol name="support_agent" size={20}/></span></i></a>
+          <span className="concierge-currency">INR · EN</span>
           <Link className="concierge-tools-trips" href="/my-trips" aria-current={active==='trips'?'page':undefined}><StitchSymbol name="luggage" size={20}/>My Trips</Link>
           <Link className="concierge-account" href="/account" aria-label="My account" aria-current={active==='account'?'page':undefined}>{avatar}<span className="concierge-account-copy"><small>{firstName ? `Hello, ${firstName}` : 'Hello, Guest'}</small><b>{isPending || session ? 'Account' : 'Sign in'}</b></span></Link>
           {!dock && <button className="concierge-menu-button" type="button" aria-label={expanded ? 'Close navigation' : 'Open navigation'} aria-expanded={expanded} aria-controls={navId} onClick={()=>setExpanded(!expanded)}>{mobileTitle ? avatar : <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>}</button>}

@@ -133,6 +133,17 @@
 .trip-home .fare-calendar-days button { scroll-margin-block: 64px 8px; }
 .trip-home .fare-date { position: static; }
 .trip-home .search-picker-dialog button:focus-visible { outline: 2px solid var(--brand-slate); outline-offset: 2px; }
+html:has(.home-fare-calendar:modal) { overflow: hidden; }
+@media (min-width: 701px) {
+  .trip-home .home-fare-calendar:modal {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(680px, calc(100% - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
+}
 @media (max-width: 700px) {
   html:has(.search-picker-dialog:modal) { overflow: hidden; }
   .trip-home .search-picker-dialog:modal {
@@ -158,3 +169,4 @@
 @media (prefers-reduced-motion: reduce) {
   .trip-home .search-picker-dialog:modal { animation: none; }
 }
+.trip-home .home-fare-calendar:modal { animation: none; }

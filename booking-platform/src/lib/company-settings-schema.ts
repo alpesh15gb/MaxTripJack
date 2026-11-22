@@ -15,7 +15,8 @@ export const companySettingsSchema=z.object({
 export type CompanySettings=z.infer<typeof companySettingsSchema>;
 export const defaultCompanySettings:CompanySettings={tradingName:businessProfile.name,legalName:'',gstNumber:'',email:businessProfile.email,phone:businessProfile.phoneE164,street:businessProfile.address.streetAddress,city:businessProfile.address.addressLocality,state:businessProfile.address.addressRegion,postalCode:businessProfile.address.postalCode,opens:businessProfile.hours.opens,closes:businessProfile.hours.closes,days:[...weekDays],mapsUrl:businessProfile.mapsHref,logoDataUrl:''};
 export function profileFromSettings(s:CompanySettings){
- return {...businessProfile,name:s.tradingName,legalName:s.legalName,gstNumber:s.gstNumber,logoDataUrl:s.logoDataUrl,locationName:`${s.tradingName} ${s.city}`,phone:s.phone,phoneE164:s.phone,phoneHref:`tel:${s.phone}`,email:s.email,emailHref:`mailto:${s.email}`,mapsHref:s.mapsUrl,
+ const displayPhone=s.phone.replace(/^(\+91)(\d{5})(\d{5})$/, '$1 $2 $3');
+ return {...businessProfile,name:s.tradingName,legalName:s.legalName,gstNumber:s.gstNumber,logoDataUrl:s.logoDataUrl,locationName:`${s.tradingName} ${s.city}`,phone:displayPhone,phoneE164:s.phone,phoneHref:`tel:${s.phone}`,email:s.email,emailHref:`mailto:${s.email}`,mapsHref:s.mapsUrl,
  address:{...businessProfile.address,streetAddress:s.street,addressLocality:s.city,addressRegion:s.state,postalCode:s.postalCode,display:`${s.street}, ${s.city}, ${s.state} - ${s.postalCode}, India`},
  hours:{...businessProfile.hours,opens:s.opens,closes:s.closes,days:weekDays.filter(d=>s.days.includes(d)),display:`${s.days.length===7?'Every day':weekDays.filter(d=>s.days.includes(d)).join(', ')}, ${s.opens} - ${s.closes} (India time)`}};
 }

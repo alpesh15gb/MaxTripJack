@@ -53,18 +53,17 @@ html:has(.concierge-header) { scroll-padding-top: 84px; }
 .concierge-header nav [aria-current="page"] { color: #fff; background: #0d2c54; border-radius: 12px; box-shadow: 0 1px 2px #00173614; }
 .concierge-header nav .stitch-symbol, .concierge-header nav .concierge-phone-only, .concierge-header nav .concierge-nav-trips, .concierge-action-mobile, .concierge-mobile-back, .concierge-menu-button, .concierge-page-name { display: none; }
 .concierge-tools { gap: clamp(8px,1.15vw,20px); margin-left: auto; }
-.concierge-tools a, .concierge-currency { flex: none; border-radius: 12px; min-height: 44px; gap: 8px; color: #191c1e; font: 600 12px/16px var(--font-stitch-body),sans-serif; }
+.concierge-tools a { flex: none; border-radius: 12px; min-height: 44px; gap: 8px; color: #191c1e; font: 600 12px/16px var(--font-stitch-body),sans-serif; }
 .concierge-hub, .concierge-account { background: #f2f4f7; padding: 6px 11px; }
-.concierge-currency { color: #536172; }
+.concierge-currency { flex: none; color: #536172; font: 500 11px/16px var(--font-stitch-body),sans-serif; white-space: nowrap; }
 .concierge-tools .concierge-tools-trips[aria-current=page] { color: #005bb3; font-weight: 750; }
 .concierge-tools-trips { padding: 3px; }
 .concierge-hub>span { text-align: right; font-size: 11px; line-height: 14px; color: #43474e; }
 .concierge-hub strong { display: block; font: 650 15px/20px var(--font-stitch-display),sans-serif; color: #001736; white-space: nowrap; }
 .concierge-hub i, .concierge-account-symbol { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; }
 .concierge-hub i { color: #005bb3; background: #d6e3ff; }
-.concierge-currency .stitch-symbol,.concierge-tools-trips>.stitch-symbol { color: #005bb3; }
-.desktop-currency { display: inline-flex; align-items: center; gap: 8px; }
-.phone-currency,.phone-support-symbol { display: none; }
+.concierge-tools-trips>.stitch-symbol { color: #005bb3; }
+.phone-support-symbol { display: none; }
 .concierge-account-symbol { background: #001736; color: white; }
 .concierge-account-copy { display: grid; }
 .concierge-account-copy small { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 13px; color: #43474e; }
@@ -115,9 +114,8 @@ body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
   .concierge-hub i { background: none; }
   .concierge-tools .desktop-hub, .concierge-tools .concierge-hub>span { display: none; }
   .concierge-currency { display: none; }
-  .home-desk .concierge-currency { display: flex; order: -1; border-radius: 24px; }
-  .home-desk .desktop-currency,.home-desk .concierge-hub i>.stitch-symbol { display: none; }
-  .home-desk .phone-currency { display: flex; align-items: center; gap: 4px; }
+  .home-desk .concierge-currency { display: inline; order: -1; }
+  .home-desk .concierge-hub i>.stitch-symbol { display: none; }
   .home-desk .phone-support-symbol { display: inline-flex; }
   .concierge-header nav { background: #fff; }
   .concierge-header.has-dock nav { position: fixed; bottom: 0; inset-inline: 0; z-index: 30; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 0; width: 100%; border-radius: 0; box-shadow: 0 -4px 20px rgb(13 44 84 / 8%); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
@@ -152,13 +150,8 @@ body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
   .concierge-footer-base { margin-top: 20px; }
 }
 
-body .home-max-ai-launcher { gap: 8px; min-width: 0; width: auto; height: auto; min-height: 44px; padding: 8px 14px; border: 0; border-radius: 9999px; flex-direction: row; text-align: left; background: #001736; color: white; box-shadow: 0 8px 24px rgb(0 23 54 / 35%); }
-body .home-max-ai-launcher .max-ai-launcher-icon { position: relative; width: 21px; height: 21px; background: none; color: #d6e3ff; }
-body .home-max-ai-launcher .max-ai-launcher-icon::after { content: ""; position: absolute; top: 0; right: 0; width: 6px; height: 6px; background: #0073df; border-radius: 50%; }
-body .home-max-ai-launcher strong { font: 700 12px/16px var(--font-stitch-body),sans-serif; }
 @media (max-width:359px) {
   .concierge-bar { padding-inline: 10px; gap: 4px; }
-  .home-desk .concierge-currency { padding-inline: 8px; }
 }
 
 .concierge-footer-socials { display: flex; flex-wrap: wrap; gap: 6px; }

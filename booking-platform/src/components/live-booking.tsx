@@ -89,7 +89,7 @@ type Payment={provider?:'RAZORPAY';bookingId:string;orderId:string;amount:number
 class BookingApiError extends Error { constructor(message:string,public status:number,public code?:string,public fields:GuestIssue[]=[]){super(message);} }
 async function api<T>(path:string,data:unknown,signal?:AbortSignal,headers:Record<string,string>={}):Promise<T>{
   const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(data),signal});
-  const result=await response.json();
+  const result=await response.json().catch(error=>{if(response.ok||signal?.aborted)throw error;return {};});
   if(!response.ok)throw new BookingApiError(result.error||'We could not complete this request. Please try again.',response.status,result.code,parseGuestIssues(result.fields));
   return result;
 }
@@ -161,6 +161,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const handoffRead=useRef(false),resumeReviewAllowed=useRef(false);
   const [savedHandoff,setSavedHandoff]=useState<BookingHandoff|null>(null);
   const [checkingSelection,setCheckingSelection]=useState<Selection|null>(null);
+  const [retryFlightReview,setRetryFlightReview]=useState<Selection|null>(null);
   const [checkingHotelId,setCheckingHotelId]=useState<string|undefined>();
   const handoffFeedbackFocus=useRef<string|null>(null);
   const privateDraft=useRef<{party:string;values:[string,string][]}|null>(null);
@@ -734,7 +735,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   }
   function begin(label:string){
     if(busyRef.current)return null;
-    stoppedSearchFocus.current=false;busyRef.current=true;setBusy(true);setActivity(label);setMessage('');setSearchValidation(false);
+    stoppedSearchFocus.current=false;busyRef.current=true;setBusy(true);setActivity(label);setMessage('');setSearchValidation(false);setRetryFlightReview(null);
     const id=++operation.current;
     requestController.current?.abort();
     const controller=new AbortController();requestController.current=controller;
@@ -936,8 +937,10 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(chosenFlights.length)setSelectedJourney(chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))})));
     const room=rooms?.options.find(option=>option.optionId===nextSelection.optionId);if(room)setSelectedRoom(room);
     const selectedEstimate=renew?null:product==='FLIGHT'?selectedFlightEstimate(groups,nextSelection.priceIds):rooms?.hid===nextSelection.hid?selectedHotelEstimate(room):null;
+    const deadline = new AbortController();
+    const timeout = setTimeout(() => deadline.abort(), 20_000);
     try{
-      const value=await api<Quote>('/api/travel/review',{searchId:reviewSearchId,...nextSelection},task.signal);
+      const value=await api<Quote>('/api/travel/review',{searchId:reviewSearchId,...nextSelection},AbortSignal.any([task.signal,deadline.signal]));
       if(current(task.id)){
         refreshedContinuation.current=renew?{quoteId:value.quoteId,validate:validateAfterRefresh}:null;
         if(!renew)checkoutQuoteIds.current.clear();
@@ -958,7 +961,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         if(renew)setMessage(`Price and rules updated. Your traveller details are kept.${resetExtras?' Flight extras were reset. Choose any extras again before continuing.':''} Review the latest total before choosing Agree & pay.`);
       }
     }catch(error){
-      if(current(task.id)&&error instanceof BookingApiError&&(error.status===401||(error.status===403&&error.message==='Verify your email before continuing.'))&&results){
+      if(current(task.id)&&(deadline.signal.aborted||(error instanceof BookingApiError&&error.status===504))){
+        if(product==='FLIGHT'&&!renew)setRetryFlightReview(nextSelection);
+        if(product==='HOTEL'&&!renew)setHotelReviewFailed(true);
+        report(new Error(renew?'Checking the latest price took too long. Your details are kept. Try refreshing the price again.':product==='FLIGHT'?'This fare check took too long. Try again or choose another fare. No payment was started.':'This room check took too long. No payment was started.'),task.id);
+      }else if(current(task.id)&&error instanceof BookingApiError&&(error.status===401||(error.status===403&&error.message==='Verify your email before continuing.'))&&results){
         const flights=chosenFlights.length?chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))})):selectedJourney;
         const prior=savedHandoff?.searchId===reviewSearchId?savedHandoff:null;
         const sameSelection=prior&&JSON.stringify(prior.selection)===JSON.stringify(nextSelection);
@@ -969,7 +976,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         if(handoff)try{sessionStorage.setItem(BOOKING_HANDOFF_KEY,JSON.stringify(handoff));window.history.replaceState(null,'',selectionReturnUrl(handoff,false));}catch{}
         setSignInRequired(true);setSignInWithoutSelection(false);setMessage('Your choice is kept here while you verify your email. We’ll check its latest price and availability next.');
       }else {if(current(task.id)&&product==='HOTEL'&&!renew)setHotelReviewFailed(true);if(current(task.id)&&error instanceof BookingApiError&&[400,403,404,409].includes(error.status))clearSelectionHandoff();report(error,task.id);}
-    }finally{finish(task.id);}
+    }finally{clearTimeout(timeout);finish(task.id);}
   }
   function continueVerifiedSelection(contact:VerifiedContact){
     if(!mounted.current||busyRef.current||payment||paymentUncertain||recoveryBlocked)return;
@@ -1352,7 +1359,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         <div className="booking-verification-actions"><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>{if(product==='HOTEL')returnToRoomOptions();else backToFlightResults();}}>{product==='HOTEL'?'Back to room options':'Back to flights'}</button></div>
       </section>}
       <div id="booking-feedback" tabIndex={-1}>{message&&!verificationActive&&<div className="booking-status info-message" role="alert" tabIndex={-1}>
-        <p>{message}</p>{hotelReviewFailed&&rooms&&!quote&&<div className="hotel-review-recovery"><p>Choose another room or refresh the available options. Your search details are kept.</p><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');void loadHotelRooms({tjHotelId:rooms.hid,name:rooms.name,property:roomProperty},rooms.searchId);}}>Refresh room options</button><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');backToStays();}}>Browse other stays</button></div>}
+        <p>{message}</p>{retryFlightReview&&product==='FLIGHT'&&!quote&&<button type="button" className="secondary" disabled={busy} onClick={()=>void review(retryFlightReview)}>Retry fare check</button>}{hotelReviewFailed&&rooms&&!quote&&<div className="hotel-review-recovery"><p>Choose another room or refresh the available options. Your search details are kept.</p><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');void loadHotelRooms({tjHotelId:rooms.hid,name:rooms.name,property:roomProperty},rooms.searchId);}}>Refresh room options</button><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');backToStays();}}>Browse other stays</button></div>}
         {!signInRequired&&/sign in/i.test(message)&&<Link className={signInWithoutSelection?"primary signin-search-again":"inline-link"} href={accountHref('/book?'+new URLSearchParams(Object.fromEntries(Object.entries(submittedSearch).filter(([key])=>!signInWithoutSelection||!['resumeSelection','resumeReview','selectionKey','autoSearch'].includes(key)))).toString())}>{signInWithoutSelection?'Sign in, then search again':'Sign in or create an account'}</Link>}
         {freshSearchRequired&&!payment&&!paymentUncertain&&<button className="secondary" type="button" disabled={busy||recoveryBlocked} onClick={recoverSearch}>Start a fresh search</button>}{(payment||paymentUncertain)&&<div className="booking-recovery-actions"><button type="button" className="secondary" disabled={busy} onClick={bookDifferentTrip}>Book a different trip</button><Link className="inline-link" href="/my-trips">View payment and booking status →</Link></div>}
       </div>}</div>

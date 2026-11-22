@@ -221,7 +221,7 @@ function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextD
   </>;
 }
 
-function AssistantDialog({open, onClosed, launcher, nextDraft}: {nextDraft: DraftRequest; open: boolean; onClosed: () => void; launcher: MutableRefObject<HTMLButtonElement | null>}) {
+function AssistantDialog({open, onClosed, returnFocusTo, nextDraft}: {nextDraft: DraftRequest; open: boolean; onClosed: () => void; returnFocusTo: MutableRefObject<HTMLElement | null>}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<(() => void) | null>(null);
   const pathname = usePathname();
@@ -234,7 +234,7 @@ function AssistantDialog({open, onClosed, launcher, nextDraft}: {nextDraft: Draf
     dialog.current?.close();
     onClosed();
     requestAnimationFrame(() => {
-      if (!dialog.current?.open && !launcher.current?.hidden) launcher.current?.focus({preventScroll: true});
+      if (!dialog.current?.open && returnFocusTo.current?.isConnected) returnFocusTo.current.focus({preventScroll: true});
     });
   }
 
@@ -265,29 +265,39 @@ function MaxAiWidget() {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
   const pathname = usePathname();
-  const desktopScope = pathname === '/' ? '.trip-home' : pathname === '/book' ? '.booking-workflow' : 'body';
+  const desktopScope = pathname === '/book' ? '.booking-workflow' : 'body';
+  const floating = pathname !== '/' && pathname !== '/privacy-policy' && pathname !== '/terms-of-use';
   const launcher = useRef<HTMLButtonElement>(null);
+  const returnFocusTo = useRef<HTMLElement>(null);
   const [nextDraft,setNextDraft] = useState<DraftRequest>(null);
   const onClosed = useCallback(() => {setOpen(false); setNextDraft(null);}, []);
-  useEffect(() => { if (launcher.current) return observeLauncherPlacement(launcher.current, desktopScope); }, [desktopScope]);
+  const openAssistant = useCallback((trigger: unknown, draft: DraftRequest = null) => {
+    returnFocusTo.current = trigger instanceof HTMLElement ? trigger : document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setNextDraft(draft);
+    setHasOpened(true);
+    setOpen(true);
+  }, []);
+  useEffect(() => { if (launcher.current) return observeLauncherPlacement(launcher.current, desktopScope); }, [desktopScope,floating]);
   useEffect(() => {
     const request = (event: Event) => {
       const text = (event as CustomEvent<unknown>).detail;
       if (typeof text !== 'string' || !text.trim() || text.length > MAX_MESSAGE_LENGTH) return;
-      setNextDraft({text});
-      setHasOpened(true);
-      setOpen(true);
+      openAssistant(event.target,{text});
     };
+    const openFromPage = (event: Event) => openAssistant(event.target);
     window.addEventListener('maxtravel:compose-message',request);
-    return () => window.removeEventListener('maxtravel:compose-message',request);
-  }, []);
+    window.addEventListener('maxtravel:open-assistant',openFromPage);
+    return () => {
+      window.removeEventListener('maxtravel:compose-message',request);
+      window.removeEventListener('maxtravel:open-assistant',openFromPage);
+    };
+  }, [openAssistant]);
   return <>
-    <button ref={launcher} className={`max-ai-launcher${pathname === '/' ? ' home-max-ai-launcher' : ''}`} type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={() => {setHasOpened(true); setOpen(true);}}>
-      {pathname === '/' ? <><span className="max-ai-launcher-icon"><AiIcon name="spark" size={20}/></span><strong>Ask Max AI</strong></> :
-        <><span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span></>}
-    </button>
-    {hasOpened && <AssistantDialog open={open} onClosed={onClosed} launcher={launcher} nextDraft={nextDraft}/>}
-    <div className="max-ai-mobile-clearance" aria-hidden="true"/>
+    {floating&&<button ref={launcher} className="max-ai-launcher" type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" aria-expanded={open} hidden={open} onClick={event=>openAssistant(event.currentTarget)}>
+      <span className="max-ai-launcher-icon"><AiIcon name="spark" size={22}/></span><span><strong>Max AI</strong><small>Ask your travel assistant</small></span>
+    </button>}
+    {hasOpened && <AssistantDialog open={open} onClosed={onClosed} returnFocusTo={returnFocusTo} nextDraft={nextDraft}/>}
+    {floating&&<div className="max-ai-mobile-clearance" aria-hidden="true"/>}
   </>;
 }
 

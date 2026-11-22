@@ -62,7 +62,7 @@ function readAirportFields(form: HTMLFormElement | null) {
   return from && to ? { from: from.value, to: to.value } : null;
 }
 
-export default function HomeSearch({ children, offers, guides }: { children: ReactNode; offers: ReactNode; guides: ReactNode }) {
+export default function HomeSearch({ children, offers, guides, assistantEnabled }: { children: ReactNode; offers: ReactNode; guides: ReactNode; assistantEnabled: boolean }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const company = useCompanyProfile();
@@ -226,7 +226,9 @@ export default function HomeSearch({ children, offers, guides }: { children: Rea
           <g fill="currentColor"><circle cx="800" cy="240" r="5"/><circle cx="940" cy="340" r="4"/><circle cx="450" cy="380" r="4"/><circle cx="1200" cy="190" r="6"/></g>
         </svg>
         <div className="stitch-home-wrap">
-          <div className="stitch-office-line"><span><i aria-hidden="true"/> {company.address.addressLocality} office · {company.hours.opens} – {company.hours.closes} IST</span>{company.gstNumber && <span>GST registered · {company.gstNumber}</span>}<a href={company.phoneHref}>Concierge hotline <b>{company.phone}</b></a></div>
+          <div className="stitch-office-line"><span><i aria-hidden="true"/> {company.address.addressLocality} office · {company.hours.opens} – {company.hours.closes} IST</span>{company.gstNumber && <span>GST registered · {company.gstNumber}</span>}<a href={company.phoneHref}>Concierge hotline <b>{company.phone}</b></a>
+            {assistantEnabled&&<button type="button" className="stitch-home-ai-trigger" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" onClick={event=>event.currentTarget.dispatchEvent(new Event('maxtravel:open-assistant',{bubbles:true}))}>Ask Max AI</button>}
+          </div>
           <h1 id="home-title">Find your <em>next escape.</em></h1>
           <p>Flights, distinctive stays and <span className="stitch-wide-only">curated boutique </span>holidays from Goa to Paris.<span className="stitch-wide-only"> Compare live availability and review the full price with our Secunderabad concierge team.</span></p>
           <div className="stitch-hubs-desktop">{hubLinks}</div>

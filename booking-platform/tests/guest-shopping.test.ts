@@ -43,7 +43,7 @@ test("checkout routes use guest-capable access; account-only routes keep princip
  const review = readFileSync(new URL("../src/app/api/travel/review/route.ts",import.meta.url),"utf8");
  assert.ok(review.includes("sameOrigin(request)"));
  assert.ok(review.indexOf("await checkoutAccess(request)") < review.indexOf("await claimGuestSearch(request"));
- assert.ok(review.includes("if(!isGuestActor(actor))await claimGuestSearch"));
+ assert.match(review, /if\s*\(!isGuestActor\(actor\)\)\s*await claimGuestSearch/);
  for (const route of ["payments/create", "payments/verify", "payments/status", "travel/promo", "travel/checkout-extras", "bookings/[id]/details"]) {
   const source=readFileSync(new URL(`../src/app/api/${route}/route.ts`,import.meta.url),"utf8");
   assert.ok(source.includes("checkoutAccess(request)"), route);

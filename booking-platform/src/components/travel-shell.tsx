@@ -29,7 +29,7 @@ function FooterPolicyLinks(){
 }
 
 function AirportDataCredit(){return <p className="travel-footer-data-credit">Airport timezone data © <a href="https://openflights.org/data.php">OpenFlights contributors</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL 1.0</a></p>;}
-export function TravelFooter() {
+export function TravelFooter({contactEmail}: {contactEmail?: string} = {}) {
   const company = useCompanyProfile();
   const directory = <div className="concierge-footer-grid">
     <div>
@@ -65,7 +65,7 @@ export function TravelFooter() {
       <a className="concierge-footer-call" href={company.phoneHref}><strong>Call the travel desk</strong><span>{company.phone}</span></a>
       <span>{company.hours.display}</span>
       <Link href="/customer-support">Booking support</Link>
-      <a href={company.emailHref}>Email us</a>
+      <a href={contactEmail ? `mailto:${contactEmail}` : company.emailHref}>Email us</a>
       <Link href="/contact?topic=partner#office-enquiry">Become a partner</Link>
       <FooterPolicyLinks/>
     </div>

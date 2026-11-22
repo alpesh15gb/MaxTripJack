@@ -65,12 +65,16 @@ for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
       await expect(page.locator('.legal-effective-date time')).toHaveAttribute('datetime', '2026-10-27');
       await expect(page.locator('.legal-article section')).toHaveCount(path === '/privacy-policy' ? 10 : 9);
       await expect(page.locator('.legal-article a[href="mailto:cs@maxtravel.in"]').first()).toBeVisible();
+      expect(await page.locator('.legal-site a[href^="mailto:"]').evaluateAll(links=>[...new Set(links.map(link=>link.getAttribute('href')))])).toEqual(['mailto:cs@maxtravel.in']);
+      await expect(page.locator('.max-ai-launcher')).toHaveCount(0);
       await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', `https://maxtravel.in${path}`);
     }
     if (path === '/') {
       const launcher = page.getByRole('button', {name: 'Open Max AI travel assistant'});
       await expect(launcher).toContainText('Ask Max AI');
       await expect(launcher).not.toContainText(/concierge/i);
+      await expect(launcher).toHaveCSS('position','static');
+      await expect(page.locator('.concierge-currency')).toHaveText('INR · EN');
       await expect(page.locator('.stitch-ai-card h2')).toHaveText('Ask Max AI');
     }
     if (path.startsWith('/flights') || path.startsWith('/packages') || path === '/about') {

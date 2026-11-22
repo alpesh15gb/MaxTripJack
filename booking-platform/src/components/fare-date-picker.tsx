@@ -69,7 +69,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares,
   </button>
   {name&&<input type="hidden" name={name} value={value}/>}
   {!iconOnly&&<small>{fare?<>from <b className={`fare-band-${fare.band}`}>₹{compactRupees(fare.minor)}</b></>:helper??' '}</small>}
-  {open&&<SearchPickerDialog id={`${id}-panel`} className="fare-calendar" label={`Choose ${label.toLowerCase()}`} onDismiss={close} onKeyDown={keys}>
+  {open&&<SearchPickerDialog id={`${id}-panel`} className={iconOnly?'fare-calendar':'fare-calendar home-fare-calendar'} modalOnDesktop={!iconOnly} label={`Choose ${label.toLowerCase()}`} onDismiss={close} onKeyDown={keys}>
    <div className="fare-calendar-head">
     <button type="button" aria-label="Previous month" disabled={!canBack} onClick={()=>browseMonth(-1)}>‹</button>
     <span className="calendar-selection">{value ? <>Selected <strong>{selectedDay.format(at(value))}</strong></> : 'Select a date'}</span>

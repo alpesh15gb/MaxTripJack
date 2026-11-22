@@ -25,7 +25,7 @@ export async function LegalPolicyPage({slug}:{slug:string}){
  const policy=getLegalPolicy(slug);if(!policy)notFound();
  const policyEmail=policy.effectiveDate?legalContactEmail:businessProfile.email;
  const description=`Read MaxTravel’s ${policy.title.toLowerCase()} and find our contact details for any questions.`;
- const graph=editorialDiscoveryGraph({path:`/${slug}`,title:policy.title,description},[{label:'Home',href:'/'},{label:policy.title,href:`/${slug}`}],{businessProfile,sources:policy.sourceUrl?[{label:'View this policy on maxtravel.us',href:policy.sourceUrl}]:[]});
+ const graph=editorialDiscoveryGraph({path:`/${slug}`,title:policy.title,description},[{label:'Home',href:'/'},{label:policy.title,href:`/${slug}`}],{businessProfile:{...businessProfile,email:policyEmail},sources:policy.sourceUrl?[{label:'View this policy on maxtravel.us',href:policy.sourceUrl}]:[]});
  const sectionLinks=policy.sections.map((section,index)=><a key={section.heading} href={`#policy-section-${index+1}`}>{section.heading}</a>);
  return <div className="legal-site public-refresh"><TravelHeader/><main id="main-content" className="legal-main">
   <nav className="legal-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><span aria-current="page">{policy.title}</span></nav>
@@ -46,5 +46,5 @@ export async function LegalPolicyPage({slug}:{slug:string}){
     <div className="legal-source"><p>Questions about this policy? <Link href="/contact">Contact MaxTravel</Link>.</p>{policy.sourceUrl&&<a href={policy.sourceUrl}>View this policy on maxtravel.us <span aria-hidden="true">↗</span></a>}</div>
    </article>
   </div>
- </main><TravelFooter/><SeoJsonLd id="maxtravel-policy-schema" data={graph}/></div>;
+ </main><TravelFooter contactEmail={policyEmail}/><SeoJsonLd id="maxtravel-policy-schema" data={graph}/></div>;
 }

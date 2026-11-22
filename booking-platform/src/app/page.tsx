@@ -2,6 +2,8 @@ import HomeSearch from "@/components/home-search";
 import HomeOffers from "@/components/home-offers";
 import { HomePublicIntro, HomeRouteGuides } from "@/components/public-content";
 import { pageMetadata } from "@/lib/seo";
+import {maxAiGatewayConfiguration} from "@/lib/max-ai-provider";
+import {conversationConfigured} from "@/lib/max-ai-conversation";
 
 export const metadata = pageMetadata(
   "/",
@@ -10,5 +12,5 @@ export const metadata = pageMetadata(
 );
 
 export default function Home() {
-  return <HomeSearch offers={<HomeOffers />} guides={<HomeRouteGuides/>}><HomePublicIntro /></HomeSearch>;
+  return <HomeSearch assistantEnabled={Boolean(maxAiGatewayConfiguration())&&conversationConfigured()} offers={<HomeOffers />} guides={<HomeRouteGuides/>}><HomePublicIntro /></HomeSearch>;
 }

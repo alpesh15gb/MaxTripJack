@@ -89,6 +89,40 @@ test('payment options wait for passenger details and accept an international pho
   expect(provider.requests('/api/payments/create')[0]?.body).toMatchObject({guests:{phone:'+447700900123'}});
 });
 
+test('a hung fare review times out and can be retried without losing results', async ({page, provider}) => {
+  await openFlightSearch(page);
+  await page.clock.install();
+  let reviewCount=0;
+  let finishFirst!:()=>void;
+  const held=new Promise<void>(resolve=>{finishFirst=resolve;});
+  await page.route('**/api/travel/review', async route=>{
+    reviewCount++;
+    if(reviewCount===1){
+      await held;
+      await route.fulfill({json:reviewedQuote()}).catch(()=>{});
+    }else if(reviewCount===2){
+      await route.fulfill({status:504,contentType:'text/html',body:'Gateway Timeout'});
+    }else await route.fallback();
+  });
+  try {
+    await selectVisibleFare(page);
+    await expect.poll(()=>reviewCount).toBe(1);
+    await page.clock.fastForward(20_001);
+    const retry=page.getByRole('button',{name:'Retry fare check'});
+    await expect(retry).toBeEnabled();
+    await expect(page.locator('#booking-feedback')).toContainText('This fare check took too long');
+    await expect(page.getByRole('button',{name:'Check fare & continue',exact:true}).first()).toBeEnabled();
+    await retry.click();
+    await expect(retry).toBeEnabled();
+    await expect.poll(()=>reviewCount).toBe(2);
+    await retry.click();
+    await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
+    expect(provider.requests('/api/payments/create')).toHaveLength(0);
+  } finally {
+    finishFirst();
+  }
+});
+
 test('domestic adult documents remain optional rather than blocking checkout', async ({ page, provider }) => {
   await openReviewedFlight(page);
   const form = page.getByRole('form', { name: 'Review and travellers' });
