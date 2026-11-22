@@ -2,20 +2,34 @@
 export type AirportCriteria={from:string;to:string;date:string;returnDate?:string;legs?:{from:string;to:string;date:string}[]};
 function object(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};}
 function routes(criteria:AirportCriteria){return criteria.legs??[{from:criteria.from,to:criteria.to,date:criteria.date},...(criteria.returnDate?[{from:criteria.to,to:criteria.from,date:criteria.returnDate}]:[])];}
-function matches(trip:unknown,legs:{from:string;to:string;date:string}[]):boolean{
- const rawSegments=object(trip).sI;if(!Array.isArray(rawSegments)||!rawSegments.length||rawSegments.length>60||!legs.length)return false;
- const segments:unknown[]=rawSegments;
+function legEnds(segments:readonly unknown[],legs:{from:string;to:string;date:string}[]):number[]|null{
+ if(!segments.length||segments.length>60||!legs.length)return null;
  // Partition complete itineraries at actual requested endpoints, not at every connecting segment.
- const memo=new Map<string,boolean>();
- function visit(legIndex:number,start:number):boolean{
-  if(legIndex===legs.length)return start===segments.length;
-  const key=`${legIndex}:${start}`;if(memo.has(key))return memo.get(key)!;
+ const memo=new Map<string,number[]|null>();
+ function visit(legIndex:number,start:number):number[]|null{
+  if(legIndex===legs.length)return start===segments.length?[]:null;
+  const key=`${legIndex}:${start}`;const cached=memo.get(key);if(cached!==undefined)return cached;
   const leg=legs[legIndex],first=object(segments[start]);
-  if(object(first.da).code!==leg.from||typeof first.dt!=='string'||first.dt.slice(0,10)!==leg.date)return false;
-  for(let end=start;end<segments.length;end++)if(object(object(segments[end]).aa).code===leg.to&&visit(legIndex+1,end+1)){memo.set(key,true);return true;}
-  memo.set(key,false);return false;
+  if(object(first.da).code!==leg.from||typeof first.dt!=='string'||first.dt.slice(0,10)!==leg.date)return null;
+  for(let end=start;end<segments.length;end++){
+   if(object(object(segments[end]).aa).code!==leg.to)continue;
+   const rest=visit(legIndex+1,end+1);
+   if(rest!==null){const result=[end+1,...rest];memo.set(key,result);return result;}
+  }
+  memo.set(key,null);return null;
  }
  return visit(0,0);
+}
+
+function matches(trip:unknown,legs:{from:string;to:string;date:string}[]):boolean{
+ const segments=object(trip).sI;
+ return Array.isArray(segments)&&legEnds(segments,legs)!==null;
+}
+
+/** Keep the booked journey boundaries even when the supplier sends a combined fare. */
+export function splitFlightItinerary<T>(segments:readonly T[],criteria:AirportCriteria):T[][]|null{
+ const ends=legEnds(segments,routes(criteria));
+ return ends?.map((end,index)=>segments.slice(index===0?0:ends[index-1],end))??null;
 }
 
 export function oneWayTrips<T>(trips:readonly T[],criteria:AirportCriteria):T[]{

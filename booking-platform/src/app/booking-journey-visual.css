@@ -21,7 +21,7 @@ body .booking-workflow.journey-flow .secondary { color: var(--brand-midnight, #1
 body .booking-workflow.journey-flow :is(button,input,select,summary,a):focus-visible { outline: 3px solid var(--brand-midnight, #101C2C); outline-offset: 3px; }
 body .booking-workflow.journey-flow :is(input[type=checkbox],input[type=radio]) { accent-color: var(--brand-midnight, #101C2C); }
 body .booking-workflow.journey-flow :is(.eyebrow,.stay-eyebrow,.hotel-property-locality,.hotel-reset,.flight-filter-clear-all) { color: var(--brand-midnight, #101C2C); }
-body .booking-workflow.journey-flow :is(.booking-heading-icon,.summary-compass) { background: var(--brand-sand, #EDE5D7) var(--brand-sand-sheen); color: var(--brand-midnight, #101C2C); border-radius: 14px; }
+body .booking-workflow.journey-flow .booking-heading-icon { background: var(--brand-sand, #EDE5D7) var(--brand-sand-sheen); color: var(--brand-midnight, #101C2C); border-radius: 14px; }
 body .booking-workflow.journey-flow :is(.booking-intro,.booking-progress li) { border-color: var(--brand-line, #d9d4cb); }
 body .booking-workflow.journey-flow .booking-progress li { color: var(--brand-muted, #596675); }
 body .booking-workflow.journey-flow .booking-progress li.is-current { color: var(--brand-midnight, #101C2C); border-color: var(--brand-midnight, #101C2C); }
@@ -110,12 +110,6 @@ body .booking-workflow.journey-flow :is(.checkout-verification-channels,.booking
 body .booking-workflow.journey-flow .checkout-verification-channels button[aria-pressed=true] { color: var(--brand-midnight, #101C2C); border-color: var(--brand-gold, #C6A66B); }
 
 /* Actual search phases stay honest; visual treatment adds no simulated progress. */
-body .booking-workflow.journey-flow .journey-search-scene { border-color: var(--brand-line, #d9d4cb); background: #fff var(--brand-paper-sheen); box-shadow: 0 8px 32px #101c2c06; }
-body .booking-workflow.journey-flow .journey-search-art { background: var(--brand-ivory, #FAF9F6) var(--brand-sand-sheen); color: var(--brand-midnight, #101C2C); border-radius: 12px; }
-body .booking-workflow.journey-flow .journey-search-copy h2 { color: var(--brand-midnight, #101C2C); letter-spacing: -.03em; }
-body .booking-workflow.journey-flow .journey-search-copy [role=status] strong { color: var(--brand-midnight, #101C2C); }
-body .booking-workflow.journey-flow .journey-search-delay { border-left: 3px solid var(--brand-gold, #C6A66B); padding-left: 12px; color: #533c20; }
-body .booking-workflow.journey-flow .journey-skeleton-card { background: var(--brand-ivory, #FAF9F6); border-color: var(--brand-line, #d9d4cb); }
 
 /* Finish the shared comparison surfaces without changing their measured layout. */
 body .booking-workflow.journey-flow :is(.eyebrow,.stay-eyebrow,.hotel-property-category) { color: var(--brand-gold-ink, #785A25); }
@@ -155,13 +149,6 @@ body .booking-workflow.journey-flow .stay-gallery-dialog h2 { color: #fff; }
 body .booking-workflow.journey-flow .stay-gallery-thumbnails button[aria-pressed=true] { border-color: var(--brand-gold, #C6A66B); }
 
 /* Decorative search illustration follows the palette; alert/success semantics remain intact. */
-body .booking-workflow.journey-flow .journey-search-art svg { fill: var(--brand-midnight, #101C2C); }
-body .booking-workflow.journey-flow .journey-search-route { stroke: var(--brand-gold, #C6A66B); }
-body .booking-workflow.journey-flow :is(.journey-search-trail,.journey-search-stay path,.journey-search-stay .journey-stay-glow) { stroke: var(--brand-midnight, #101C2C); }
-body .booking-workflow.journey-flow .journey-search-stay circle { fill: var(--brand-ivory, #FAF9F6); stroke: var(--brand-gold, #C6A66B); }
-body .booking-workflow.journey-flow .journey-cloud { fill: var(--brand-sand, #EDE5D7); }
-body .booking-workflow.journey-flow .journey-search-code { fill: var(--brand-muted, #596675); }
-body .booking-workflow.journey-flow .sk { background-image: linear-gradient(90deg, #ede5d7 25%, #faf9f6 50%, #ede5d7 75%); }
 body .booking-workflow.journey-flow .booking-spinner { border-color: var(--brand-sand, #EDE5D7); border-top-color: var(--brand-midnight, #101C2C); }
 body .booking-workflow.journey-flow :is(.checkout-verification,.checkout-verification-channels button) { color: var(--brand-slate, #24364B); }
 body .booking-workflow.journey-flow :is(.checkout-verification-note,.checkout-verification-form label > small,.checkout-verification [role=status]) { color: var(--brand-muted, #596675); }

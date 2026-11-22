@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import type { Flight } from '@/lib/booking-presentation';
 import type { HotelPropertyDetails } from '@/lib/hotel-presentation';
-import { travelDateLabel, travelTimeLabel } from '@/lib/travel-date';
+import { travelDateLabel } from '@/lib/travel-date';
+import type { AirportCriteria } from '@/lib/flight-airport-scope';
 import { displayMoney } from '@/lib/display-money';
 import HotelPropertyMedia from './hotel-property-media';
-import AirlineLogo from './airline-logo';
+import ReviewFlightItinerary from './review-flight-itinerary';
 import { TravelIcon } from './travel-icon';
 import { StitchSymbol } from './stitch-symbol';
 import { stayNights } from '@/lib/hotel-results';
@@ -20,8 +21,8 @@ type SelectedStay = {
   checkOut?: string;
 };
 
-export default function SelectedJourneyReceipt({ flights, flightJourney, fallbackFlight, totalMinor, hotel, context, children }: {
-  flights: Flight[]; flightJourney?: string; fallbackFlight?: { title: string; date?: string }; totalMinor: number; hotel?: SelectedStay; context: ReactNode; children: ReactNode;
+export default function SelectedJourneyReceipt({ flights, flightJourney, flightCriteria, fallbackFlight, totalMinor, hotel, context, children }: {
+  flights: Flight[]; flightJourney?: string; flightCriteria?: AirportCriteria; fallbackFlight?: { title: string; date?: string }; totalMinor: number; hotel?: SelectedStay; context: ReactNode; children: ReactNode;
 }) {
   const nights = hotel?.checkIn && hotel.checkOut ? stayNights({checkIn:hotel.checkIn,checkOut:hotel.checkOut,guests:hotel.guests,rooms:hotel.rooms}) : null;
   return <section className="selected-itinerary compact-selected-itinerary stitch-itinerary" aria-label="Selected itinerary">
@@ -43,14 +44,7 @@ export default function SelectedJourneyReceipt({ flights, flightJourney, fallbac
         <div className="review-room"><h4><TravelIcon name="bed" /> {hotel.room}</h4>
           <p><TravelIcon name="receipt" size={15} /> {hotel.meal.charAt(0).toUpperCase()+hotel.meal.slice(1).toLowerCase()}</p>{hotel.inclusions.slice(0,3).filter(item=>item.toLowerCase()!==hotel.meal.toLowerCase()).map(item=><p key={item}><TravelIcon name="check" size={15}/> {item}</p>)}<p><TravelIcon name="clock" size={15} /> {hotel.cancellation}</p>
         </div>
-      </div> : <ul className="review-flights">{flights.flatMap((flight, index) => flight.sI.map((segment, part) =>
-        <li key={`${index}-${part}`}>
-          <AirlineLogo code={segment.fD.aI.code} name={segment.fD.aI.name} />
-          <div><span className="review-category">{segment.fD.aI.name} · {segment.fD.aI.code} {segment.fD.fN}</span>
-            <strong>{segment.da.code} → {segment.aa.code} · {travelTimeLabel(segment.dt)}–{travelTimeLabel(segment.at)}</strong>
-            <small>{travelDateLabel(segment.dt)}{segment.at.slice(0,10) !== segment.dt.slice(0,10) ? ` → ${travelDateLabel(segment.at)}` : ''}</small>
-          </div>
-        </li>))}</ul>}
+      </div> : <ReviewFlightItinerary flights={flights} criteria={flightCriteria}/>}
       {!hotel && <div className="selected-reviewed-total"><span>Reviewed total</span><strong>{displayMoney(totalMinor)}</strong><small>All travellers</small></div>}
     </div>
     {(!hotel || hotel.inclusions.length>3 || hotel.bookingNotes) && <details className="selected-source-details"><summary>{hotel ? 'Room details & inclusions' : 'Original search details & fare'}</summary>{children}</details>}

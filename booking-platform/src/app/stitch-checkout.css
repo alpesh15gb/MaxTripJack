@@ -95,10 +95,69 @@ body:has(.checkout-active, .booking-status-page) { background: #f7f9fc; }
 }
 #booking-review .review-dates dt { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--review-muted); }
 #booking-review .review-dates dd { margin: 4px 0 0; color: var(--review-navy); font-size: 14px; font-weight: 650; }
-#booking-review .review-flights { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
-#booking-review .review-flights li { display: flex; align-items: center; gap: 12px; border: 0; padding: 0; }
-#booking-review .review-flights li+li { border-top: 1px solid var(--review-line); padding-top: 12px; }
-#booking-review .review-flights li > div { display: grid; gap: 3px; }
+#booking-review .review-flight-legs { display: grid; gap: 16px; }
+#booking-review .review-flight-leg {
+  border: 1px solid var(--stitch-outline);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#booking-review .review-flight-route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--stitch-outline);
+  background: var(--stitch-light-surface);
+}
+#booking-review .review-flight-route h3 {
+  margin: 0;
+  color: var(--review-navy);
+  font: 800 clamp(18px, 2vw, 26px)/1.25 var(--font-stitch-display), sans-serif;
+  overflow-wrap: anywhere;
+}
+#booking-review .review-flight-route p { margin: 3px 0 0; color: var(--review-muted); font-size: 13px; }
+#booking-review .review-flight-route .review-leg-label {
+  margin: 0 0 4px;
+  color: var(--review-blue);
+  font-weight: 750;
+}
+#booking-review .review-arrival-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: #dfedfc;
+  color: #104a80;
+  font-size: 12px;
+}
+#booking-review .review-arrival-note :is(strong, small) { display: block; }
+#booking-review .review-flights {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 16px;
+  list-style: none;
+}
+#booking-review .review-flights li { display: grid; gap: 10px; min-width: 0; padding: 0; }
+#booking-review .review-flight-sector { display: flex; align-items: center; gap: 12px; min-width: 0; }
+#booking-review .review-flight-sector > div { display: grid; gap: 3px; min-width: 0; }
+#booking-review .review-flight-sector strong { overflow-wrap: anywhere; }
+#booking-review .review-flight-connection {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px dashed #bdd2ec;
+  border-radius: 8px;
+  background: #f4f8fe;
+  color: #344969;
+  font-size: 12px;
+}
 #booking-review .selected-reviewed-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding-top: 10px; border-top: 1px solid var(--review-line); }
 #booking-review .selected-reviewed-total :is(span,small) { font-size: 12px; color: var(--review-muted); }
 #booking-review .selected-reviewed-total strong { font-size: 16px; color: var(--review-navy); }

@@ -1,19 +1,4 @@
 /* Calm decision workspaces; expressive motion is decorative, never progress. */
-.journey-flow .booking-pending.journey-search-scene{display:grid;grid-template-columns:220px minmax(0,1fr);align-items:center;gap:18px;padding:22px;background:linear-gradient(125deg,#edf5ff,#fffdf8);border:1px solid #ccdaed;border-radius:22px;box-shadow:0 12px 36px #142d4009;max-width:980px;margin:16px auto 24px}
-.journey-search-art svg{width:100%;height:auto;overflow:visible;fill:#2455e7}
-.journey-search-route{stroke:#9bacc7;stroke-width:2;stroke-dasharray:5 7}
-.journey-search-plane{transform:translate(180px,42px);animation:journey-flight-arc 4s ease-in-out infinite}
-.journey-search-stay circle{fill:#edf5ff;stroke:#90aacb;stroke-width:2}
-.journey-search-stay path{fill:none;stroke:#2455e7;stroke-width:3;stroke-linejoin:round}
-.journey-search-stay{transform-origin:180px 52px;animation:journey-stay-breathe 3s ease-in-out infinite}
-@keyframes journey-flight-arc{0%{transform:translate(50px,76px) rotate(-24deg);opacity:0}12%{opacity:1}50%{transform:translate(180px,42px) rotate(0deg);opacity:1}88%{opacity:1}100%{transform:translate(310px,76px) rotate(24deg);opacity:0}}
-@keyframes journey-stay-breathe{50%{transform:scale(1.04)}}
-.journey-search-copy h2{font:650 26px/1.2 var(--font-geist-sans),sans-serif;color:#142d40;margin:0 0 8px;overflow-wrap:anywhere}
-.journey-search-copy .journey-search-criteria{font-size:14px;color:#52616a;margin:0 0 12px}
-.journey-search-copy [role=status] strong{display:block;font-size:17px;color:#142d40;margin-bottom:6px}
-.journey-search-copy [role=status] p{font-size:14px;line-height:1.5;margin:0 0 12px;max-width:54ch;color:#52616a}
-.journey-search-copy [role=status] .journey-search-delay{color:#384d59}
-.journey-search-copy>.secondary{min-height:44px;font-size:14px;background:#fff;border:1px solid #c4d1e3}
 .journey-flow.is-searching .booking-intro,.journey-flow.is-searching .booking-progress{display:none}
 /* Stronger than legacy route styles, without changing the selected receipt. */
 .journey-flow.booking-workflow .flight-shopping:has(.is-choosing-fare){grid-template-columns:minmax(0,1fr)}
@@ -37,11 +22,6 @@
 .journey-flow .room-option-card h3{font-size:18px;margin:0 0 8px}
 .journey-flow .room-choice-facts{gap:6px}
 @media(max-width:600px){
- .journey-flow .booking-pending.journey-search-scene{grid-template-columns:minmax(0,1fr);gap:8px;padding:16px;margin:8px 0 20px}
- .journey-search-art{width:100%;max-width:300px;margin:auto}
- .journey-search-art svg{height:70px}
- .journey-search-copy h2{font-size:25px}
- .journey-search-copy .journey-search-criteria{margin-bottom:14px}
  .journey-flow .fare-choice-heading{padding-top:8px;align-items:start;gap:8px}
  .journey-flow .fare-choice-heading h3{font-size:20px}
  .journey-flow .fare-comparison-options > .fare-choice-heading{flex-direction:row}
@@ -51,7 +31,6 @@
  .journey-flow .room-option-card{grid-template-columns:minmax(0,1fr);padding:14px;gap:8px}
  .journey-flow .room-option-action{padding-top:8px}
 }
-@media(prefers-reduced-motion:reduce){.journey-search-plane,.journey-search-stay{animation:none}}
 .journey-flow .compact-selected-itinerary{padding:14px 16px;background:#f5f8fc;border:1px solid #d5deea;border-radius:12px;margin:12px 0}
 .journey-flow .selected-journey-recap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
 .journey-flow .selected-journey-recap ul{list-style:none;padding:0;margin:0;display:grid;gap:10px}
@@ -82,7 +61,6 @@
  .journey-flow .booking-review>.page-heading h2{font-size:28px;margin-bottom:8px}
  .journey-flow .booking-review .traveller-card>p{margin-bottom:8px}
 }
-.journey-flow .booking-pending.journey-search-scene{scroll-margin-top:20px}
 
 /* The legacy mobile secondary spans all columns: keep validity copy full width. */
 @media(max-width:600px){
@@ -125,22 +103,3 @@
  .journey-flow .room-option-card:not(:has(>.room-option-details[open]))>.room-option-details{grid-column:1;grid-row:2;padding-top:4px}
  .journey-flow .room-option-card:not(:has(>.room-option-details[open]))>.room-option-action{grid-column:2;grid-row:1 / span 2}
 }
-
-/* Engaging, honest waiting scene: motion is decorative and never implies supplier progress. */
-.journey-flow .booking-pending.journey-search-scene{grid-template-areas:"art copy" "skel skel";position:relative;overflow:hidden}
-.journey-search-art{grid-area:art}.journey-search-copy{grid-area:copy}.journey-search-skeletons{grid-area:skel}
-.journey-search-trail{stroke:#2455e7;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:14 86;animation:journey-trail 4s ease-in-out infinite}
-.journey-search-code{font:700 11px/1 var(--font-geist-sans),sans-serif;fill:#52616a;letter-spacing:.08em}
-.journey-cloud{fill:#dbe7f8;animation:journey-cloud-drift 9s ease-in-out infinite alternate}.journey-cloud-b{animation-duration:12s;animation-direction:alternate-reverse}
-.journey-search-stay .journey-stay-glow{fill:none;stroke:#2455e7;stroke-width:2;transform-origin:180px 52px;animation:journey-stay-ripple 3s ease-out infinite}
-.journey-search-skeletons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.journey-skeleton-card{display:grid;gap:10px;padding:16px;background:#ffffffcc;border:1px solid #dbe5f2;border-radius:14px}
-.sk{display:block;border-radius:8px;background:linear-gradient(90deg,#e6edf6 25%,#f4f8fd 50%,#e6edf6 75%);background-size:200% 100%;animation:journey-shimmer 1.6s linear infinite}
-.sk-badge{width:34%;height:14px}.sk-line{height:12px;width:62%}.sk-wide{width:90%;height:18px}.sk-price{width:40%;height:22px;margin-top:6px}
-.journey-skeleton-card:nth-child(2) .sk{animation-delay:.2s}.journey-skeleton-card:nth-child(3) .sk{animation-delay:.4s}
-@keyframes journey-trail{0%{stroke-dashoffset:14;opacity:0}15%{opacity:.9}85%{opacity:.9}100%{stroke-dashoffset:-86;opacity:0}}
-@keyframes journey-cloud-drift{to{transform:translateX(26px)}}
-@keyframes journey-stay-ripple{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.5);opacity:0}}
-@keyframes journey-shimmer{to{background-position:-200% 0}}
-@media(max-width:700px){.journey-flow .booking-pending.journey-search-scene{grid-template-areas:"art" "copy" "skel"}.journey-search-skeletons{grid-template-columns:minmax(0,1fr)}.journey-skeleton-card:nth-child(n+2){display:none}}
-@media(prefers-reduced-motion:reduce){.journey-search-trail,.journey-cloud,.journey-stay-glow,.sk{animation:none}.journey-search-trail{opacity:0}}

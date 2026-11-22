@@ -29,6 +29,7 @@ import "./stitch-shell.css";
 import "./stitch-home.css";
 import "./stitch-shopping.css";
 import "./stitch-checkout.css";
+import "./stitch-surfaces.css";
 
 const bookingDisplay = Plus_Jakarta_Sans({ variable: "--font-stitch-display", subsets: ["latin"], display: "swap" });
 const bookingBody = DM_Sans({ variable: "--font-stitch-body", subsets: ["latin"], display: "swap" });

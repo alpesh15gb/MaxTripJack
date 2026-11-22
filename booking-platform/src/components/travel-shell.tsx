@@ -34,7 +34,7 @@ export function TravelFooter() {
     <div>
       <Link href="/" className="concierge-brand-link" aria-label="MaxTravel home"><BrandLogo variant="footer"/></Link>
       <p>Flights, handpicked stays, holiday packages, visa assistance and travel insurance from our {company.address.addressLocality} travel desk.</p>
-      <Link href="/office">Visit our office <span aria-hidden="true"><TravelIcon name="arrow-up-right" size={14}/></span></Link>
+      <Link href="/office" className="concierge-footer-office">Visit our office <span aria-hidden="true"><TravelIcon name="arrow-up-right" size={14}/></span></Link>
       {company.gstNumber && <span>GSTIN · {company.gstNumber}</span>}
       <nav className="concierge-footer-socials" aria-label="Follow MaxTravel">
         {footerSocialLinks.map(item => <a key={item.name} href={item.name === 'google' ? company.mapsHref : item.href} aria-label={item.label}><FooterSocialIcon name={item.name}/></a>)}

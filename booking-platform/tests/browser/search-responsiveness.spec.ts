@@ -13,7 +13,9 @@ for(const product of ['FLIGHT','HOTEL'] as const){
    await expect(pending).toContainText('Waiting for live supplier availability');
    await expect(pending).toBeInViewport();expect(requested).toBe(true);
    await expect(page.locator('#booking-results')).toHaveCount(0);
-   await expect(page.getByRole('form',{name:'Search availability'}).getByRole('button',{name:'Checking availability…',exact:true})).toBeDisabled();
+   const form=page.locator('#booking-search form');
+   await expect(form).toBeHidden();
+   await expect(form.locator('button[type=submit], .booking-search-submit')).toBeDisabled();
    await expectNoHorizontalOverflow(page);
    await testInfo.attach(`${product.toLowerCase()}-pending-viewport`,{body:await page.screenshot({fullPage:false,animations:'disabled'}),contentType:'image/png'});
    await capture(page,testInfo,`${product.toLowerCase()}-supplier-pending`);

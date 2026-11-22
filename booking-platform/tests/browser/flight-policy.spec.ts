@@ -1,6 +1,6 @@
 import type {Page} from '@playwright/test';
 import {publicSupplierReview} from '../../src/lib/public-supplier-review';
-import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
+import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
 
 const renewedId='44444444-4444-4444-8444-444444444444';
 const form=(page:Page)=>page.getByRole('form',{name:'Review and travellers'});
@@ -68,6 +68,33 @@ test('one-way review after switching from round trip shows only the departure an
  expect(provider.requests('/api/travel/review')[0].body).toMatchObject({priceIds:['onward-standard']});
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNoHorizontalOverflow(page);
+});
+
+test('overnight one-way flights group the Goa connection and next-day Delhi arrival',async({page,provider},testInfo)=>{
+ const nextDay=new Date(Date.parse(departure)+86_400_000).toISOString().slice(0,10);
+ const selection=flight();
+ const [direct]=selection.sI;
+ const goa={code:'GOI',city:'Goa'};
+ selection.sI=[
+  {...direct,aa:goa,dt:`${departure}T17:45:00`,at:`${departure}T19:10:00`,duration:85,
+   fD:{aI:{name:'Air India Express',code:'IX'},fN:'1519'}},
+  {...direct,id:'synthetic-connection',da:goa,dt:`${departure}T22:00:00`,at:`${nextDay}T00:35:00`,duration:155,
+   fD:{aI:{name:'Air India Express',code:'IX'},fN:'2224'}},
+ ];
+ provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[selection]}}}};
+ await openFlightSearch(page);
+ await selectFare(page,'Check fare & continue');
+ const itinerary=page.getByRole('region',{name:'Selected itinerary'});
+ await expect(itinerary.getByRole('heading',{name:'BOM → DEL',exact:true})).toBeVisible();
+ await expect(itinerary.locator('.review-flight-leg')).toHaveCount(1);
+ await expect(itinerary.getByText('1 stop via Goa (GOI) · 6h 50m total')).toBeVisible();
+ await expect(itinerary.locator('.review-flight-connection')).toContainText('Connection at GOI · 2h 50m');
+ await expect(itinerary.getByText('Next-day arrival',{exact:true})).toBeVisible();
+ await expect(itinerary.getByText('Return',{exact:true})).toHaveCount(0);
+ await expect(itinerary.locator('.review-flights li')).toHaveCount(2);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'overnight-one-way-review');
 });
 
 test('review shows official-shaped cancellation rules for both routes with readable fee disclosures',async({page,provider},testInfo)=>{

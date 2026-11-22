@@ -1,0 +1,233 @@
+/* Shared surfaces for booking, account and travel information pages. */
+.stitch-theme {
+  --stitch-card-radius: 16px;
+  --stitch-outline: #dbe4ef;
+  --stitch-card-depth: 0 2px 4px #00173605, 0 12px 30px -22px #0d2c5452;
+  --stitch-light-surface: linear-gradient(140deg, #fff 38%, #f3f7fd);
+  --stitch-action-surface: linear-gradient(130deg, #001736, #0a3765);
+  --stitch-route-surface: linear-gradient(112deg, #001736 12%, #0b3563);
+}
+
+.stitch-theme .concierge-header {
+  border-bottom: 1px solid #dbe4ef;
+  background-color: white;
+  background-image: var(--stitch-light-surface);
+  box-shadow: 0 4px 24px -16px #00173652;
+}
+.stitch-theme .concierge-header nav a[aria-current=page] {
+  background: var(--stitch-action-surface);
+  color: white;
+}
+.stitch-theme .concierge-testing {
+  background: linear-gradient(90deg, #edf4fd, #e3eefc, #edf4fd);
+}
+html body.stitch-theme .travel-footer.concierge-footer {
+  border-top: 1px solid var(--stitch-outline);
+  background-color: white;
+  background-image: var(--stitch-light-surface);
+}
+.stitch-theme .concierge-footer .concierge-footer-office {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+}
+
+.stitch-theme .stitch-search-pending {
+  display: grid;
+  gap: 16px;
+  margin-block: 12px 28px;
+  scroll-margin-top: 12px;
+}
+.stitch-search-route {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 19px clamp(16px, 3vw, 32px);
+  border-radius: var(--stitch-card-radius);
+  background: var(--stitch-route-surface);
+  color: white;
+  box-shadow: var(--stitch-card-depth);
+}
+.stitch-search-product {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: #dbeaff26;
+  color: #d9eaff;
+}
+body.stitch-theme .booking-workflow.journey-flow .stitch-search-route h1 {
+  margin: 0;
+  color: white;
+  font: 800 clamp(21px, 2.4vw, 32px)/1.2 var(--font-stitch-display), sans-serif;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+}
+.stitch-search-route p {
+  margin: 6px 0 0;
+  color: #d9eaff;
+  font: 500 13px/1.45 var(--font-stitch-body), sans-serif;
+}
+.stitch-search-route .stitch-search-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 1px solid #aecbf077;
+  border-radius: 10px;
+  background: #ffffff16;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+}
+.stitch-search-stop:hover { background: #ffffff27; }
+.stitch-search-stop:focus-visible { outline: 3px solid #bcd9fd; outline-offset: 2px; }
+
+.stitch-booking-activity {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 13px;
+  padding: 15px clamp(12px, 2.5vw, 24px);
+  border: 1px solid var(--stitch-outline);
+  border-radius: var(--stitch-card-radius);
+  background: var(--stitch-light-surface);
+  color: var(--brand-midnight);
+  box-shadow: var(--stitch-card-depth);
+}
+.booking-workflow > .stitch-booking-activity { margin: 0 0 16px; scroll-margin-top: 12px; }
+.stitch-activity-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: #e4efff;
+  color: var(--brand-action);
+}
+.stitch-activity-icon .stitch-symbol { animation: stitch-search-drift 1.9s ease-in-out infinite; }
+.stitch-activity-text { align-self: center; min-width: 0; }
+.stitch-activity-text :is(strong, h1) {
+  display: block;
+  margin: 0;
+  color: inherit;
+  font: 760 clamp(15px, 1.5vw, 19px)/1.3 var(--font-stitch-display), sans-serif;
+}
+.stitch-activity-text p { margin: 4px 0 0; color: var(--brand-muted); font-size: 13px; line-height: 1.45; }
+.stitch-activity-text .stitch-activity-delay { color: #344969; }
+.page-shell.stitch-route-loading { width: min(100% - 32px, 1240px); margin-inline: auto; padding-block: 20px; }
+
+.stitch-pending-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 3.2fr);
+  align-items: start;
+  gap: 16px;
+}
+.stitch-pending-results { display: grid; gap: 12px; }
+.stitch-pending-filters, .stitch-pending-result {
+  display: grid;
+  gap: 14px;
+  padding: clamp(12px, 2vw, 20px);
+  border: 1px solid var(--stitch-outline);
+  border-radius: var(--stitch-card-radius);
+  background: white;
+  box-shadow: var(--stitch-card-depth);
+}
+.stitch-pending-filters .stitch-pending-line:first-child { width: 45%; height: 16px; }
+.stitch-pending-filters .stitch-pending-line:nth-child(odd) { width: 66%; }
+.stitch-pending-result {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 88px;
+}
+.stitch-pending-result-copy { display: grid; gap: 8px; width: min(85%, 320px); }
+.stitch-pending-line, .stitch-pending-thumb, .stitch-pending-action {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(100deg, #e7edf5 20%, #f1f5fa 45%, #e7edf5 70%) 0 0 / 200% 100%;
+  animation: stitch-search-sheen 2.2s ease-in-out infinite;
+}
+.stitch-pending-result-copy .stitch-pending-line:last-child { width: 62%; }
+.stitch-pending-thumb { width: 42px; height: 42px; border-radius: 10px; }
+.stitch-pending-results[data-product=hotel] .stitch-pending-thumb { width: clamp(70px, 12vw, 144px); height: clamp(46px, 6vw, 84px); }
+.stitch-pending-action { width: clamp(40px, 10vw, 104px); height: 34px; }
+@keyframes stitch-search-sheen { to { background-position: -200% 0; } }
+@keyframes stitch-search-drift { 50% { transform: translateY(-3px); } }
+
+body.stitch-theme .booking-workflow.is-searching > :is(.booking-intro, .back, .booking-layout[hidden]) { display: none; }
+body.stitch-theme .booking-workflow.booking-shopping:not(.has-journey, .is-searching) .booking-intro {
+  padding: clamp(16px, 2.5vw, 30px);
+  border: 1px solid var(--stitch-outline);
+  border-radius: var(--stitch-card-radius);
+  background: var(--stitch-light-surface);
+  box-shadow: var(--stitch-card-depth);
+}
+body.stitch-theme .booking-intro .booking-heading-icon { background: #e4efff; color: var(--brand-action); }
+body.stitch-theme .booking-workflow .booking-search-panel:has(summary:not(.booking-criteria-strip)),
+body.stitch-theme .booking-workflow .booking-summary.is-planning {
+  border-color: var(--stitch-outline);
+  border-radius: var(--stitch-card-radius);
+  box-shadow: var(--stitch-card-depth);
+}
+body.stitch-theme .booking-workflow .stitch-booking-help {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.stitch-booking-help a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.stitch-booking-help p { margin: 0 0 4px; }
+
+body.stitch-theme .booking-workflow.results-only #booking-search .booking-criteria-strip {
+  background-color: var(--brand-midnight);
+  background-image: var(--stitch-route-surface);
+  box-shadow: var(--stitch-card-depth);
+}
+body.stitch-theme #booking-results :is(.flight-shopping-sort-row, .hotel-shopping-toolbar, .empty-results),
+body.stitch-theme #booking-rooms :is(.stay-detail-heading, .stay-rate-preview, .stay-room-group),
+body.stitch-theme #booking-review :is(.selected-itinerary, .booking-contact, .checkout-methods) {
+  box-shadow: var(--stitch-card-depth);
+}
+body.stitch-theme #booking-review .booking-expiry,
+body.stitch-theme #booking-results .flight-date-progress {
+  border-radius: 12px;
+}
+
+body.stitch-theme .account-workspace-content :is(.account-card, .white-card),
+body.stitch-theme .concierge-trips :is(.hub-browser, .trip-record, .trips-support-card),
+body.stitch-theme .public-refresh :is(.package-card, .package-quote, .public-article, .legal-article, .public-office-card, .catalogue-card) {
+  border-color: var(--stitch-outline);
+  box-shadow: var(--stitch-card-depth);
+}
+body.stitch-theme .account-workspace-discover,
+body.stitch-theme .concierge-trips .trips-support-card,
+body.stitch-theme .public-refresh .package-quote {
+  background: var(--stitch-light-surface);
+}
+
+@media (max-width: 700px) {
+  .stitch-theme .stitch-search-pending { gap: 12px; }
+  .stitch-search-route { gap: 10px; padding: 14px; grid-template-columns: auto minmax(0, 1fr); }
+  .stitch-search-product { width: 38px; height: 38px; }
+  .stitch-search-route .stitch-search-stop { grid-column: 1/-1; width: 100%; }
+  .stitch-pending-layout { grid-template-columns: minmax(0, 1fr); }
+  .stitch-pending-filters { display: none; }
+  .stitch-pending-result { min-height: 70px; gap: 10px; }
+  body.stitch-theme .booking-workflow.journey-flow .booking-summary.is-planning {
+    display: block;
+    order: 0;
+    position: static;
+    padding: 16px;
+  }
+  .stitch-theme .booking-summary.is-planning .booking-planning-photo { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stitch-activity-icon .stitch-symbol,
+  .stitch-pending-line, .stitch-pending-thumb, .stitch-pending-action { animation: none; }
+}

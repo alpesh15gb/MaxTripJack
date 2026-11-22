@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {exactAirportGroups} from '../src/lib/flight-airport-scope';
+import {exactAirportGroups,splitFlightItinerary} from '../src/lib/flight-airport-scope';
 import {orderedFlightSelection} from '../src/lib/flight-selection';
 const criteria={from:'BOM',to:'DEL',date:'2026-10-29'};
 const segment=(from:string,to:string,date='2026-10-29')=>({da:{code:from},aa:{code:to},dt:date+'T11:25'});
@@ -24,9 +24,12 @@ test('COMBO checks every boundary, preserves connected legs, rejects missing leg
  const good=trip('combo',segment('BOM','IXB'),segment('IXB','DEL'),segment('DEL','HYD','2026-11-02'),segment('HYD','BOM','2026-11-02'));
  const bad=trip('bad',segment('BOM','DXN'),segment('DXN','BOM','2026-11-02'));
  assert.deepEqual(exactAirportGroups({COMBO:[good,bad,trip('incomplete',segment('BOM','DEL'))]},{...criteria,returnDate:'2026-11-02'}).COMBO,[good]);
+ assert.deepEqual(splitFlightItinerary(good.sI,{...criteria,returnDate:'2026-11-02'}),[good.sI.slice(0,2),good.sI.slice(2)]);
+ assert.equal(splitFlightItinerary(good.sI,criteria),null);
  const legs=[criteria,{from:'DEL',to:'GOI',date:'2026-11-02'},{from:'GOI',to:'BOM',date:'2026-11-04'}];
  const multi=trip('multi',segment('BOM','IXB'),segment('IXB','DEL'),segment('DEL','GOI','2026-11-02'),segment('GOI','BOM','2026-11-04'));
  const grouped=exactAirportGroups({COMBO:[multi]},{...criteria,legs});assert.deepEqual(grouped.COMBO,[multi]);assert.deepEqual(orderedFlightSelection(grouped,['multi'],{legs}),['multi']);
+ assert.deepEqual(splitFlightItinerary(multi.sI,{...criteria,legs}),[multi.sI.slice(0,2),[multi.sI[2]],[multi.sI[3]]]);
  const separated=exactAirportGroups({'0':[trip('a',segment('BOM','DEL'))],'1':[trip('b',segment('DEL','GOI','2026-11-02'))],'2':[trip('c',segment('GOI','BOM','2026-11-04'))]},{...criteria,legs});assert.deepEqual(orderedFlightSelection(separated,['c','b','a'],{legs}),['a','b','c']);
 });
 test('malformed airports, unknown groups, wrong date and empty segments fail closed',()=>{

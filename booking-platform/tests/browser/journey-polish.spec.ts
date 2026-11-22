@@ -21,11 +21,14 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   try{
    await page.getByRole('form',{name:'Search availability'}).getByRole('button',{name:product==='FLIGHT'?'Search flights':'Search stays',exact:true}).click();
    const pending=page.locator('#booking-pending');await expect(pending).toContainText(product==='FLIGHT'?'BOM → DEL':'Goa');await expect(pending).toContainText('Waiting for live supplier availability');
+   await expect(pending.getByRole('heading',{level:1})).toHaveCSS('color','rgb(255, 255, 255)');
+   await expect(page.getByRole('form',{name:'Search availability'})).toBeHidden();
+   await expect(page.getByRole('list',{name:'Booking progress'})).toHaveCount(0);
    await expect(pending).not.toContainText(/\d+%|seconds remaining|almost there/i);expect(calls).toBe(1);
    await expect.poll(()=>page.evaluate(()=>((window as unknown as {__feedbackTiming:{visible:number}}).__feedbackTiming.visible))).toBeGreaterThan(0);
    const timing=await page.evaluate(()=>((window as unknown as {__feedbackTiming:{submitted:number;visible:number}}).__feedbackTiming));expect(timing.visible-timing.submitted).toBeGreaterThanOrEqual(0);expect(timing.visible-timing.submitted).toBeLessThan(1000);
    await info.attach('synthetic-submit-to-visible-feedback-ms',{body:JSON.stringify(timing),contentType:'application/json'});
-   const motion=await pending.locator(product==='FLIGHT'?'.journey-search-plane':'.journey-search-stay').evaluate(async node=>{
+   const motion=await pending.locator('.stitch-activity-icon .stitch-symbol').evaluate(async node=>{
     const animation=node.getAnimations()[0];if(!animation)throw new Error('Expected a running decorative search animation');
     const initial={currentTime:Number(animation.currentTime),transform:getComputedStyle(node).transform,playState:animation.playState};
     const observed=await new Promise<typeof initial>((resolve,reject)=>{let frames=0;const tick=()=>{const next={currentTime:Number(animation.currentTime),transform:getComputedStyle(node).transform,playState:animation.playState};if(next.currentTime-initial.currentTime>=16&&next.transform!==initial.transform)resolve(next);else if(++frames>=120)reject(new Error('Decorative animation did not advance across animation frames'));else requestAnimationFrame(tick);};requestAnimationFrame(tick);});
@@ -46,7 +49,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   let release!:()=>void;const held=new Promise<void>(resolve=>release=resolve);
   await page.route('**/api/travel/search',async route=>{await held;await route.abort().catch(()=>{});});
   try{await page.goto(flightQuery());await expect(page.getByRole('button',{name:'Stop search & edit',exact:true})).toBeVisible();
-   await page.evaluate(()=>{requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('input[aria-label="To airport"]')?.focus());(Array.from(document.querySelectorAll('button')).find(button=>button.textContent==='Stop search & edit') as HTMLButtonElement).click();});
+   await page.evaluate(()=>{requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('input[aria-label="To airport"]')?.focus());document.querySelector<HTMLButtonElement>('.stitch-search-stop')?.click();});
    await expect(page.locator('input[aria-label="To airport"]')).toBeFocused();
    await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
    await expect(page.locator('input[aria-label="To airport"]')).toBeFocused();
@@ -55,7 +58,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
  test('reduced motion and failed search keep honest feedback and a working retry',async({page,provider},info)=>{
   await page.emulateMedia({reducedMotion:'reduce'});let release!:()=>void;const held=new Promise<void>(resolve=>release=resolve);let calls=0;
   await page.route('**/api/travel/search',async route=>{calls++;if(calls===1){await held;await route.fulfill({status:503,json:{error:'Supplier availability could not be checked. Try again.'}});}else await route.fulfill({json:provider.search});});
-  try{await page.goto(flightQuery());await expect(page.locator('.journey-search-plane')).toHaveCSS('animation-name','none');await shot(page,info,'reduced-motion-search');}finally{release();}
+  try{await page.goto(flightQuery());await expect(page.locator('.stitch-activity-icon .stitch-symbol')).toHaveCSS('animation-name','none');await shot(page,info,'reduced-motion-search');}finally{release();}
   await expect(page.locator('#booking-feedback')).toContainText('Supplier availability could not be checked');await expect(page.locator('#booking-pending')).toHaveCount(0);
   await page.getByRole('button',{name:'Search flights',exact:true}).click();await expect(page.locator('#booking-results')).toBeVisible();expect(calls).toBe(2);
  });
