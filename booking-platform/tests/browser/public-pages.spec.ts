@@ -45,7 +45,7 @@ test('footer travel assistance and check-in help lead to working pages', async (
   if (await directory.isVisible()) await directory.click();
   await expect(footer.getByRole('link', {name: 'Visa assistance', exact: true})).toHaveAttribute('href', '/visa-guide');
   await expect(footer.getByRole('link', {name: 'Travel insurance', exact: true})).toHaveAttribute('href', '/travel-insurance-guide');
-  await expect(footer.getByRole('link', {name: 'Bus enquiries', exact: true})).toHaveAttribute('href', '/contact');
+  await expect(footer.getByRole('link', {name: 'Bus enquiries', exact: true})).toHaveAttribute('href', '/contact?topic=bus#office-enquiry');
   await footer.getByRole('link', {name: 'Flight check-in help', exact: true}).click();
   await expect(page.getByRole('heading', {name: '5. Recheck before travelling', exact: true})).toBeVisible();
   await expect(page).toHaveURL(/\/flight-booking-guide#section-4$/);

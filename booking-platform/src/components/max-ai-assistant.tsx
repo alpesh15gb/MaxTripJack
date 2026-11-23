@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {useCallback, useEffect, useId, useRef, useState, type MutableRefObject} from 'react';
+import {createContext, useCallback, useContext, useEffect, useId, useRef, useState, type MutableRefObject, type ReactNode} from 'react';
 import {authClient} from '@/lib/auth-client';
 import {displayMoney} from '@/lib/display-money';
 import {isMaxAiActionHref, type MaxAiAction, type MaxAiCard, type MaxAiResponse} from '@/lib/max-ai-contract';
@@ -301,8 +301,18 @@ function MaxAiWidget() {
   </>;
 }
 
-export default function MaxAiAssistant({enabled}: {enabled: boolean}) {
+const MaxAiAvailable=createContext(false);
+
+export function MaxAiFooterAction(){
+  if(!useContext(MaxAiAvailable))return null;
+  return <button className="max-ai-footer-action" type="button" aria-haspopup="dialog"
+    onClick={event=>event.currentTarget.dispatchEvent(new Event('maxtravel:open-assistant',{bubbles:true}))}>
+    <AiIcon name="spark" size={18}/> Ask Max AI
+  </button>;
+}
+
+export default function MaxAiAssistant({enabled,children}: {enabled: boolean;children: ReactNode}) {
   const pathname = usePathname();
-  const inStaffWorkspace = pathname === '/operations' || pathname.startsWith('/operations/');
-  return enabled && !inStaffWorkspace ? <MaxAiWidget/> : null;
+  const available=enabled&&pathname!=='/operations'&&!pathname.startsWith('/operations/');
+  return <MaxAiAvailable.Provider value={available}>{children}{available&&<MaxAiWidget/>}</MaxAiAvailable.Provider>;
 }

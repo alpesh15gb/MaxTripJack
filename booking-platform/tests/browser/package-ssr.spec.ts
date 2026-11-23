@@ -9,13 +9,20 @@ test.describe('server-rendered package detail without JavaScript',()=>{
  test('metadata and content share one request snapshot without cross-request staleness',async({page})=>{
   await page.goto('/packages/ssr-consistency-layout-sample');const first=await page.getByRole('heading',{level:1}).innerText();await expect(page).toHaveTitle(new RegExp(first));await page.reload();const second=await page.getByRole('heading',{level:1}).innerText();await expect(page).toHaveTitle(new RegExp(second));expect(second).not.toBe(first);
  });
+ test('a slow or unavailable feed has a readable Stitch recovery page before hydration',async({page})=>{
+  const response=await page.goto('/packages/unavailable-layout-sample');
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole('heading',{name:'Package information is temporarily unavailable'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Browse packages',exact:true})).toHaveAttribute('href','/packages');
+  await expect(page.locator('meta[name=robots]')).toHaveAttribute('content',/noindex/);
+ });
 });
 test('unpublished and invalid slugs are HTTP404, not temporary supplier failures',async({page,request})=>{
  for(const slug of ['not-published-layout-sample','INVALID_slug']){const response=await page.goto(`/packages/${slug}`);expect(response?.status()).toBe(404);await expect(page.getByRole('heading',{name:'Package unavailable',exact:true})).toBeVisible();}
  const api=await request.get('/api/packages/unavailable-layout-sample');expect(api.status()).toBe(503);
 });
 test('temporary detail errors offer accessible retry and never claim withdrawn inventory',async({page})=>{
- const response=await page.goto('/packages/unavailable-layout-sample');expect(response?.status()).toBe(500);await expect(page.getByRole('heading',{name:'Package information is temporarily unavailable'})).toBeVisible();await expect(page.getByRole('button',{name:'Try again',exact:true})).toBeVisible();await expect(page.getByText('This does not mean the package has been withdrawn.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByRole('heading',{name:'Package information is temporarily unavailable'})).toBeVisible();await expectNoHorizontalOverflow(page);
+ const response=await page.goto('/packages/unavailable-layout-sample');expect(response?.status()).toBe(200);await expect(page.getByRole('heading',{name:'Package information is temporarily unavailable'})).toBeVisible();await expect(page.getByRole('button',{name:'Try again',exact:true})).toBeVisible();await expect(page.getByText('This does not mean the package has been withdrawn.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByRole('heading',{name:'Package information is temporarily unavailable'})).toBeVisible();await expectNoHorizontalOverflow(page);
 });
 
 test('temporary package retry recovers current publication or a real withdrawn state',async({page})=>{

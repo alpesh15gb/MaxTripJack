@@ -9,9 +9,10 @@ import {travelPackageSchema} from './travel-packages';
 export const getPackageDetail = cache(async (slug:string) => {
  try {
   const result=await customerPackageDetail(slug);
-  return {item:travelPackageSchema.parse(result.package),planningOnly:result.source==='trip-ideas'};
+  return {status:'ready',item:travelPackageSchema.parse(result.package),planningOnly:result.source==='trip-ideas'} as const;
  } catch(error) {
-  if(error instanceof PackageCatalogueError&&error.status===404)notFound();
-  throw error; // Temporary failure uses the framework error boundary, never a false404.
+  if(!(error instanceof PackageCatalogueError))throw error;
+  if(error.status===404)notFound();
+  return {status:'unavailable'} as const;
  }
 });

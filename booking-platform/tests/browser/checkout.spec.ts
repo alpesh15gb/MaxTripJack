@@ -80,6 +80,7 @@ test('payment options wait for passenger details and accept an international pho
   await expect(form.getByRole('textbox',{name:'First name',exact:true})).toHaveAttribute('aria-invalid','true');
   await form.getByRole('textbox',{name:'First name',exact:true}).fill('Aarav');
   await form.getByRole('textbox',{name:'Last name',exact:true}).fill('Example');
+  await form.getByRole('textbox',{name:'Email',exact:true}).fill('traveller@example.test');
   await form.locator('select[name="phoneCountryCode"]').selectOption('+44');
   await form.getByRole('textbox',{name:'Mobile number',exact:true}).fill('7700900123');
   await method.click();
@@ -87,6 +88,10 @@ test('payment options wait for passenger details and accept an international pho
   await page.getByRole('button',{name:'Back to booking review'}).click();
   await openSyntheticPayment(page);
   expect(provider.requests('/api/payments/create')[0]?.body).toMatchObject({guests:{phone:'+447700900123'}});
+  expect(await page.evaluate('window.__syntheticGateway.options.prefill')).toEqual({
+    email:'traveller@example.test',
+    contact:'+447700900123',
+  });
 });
 
 test('a hung fare review times out and can be retried without losing results', async ({page, provider}) => {

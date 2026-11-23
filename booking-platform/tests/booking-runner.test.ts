@@ -9,7 +9,7 @@ let serial=0;
 async function harness(){
  const now=Date.now(),oldStart=new Date(now-120000).toISOString(),nextStart=new Date(now-1000).toISOString(),deadline=new Date(now+86400000).toISOString(),end=new Date(now+172800000).toISOString();
  const review=(from:string)=>({bookingId:'fresh-supplier-reference',option:{pricing:{totalPrice:10000,currency:'INR'},compliance:{panRequired:false},cancellation:{isRefundable:true,penalties:[{from,to:deadline,amount:0},{from:deadline,to:end,amount:10000}]}}});
- const state={job:{order_id:'synthetic-order',state:'READY',attempted:false,checks:0},order:{id:'synthetic-order',reference:'MT-SYNTHETIC',product:'HOTEL',status:'PAID',total_minor:1034983,supplier_minor:1000000,quote_created_at:new Date(now-60000),review:review(oldStart),selection:{hid:'10001',optionId:'selected-room'},supplier_booking_id:null as string|null},fresh:review(nextStart),events:[] as Array<{type:string;payload:Record<string,unknown>}>,warnings:[] as unknown[],reviewCalls:0,bookCalls:0,detailsCalls:0,detailsStatus:'SUCCESS',detailsFail:false,bookResponseLost:false,reviewFails:false,guestFails:false};
+ const state={job:{order_id:'synthetic-order',state:'READY',attempted:false,checks:0},order:{id:'synthetic-order',reference:'MT-SYNTHETIC',product:'HOTEL',status:'PAID',total_minor:1034983,supplier_minor:1000000,quote_created_at:new Date(now-60000),review:review(oldStart),selection:{hid:'10001',optionId:'selected-room'},supplier_booking_id:null as string|null},fresh:review(nextStart),events:[] as Array<{type:string;payload:Record<string,unknown>}>,warnings:[] as unknown[],reviewCalls:0,bookCalls:0,detailsCalls:0,detailsStatus:'SUCCESS',detailsFail:false,detailsMissing:false,bookRejected:false,bookResponseLost:false,reviewFails:false,guestFails:false};
  const globals=globalThis as unknown as Record<string,unknown>,key=`__booking_runner_${++serial}`;
  globals[key]=state;const scope=`const state=globalThis[${JSON.stringify(key)}];`;
  const mocks:Record<string,string>={
@@ -19,14 +19,17 @@ async function harness(){
   './vault':`${scope} export function seal(){return 'synthetic-encrypted';} export function unseal(){if(state.guestFails)throw Error('PRIVATE KEY DATA');return {travellers:[{ti:'Mr',pt:'ADULT',fN:'Synthetic',lN:'Guest'}],email:'synthetic@example.test',phone:'9000000000'};}`,
   './providers/tripjack':`${scope}
    export const paths={HOTEL:{review:'review',book:'book',details:'details'}};
+   export class TripjackRequestError extends Error {
+    constructor(code){super('PRIVATE PROVIDER MESSAGE');this.upstream={product:'HOTEL',httpStatus:400,supplierErrorCodes:[code]};}
+   }
    export async function tripjack(product,path,payload){
     if(product!=='HOTEL')throw Error('Unexpected product');
     if(path==='review'){state.reviewCalls++;if(state.reviewFails)throw Error('PRIVATE PROVIDER BODY');return structuredClone(state.fresh);}
     if(path==='book'){
      if(!state.job.attempted||state.order.status!=='BOOKING_PENDING'||state.order.supplier_booking_id!==payload.bookingId||payload.paymentInfos[0].amount!==10000)throw Error('Book dispatched without persisted marker or correct amount');
-     state.bookCalls++;if(state.bookResponseLost)throw Error('Response lost after acceptance');return {};
+     state.bookCalls++;if(state.bookRejected)throw new TripjackRequestError('810');if(state.bookResponseLost)throw Error('Response lost after acceptance');return {};
     }
-    if(path==='details'){state.detailsCalls++;if(payload.bookingId!==state.order.supplier_booking_id)throw Error('Wrong supplier reference');if(state.detailsFail)throw Error('PRIVATE DETAILS');return {order:{status:state.detailsStatus}};}
+    if(path==='details'){state.detailsCalls++;if(payload.bookingId!==state.order.supplier_booking_id)throw Error('Wrong supplier reference');if(state.detailsMissing)throw new TripjackRequestError('2501');if(state.detailsFail)throw Error('PRIVATE DETAILS');return {order:{status:state.detailsStatus}};}
     throw Error('Unexpected supplier request');
    }`,
   './db':`${scope}
@@ -89,9 +92,19 @@ test('supplier review and guest failures are distinguishable without logging pri
 
 test('lost Book response is reconciled by existing reference without submitting another Book',async()=>{
  const h=await harness();try{
-  h.state.bookResponseLost=true;h.state.detailsFail=true;await h.run();
+  h.state.bookResponseLost=true;h.state.detailsMissing=true;await h.run();
   assert.equal(h.state.job.attempted,true);assert.equal(h.state.job.state,'POLLING');assert.equal(h.state.order.status,'BOOKING_PENDING');
-  h.state.detailsFail=false;await h.run();assert.equal(h.state.order.status,'CONFIRMED');assert.equal(h.state.bookCalls,1);assert.equal(h.state.reviewCalls,1);
+  h.state.detailsMissing=false;await h.run();assert.equal(h.state.order.status,'CONFIRMED');assert.equal(h.state.bookCalls,1);assert.equal(h.state.reviewCalls,1);
+ }finally{h.cleanup();}
+});
+
+test('known submit rejection with a missing supplier order goes straight to manual review',async()=>{
+ const h=await harness();try{
+  h.state.bookRejected=true;h.state.detailsMissing=true;await h.run();
+  assert.equal(h.state.order.status,'MANUAL_REVIEW');assert.equal(h.state.job.state,'REVIEW');
+  assert.deepEqual(h.state.events[0].payload.failure,{stage:'BOOKING_SUBMIT',code:'TRIPJACK_BOOK_REJECTED',supplierErrorCodes:['810']});
+  assert.equal(await h.run(),false);assert.equal(h.state.bookCalls,1);assert.equal(h.state.detailsCalls,1);
+  assert.doesNotMatch(JSON.stringify(h.state.warnings),/PRIVATE PROVIDER MESSAGE/);
  }finally{h.cleanup();}
 });
 

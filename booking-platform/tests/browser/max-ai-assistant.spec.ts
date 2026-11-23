@@ -38,6 +38,23 @@ test('Max AI opens accessibly and asks for missing travel details without starti
   await expectNoHorizontalOverflow(page);
 });
 
+test('the guide keeps Max AI in the footer on mobile and restores focus there', async ({page}) => {
+  await page.goto('/visa-guide');
+  const footerAction = page.getByRole('button', {name: 'Ask Max AI', exact: true});
+  if ((page.viewportSize()?.width ?? 0) > 760) {
+    await expect(launcher(page)).toBeVisible();
+    await expect(footerAction).toBeHidden();
+    return;
+  }
+  await expect(launcher(page)).toBeHidden();
+  await footerAction.click();
+  await expect(panel(page)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(panel(page)).toBeHidden();
+  await expect(footerAction).toBeFocused();
+  await expectNoHorizontalOverflow(page);
+});
+
 test('Max AI shows real-result contracts and only server-authored local handoffs', async ({page, provider}, info) => {
   provider.overrides[endpoint] = {body: answer({reply: 'These are the options returned for your dates. Review current availability and terms before booking.', cards: [
     {id: 'flight-1', type: 'flight', title: 'IndiGo · Mumbai to New Delhi', subtitle: `${departure} · BOM → DEL`, details: ['09:15–11:25 · 2h 10m', 'Non-stop · Economy'], priceMinor: 654000, currency: 'INR', basis: 'Estimated total for 1 traveller', action: {label: 'Compare flight fares', href: `/book?product=FLIGHT&flightSearch=${searchId}`}},

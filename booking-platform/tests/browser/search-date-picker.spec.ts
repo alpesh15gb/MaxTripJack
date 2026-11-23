@@ -1,6 +1,6 @@
 import {test,expect,capture,departure,returning,pickHomeDate,expectNoHorizontalOverflow} from './fixtures';
 
-test('search pickers are dismissible sheets on phones and anchored panels on desktop', async ({page}, info) => {
+test('search pickers use mobile sheets and the desktop calendar blocks the background', async ({page}, info) => {
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/');
  const mobile = info.project.name === 'mobile-390';
@@ -9,12 +9,15 @@ test('search pickers are dismissible sheets on phones and anchored panels on des
   await trigger.click();
   const panel = page.locator('dialog.search-picker-dialog[open]');
   await expect(panel).toBeVisible();
-  expect(await panel.evaluate(node => node.matches(':modal'))).toBe(mobile);
+  const modal = mobile || field === '.fare-date-trigger';
+  expect(await panel.evaluate(node => node.matches(':modal'))).toBe(modal);
   if (mobile) {
    const bounds = await panel.boundingBox();
    expect(bounds!.x).toBe(0);
    expect(bounds!.y + bounds!.height).toBeCloseTo(page.viewportSize()!.height,0);
    await expect(panel).toHaveCSS('animation-name','none');
+  }
+  if (modal) {
    await page.locator('.home-search-submit').evaluate(node => (node as HTMLElement).focus());
    expect(await panel.evaluate(node => node.contains(document.activeElement))).toBe(true);
   }

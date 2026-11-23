@@ -6,7 +6,7 @@ export type RazorpayMethod = 'upi' | 'card' | 'netbanking' | 'emi' | 'wallet';
 type CheckoutOptions = {
   key: string; amount: number; currency: string; order_id: string; name: string;
   theme?: { color: string };
-  prefill?: { method: RazorpayMethod; email: string; contact: string };
+  prefill?: { method?: RazorpayMethod; email: string; contact: string };
   handler: (result: CheckoutResult) => void;
   modal: { ondismiss: () => void };
 };

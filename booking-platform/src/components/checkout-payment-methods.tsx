@@ -25,7 +25,7 @@ export function paymentPreference(form: HTMLFormElement) {
   const phone = form.querySelector<HTMLInputElement>('input[name="phone"]')?.value.trim();
   const code = form.querySelector<HTMLSelectElement>('select[name="phoneCountryCode"]')?.value ?? '';
   const contact = phone ? bookingPhoneParts(bookingPhoneFromFields(phone, code)) : null;
-  return method && email && contact ? {method: method.id, email, contact: contact.international} : undefined;
+  return email && contact ? {email, contact: contact.international, ...(method ? {method:method.id} : {})} : undefined;
 }
 
 type Props = {

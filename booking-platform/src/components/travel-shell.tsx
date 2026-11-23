@@ -9,6 +9,7 @@ import {footerPolicyLinks,footerSocialLinks} from "@/lib/footer-links";
 import {useCompanyProfile} from "./company-profile-context";
 import {TravelIcon} from "./travel-icon";
 import {StitchSymbol} from "./stitch-symbol";
+import {MaxAiFooterAction} from "./max-ai-assistant";
 import "./package-navigation.css";
 export {TravelIcon} from "./travel-icon";
 
@@ -71,6 +72,7 @@ export function TravelFooter({contactEmail}: {contactEmail?: string} = {}) {
     </div>
   </div>;
   return <footer className="travel-footer concierge-footer">
+    <MaxAiFooterAction/>
     <div className="concierge-desktop-directory">{directory}</div>
     <details className="concierge-mobile-directory"><summary>Help &amp; policies <StitchSymbol name="expand_more" size={17}/></summary>{directory}</details>
     <div className="concierge-footer-base"><span>© {new Date().getFullYear()} {company.legalName || company.name}. All rights reserved.</span><span>In Testing · No live bookings or payments</span></div>

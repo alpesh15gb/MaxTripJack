@@ -5,7 +5,7 @@ import { FareValidationBlockedError } from "./fare-validation";
 import { randomUUID } from "node:crypto";
 import { assertHotelPrebookReview,HotelPrebookReviewError } from "./hotel-prebook-review";
 import { database,transaction } from "./db";
-import { tripjack,paths,Product } from "./providers/tripjack";
+import { tripjack,paths,Product,TripjackRequestError } from "./providers/tripjack";
 import { bookingBody,guestSchema } from "./providers/contracts";
 import { seal,unseal } from "./vault";
 import { runFlightServiceJob } from "./flight-service-runner";
@@ -15,6 +15,7 @@ export async function runBookingJob(){
  const job=claim.rows[0];if(!job)return false;
  const result=await database().query("SELECT o.*,q.review,q.selection,q.service_payload,q.created_at AS quote_created_at,q.supplier_booking_id AS reviewed_booking_id FROM orders o JOIN supplier_quotes q ON q.id=o.quote_id WHERE o.id=$1",[job.order_id]);const order=result.rows[0];
  let stage='ELIGIBILITY';
+ let rejectedSubmission:TripjackRequestError['upstream']|undefined;
  try{
  if(!order||!["PAID","BOOKING_PENDING"].includes(order.status))throw Error("Order not eligible");
  if(order.service_kind)return await runFlightServiceJob(job,order,lease);
@@ -45,7 +46,15 @@ export async function runBookingJob(){
   });
   order.supplier_booking_id=bookingId;
   job.attempted=true;
-  try{await tripjack(product,paths[product].book,payload,true);}catch{/* Unknown outcome: continue to booking-details, never repeat book. */}
+  try{await tripjack(product,paths[product].book,payload,true);}catch(error){
+   if(error instanceof TripjackRequestError){
+    const {upstream}=error;
+    console.warn('[booking:submit-error]',{reference:order.reference,...upstream});
+    const rejectionCode=product==='FLIGHT'?'800':'810';
+    if(upstream.httpStatus===400&&upstream.supplierErrorCodes.includes(rejectionCode))rejectedSubmission=upstream;
+   }
+   // Always try to read the existing supplier order. Never submit Book again.
+  }
  }
  stage='SUPPLIER_DETAILS';
  const details=await tripjack(product,paths[product].details,{bookingId:order.supplier_booking_id, ...(product==="FLIGHT"?{requirePaxPricing:true}:{})},true);
@@ -63,9 +72,15 @@ export async function runBookingJob(){
   if(success||failed||reviewRequired||job.checks>=35)await tx.query("INSERT INTO outbox_events(id,aggregate_id,event_type,payload) VALUES($1,$2,$3,$4)",[randomUUID(),order.id,success?"booking.confirmed":failed?"booking.failed":"booking.review_required",{bookingId:order.id,supplierBookingId:order.supplier_booking_id,status:newState}]);
  });
  }catch(error){
-  const failure={stage,code:error instanceof HotelPrebookReviewError?error.code:'OPERATION_FAILED'};
+  // These observed submission rejections followed by a missing order need
+  // immediate reconciliation. The captured payment still needs operator review.
+  const missingAfterRejection=stage==='SUPPLIER_DETAILS'&&error instanceof TripjackRequestError
+   &&error.upstream.httpStatus===400&&error.upstream.supplierErrorCodes.includes('2501')?rejectedSubmission:undefined;
+  const failure=missingAfterRejection
+   ?{stage:'BOOKING_SUBMIT',code:'TRIPJACK_BOOK_REJECTED',supplierErrorCodes:missingAfterRejection.supplierErrorCodes}
+   :{stage,code:error instanceof HotelPrebookReviewError?error.code:'OPERATION_FAILED'};
   console.warn('[booking:job-failed]',{reference:order?.reference??null,attempted:Boolean(job.attempted),...failure});
-  if(job.attempted&&job.checks<35){await database().query("UPDATE booking_jobs SET checks=checks+1,next_attempt=now()+interval '5 seconds',lease_until=NULL,lease_token=NULL WHERE order_id=$1 AND lease_token=$2",[job.order_id,lease]);}
+  if(job.attempted&&job.checks<35&&!missingAfterRejection){await database().query("UPDATE booking_jobs SET checks=checks+1,next_attempt=now()+interval '5 seconds',lease_until=NULL,lease_token=NULL WHERE order_id=$1 AND lease_token=$2",[job.order_id,lease]);}
   else {await transaction(async tx=>{const current=await tx.query("SELECT o.id FROM orders o JOIN booking_jobs j ON j.order_id=o.id WHERE o.id=$1 AND j.lease_token=$2 FOR UPDATE OF o,j",[job.order_id,lease]);if(!current.rowCount)return;const reviewRequired=job.attempted||error instanceof FareValidationBlockedError;const status=reviewRequired?"MANUAL_REVIEW":"BOOKING_FAILED";await tx.query("UPDATE orders SET status=$2,revision=revision+1,updated_at=now() WHERE id=$1",[job.order_id,status]);await tx.query("UPDATE booking_jobs SET state='REVIEW',lease_token=NULL,lease_until=NULL WHERE order_id=$1 AND lease_token=$2",[job.order_id,lease]);await tx.query("INSERT INTO outbox_events(id,aggregate_id,event_type,payload) VALUES($1,$2,$3,$4)",[randomUUID(),job.order_id,reviewRequired?"booking.review_required":"booking.failed",{bookingId:job.order_id,status,failure}]);});}
  }
  return true;
