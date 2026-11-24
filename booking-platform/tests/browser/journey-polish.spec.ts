@@ -64,7 +64,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
  });
  test('compact fares expose both leading prices and preserve original estimates separately from reviewed total',async({page,provider},info)=>{
   const row=flight();row.totalPriceList.push({...row.totalPriceList[0],id:'flex-exact-id',fareIdentifier:'FLEXIBLE',customerEstimateMinor:720050});provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[row]}}}};provider.quote=reviewedQuote({totalMinor:740050});
-  await page.goto(flightQuery());await page.locator('.fare-comparison>summary').press('Enter');
+  await page.goto(flightQuery());await page.locator('.fare-comparison-trigger').press('Enter');
   const offers=page.locator('.flight-shopping-list .fare-option');await expect(offers).toHaveCount(2);
   const firstAction=offers.first().getByRole('button',{name:'Check fare & continue',exact:true}),secondAction=offers.nth(1).getByRole('button',{name:'Check fare & continue',exact:true});
   await shot(page,info,'compact-fare-comparison',[firstAction]);await expect(firstAction).toBeInViewport({ratio:.95});

@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 
 async function reviewedCheckout(page: Page) {
   await openFlightSearch(page);
-  await page.locator('.fare-comparison > summary').first().click();
+  await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button', {name: 'Check fare & continue', exact: true}).first().click();
   const form = page.getByRole('form', {name: 'Review and travellers'});
   await form.getByLabel('First name', {exact: true}).fill('Aarav');

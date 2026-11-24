@@ -203,7 +203,7 @@ test('320px assistant stays within the viewport and its launcher clears the chec
   await page.setViewportSize({width: 320, height: 740});
   provider.overrides[endpoint] = {body: answer({reply: 'You can review the selected flight and fare conditions in checkout.'})};
   await openFlightSearch(page);
-  await page.locator('.fare-comparison > summary').first().click();
+  await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button', {name: 'Check fare & continue', exact: true}).click();
   const bar = page.locator('.mobile-booking-action');
   await expect(bar).toBeVisible();

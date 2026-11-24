@@ -25,8 +25,7 @@ function quote(amount=3675,missingReturnCancellation=false,id?:string){
  });
 }
 async function selectFare(page:Page,label:string){
- const comparison=page.locator('.flight-shopping-list .fare-comparison').first();
- if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
+ await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:label,exact:true}).first().click();
 }
 async function reviewRoundTrip(page:Page,provider:ProviderFixture){

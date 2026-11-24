@@ -2,7 +2,7 @@ import {formatBookingDate} from '../../src/lib/travel-date';
 import {test, expect, flight, departure, returning, searchId, openFlightSearch, expectNoHorizontalOverflow} from './fixtures';
 import type {Flight} from '../../src/lib/booking-presentation';
 
-test('fare disclosure stays open while the supplier review is pending', async ({page, provider}) => {
+test('fare dialog stays open while the supplier review is pending', async ({page, provider}) => {
   let release!: () => void;
   const held = new Promise<void>(resolve => { release = resolve; });
   await page.route('**/api/travel/review', async route => { await held; await route.fallback(); });
@@ -10,17 +10,15 @@ test('fare disclosure stays open while the supplier review is pending', async ({
   try {
     await openFlightSearch(page);
     const comparison = page.locator('.flight-shopping-list .fare-comparison').first();
-    const disclosure = comparison.locator('summary');
+    const disclosure = comparison.locator('.fare-comparison-trigger');
     await disclosure.click();
     await comparison.getByRole('button', {name: 'Check fare & continue', exact: true}).click();
     const status = comparison.getByRole('status');
     await expect(status).toContainText('Checking current fare');
-    await expect(disclosure).toHaveAttribute('aria-disabled', 'true');
-
-    // Native summary clicks and their keyboard equivalents must both be guarded.
-    await disclosure.evaluate(node => (node as HTMLElement).click());
-    await disclosure.press('Space');
-    await expect(comparison).toHaveAttribute('open', '');
+    const dialog = comparison.getByRole('dialog', {name: 'Flight details and fare options'});
+    await expect(dialog.getByRole('button', {name: 'Back to flights', exact: true})).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
     await expect(status).toBeVisible();
     await expect(comparison.getByRole('button', {name: 'Checking fare…', exact: true})).toBeDisabled();
   } finally {
@@ -32,7 +30,7 @@ test('fare disclosure stays open while the supplier review is pending', async ({
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('the incompatible fare notice fits above its expanded comparison and close action', async ({page, provider}) => {
+test('the incompatible fare dialog keeps recovery and close actions reachable', async ({page, provider}) => {
   if (page.viewportSize()!.width > 1100) await page.setViewportSize({width: 1101, height: 900});
   const back: Flight = flight('RETURN', 'incompatible-return');
   back.totalPriceList[0] = {...back.totalPriceList[0], fareIdentifier: 'SPECIAL_RETURN', msri: ['different-outbound']};
@@ -40,15 +38,16 @@ test('the incompatible fare notice fits above its expanded comparison and close 
   await page.goto('/book?' + new URLSearchParams({product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, returnDate: returning, adults: '1', autoSearch: '1'}));
 
   const comparison = page.locator('.flight-shopping-list .fare-comparison');
-  await comparison.locator('summary').click();
+  await comparison.locator('.fare-comparison-trigger').click();
   await comparison.getByRole('button', {name: 'Choose this outbound fare', exact: true}).click();
-  const disclosure = comparison.locator('summary');
+  const disclosure = comparison.locator('.fare-comparison-trigger');
   await expect(disclosure).toContainText('No compatible fare');
   await disclosure.click();
   await expect(comparison.getByRole('button', {name: 'Choose this return fare', exact: true})).toBeDisabled();
 
-  const bounds = await comparison.evaluate(node => ({
-    noticeBottom: node.querySelector('summary')!.getBoundingClientRect().bottom,
+  const dialog = comparison.getByRole('dialog', {name: 'Flight details and fare options'});
+  const bounds = await dialog.evaluate(node => ({
+    noticeBottom: node.querySelector('.flight-fare-recovery')!.getBoundingClientRect().bottom,
     panelTop: node.querySelector('.fare-comparison-options')!.getBoundingClientRect().top,
   }));
   expect(bounds.noticeBottom).toBeLessThanOrEqual(bounds.panelTop + 1);
@@ -60,6 +59,8 @@ test('the incompatible fare notice fits above its expanded comparison and close 
   await comparison.getByRole('button', {name: 'Edit flight search', exact: true}).click();
   await expect(page.getByLabel('Departure', {exact: true})).toBeFocused();
   await expect(page.getByLabel('Return date', {exact: true})).toHaveValue(formatBookingDate(returning));
+  await expect(dialog).toHaveCount(0);
+  await disclosure.click();
   await comparison.getByRole('button', {name: 'Change outbound fare', exact: true}).click();
   await expect(page.getByRole('heading', {name: 'Choose your outbound flight'})).toBeFocused();
   await expect(page.getByRole('region', {name: 'Selected flight context'})).toContainText('Standard fare');

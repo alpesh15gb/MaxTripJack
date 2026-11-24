@@ -211,3 +211,105 @@
 .fare-decision-dimensions > .fare-difference { background: #eaf3fd; box-shadow: inset 3px 0 #5e8ab9; }
 .journey-flow .fare-decision-grid .fare-changed-inclusions { display: flex; align-items: flex-start; gap: 6px; color: #305276; font-size: 13px; }
 .fare-changed-inclusions svg { flex-shrink: 0; margin-top: 2px; }
+
+/* The fare comparison opens above the result list, so its size and scroll
+   never change the flight cards or the customer's place in the results. */
+body:has(.flight-fares-dialog[open]) { overflow: hidden; }
+.fare-comparison-trigger { width: 100%; font: inherit; cursor: pointer; }
+.fare-comparison-trigger:disabled { cursor: default; }
+.flight-fares-dialog {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: min(var(--fare-dialog-width, 1190px), calc(100% - 40px));
+  max-width: none;
+  max-height: min(850px, calc(100dvh - 48px));
+  margin: auto;
+  padding: 0;
+  border: 1px solid #d5deea;
+  border-radius: 20px;
+  background: #f3f6fa;
+  color: var(--brand-midnight, #101c2c);
+  box-shadow: 0 28px 100px #07182c50;
+  overflow: hidden;
+}
+.flight-fares-dialog[data-fare-count="1"] { --fare-dialog-width: 530px; }
+.flight-fares-dialog[data-fare-count="2"] { --fare-dialog-width: 850px; }
+.flight-fares-dialog[open] { display: flex; flex-direction: column; }
+.flight-fares-dialog::backdrop { background: rgb(10 23 41 / .60); }
+.flight-fares-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px clamp(16px, 3vw, 28px);
+  background: linear-gradient(115deg, #0b2343, #1a3657);
+  color: #fff;
+}
+body .booking-workflow.journey-flow #booking-results .flight-fares-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.flight-fares-header h3:focus { outline: none; }
+.flight-fares-close {
+  display: grid;
+  flex: 0 0 44px;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0 0 2px;
+  border: 1px solid #ffffff45;
+  border-radius: 50%;
+  background: #ffffff14;
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+.flight-fares-close:hover:not(:disabled) { background: #ffffff30; }
+.flight-fares-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.flight-fares-close:disabled { opacity: .55; cursor: default; }
+.flight-fares-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px clamp(14px, 3vw, 28px); }
+.flight-fares-itinerary {
+  padding: 12px 15px;
+  border: 1px solid #dbe4ef;
+  border-radius: 12px;
+  background: #fff;
+}
+.flight-fares-route { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 14px; }
+.flight-fares-route > strong { font-size: 19px; line-height: 1.2; }
+.flight-fares-airline { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+.flight-fares-airline .airline-monogram { width: 28px; height: 28px; min-width: 28px; min-height: 28px; font-size: 11px; }
+.flight-fares-stops { color: #305276; font-size: 13px; font-weight: 650; }
+.flight-fares-itinerary .fare-itinerary-dates { margin: 4px 0 0; color: #41566d; font-size: 14px; line-height: 1.45; }
+.flight-fares-itinerary .flight-segment-details { margin: 4px 0 0; }
+#booking-results .flight-fares-dialog .fare-shared-terms { margin: 12px 0 6px; font-size: 14px; line-height: 1.45; }
+#booking-results .flight-fares-dialog .fare-comparison-options { padding: 4px 0 0; background: transparent; }
+#booking-results .flight-fares-dialog .fare-decision-grid > .fare-option-compact { padding: 14px; background: #fff; }
+#booking-results .flight-fares-dialog .fare-decision-grid > .is-lowest-fare { background: linear-gradient(180deg, #eaf3ff, #fff 130px); }
+.flight-fares-dialog .fare-option-heading h4 { color: #19538b; }
+.flight-fares-dialog .fare-option-action { text-align: start; }
+#booking-results .flight-fares-dialog .fare-comparison-guidance { margin: 8px 0 0; border: 0; background: transparent; }
+.flight-fares-dialog .fare-options-rail[data-single] .fare-decision-grid { --fare-card-width: 100%; }
+@container (min-width: 900px) {
+  .flight-fares-dialog .fare-decision-grid:has(> :nth-child(4)) { --fare-card-width: calc((100% - 2 * var(--fare-card-gap) - 24px) / 3); }
+}
+@media (max-width: 600px) {
+  .flight-fares-dialog { width: min(var(--fare-dialog-width, 1190px), calc(100% - 16px)); max-height: calc(100dvh - 20px); border-radius: 15px; }
+  .flight-fares-header { padding-block: 9px; }
+  .flight-fares-body { padding-block: 12px; }
+  .flight-fares-itinerary { padding: 9px 11px; }
+  .flight-fares-route > strong { font-size: 17px; }
+  .flight-fares-airline { font-size: 13px; }
+  .flight-fares-dialog .fare-decision-dimensions > div { grid-template-columns: minmax(95px,1fr) minmax(0,1.1fr); padding-block: 7px; }
+  #booking-results .flight-fares-dialog .fare-shared-terms { margin-top: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flight-fares-dialog[open] { animation: flight-fares-enter 150ms ease-out; }
+  @keyframes flight-fares-enter { from { opacity: .6; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+}

@@ -14,7 +14,7 @@ test('cabin seats show the customer price and recheck exact choices before payme
  provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[first,second],travellerTypes:['ADULT','ADULT','INFANT'],choices:[]}};
  provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:744390}};
  await openFlightSearch(page);
- await page.locator('.fare-comparison > summary').first().click();
+ await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  const form=page.getByRole('form',{name:'Review and travellers'});
  await expect(form.locator('.booking-concierge h3')).toHaveCSS('color','rgb(255, 255, 255)');
@@ -112,7 +112,7 @@ test('admin configures a capped percentage promo with service eligibility',async
 
 for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout applies and removes a promo in the displayed total`,async({page,provider},info)=>{
  if(product==='FLIGHT'){
-  await openFlightSearch(page);await page.locator('.fare-comparison > summary').first().click();
+  await openFlightSearch(page);await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  }else{
   const option={optionId:'promo-room',roomInfo:[{name:'Standard room'}],pricing:{totalPrice:6540,currency:'INR'},cancellation:{isRefundable:false,penalties:[]}};
@@ -173,7 +173,7 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
 
 
 test('flight reload restores public selection without persisting traveller details',async({page,provider},info)=>{
- await openFlightSearch(page);await page.locator('.fare-comparison > summary').first().click();
+ await openFlightSearch(page);await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  const form=page.getByRole('form',{name:'Review and travellers'});
  await form.getByLabel('First name',{exact:true}).fill('Privatefirstname');

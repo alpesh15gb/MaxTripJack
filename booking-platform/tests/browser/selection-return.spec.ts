@@ -3,7 +3,7 @@ import {test,expect,openFlightSearch,departure,returning,searchId,syntheticSessi
 
 const key='maxtravel:selection:v1';
 async function chooseFlight(page:Page){
- await page.locator('.fare-comparison > summary').first().click();
+ await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
 }
 // Deliberately exercise previously issued account-return URLs. New checkout
@@ -372,7 +372,7 @@ test('storage failure keeps inline verification and the current choice without r
   Storage.prototype.setItem=function(key,value){if(key==='maxtravel:selection:v1')throw new DOMException('Synthetic storage quota','QuotaExceededError');return original.call(this,key,value);};
  });
  await page.getByRole('button',{name:'Back to flights',exact:true}).click();
- await page.locator('.fare-option').getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await chooseFlight(page);
  await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
  await expect(page.locator('.booking-verification-summary')).toContainText('BOM → DEL');
  await expect(page.locator('#booking-results')).toBeHidden();

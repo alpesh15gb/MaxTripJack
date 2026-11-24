@@ -4,7 +4,7 @@ import { RAZORPAY_CHECKOUT_SCRIPT, RAZORPAY_CHECKOUT_LOAD_TIMEOUT } from '../../
 
 async function readyToPay(page: Page) {
   await openFlightSearch(page);
-  await page.locator('.fare-comparison > summary').first().click();
+  await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button', { name: 'Check fare & continue', exact: true }).first().click();
   const form = page.getByRole('form', { name: 'Review and travellers' });
   await form.getByLabel('First name', { exact: true }).fill('Aarav');

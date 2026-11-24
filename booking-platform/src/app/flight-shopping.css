@@ -293,13 +293,13 @@ body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .f
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .flight-route-line > div { gap: 2px; }
   .flight-results-page .flight-result-details { grid-area: 2 / 1 / 3 / 3; }
   body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison[open] { grid-area: 3 / 1 / 4 / -1; }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison > summary {
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison > :is(summary, .fare-comparison-trigger) {
     gap: 5px;
     padding: 8px 10px;
   }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison > summary > span { flex: none; }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > strong { font-size: 21px; }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary small { margin-top: 2px; line-height: 1.3; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison > :is(summary, .fare-comparison-trigger) > span { flex: none; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > strong { font-size: 21px; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) small { margin-top: 2px; line-height: 1.3; }
 
 }
 
@@ -339,8 +339,8 @@ body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .f
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
   }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > span { display: contents; }
-  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > summary > span > small {
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > span { display: contents; }
+  body .booking-workflow.journey-flow.flight-results-page .flight-shopping-list .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > span > small {
     grid-area: 1 / 2;
     align-self: start;
     text-align: right;

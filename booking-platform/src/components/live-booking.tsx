@@ -730,7 +730,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(firstNewIndex<0)return;
     requestAnimationFrame(()=>{
       const cards=document.querySelectorAll('#booking-results .flight-shopping-list > .live-flight-card');
-      const nextFare=cards.item(firstNewIndex)?.querySelector<HTMLElement>('.fare-comparison > summary');
+      const nextFare=cards.item(firstNewIndex)?.querySelector<HTMLButtonElement>('.fare-comparison-trigger');
       nextFare?.focus({preventScroll:true});
       nextFare?.scrollIntoView({behavior:'instant',block:'nearest'});
     });
@@ -934,7 +934,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     refreshedContinuation.current=null;
     const task=begin(renew?'Checking the latest price and rules':'Checking your fare and availability');if(!task)return;
     setHotelReviewFailed(false);setSignInRequired(false);setSignInWithoutSelection(false);setResumeSelection(null);setCheckingSelection(nextSelection);
-    if(!renew&&document.activeElement instanceof HTMLElement&&document.getElementById('booking-results')?.contains(document.activeElement))flightReturn.current={trigger:document.activeElement,scrollY:window.scrollY};
+    if(!renew&&document.activeElement instanceof HTMLElement&&!document.activeElement.closest('.flight-fares-dialog')&&document.getElementById('booking-results')?.contains(document.activeElement))flightReturn.current={trigger:document.activeElement,scrollY:window.scrollY};
     const chosenFlights=selectedFlightsInJourneyOrder(groups,nextSelection.priceIds);
     if(chosenFlights.length)setSelectedJourney(chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))})));
     const room=rooms?.options.find(option=>option.optionId===nextSelection.optionId);if(room)setSelectedRoom(room);
@@ -1129,7 +1129,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   function chooseFare(group:string,fare:FlightFare,trigger:HTMLButtonElement){
     flightReturn.current={trigger,scrollY:window.scrollY};
     if(busyRef.current||!dismissSelectionGate())return;
-    if(!pairedFares){setSelectedFares({[group]:fare.id});void review({priceIds:[fare.id]});return;}
+    if(!pairedFares){setSelectedFares({[group]:fare.id});return review({priceIds:[fare.id]});}
     flightSelectionFocus.current=fareGroups[fareGroups.indexOf(group)+1]?'results':'review';
     setSelectedFares(previous=>{
       const next={...previous,[group]:fare.id};

@@ -53,7 +53,7 @@ test('legacy sign-in return retains submitted multicity passengers rather than t
  await page.locator('.booking-party-picker summary').click();
  await page.getByRole('combobox',{name:'Adults',exact:true}).selectOption('3');
  await page.getByRole('button',{name:'Search flights',exact:true}).click();
- await page.locator('.fare-comparison > summary').first().click();
+ await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  await expect(page.getByRole('heading',{name:'Continue with your email',exact:true})).toBeVisible();
  // Existing return links must retain the submitted search even though new

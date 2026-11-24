@@ -14,7 +14,7 @@ function guestCheckout(provider: ProviderFixture) {
 
 async function chooseFlight(page: Page) {
   await openFlightSearch(page);
-  await page.locator('.fare-comparison > summary').first().click();
+  await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button', { name: 'Check fare & continue', exact: true }).first().click();
   await expect(page.locator('.checkout-verification')).toBeVisible();
 }

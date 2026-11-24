@@ -3,7 +3,7 @@ import {travelDateTimeLabel} from '../../src/lib/travel-date';
 import type {Flight} from '../../src/lib/booking-presentation';
 import type {Page} from '@playwright/test';
 const query=(round=false)=>'/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',...(round?{returnDate:returning}:{}),autoSearch:'1'});
-async function chooseLeg(page:Page){await page.locator('.flight-shopping-list .fare-comparison>summary').first().click();await page.locator('.flight-shopping-list .fare-option button').first().click();}
+async function chooseLeg(page:Page){await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();await page.locator('.flight-shopping-list .fare-option button').first().click();}
 
 for(const width of [null,320])test(`aligned fare decisions expose duplicate labels, known allowances and unknown promises${width?' at 320px':''}`,async({page,provider},info)=>{
  if(width)await page.setViewportSize({width,height:844});
@@ -13,19 +13,19 @@ for(const width of [null,320])test(`aligned fare decisions expose duplicate labe
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[journey]}}}};
  await page.goto(query());const card=page.locator('.flight-shopping-list .live-flight-card');
  await card.locator('.flight-segment-details>summary').click();await expect(card.locator('.flight-segment-details')).toContainText('Supplied Mumbai Airport');
- await card.locator('.fare-comparison>summary').click();
+ await card.locator('.fare-comparison-trigger').click();
  const offers=card.locator('.fare-option');await expect(offers).toHaveCount(3);
  await expect(offers.nth(0).getByRole('heading')).toHaveText('Corporate fare · Option 1');await expect(offers.nth(1).getByRole('heading')).toHaveText('Corporate fare · Option 2');
- await expect(card.locator('.fare-shared-terms')).toContainText('seat inclusions and eligibility at review');
+ await expect(card.locator('.fare-shared-terms')).toContainText('meals and seat options at review');
  for(const offer of await offers.all()){
   const rows=offer.locator('.fare-decision-dimensions>div');await expect(rows).toHaveCount(4);
  }
  await expect(offers.first()).toContainText('child: cabin baggage 5 Kg · checked baggage 10 Kg');await expect(offers.last()).toContainText('Price at review');await expect(offers.nth(1).locator('.fare-decision-dimensions')).toContainText('5 (unit not supplied)');await expect(offers.nth(1).locator('.fare-decision-dimensions')).not.toContainText('5 Kg');
  await expect(card.locator('.fare-itinerary-dates')).toContainText(travelDateTimeLabel(journey.sI[0].dt));
  await expectNoHorizontalOverflow(page);await capture(page,info,'aligned-fare-decisions');
- await card.getByRole('button',{name:'Back to flights'}).click();await expect(card.locator('.fare-comparison>summary')).toBeFocused();
+ await card.getByRole('button',{name:'Back to flights'}).click();await expect(card.locator('.fare-comparison-trigger')).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/review')).toHaveLength(0);
- await card.locator('.fare-comparison>summary').click();await offers.nth(1).getByRole('button',{name:'Check fare & continue'}).click();
+ await card.locator('.fare-comparison-trigger').click();await offers.nth(1).getByRole('button',{name:'Check fare & continue'}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['decision-second']});
 });
 
@@ -81,9 +81,13 @@ test('COMBO fare decisions retain every flight and never invent total itinerary 
  provider.search={searchId,results:{searchResult:{tripInfos:{COMBO:[journey]}}}};
  await page.goto(query());const card=page.locator('.flight-shopping-list .live-flight-card');
  await expect(card.locator('.combo-itinerary')).toContainText(travelDateTimeLabel(journey.sI[0].dt));await expect(card.locator('.combo-itinerary')).toContainText(travelDateTimeLabel(journey.sI[1].dt));
- await card.locator('.fare-comparison>summary').click();await expect(card.locator('.fare-choice-heading')).toContainText('Inspect every flight in the complete itinerary above');
- await expect(card.locator('.fare-comparison>summary')).toContainText('Complete itinerary');
- await expect(card.locator('.fare-choice-heading')).not.toContainText('Total journey');
+ await card.locator('.fare-comparison-trigger').click();
+ const dialog=card.getByRole('dialog',{name:'Flight details and fare options'});
+ await dialog.locator('.flight-segment-details>summary').click();
+ await expect(dialog.locator('.flight-segment-details')).toContainText(journey.sI[0].da.code);
+ await expect(dialog.locator('.flight-segment-details')).toContainText(journey.sI[1].aa.code);
+ await expect(card.locator('.fare-comparison-trigger')).toContainText('Complete itinerary');
+ await expect(dialog).not.toContainText('Total journey');
  await expectNoHorizontalOverflow(page);await capture(page,info,'combo-fare-decisions');expect(provider.requests('/api/travel/review')).toHaveLength(0);
  await card.getByRole('button',{name:'Check fare & continue'}).click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  expect(provider.requests('/api/travel/review')[0].body).toEqual({searchId,priceIds:['combo-decision']});
@@ -94,7 +98,7 @@ test('selected fare progress and action stay together in a short mobile viewport
  let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
  await page.route('**/api/travel/review',async route=>{await gate;await route.fallback();});
  try{
-  await page.goto(query());await page.locator('.fare-comparison>summary').first().click();
+  await page.goto(query());await page.locator('.fare-comparison-trigger').first().click();
   const option=page.locator('.fare-option').first();await option.getByRole('button',{name:'Check fare & continue'}).click();
   const status=option.getByRole('status'),action=option.getByRole('button',{name:'Checking fare…'});
   await expect(status).toBeVisible();await expect(action).toBeDisabled();

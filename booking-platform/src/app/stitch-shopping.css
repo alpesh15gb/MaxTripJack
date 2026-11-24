@@ -99,13 +99,13 @@
 #booking-results .flight-headline-facts li { display: inline-flex; align-items: center; gap: 4px; padding: 3px 5px; font: 500 12px/1.5 var(--font-stitch-body),sans-serif; color: #33445d; background: none; }
 #booking-results .flight-headline-facts svg { color: #005bb3; flex: none; }
 #booking-results .live-flight-card .fare-comparison { min-width: 0; border: 0; background: transparent; margin: 0; }
-#booking-results .live-flight-card .fare-comparison > summary {
+#booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) {
   display: flex; flex-direction: row; width: 100%; height: auto; align-items: center; justify-content: flex-end; gap: 12px; padding: 0; margin: 0; border: 0; background: transparent; border-radius: 0;
 }
-#booking-results .live-flight-card .fare-comparison > summary > strong { width: auto; order: 0; margin: 0; text-align: end; color: #001736; }
-#booking-results .live-flight-card .fare-comparison > summary > span { order: 1; width: auto; margin: 0; }
-#booking-results .live-flight-card .fare-comparison > summary small { margin-top: 2px; font: 500 14px/1.4 var(--font-stitch-body),sans-serif; color: #536172; }
-#booking-results .live-flight-card .fare-comparison > summary > strong small:last-child:not(:only-of-type) { display: none; }
+#booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > strong { width: auto; order: 0; margin: 0; text-align: end; color: #001736; }
+#booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > span { order: 1; width: auto; margin: 0; }
+#booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) small { margin-top: 2px; font: 500 14px/1.4 var(--font-stitch-body),sans-serif; color: #536172; }
+#booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > strong small:last-child:not(:only-of-type) { display: none; }
 #booking-results .live-flight-card .choose-fare-label { display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; min-height: 44px; border-radius: 10px; padding: 8px 12px; background: #001736; color: #fff; font: 700 13px/1.35 var(--font-stitch-body),sans-serif; }
 #booking-results .live-flight-card .fare-comparison[open] > summary {
   position: static;
@@ -235,8 +235,8 @@
   #booking-results .flight-route-line > div:not(.flight-route-track) > span:not(.flight-airport-city,.flight-day-change) { display: block; font: 750 23px/1.15 var(--font-stitch-display),sans-serif; letter-spacing: -.035em; color: #005bb3; }
   #booking-results .flight-result-details { gap: 3px 8px; padding: 3px 7px; }
   #booking-results .flight-result-details .flight-segment-details > summary { min-height: 40px; font-size: 12px; }
-  #booking-results .live-flight-card .fare-comparison:not([open]) > summary { justify-content: space-between; border-top: 1px solid #e2e8ef; padding-top: 10px; }
-  #booking-results .live-flight-card .fare-comparison > summary > strong { text-align: start; }
+  #booking-results .live-flight-card .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { justify-content: space-between; border-top: 1px solid #e2e8ef; padding-top: 10px; }
+  #booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > strong { text-align: start; }
   #booking-results .live-flight-card .choose-fare-label { padding-inline: 16px; }
   #booking-results .hotel-shopping-toolbar { gap: 8px; padding: 12px; }
   #booking-results .hotel-shopping-toolbar .hotel-results-heading { flex: 1 1 100%; }
@@ -258,9 +258,9 @@
   #booking-results .hotel-stay-price .hotel-price-review-note { max-width: none; font-size: 11px; }
   #booking-results .stay-help-banner { gap: 8px; padding: 15px; }
   #booking-results .flight-sort-card { flex: 1 1 0; min-width: 0; min-height: 44px; flex-direction: column; gap: 1px; }
-  #booking-results .live-flight-card .fare-comparison > summary { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; }
-  #booking-results .live-flight-card .fare-comparison > summary > strong { grid-area: 1/1; width: auto; min-width: 0; order: 0; }
-  #booking-results .live-flight-card .fare-comparison > summary > span { grid-area: 1/2; display: flex; flex-direction: column; align-items: center; width: auto; order: 1; }
+  #booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; }
+  #booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > strong { grid-area: 1/1; width: auto; min-width: 0; order: 0; }
+  #booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > span { grid-area: 1/2; display: flex; flex-direction: column; align-items: center; width: auto; order: 1; }
   #booking-results .hotel-sort-filter, #booking-results .shopping-filter-actions {
     display: flex; align-items: center; justify-content: center; gap: 7px; position: fixed; z-index: 22;
     left: 50%; bottom: max(9px,env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(calc(100% - 24px),490px); padding: 6px;
@@ -375,7 +375,7 @@
   #booking-results .flight-result-details { min-height:33px; }
   #booking-results .flight-headline-facts li { font-size:11px; padding:3px 4px; }
   #booking-results .live-flight-card .fare-comparison:not([open]) { margin:0 -12px -12px; padding:9px 12px; background:#f2f4f8; border-radius:0 0 13px 13px; }
-  #booking-results .live-flight-card .fare-comparison:not([open]) > summary { border:0; padding:0; min-height:50px; }
+  #booking-results .live-flight-card .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { border:0; padding:0; min-height:50px; }
   #booking-results .flight-shopping-list .flight-result-details { background:transparent; margin:0; padding:0; }
   #booking-results .hotel-shopping-toolbar { padding:0; border:0; background:transparent; box-shadow:none; }
   #booking-results .hotel-shopping-toolbar .hotel-results-heading { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
@@ -439,7 +439,7 @@ body:has(.concierge-header) .booking-workflow.results-only { margin-top:0; }
   #booking-results .flight-date-day[aria-current=date] { padding-top:11px; }
   #booking-results .flight-date-day[aria-current=date]::before { content:"Selected"; position:absolute; top:0; left:50%; transform:translateX(-50%); padding:0 5px; border-radius:0 0 5px 5px; color:#fff; background:#005bb3; font:700 8px/1.3 var(--font-stitch-body),sans-serif; text-transform:uppercase; }
   #booking-results .live-flight-card:not([data-overnight=true]) .flight-route-line > div:not(.flight-route-track) > small { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
-  #booking-results .live-flight-card[data-single-fare=true] .fare-comparison:not([open]) > summary > span > small { display:none; }
+  #booking-results .live-flight-card[data-single-fare=true] .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) > span > small { display:none; }
   #booking-results .flight-shopping-list .live-flight-card .flight-result-details { display:flex; flex-flow:row wrap; align-items:center; gap:2px 6px; }
   #booking-results .flight-result-details .flight-segment-details:not([open]) { flex:0 0 auto; width:auto; min-height:32px; }
   #booking-results .flight-result-details .flight-segment-details:not([open]) > summary { width:auto; min-height:32px; }
@@ -463,4 +463,13 @@ body:has(.concierge-header) .booking-workflow.results-only { margin-top:0; }
   #booking-results .flight-selection-summary li > button { grid-area:1/2/3/3; align-self:center; min-height:44px; padding:5px 8px; font-size:13px; }
   #booking-results .flight-selection-summary .selection-combined-total { margin-top:10px; padding:10px; }
   #booking-results .flight-selection-summary #review-selected-journey { margin-top:8px; }
+}
+
+#booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > span { flex-shrink: 0; min-width: 0; }
+#booking-results .live-flight-card .fare-comparison > :is(summary, .fare-comparison-trigger) > strong { min-width: 0; }
+#booking-results .live-flight-card .flight-price-amount { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  #booking-results .live-flight-card .flight-price-amount { font-size: clamp(19px, 5.6vw, 24px); }
+  #booking-results .live-flight-card .flight-price-from { display: block; }
+  #booking-results .live-flight-card .choose-fare-label { padding-inline: 10px; }
 }

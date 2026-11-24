@@ -3,8 +3,7 @@ import type { ProviderFixture } from './fixtures';
 import {toggleResultSearch, mainNavigation, test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
 
 async function selectVisibleFare(page: Page, label = 'Check fare & continue') {
-  const comparison = page.locator('.flight-shopping-list .fare-comparison').first();
-  if (await comparison.getAttribute('open') === null) await comparison.locator(':scope > summary').click();
+  await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
   await page.getByRole('button', { name: label, exact: true }).first().click();
 }
 
@@ -35,7 +34,7 @@ async function openSyntheticPayment(page: Page) {
 
 test('fare comparison selects a server fare id and shows a reviewed party total', async ({ page, provider }, testInfo) => {
   await openFlightSearch(page);
-  await page.locator('.fare-comparison > summary').first().click();
+  await page.locator('.fare-comparison-trigger').first().click();
   const details = page.locator('.fare-decision-dimensions > div');
   await expect(details.filter({ has: page.getByText('Cabin baggage', { exact: true }) }).getByText('7 Kg', { exact: true })).toBeVisible();
   await expect(details.filter({ has: page.getByText('Checked baggage', { exact: true }) }).getByText('15 Kg', { exact: true })).toBeVisible();
@@ -116,7 +115,8 @@ test('a hung fare review times out and can be retried without losing results', a
     const retry=page.getByRole('button',{name:'Retry fare check'});
     await expect(retry).toBeEnabled();
     await expect(page.locator('#booking-feedback')).toContainText('This fare check took too long');
-    await expect(page.getByRole('button',{name:'Check fare & continue',exact:true}).first()).toBeEnabled();
+    await expect(page.getByRole('dialog',{name:'Flight details and fare options'})).toHaveCount(0);
+    await expect(page.locator('.fare-comparison-trigger').first()).toBeEnabled();
     await retry.click();
     await expect(retry).toBeEnabled();
     await expect.poll(()=>reviewCount).toBe(2);
@@ -685,7 +685,7 @@ test('checking a selected fare disables repeated continuation without creating a
  });
  try{
   await openFlightSearch(page);
-  await page.locator('.fare-comparison > summary').first().click();
+  await page.locator('.fare-comparison-trigger').first().click();
   const next=page.locator('.fare-option').first().getByRole('button');
   await expect(next).toHaveAccessibleName('Check fare & continue');
   await next.click();await expect(next).toBeDisabled();

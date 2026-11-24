@@ -53,7 +53,7 @@ test('Forward into hotel details dismisses the results drawer and keeps the sele
 for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} Forward into cached checkout closes the results drawer without another review`,async({page,provider})=>{
  await page.setViewportSize({width:390,height:844});
  if(product==='FLIGHT'){
-  await openFlightSearch(page);await page.locator('.fare-comparison > summary').first().click();
+  await openFlightSearch(page);await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  }else{
   await page.goto(hotelFixture(provider));

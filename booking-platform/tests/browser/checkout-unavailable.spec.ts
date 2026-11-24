@@ -4,7 +4,7 @@ test('hard-gated PayGlocal is disclosed before traveller collection while compar
  await expect(page.getByRole('region',{name:'Online payment availability'})).toContainText('Online payment is currently unavailable.');
  await expectNoHorizontalOverflow(page);
  await capture(page,testInfo,'payment-disabled-compact-results');
- await page.locator('.fare-comparison > summary').first().click();
+ await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  await expect(page.getByLabel('First name',{exact:true})).not.toBeVisible();

@@ -13,7 +13,7 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[journey]}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
  const card=page.locator('.flight-shopping-list .live-flight-card');await expect(card).toHaveCount(1);
- await card.locator('.fare-comparison>summary').click();
+ await card.locator('.fare-comparison-trigger').click();
  const offers=card.locator('.fare-option');await expect(offers).toHaveCount(4);
  await expect(offers.nth(0)).toContainText('Standard fare');await expect(offers.nth(0)).toContainText('₹3,248.50');
  await expect(offers.nth(1)).toContainText('₹3,261.50');await expect(offers.nth(2)).toContainText('₹7,799.50');await expect(offers.nth(3)).toContainText('Price at review');
@@ -22,11 +22,11 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  await expect(offers.nth(1)).toContainText('Differs in checked baggage, cancellation');
  await expect(offers.first().locator('.fare-card-estimate')).toContainText('Estimated total · all travellers');
  await expect(card.locator('.fare-comparison-guidance')).toContainText('Lowest INR estimates first; unpriced offers last.');
- await expect(card.locator('.fare-shared-terms')).toHaveText('Totals are estimates for all travellers. Check the final price, cancellation and change fees, seat inclusions and eligibility at review.');
+ await expect(card.locator('.fare-shared-terms')).toHaveText('Check final prices, fees, meals and seat options at review.');
  await expect(card.locator('.fare-details-unavailable')).toHaveCount(1);
  const sharedTerms=await card.locator('.fare-details-unavailable').getAttribute('id');
  expect(sharedTerms).toBeTruthy();for(const offer of await offers.all())await expect(offer).toHaveAttribute('aria-describedby',sharedTerms!);
- for(const qualifier of await card.locator('.fare-comparison>summary small,.fare-option-action small').all()){
+ for(const qualifier of await card.locator('.fare-comparison-trigger small,.fare-option-action small').all()){
   expect(await qualifier.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(14);
  }
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'audit-fare-comparison');
@@ -57,8 +57,8 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
  }}));
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[journey]}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
- const card=page.locator('.flight-shopping-list .live-flight-card'),disclosure=card.locator('.fare-comparison > summary');
- await disclosure.press('Enter');await expect(card.getByRole('heading',{name:'Compare fares'})).toBeFocused();
+ const card=page.locator('.flight-shopping-list .live-flight-card'),disclosure=card.locator('.fare-comparison-trigger');
+ await disclosure.press('Enter');await expect(card.getByRole('heading',{name:'Flight details and fare options'})).toBeFocused();
  const track=card.locator('.fare-decision-grid'),offers=track.locator('.fare-option');await expect(offers).toHaveCount(15);
  await expect(offers.first().getByRole('heading')).toHaveText('Corporate fare · Option 1');await expect(offers.last().getByRole('heading')).toHaveText('Corporate fare · Option 15');
  await page.evaluate(()=>document.fonts.ready);
@@ -122,7 +122,7 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
 test('a single fare fits its comparison rail without unnecessary scroll controls',async({page,provider})=>{
  const journey=flight();provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[journey]}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
- const card=page.locator('.flight-shopping-list .live-flight-card');await card.locator('.fare-comparison > summary').click();
+ const card=page.locator('.flight-shopping-list .live-flight-card');await card.locator('.fare-comparison-trigger').click();
  const track=card.locator('.fare-decision-grid');await expect(track.locator('.fare-option')).toHaveCount(1);
  const fit=await track.evaluate(node=>({available:node.clientWidth,content:node.scrollWidth}));expect(fit.content).toBeLessThanOrEqual(fit.available+1);
  await expect(card.getByRole('button',{name:'Previous fare options',exact:true})).toBeHidden();await expect(card.getByRole('button',{name:'Next fare options',exact:true})).toBeHidden();await expectNoHorizontalOverflow(page);
@@ -140,9 +140,9 @@ test('mixed-currency fare comparison keeps supplier order and returns focus on E
  provider.search = {searchId,results:{searchResult:{tripInfos:{ONWARD:[journey]}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
  const card = page.locator('.flight-shopping-list .live-flight-card');
- const disclosure = card.locator('.fare-comparison > summary');
+ const disclosure = card.locator('.fare-comparison-trigger');
  await disclosure.press('Enter');
- await expect(card.getByRole('heading',{name:'Compare fares'})).toBeFocused();
+ await expect(card.getByRole('heading',{name:'Flight details and fare options'})).toBeFocused();
  await expect(card.locator('.fare-option h4')).toHaveText(['Fare option','SpiceSaver','Standard fare']);
  await expect(card.locator('.fare-option').first()).toContainText('Price at review');
  await expect(card.locator('.fare-option').first()).not.toContainText('₹900');
@@ -154,4 +154,21 @@ test('mixed-currency fare comparison keeps supplier order and returns focus on E
  await expect(card.locator('.fare-option')).toHaveCount(0);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+
+test('a five-digit fare stays clear of its action on narrow screens',async({page,provider},info)=>{
+ if(info.project.name.includes('mobile'))await page.setViewportSize({width:320,height:750});
+ const journey=flight();
+ journey.totalPriceList[0].customerEstimateMinor=1_610_213;
+ provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[journey]}}}};
+ await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
+ const summary=page.locator('#booking-results .live-flight-card .fare-comparison-trigger');
+ const price=summary.locator('.flight-price-amount'), action=summary.locator('.choose-fare-label');
+ await expect(price).toHaveText('₹16,102.13');
+ const priceBox=await price.boundingBox(), actionBox=await action.boundingBox();
+ expect(priceBox&&actionBox&&priceBox.x+priceBox.width<=actionBox.x).toBe(true);
+ await expectNoHorizontalOverflow(page);
+ await summary.click();
+ await expect(page.getByRole('button',{name:'Check fare & continue',exact:true})).toBeVisible();
 });

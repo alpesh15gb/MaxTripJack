@@ -3,7 +3,7 @@ import {toggleResultSearch,  test, expect, departure, returning, openFlightSearc
 
 function birthForAge(age:number){const date=new Date(`${departure}T00:00:00Z`);date.setUTCFullYear(date.getUTCFullYear()-age);return date.toISOString().slice(0,10);}
 function after(date:string,days:number){return new Date(Date.parse(`${date}T00:00:00Z`)+days*86400000).toISOString().slice(0,10);}
-async function selectFare(page:Page){await page.locator('.flight-shopping-list .fare-comparison').first().locator(':scope > summary').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();}
+async function selectFare(page:Page){await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();}
 async function openPartyFlightSearch(page:Page,children:number,infants:number){await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',children:String(children),infants:String(infants),autoSearch:'1'}));}
 async function fillParty(page:Page,count:number){const form=page.getByRole('form',{name:'Review and travellers'});for(let i=0;i<count;i++){await form.locator(`[name="first-${i}"]`).fill(`Traveller ${i+1}`);await form.locator(`[name="last-${i}"]`).fill('Example');}await form.locator('[name="email"]').fill('traveller@example.test');await form.locator('[name="phone"]').fill('9876543210');}
 async function attemptPayment(page:Page){await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();}

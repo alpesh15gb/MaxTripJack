@@ -15,7 +15,7 @@ async function reference(page:Page,testInfo:TestInfo,name:string,critical:Locato
  for(const bound of bounds){expect(bound.top,`${bound.text}: complete top within natural viewport`).toBeGreaterThanOrEqual(-1);expect(bound.bottom,`${bound.text}: complete bottom within natural viewport`).toBeLessThanOrEqual(bound.height+1);}
 }
 async function expectFlightCardContentsFit(card:Locator){
- const geometry=await card.evaluate(node=>{const bounds=node.getBoundingClientRect();return {left:bounds.left,right:bounds.right,scrollLeft:node.scrollLeft,clientWidth:node.clientWidth,scrollWidth:node.scrollWidth,children:Array.from(node.querySelectorAll('.flight-result-top,.airline-monogram,.flight-route-line strong,.fare-comparison>summary>strong,.choose-fare-label')).map(child=>{const r=child.getBoundingClientRect();return {text:child.textContent,left:r.left,right:r.right};})};});
+ const geometry=await card.evaluate(node=>{const bounds=node.getBoundingClientRect();return {left:bounds.left,right:bounds.right,scrollLeft:node.scrollLeft,clientWidth:node.clientWidth,scrollWidth:node.scrollWidth,children:Array.from(node.querySelectorAll('.flight-result-top,.airline-monogram,.flight-route-line strong,.fare-comparison-trigger>strong,.choose-fare-label')).filter(child=>!child.closest('dialog')).map(child=>{const r=child.getBoundingClientRect();return {text:child.textContent,left:r.left,right:r.right};})};});
  expect(geometry.scrollWidth,'flight card must not conceal horizontal overflow').toBeLessThanOrEqual(geometry.clientWidth+1);
  expect(Math.abs(geometry.scrollLeft),'flight card must not retain an internal horizontal pan').toBeLessThanOrEqual(1);
  for(const child of geometry.children){expect(child.left,`${child.text}: complete left within card`).toBeGreaterThanOrEqual(geometry.left-1);expect(child.right,`${child.text}: complete right within card`).toBeLessThanOrEqual(geometry.right+1);}
@@ -38,13 +38,15 @@ test('flight decision has an explicit next action and reversible fare choice',as
  const action=card.locator('.choose-fare-label');await expect(action).toHaveText('View fares →');
  await expect.poll(()=>action.evaluate(node=>{const r=node.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})).toBe(true);
  await reference(page,testInfo,'journey-flight-results');
- const summary=card.locator('.fare-comparison>summary');await summary.focus();await page.keyboard.press('Enter');
+ const summary=card.locator('.fare-comparison-trigger');await summary.focus();await page.keyboard.press('Enter');
  await expect(card.getByRole('button',{name:'Check fare & continue',exact:true})).toHaveCount(2);
  await expect(card).toContainText('₹7,200.50');
- await expect(card.locator('.fare-choice-heading h3')).toBeFocused();
+ await expect(card.getByRole('heading',{name:'Flight details and fare options'})).toBeFocused();
  await expect(card.locator('.fare-details-unavailable').first()).toHaveCSS('font-size','14px');
- await reference(page,testInfo,'journey-fare-choice',[card.getByRole('button',{name:'Check fare & continue',exact:true}).first(),card.locator('.fare-option-heading strong').first()]);
- if(page.viewportSize()!.width<=600)await expect(card.locator('.fare-comparison[open]>summary')).toHaveCSS('display','grid');
+ const fareDialog=card.getByRole('dialog',{name:'Flight details and fare options',exact:true});
+ await expect(fareDialog.getByRole('heading',{name:'Flight details and fare options'})).toHaveCSS('color','rgb(255, 255, 255)');
+ await reference(page,testInfo,'journey-fare-choice',[fareDialog.getByRole('button',{name:'Back to flights',exact:true}),fareDialog.locator('.fare-option-heading strong').first()]);
+ await expect(summary).toHaveAttribute('aria-expanded','true');
  await expectFlightCardContentsFit(card);
  await card.getByRole('button',{name:'Back to flights',exact:true}).click();await expect(summary).toBeFocused();
  await expect(card.locator('.fare-option')).toHaveCount(0);
@@ -67,12 +69,12 @@ test('return choice retains selected outbound and focuses complete journey revie
  await page.emulateMedia({reducedMotion:'reduce'});
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[flight()],RETURN:[flight('RETURN')]}}}};
  await page.goto(flightQuery()+'&returnDate='+returning);
- await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Choose this outbound fare',exact:true}).click();
+ await page.locator('.fare-comparison-trigger').click();await page.getByRole('button',{name:'Choose this outbound fare',exact:true}).click();
  await expect(page.locator('#flight-results-title')).toHaveText('Choose your return flight');await expect(page.locator('#flight-results-title')).toBeFocused();
  const context=page.getByRole('region',{name:'Selected flight context'});
  await expect(context).toContainText('BOM → DEL · 09:15');await expect(context.getByRole('button',{name:'Change outbound',exact:true})).toBeVisible();
  await reference(page,testInfo,'journey-return-context');
- await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Choose this return fare',exact:true}).click();
+ await page.locator('.fare-comparison-trigger').click();await page.getByRole('button',{name:'Choose this return fare',exact:true}).click();
  const review=page.getByRole('button',{name:'Review selected journey (2/2)',exact:true});await expect(review).toBeFocused();await expect(review).toBeInViewport();
  await reference(page,testInfo,'journey-complete-selection');
  await review.click();await expect(page.locator('#booking-review-title')).toBeFocused();
@@ -111,7 +113,7 @@ test('room workspace and back preserve the exact filtered search without another
 
 test('inline email verification keeps the selected journey and an explicit next action',async({page,provider},testInfo)=>{
  provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
- await page.goto(flightQuery());await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await page.goto(flightQuery());await page.locator('.fare-comparison-trigger').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
  const next=page.getByRole('button',{name:'Send verification code',exact:true});
  await expect(next).toBeVisible();
  await expect(page.locator('.booking-verification-summary')).toContainText('BOM → DEL');
@@ -130,7 +132,7 @@ test('inline email verification keeps the selected journey and an explicit next 
 test('storage-unavailable verification keeps the current choice and a focused next action',async({page,provider},testInfo)=>{
  provider.session=null;provider.overrides['POST /api/travel/review']={status:401,body:{error:'Sign in to continue.'}};
  await page.addInitScript(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='maxtravel:selection:v1')throw new Error('Synthetic selection storage unavailable');return original.call(this,key,value);};});
- await page.goto(flightQuery());await page.locator('.fare-comparison>summary').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
+ await page.goto(flightQuery());await page.locator('.fare-comparison-trigger').click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.locator('#booking-signin-title')).toBeFocused();
  await expect(page.locator('.booking-verification-summary')).toContainText('BOM → DEL');
  const next=page.getByRole('button',{name:'Send verification code',exact:true});

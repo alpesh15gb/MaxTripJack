@@ -42,22 +42,23 @@ test('empty fare inventory is distinct from supplied fares incompatible with the
  const incompatible=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,group:'RETURN',isCompatible:()=>false}));
  assert.match(incompatible,/No compatible fare/);
  assert.match(incompatible,/These fares do not match your outbound selection/);
- assert.match(incompatible,/disabled=""/);
+ assert.match(incompatible,/See alternatives for Test airline/);
+ assert.doesNotMatch(incompatible,/Check fare &amp; continue/);
 });
 
-test('flight pending is scoped, truthful and before its action; read-only cards stay noninteractive',()=>{
- const html=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,busy:true,checkingFareId:'fare-1'}));
- assert.match(html,/role="status"/);assert.match(html,/Price and availability are not confirmed yet/);
- assert.ok(html.indexOf('Checking current fare')<html.indexOf('Checking fare…'));
- for(const props of [{busy:false,checkingFareId:'fare-1'},{busy:true,checkingFareId:'other'},{busy:true,checkingFareId:'fare-1',readOnly:true}])assert.doesNotMatch(renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,...props})),/Checking current fare/);
+test('flight results render a dialog trigger without mounting fares before interaction',()=>{
+ const html=renderToStaticMarkup(createElement(BookingFlightCard,flightProps));
+ assert.match(html,/<button[^>]*class="fare-comparison-trigger"[^>]*aria-haspopup="dialog"[^>]*aria-expanded="false"/);
+ assert.doesNotMatch(html,/<dialog|fare-option-compact|Check fare &amp; continue/);
+ const busy=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,busy:true,checkingFareId:'fare-1'}));
+ assert.match(busy,/<button[^>]*class="fare-comparison-trigger"[^>]*disabled=""/);
 });
 
-test('continuing with a flight is an action while choosing a journey leg retains selection semantics',()=>{
- const single=renderToStaticMarkup(createElement(BookingFlightCard,flightProps));
- assert.match(single,/>Check fare &amp; continue<\/button>/);
- assert.doesNotMatch(single,/<button[^>]*aria-pressed=/);
- const leg=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,selectionMode:'leg'}));
- assert.match(leg,/<button[^>]*aria-pressed="true"[^>]*>Selected<\/button>/);
+test('read-only flight cards keep selected fare details without a shopping dialog',()=>{
+ const html=renderToStaticMarkup(createElement(BookingFlightCard,{...flightProps,busy:true,checkingFareId:'fare-1',readOnly:true}));
+ assert.match(html,/<details class="fare-comparison" open=""/);
+ assert.match(html,/Selected fare/);
+ assert.doesNotMatch(html,/<dialog|fare-comparison-trigger|Checking current fare|Check fare &amp; continue/);
 });
 
 test('room cards retain full-stay scope, known selection and safe missing-data fallback',()=>{

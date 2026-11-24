@@ -128,14 +128,14 @@ test('flight timeline starts today instead of offering past departure dates',asy
 
 test('checkout has one submit action on phones and keeps private details through selection changes',async({page,provider},info)=>{
  await page.setViewportSize({width:390,height:844});await openFlightSearch(page);
- await page.locator('.fare-comparison > summary').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
+ await page.locator('.fare-comparison-trigger').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  const form=page.getByRole('form',{name:'Review and travellers'});
  await expect(form.getByRole('button',{name:/^Agree & pay /})).toHaveCount(1);
  await expect(form.getByRole('button',{name:'Choose flight extras',exact:true})).toBeHidden();
  await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');
  await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
  await form.getByRole('button',{name:'Change selection',exact:true}).click();
- const comparison=page.locator('.fare-comparison').first();if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
+ await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
  await expect(form.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');

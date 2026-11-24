@@ -21,14 +21,14 @@
 .journey-flow .live-flight-card{border:1px solid #dce3e9;box-shadow:0 3px 12px #142d4005;border-radius:16px;overflow:visible;background:#fff}
 .journey-flow .live-flight-card .flight-result-top{padding-bottom:12px}
 .journey-flow .flight-route-line{padding:12px 0}
-.journey-flow .live-flight-card .fare-comparison>summary{padding:16px 0 0;gap:16px;align-items:center;border-top:1px solid #e5e9ef;list-style:none}
+.journey-flow .live-flight-card .fare-comparison>:is(summary, .fare-comparison-trigger){padding:16px 0 0;gap:16px;align-items:center;border-top:1px solid #e5e9ef;list-style:none}
 .journey-flow .live-flight-card .fare-comparison>summary::-webkit-details-marker{display:none}
-.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span{order:2;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger)>span{order:2;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
 .journey-flow .choose-fare-label{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:48px;min-width:172px;padding:10px 20px;border-radius:10px;background:var(--journey-blue);color:#fff;font-size:16px;font-weight:650;line-height:1.4;white-space:nowrap}
-.journey-flow .fare-comparison>summary:hover .choose-fare-label{background:#173db8}
-.journey-flow .fare-comparison>summary:focus-visible{outline:3px solid #087f8c;outline-offset:5px;border-radius:8px}
-.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>strong{order:1;text-align:left;max-width:none;min-width:0;font-variant-numeric:tabular-nums}
-.journey-flow .fare-comparison>summary small{font-size:14px;line-height:1.45;color:#52616a;white-space:normal}
+.journey-flow .fare-comparison>:is(summary, .fare-comparison-trigger):hover .choose-fare-label{background:#173db8}
+.journey-flow .fare-comparison>:is(summary, .fare-comparison-trigger):focus-visible{outline:3px solid #087f8c;outline-offset:5px;border-radius:8px}
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger)>strong{order:1;text-align:left;max-width:none;min-width:0;font-variant-numeric:tabular-nums}
+.journey-flow .fare-comparison>:is(summary, .fare-comparison-trigger) small{font-size:14px;line-height:1.45;color:#52616a;white-space:normal}
 .journey-flow .fare-choice-heading{display:flex;align-items:start;justify-content:space-between;gap:16px;padding:20px 0 8px}
 .journey-flow .fare-choice-heading h3{font-size:20px;margin:0 0 6px}
 .journey-flow .fare-choice-heading p{font-size:14px;margin:0;color:#52616a}
@@ -86,9 +86,9 @@
  .journey-flow .results-heading{gap:10px;margin-bottom:16px}
  .journey-flow .booking-availability-notice{padding:10px 12px;gap:2px}
  .journey-flow .booking-availability-notice p{flex-basis:100%}
- .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary{display:flex;flex-direction:column;align-items:stretch;gap:12px}
- .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>strong{order:1;width:100%;max-width:none;text-align:left}
- .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span{order:2;align-items:stretch;text-align:center;width:100%}
+ .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger){display:flex;flex-direction:column;align-items:stretch;gap:12px}
+ .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger)>strong{order:1;width:100%;max-width:none;text-align:left}
+ .journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger)>span{order:2;align-items:stretch;text-align:center;width:100%}
  .journey-flow .choose-fare-label{width:100%;min-width:0;justify-content:space-between}
  .journey-flow .fare-choice-heading{flex-direction:column;gap:12px}
  .journey-flow .fare-choice-heading button{align-self:flex-start}
@@ -121,12 +121,12 @@
  .journey-flow .room-back{margin-bottom:12px}
 }
 /* Reset the old comparison-link wrapper, including its mobile fixed flex basis. */
-.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span{flex:0 1 auto;border:0;padding:0;background:transparent}
-.journey-flow .flight-shopping-list .fare-comparison:not([open])>summary{flex-direction:column;align-items:stretch;padding:20px 16px;border-top:0}
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger)>span{flex:0 1 auto;border:0;padding:0;background:transparent}
+.journey-flow .flight-shopping-list .fare-comparison:not([open])>:is(summary, .fare-comparison-trigger){flex-direction:column;align-items:stretch;padding:20px 16px;border-top:0}
 .journey-flow .flight-shopping-list .fare-comparison[open]>summary{flex-direction:row;align-items:center;padding:16px 20px}
-.journey-flow .flight-shopping-list .fare-comparison>summary>span{align-items:stretch}
+.journey-flow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger)>span{align-items:stretch}
 @media(max-width:600px){
- .journey-flow .flight-shopping-list .fare-comparison:not([open])>summary,.journey-flow .flight-shopping-list .fare-comparison[open]>summary{flex-direction:column;align-items:stretch;padding:14px;gap:12px}
+ .journey-flow .flight-shopping-list .fare-comparison:not([open])>:is(summary, .fare-comparison-trigger),.journey-flow .flight-shopping-list .fare-comparison[open]>summary{flex-direction:column;align-items:stretch;padding:14px;gap:12px}
 }
 .journey-flow.booking-workflow .flight-shopping-list .live-flight-card{grid-template-columns:minmax(0,1fr) 235px}
 .journey-flow .flight-shopping-list .airline-identity small,.journey-flow .flight-shopping-list .flight-cabin,.journey-flow .flight-shopping-list .flight-route-line small,.journey-flow .flight-shopping-list .flight-airport-city,.journey-flow .flight-shopping-list .flight-segment-details>summary,.journey-flow .flight-shopping-list .fare-features,.journey-flow .flight-shopping-list .fare-option .muted{font-size:14px;line-height:1.5}
@@ -136,8 +136,8 @@
 .journey-flow #booking-search-recovery{scroll-margin-top:100px}
 /* Each deliberate decision opens at its own context and next action. */
 .journey-flow .fare-choice-heading h3{scroll-margin-top:96px}
-.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span{max-width:none}
-.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>summary>span:before{content:none}
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger)>span{max-width:none}
+.journey-flow .live-flight-card:not(.is-readonly) .fare-comparison>:is(summary, .fare-comparison-trigger)>span:before{content:none}
 .journey-flow .room-choice-intro{margin:16px 0 12px}
 .journey-flow .room-option-details{grid-column:1/-1;border-top:1px solid #e5e9ef;padding-top:8px}
 .journey-flow .room-option-details>summary{min-height:44px;font-size:14px;line-height:1.5;display:flex;align-items:center;cursor:pointer;color:#153ec2}

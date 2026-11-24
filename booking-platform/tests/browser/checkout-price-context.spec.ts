@@ -5,8 +5,7 @@ import {test,expect,flight,openFlightSearch,reviewedQuote,departure,returning,se
 const notice=(page:Page)=>page.getByRole('region',{name:'Price updated at review',exact:true});
 const form=(page:Page)=>page.getByRole('form',{name:'Review and travellers',exact:true});
 async function chooseFare(page:Page,name='Check fare & continue'){
- const panel=page.locator('.flight-shopping-list .fare-comparison').first();
- if(await panel.getAttribute('open')===null)await panel.locator(':scope > summary').click();
+ await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
  await page.getByRole('button',{name,exact:true}).first().click();
 }
 async function fillGuests(page:Page,names:string[]){

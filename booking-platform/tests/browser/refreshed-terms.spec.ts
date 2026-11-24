@@ -24,8 +24,7 @@ function hotelQuote(option:Record<string,unknown>,id?:string){
  return reviewedQuote({...(id?{quoteId:id}:{}),product:'HOTEL',hotelName:'Synthetic terms stay',totalMinor:800000,summary:{checkIn:departure,checkOut:returning,adults:1,children:0,rooms:[{adults:1,children:0,childAge:[]}]},review:{terms:reviewedTerms('HOTEL',{option}),option:{...option,roomInfo:hotelRoomInfo(option.roomInfo),inclusions:hotelStringList(option.inclusions),cancellation:publicSupplierPolicy(option.cancellation)}}});
 }
 async function selectFare(page:Page,label='Check fare & continue'){
- const comparison=page.locator('.flight-shopping-list .fare-comparison').first();
- if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
+ await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:label,exact:true}).first().click();
 }
 async function openFlight(page:Page){await openFlightSearch(page);await selectFare(page);await expect(form(page)).toBeVisible();}

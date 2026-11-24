@@ -102,9 +102,9 @@
 .booking-workflow .flight-route-line { padding:20px 24px; }
 .booking-workflow .flight-route-line strong { font-size:29px; color:var(--booking-ink); }
 .booking-workflow .fare-comparison { margin:0; border-top:1px solid #e8edf2; }
-.booking-workflow .fare-comparison>summary { padding:16px 22px; background:#fbfcfe; color:var(--booking-ink); min-height:70px; font-size:14px; }
-.booking-workflow .fare-comparison>summary strong { color:var(--booking-blue); font-size:21px; }
-.booking-workflow .fare-comparison>summary small { display:block; font-size:12px; color:#5b6d7d; margin-top:4px; font-weight:400; }
+.booking-workflow .fare-comparison>:is(summary, .fare-comparison-trigger) { padding:16px 22px; background:#fbfcfe; color:var(--booking-ink); min-height:70px; font-size:14px; }
+.booking-workflow .fare-comparison>:is(summary, .fare-comparison-trigger) strong { color:var(--booking-blue); font-size:21px; }
+.booking-workflow .fare-comparison>:is(summary, .fare-comparison-trigger) small { display:block; font-size:12px; color:#5b6d7d; margin-top:4px; font-weight:400; }
 .booking-workflow .fare-option h3 { font-size:15px; }
 .booking-workflow .fare-option-action strong { font-size:20px; }
 .booking-workflow .fare-features { font-size:13px; line-height:1.8; }
@@ -147,9 +147,9 @@
 .booking-workflow .destination-suggestions { display:grid; gap:6px; margin-top:8px; border:1px solid #dfe7ee; border-radius:12px; padding:8px; background:white; }
 .booking-workflow .destination-suggestions button { text-align:left; border:0; background:#f6f8fc; padding:12px; }
 .booking-workflow .airport-hint { display:block; margin-top:6px; font-size:11px; color:#667b8d; font-weight:400; }
-@media(min-width:1200px) { .booking-workflow .live-flight-card { display:grid; grid-template-columns:minmax(0,1fr) 230px; }.booking-workflow .flight-result-top { grid-column:1; }.booking-workflow .flight-route-line,.booking-workflow .combo-itinerary { grid-column:1; }.booking-workflow .fare-comparison { grid-column:2; grid-row:1/3; border-top:0; border-left:1px solid #e8edf2; background:#fbfcfe; }.booking-workflow .fare-comparison>summary { display:flex; flex-direction:column-reverse; justify-content:center; align-items:flex-start; gap:18px; height:100%; min-height:190px; }.booking-workflow .fare-comparison[open] { grid-column:1/-1; grid-row:auto; border-left:0; border-top:1px solid #e8edf2; }.booking-workflow .fare-comparison[open]>summary { flex-direction:row; align-items:center; justify-content:space-between; min-height:70px; } }
+@media(min-width:1200px) { .booking-workflow .live-flight-card { display:grid; grid-template-columns:minmax(0,1fr) 230px; }.booking-workflow .flight-result-top { grid-column:1; }.booking-workflow .flight-route-line,.booking-workflow .combo-itinerary { grid-column:1; }.booking-workflow .fare-comparison { grid-column:2; grid-row:1/3; border-top:0; border-left:1px solid #e8edf2; background:#fbfcfe; }.booking-workflow .fare-comparison>:is(summary, .fare-comparison-trigger) { display:flex; flex-direction:column-reverse; justify-content:center; align-items:flex-start; gap:18px; height:100%; min-height:190px; }.booking-workflow .fare-comparison[open] { grid-column:1/-1; grid-row:auto; border-left:0; border-top:1px solid #e8edf2; }.booking-workflow .fare-comparison[open]>summary { flex-direction:row; align-items:center; justify-content:space-between; min-height:70px; } }
 @media(max-width:1000px) { .booking-workflow .booking-layout { grid-template-columns:minmax(0,1fr); }.booking-workflow .booking-summary { position:static; }.booking-workflow .booking-guide { grid-template-columns:repeat(3,1fr); }.booking-workflow .booking-intro { flex-direction:column; align-items:flex-start; }.booking-workflow .booking-summary-lines .booking-total { position:static; } }
-@media(max-width:600px) { .booking-workflow { padding-top:12px; }.booking-workflow .booking-intro { padding:16px 0 22px; gap:14px; }.booking-workflow .booking-intro h1 { font-size:32px; letter-spacing:-1.1px; }.booking-workflow .booking-intro p { font-size:14px; }.booking-workflow .booking-progress { padding:16px 12px; gap:6px; }.booking-workflow .booking-progress li { font-size:11px; gap:7px; flex-direction:column; }.booking-workflow .booking-progress li span { width:28px; height:28px; }.booking-workflow .booking-search-panel>summary { padding:17px; font-size:15px; }.booking-workflow .booking-search-panel .live-search { padding:0 17px 20px; }.booking-workflow .booking-search-panel .form-row { gap:14px; }.booking-workflow :is(input:not([type=checkbox]):not([type=hidden]),select) { font-size:16px; }.booking-workflow .booking-summary,.booking-workflow .booking-review { padding:20px; }.booking-workflow .booking-guide { grid-template-columns:1fr; }.booking-workflow .results-heading h2 { font-size:24px; }.booking-workflow .results-count { font-size:11px; padding:7px 9px; }.booking-workflow .flight-result-top { padding:15px; }.booking-workflow .flight-route-line { padding:20px 12px; }.booking-workflow .flight-route-line strong { font-size:25px; }.booking-workflow .fare-comparison>summary { padding:16px; gap:12px; }.booking-workflow .fare-comparison>summary strong { font-size:18px; }.booking-workflow .fare-comparison>summary small { font-size:11px; }.booking-workflow .booking-hotel-card { grid-template-columns:72px minmax(0,1fr); padding:16px; gap:14px; }.hotel-result-art { height:100px; }.hotel-result-art>span { font-size:48px; }.booking-workflow .hotel-result-content h3 { font-size:18px; }.hotel-detail-tags { display:none; }.hotel-result-action small { font-size:12px; }.booking-workflow .traveller-card { padding:16px; }.booking-workflow .booking-review .page-heading h2 { font-size:26px; }.booking-workflow .results-toolbar { padding:12px; }.booking-workflow .results-toolbar select { font-size:14px; padding:10px 8px; }.booking-workflow .booking-test-badge { font-size:11px; } }
+@media(max-width:600px) { .booking-workflow { padding-top:12px; }.booking-workflow .booking-intro { padding:16px 0 22px; gap:14px; }.booking-workflow .booking-intro h1 { font-size:32px; letter-spacing:-1.1px; }.booking-workflow .booking-intro p { font-size:14px; }.booking-workflow .booking-progress { padding:16px 12px; gap:6px; }.booking-workflow .booking-progress li { font-size:11px; gap:7px; flex-direction:column; }.booking-workflow .booking-progress li span { width:28px; height:28px; }.booking-workflow .booking-search-panel>summary { padding:17px; font-size:15px; }.booking-workflow .booking-search-panel .live-search { padding:0 17px 20px; }.booking-workflow .booking-search-panel .form-row { gap:14px; }.booking-workflow :is(input:not([type=checkbox]):not([type=hidden]),select) { font-size:16px; }.booking-workflow .booking-summary,.booking-workflow .booking-review { padding:20px; }.booking-workflow .booking-guide { grid-template-columns:1fr; }.booking-workflow .results-heading h2 { font-size:24px; }.booking-workflow .results-count { font-size:11px; padding:7px 9px; }.booking-workflow .flight-result-top { padding:15px; }.booking-workflow .flight-route-line { padding:20px 12px; }.booking-workflow .flight-route-line strong { font-size:25px; }.booking-workflow .fare-comparison>:is(summary, .fare-comparison-trigger) { padding:16px; gap:12px; }.booking-workflow .fare-comparison>:is(summary, .fare-comparison-trigger) strong { font-size:18px; }.booking-workflow .fare-comparison>:is(summary, .fare-comparison-trigger) small { font-size:11px; }.booking-workflow .booking-hotel-card { grid-template-columns:72px minmax(0,1fr); padding:16px; gap:14px; }.hotel-result-art { height:100px; }.hotel-result-art>span { font-size:48px; }.booking-workflow .hotel-result-content h3 { font-size:18px; }.hotel-detail-tags { display:none; }.hotel-result-action small { font-size:12px; }.booking-workflow .traveller-card { padding:16px; }.booking-workflow .booking-review .page-heading h2 { font-size:26px; }.booking-workflow .results-toolbar { padding:12px; }.booking-workflow .results-toolbar select { font-size:14px; padding:10px 8px; }.booking-workflow .booking-test-badge { font-size:11px; } }
 @media(prefers-reduced-motion:reduce) { .booking-loading-lines i { animation:none; } }
 .booking-workflow .booking-party-picker { border:1px solid #dfe7ee; border-radius:14px; background:#f8faff; margin:20px 0 0; padding:0 16px; }
 .booking-workflow .booking-party-picker>summary { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:15px 0; min-height:70px; color:#142d40; list-style:none; }
@@ -350,10 +350,10 @@
 .flight-shopping-list .flight-segment-details>summary { min-height:44px; padding:12px 0; color:#245c80; font-size:13px; }
 .flight-shopping-list .flight-segment { font-size:14px; line-height:1.6; }
 .booking-workflow .flight-shopping-list .fare-comparison { grid-column:2; grid-row:1/4; border-top:0; border-left:1px solid #e4ecf2; background:#f8fbfe; }
-.booking-workflow .flight-shopping-list .fare-comparison>summary { height:100%; min-height:0; padding:20px 16px; display:flex; flex-direction:column-reverse; align-items:stretch; justify-content:center; gap:22px; background:transparent; }
-.booking-workflow .flight-shopping-list .fare-comparison>summary strong { font-size:24px; line-height:1.3; color:#163b51; letter-spacing:-.5px; }
-.booking-workflow .flight-shopping-list .fare-comparison>summary small { font-size:12px; line-height:1.5; letter-spacing:0; }
-.flight-shopping-list .fare-comparison>summary>span { display:block; min-height:44px; border:1px solid #b5cfe6; border-radius:10px; padding:11px; color:#2455e7; font-weight:700; font-size:14px; background:#fff; }
+.booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) { height:100%; min-height:0; padding:20px 16px; display:flex; flex-direction:column-reverse; align-items:stretch; justify-content:center; gap:22px; background:transparent; }
+.booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) strong { font-size:24px; line-height:1.3; color:#163b51; letter-spacing:-.5px; }
+.booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) small { font-size:12px; line-height:1.5; letter-spacing:0; }
+.flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger)>span { display:block; min-height:44px; border:1px solid #b5cfe6; border-radius:10px; padding:11px; color:#2455e7; font-weight:700; font-size:14px; background:#fff; }
 .booking-workflow .flight-shopping-list .fare-comparison[open] { grid-column:1/-1; grid-row:auto; border-left:0; border-top:1px solid #e4ecf2; }
 .booking-workflow .flight-shopping-list .fare-comparison[open]>summary { height:auto; flex-direction:row; justify-content:space-between; align-items:center; padding:16px 20px; }
 .flight-shopping-list .fare-comparison-options { padding:0 18px 18px; display:grid; gap:12px; }
@@ -380,9 +380,9 @@
  .booking-workflow .flight-shopping-list .flight-route-line strong { font-size:25px; }
  .booking-workflow .flight-shopping-list .flight-segment-details { padding:0 14px 6px; }
  .booking-workflow .flight-shopping-list .fare-comparison { border-left:0; border-top:1px solid #e4ecf2; }
- .booking-workflow .flight-shopping-list .fare-comparison>summary,.booking-workflow .flight-shopping-list .fare-comparison[open]>summary { padding:14px; flex-direction:row-reverse; gap:12px; justify-content:space-between; align-items:center; }
- .booking-workflow .flight-shopping-list .fare-comparison>summary strong { font-size:22px; }
- .flight-shopping-list .fare-comparison>summary>span { flex:0 0 125px; padding:10px; }
+ .booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger),.booking-workflow .flight-shopping-list .fare-comparison[open]>summary { padding:14px; flex-direction:row-reverse; gap:12px; justify-content:space-between; align-items:center; }
+ .booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) strong { font-size:22px; }
+ .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger)>span { flex:0 0 125px; padding:10px; }
  .flight-shopping-list .fare-comparison-options { padding:0 12px 12px; }
  .flight-shopping-list .fare-option { display:grid; grid-template-columns:minmax(0,1fr); padding:14px; }
  .flight-shopping-list .fare-option-action { width:100%; display:grid; gap:8px; }
@@ -397,8 +397,8 @@
 }
 
 /* Customer audit: keep the basis of a price as readable as other body metadata. */
-.booking-workflow .live-flight-card .fare-comparison>summary small,
-.booking-workflow .flight-shopping-list .fare-comparison>summary small,
+.booking-workflow .live-flight-card .fare-comparison>:is(summary, .fare-comparison-trigger) small,
+.booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) small,
 .booking-workflow .live-flight-card .fare-option-action small {
   font-size:14px; line-height:1.45; letter-spacing:0;
 }
@@ -412,10 +412,10 @@
 
 /* Selected receipts are not a two-column comparison action. Give the complete
    price basis full width without shrinking any qualifier or hiding fare details. */
-.booking-workflow .selected-itinerary .is-readonly .fare-comparison>summary {
+.booking-workflow .selected-itinerary .is-readonly .fare-comparison>:is(summary, .fare-comparison-trigger) {
   display:block; height:auto; min-height:44px;
 }
-.booking-workflow .selected-itinerary .is-readonly .fare-comparison>summary>strong {
+.booking-workflow .selected-itinerary .is-readonly .fare-comparison>:is(summary, .fare-comparison-trigger)>strong {
   display:block; margin-top:8px; width:100%; max-width:none; text-align:left;
 }
 
@@ -502,7 +502,7 @@ body .booking-workflow.journey-flow .results-count { background: #e8f4ee; color:
 body .booking-workflow.journey-flow .flight-shopping-controls,
 body .booking-workflow.journey-flow .hotel-search-filters { background: #fff; border-color: #dce7e1; border-radius: 18px; box-shadow: none; }
 body .booking-workflow.journey-flow .live-flight-card { border-radius: 18px; border-color: #dce7e1; box-shadow: 0 6px 24px #102b3106; }
-body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > summary { background: #f1f6f2; border-left: 1px dashed #bdcfc5; border-radius: 0 17px 17px 0; }
+body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { background: #f1f6f2; border-left: 1px dashed #bdcfc5; border-radius: 0 17px 17px 0; }
 body .booking-workflow.journey-flow .hotel-shopping-card { padding: 0; overflow: hidden; }
 body .booking-workflow.journey-flow .hotel-shopping-card .hotel-card-photo { border-radius: 0; min-height: 260px; }
 body .booking-workflow.journey-flow .hotel-result-content { padding-block: 24px; }
@@ -535,7 +535,7 @@ body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: 
 @media (max-width: 900px) {
   body .booking-workflow.journey-flow:not(.has-journey) .booking-layout { grid-template-columns: minmax(0, 1fr); }
   body .booking-workflow.journey-flow .booking-summary.is-planning { display: none; }
-  body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > summary { border-left: 0; border-top: 1px dashed #bdcfc5; border-radius: 0 0 17px 17px; }
+  body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { border-left: 0; border-top: 1px dashed #bdcfc5; border-radius: 0 0 17px 17px; }
 }
 @media (max-width: 600px) {
   body .booking-workflow.journey-flow { width: 100%; padding-inline: 16px; }
@@ -563,7 +563,7 @@ body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: 
 }
 
 body .booking-workflow.journey-flow .choose-fare-label { background: #006756; }
-body .booking-workflow.journey-flow .fare-comparison > summary:hover .choose-fare-label { background: #005345; }
+body .booking-workflow.journey-flow .fare-comparison > :is(summary, .fare-comparison-trigger):hover .choose-fare-label { background: #005345; }
 
 @media (min-width: 1051px) {
   body .booking-workflow.journey-flow .hotel-shopping-card { grid-template-columns: minmax(170px, 23%) minmax(0, 1fr) 220px; }

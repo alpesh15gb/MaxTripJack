@@ -31,7 +31,7 @@ test('journey studio results and reviewed receipt share contrast and clear total
  await expect(page.getByRole('form',{name:'Search availability',exact:true})).toBeVisible();
  await summary.click();await expect(edit).toBeVisible();
  await capture(page,testInfo,'studio-flight-results');await expectNoHorizontalOverflow(page);
- await page.locator('.fare-comparison>summary').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
+ await page.locator('.fare-comparison-trigger').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
  await expect(summary).toBeHidden();
  const receipt=page.getByRole('complementary',{name:'Your journey summary'});await expect(receipt).toContainText('₹6,540');await capture(page,testInfo,'studio-traveller-review');
  const form=page.getByRole('form',{name:'Review and travellers'});await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');

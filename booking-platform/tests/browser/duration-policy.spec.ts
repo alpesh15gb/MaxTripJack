@@ -13,7 +13,7 @@ test(`flight segment durations are readable without inventing unknown connection
  await expect(itinerary.getByRole('listitem').first().locator('.flight-stop-place')).toHaveText([/Departure.*BOM/,/Arrival.*DEL/]);
  await expect(itinerary.getByRole('listitem').last().locator('.flight-stop-place')).toHaveText([/Departure.*DEL/,/Arrival.*DXB/]);
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'duration-details-synthetic');
- await page.locator('.fare-comparison>summary').click();const next=page.getByRole('button',{name:'Check fare & continue',exact:true});await expect(next).toBeInViewport();
+ await page.locator('.fare-comparison-trigger').click();const next=page.getByRole('button',{name:'Check fare & continue',exact:true});await expect(next).toBeInViewport();
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
 });
 

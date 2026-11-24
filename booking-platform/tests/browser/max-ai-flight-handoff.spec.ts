@@ -75,7 +75,7 @@ test('an AI flight result restores the same owned search and exact criteria befo
   await expect(page.getByLabel('Departure',{exact:true})).toHaveValue(formatBookingDate(departure));
   await toggleResultSearch(page);
   await expectNoHorizontalOverflow(page);await capture(page,info,'max-ai-owned-flight-handoff');
-  await page.locator('.flight-shopping-list .fare-comparison>summary').click();
+  await page.locator('.flight-shopping-list .fare-comparison-trigger').click();
   await page.getByRole('button',{name:'Check fare & continue',exact:true}).click();
   await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
   expect(provider.requests('/api/travel/review').at(-1)?.body).toEqual({searchId,priceIds:['onward-standard']});
