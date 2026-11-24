@@ -8,7 +8,7 @@ const inr = new Intl.NumberFormat('en-IN', {
 const wholeInr = new Intl.NumberFormat('en-IN', {
   style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0,
 });
-export function displayMoney(minor: number): string {
+export function displayMoney(minor: number, alwaysShowPaise = false): string {
   if (!Number.isSafeInteger(minor)) return 'Price unavailable';
-  return minor % 100 === 0 ? wholeInr.format(minor / 100) : inr.format(minor / 100);
+  return !alwaysShowPaise && minor % 100 === 0 ? wholeInr.format(minor / 100) : inr.format(minor / 100);
 }

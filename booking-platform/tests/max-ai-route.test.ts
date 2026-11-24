@@ -185,9 +185,12 @@ test('Max AI route returns bounded recovery when a request aborts or its deadlin
     assert.doesNotMatch(await timeout.text(), /SYNTHETIC_TIMEOUT_DETAILS/);
     h.state.failure = '';
     const during = new AbortController();
-    h.state.onEngine = () => {during.abort();};
+    h.state.onEngine = () => {
+      during.abort();
+      return new Promise<void>(() => {});
+    };
     const late = await h.send(undefined, {signal: during.signal});
-    assert.equal(late.status, 504, 'A completed engine result cannot override a cancelled request');
+    assert.equal(late.status, 504, 'Even a hung engine cannot block cancellation');
     assert.equal((await late.json()).conversationToken, undefined);
   } finally {h.cleanup();}
 });

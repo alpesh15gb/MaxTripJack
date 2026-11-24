@@ -35,6 +35,7 @@ import {accountHref} from '@/lib/account-return';
 import {nextBookingSessionBoundary,type BookingSessionBoundary} from '@/lib/booking-session';
 import CheckoutVerification, {type VerifiedContact} from './checkout-verification';
 import useFareCalendar from './use-fare-calendar';
+import {bookingPriceLines,type BookingPriceBreakdown} from '@/lib/booking-price-breakdown';
 import '@/app/search-pickers.css';
 import {customerEmail,hasVerifiedCustomerIdentity} from '@/lib/customer-identity';
 import {type AvailableHotelOption} from './hotel-room-view';
@@ -62,6 +63,7 @@ import InitialReviewPriceNotice from './initial-review-price-notice';
 import {initialReviewPriceChange,selectedFlightEstimate,selectedFlightsInJourneyOrder,selectedHotelEstimate,type InitialReviewPriceChange} from '@/lib/checkout-selection-context';
 import type {ReviewTerm} from '@/lib/review-term-changes';
 import CheckoutPromo, { type CheckoutPromoActions } from './checkout-promo';
+import {MaxAiInlineAction} from './max-ai-assistant';
 import CheckoutExtras from './checkout-extras';
 import CheckoutPaymentMethods, {paymentPreference} from './checkout-payment-methods';
 import {bookingCallingCodes, bookingPhoneParts} from '@/lib/booking-phone';
@@ -84,7 +86,7 @@ type Hotel={originSearchId?:string;tjHotelId:string;name:string;options?:HotelOp
 type Results={searchId:string;propertyContentPending?:boolean;propertyContentUnavailable?:boolean;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
 const callingCodes=bookingCallingCodes();
 
-type Quote={discountMinor?:number;promoCode?:string|null;quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;childrenAges?:number[];rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{terms?:ReviewTerm[];fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
+type Quote={extrasRefresh?:'kept'|'removed';baseTotalMinor?:number;savedFlightExtrasCount?:number;priceBreakdown?:BookingPriceBreakdown|null;discountMinor?:number;promoCode?:string|null;quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;childrenAges?:number[];rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{terms?:ReviewTerm[];fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
 type Selection={priceIds?:string[];hid?:string;optionId?:string};
 type Payment={provider?:'RAZORPAY';bookingId:string;orderId:string;amount:number;currency:string;keyId:string}|{provider:'PAYGLOCAL';bookingId:string;checkoutUrl:string;amount:number;currency:'INR'};
 class BookingApiError extends Error { constructor(message:string,public status:number,public code?:string,public fields:GuestIssue[]=[]){super(message);} }
@@ -212,7 +214,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const checkoutHistory=useRef<{quote:Quote;searchId:string}|null>(null);
   const checkoutQuoteIds=useRef(new Set<string>());
   const [previousReview,setPreviousReview]=useState<Quote|null>(null);
-  const [initialPriceChange,setInitialPriceChange]=useState<(InitialReviewPriceChange&{quoteId:string})|null>(null);
+  const [initialPriceChange,setInitialPriceChange]=useState<(InitialReviewPriceChange&{quoteId:string;estimateBreakdown?:BookingPriceBreakdown})|null>(null);
   const [hasFullSearchResults,setHasFullSearchResults]=useState(false);
   const [searchRecovery,setSearchRecovery]=useState(false);
   const [rooms,setRooms]=useState<{searchId:string;hid:string;name:string;options:HotelOption[];property?:HotelPropertyDetails}|null>(null);
@@ -292,7 +294,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const [extrasPending,setExtrasPending]=useState(false);
   const [promoRevision,setPromoRevision]=useState(0);
   const [extrasResetNotice,setExtrasResetNotice]=useState(false);
-  const extrasApplied=useRef(false);
+  const [extrasRefreshBlockedQuote,setExtrasRefreshBlockedQuote]=useState<string|null>(null);
   const refreshedContinuation=useRef<{quoteId:string;validate:boolean}|null>(null);
   const [gstEntered,setGstEntered]=useState(false),[emergencyEntered,setEmergencyEntered]=useState(false);
   const [reviewBase,setReviewBase]=useState(0),[now,setNow]=useState<number|null>(null);
@@ -406,10 +408,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   useEffect(()=>{
     const summary=checkoutSummaryRef.current;
     if(!reviewedQuoteId||!summary)return;
+    const header = document.querySelector('.concierge-header');
     // Keep short desktop summaries visible without clipping expanded terms,
     // multiple guests or billing controls in a nested scrolling panel.
     const update=()=>{
-      const fits=summary.offsetHeight+48<=window.innerHeight;
+      const fits=summary.offsetHeight+(header?.getBoundingClientRect().height??0)+24<=window.innerHeight;
       const wasPinned=summary.hasAttribute('data-fits-viewport')&&window.innerWidth>1000;
       summary.toggleAttribute('data-fits-viewport',fits);
       const active=document.activeElement;
@@ -417,6 +420,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     };
     const observer=new ResizeObserver(update);
     observer.observe(summary);
+    if(header)observer.observe(header);
     window.addEventListener('resize',update);
     update();
     return()=>{observer.disconnect();window.removeEventListener('resize',update);};
@@ -922,14 +926,15 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       }
     }catch(error){if(current(task.id)){setSearchValidation(validating);if(product==='HOTEL'&&fields.get('regionId'))setSearchPrefill(current=>({...current,city:String(fields.get('city')??''),hotelIds:String(fields.get('hotelIds')??''),regionId:String(fields.get('regionId')??''),destinationCursor:String(fields.get('destinationCursor')??''),date:normalizeBookingDate(String(fields.get('date')??'')),end:normalizeBookingDate(String(fields.get('end')??'')),nationality:String(fields.get('nationality')??'106')}));}report(error,task.id);}finally{finish(task.id);}
   }
-  async function review(nextSelection:Selection,renew=false,validateAfterRefresh=false){
+  async function review(nextSelection:Selection,renew=false,validateAfterRefresh=false,removeFlightExtras=false){
     if(busyRef.current||payment||paymentUncertain||recoveryBlocked)return;
     if(!hasFullSearchResults&&savedHandoff){
       const restored=inspectBookingHandoff(savedHandoff,new Date().getTime(),{userId:checkoutSession?.user.id??null,key:savedHandoff.key});
       if(restored.state!=='ready'){clearSelectionHandoff();setResults(null);setFreshSearchRequired(true);setMessage(restored.state==='expired'?'Your previous selection has expired. Search again for current availability.':'We couldn’t recover this selection for your current account. Search again for current availability.');scrollToSection('booking-feedback');return;}
     }
     const reviewSearchId=product==='HOTEL'&&rooms&&rooms.hid===nextSelection.hid?rooms.searchId:results?.searchId;
-    const resetExtras=renew&&(extrasApplied.current||extrasPending);
+    const resetDraftExtras=renew&&extrasPending;
+    const previousQuoteId=renew&&quote?.product==='FLIGHT'?quote.quoteId:undefined;
     if(renew)savePrivateDraft();
     refreshedContinuation.current=null;
     const task=begin(renew?'Checking the latest price and rules':'Checking your fare and availability');if(!task)return;
@@ -942,28 +947,32 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     const deadline = new AbortController();
     const timeout = setTimeout(() => deadline.abort(), 20_000);
     try{
-      const value=await api<Quote>('/api/travel/review',{searchId:reviewSearchId,...nextSelection},AbortSignal.any([task.signal,deadline.signal]));
+      const value=await api<Quote>('/api/travel/review',{searchId:reviewSearchId,...nextSelection,...(previousQuoteId?{previousQuoteId}:{}),...(removeFlightExtras?{removeFlightExtras:true}:{})},AbortSignal.any([task.signal,deadline.signal]));
       if(current(task.id)){
         refreshedContinuation.current=renew?{quoteId:value.quoteId,validate:validateAfterRefresh}:null;
         if(!renew)checkoutQuoteIds.current.clear();
         checkoutQuoteIds.current.add(value.quoteId);
-        extrasApplied.current=false;
-        setExtrasResetNotice(resetExtras);
+        setExtrasRefreshBlockedQuote(null);
+        setExtrasResetNotice(resetDraftExtras);
         const priceChange=renew||value.product!==product?null:initialReviewPriceChange(selectedEstimate,value.totalMinor);
-        setInitialPriceChange(priceChange?{...priceChange,quoteId:value.quoteId}:null);
-        setPreviousReview(renew?quote:null);setGuestErrors([]);setQuote(value);setSelection(nextSelection);clearSelectionHandoff();setReviewBase(value.totalMinor);setNow(null);setExtrasPending(false);setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
+        setInitialPriceChange(priceChange?{...priceChange,quoteId:value.quoteId,estimateBreakdown:room?.priceBreakdown}:null);
+        setPreviousReview(renew?quote:null);setGuestErrors([]);setQuote(value);setSelection(nextSelection);clearSelectionHandoff();setReviewBase(value.baseTotalMinor??value.totalMinor);setNow(null);setExtrasPending(false);setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
         checkoutHistory.current=results?{quote:value,searchId:results.searchId}:null;
         let checkoutUrl=product==='HOTEL'&&results&&nextSelection.hid?hotelJourneyUrl(reviewSearchId??results.searchId,nextSelection.hid,false,true):window.location.pathname+window.location.search;
         if(product==='FLIGHT'&&results){
-          const handoff=parseBookingHandoff({version:1,savedAt:savedHandoff?.savedAt??new Date().getTime(),key:crypto.randomUUID(),...(checkoutSession?.user.id?{ownerId:checkoutSession.user.id}:{}),product,searchId:results.searchId,selection:nextSelection,flights:chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))}))});
+          const handoff=parseBookingHandoff({version:1,savedAt:savedHandoff?.savedAt??new Date().getTime(),key:renew&&savedHandoff?.searchId===results.searchId?savedHandoff.key:crypto.randomUUID(),...(checkoutSession?.user.id?{ownerId:checkoutSession.user.id}:{}),product,searchId:results.searchId,selection:nextSelection,flights:chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))}))});
           if(handoff)try{sessionStorage.setItem(BOOKING_HANDOFF_KEY,JSON.stringify(handoff));setSavedHandoff(handoff);handoffRead.current=true;checkoutUrl=selectionReturnUrl(handoff,false);}catch{}
         }
         window.history[renew?'replaceState':'pushState'](checkoutHistoryState(value),'',checkoutUrl);
         if(!renew){setGstEntered(false);setEmergencyEntered(false);}
-        if(renew)setMessage(`Price and rules updated. Your traveller details are kept.${resetExtras?' Flight extras were reset. Choose any extras again before continuing.':''} Review the latest total before choosing Agree & pay.`);
+        if(renew)setMessage('Price and rules updated. Your traveller details are kept. Review the latest total before choosing Agree & pay.');
       }
     }catch(error){
-      if(current(task.id)&&(deadline.signal.aborted||(error instanceof BookingApiError&&error.status===504))){
+      if(current(task.id)&&previousQuoteId&&error instanceof BookingApiError&&error.code==='FLIGHT_EXTRAS_REFRESH'){
+        setExtrasRefreshBlockedQuote(previousQuoteId);
+        setNeedsReview(true);
+        report(error,task.id);
+      }else if(current(task.id)&&(deadline.signal.aborted||(error instanceof BookingApiError&&error.status===504))){
         if(product==='FLIGHT'&&!renew)setRetryFlightReview(nextSelection);
         if(product==='HOTEL'&&!renew)setHotelReviewFailed(true);
         report(new Error(renew?'Checking the latest price took too long. Your details are kept. Try refreshing the price again.':product==='FLIGHT'?'This fare check took too long. Try again or choose another fare. No payment was started.':'This room check took too long. No payment was started.'),task.id);
@@ -1139,6 +1148,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     const nextGroup=fareGroups[fareGroups.indexOf(group)+1];
     if(nextGroup){setActiveGroup(nextGroup);resetFlightGroupRefinements();}
   }
+  const checkoutPrefill = useRef<{bookingId:string;contact:ReturnType<typeof paymentPreference>} | null>(null);
   async function openCheckout(order:Payment,quoteId:string){
     if(order.provider==='PAYGLOCAL'){
       if(!isResumableHostedCheckout({...order,canResume:true}))throw Error('Hosted checkout details could not be verified. Check My trips before paying again.');
@@ -1152,7 +1162,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(!mounted.current||launch!==checkoutLaunch.current)return;
     let verifying=false;
     const currentLaunch=()=>mounted.current&&launch===checkoutLaunch.current;
-    const prefill=quote?.quoteId===quoteId&&checkoutForm.current?paymentPreference(checkoutForm.current):undefined;
+    const prefill=checkoutPrefill.current?.bookingId===order.bookingId?checkoutPrefill.current.contact:undefined;
     const checkout=new Razorpay({prefill,theme:{color:'#005bb3'},key:order.keyId,amount:order.amount,currency:order.currency,order_id:order.orderId,name:'Max Travel · Test booking',handler:async result=>{
       if(verifying||!currentLaunch())return;
       verifying=true;
@@ -1204,8 +1214,9 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(extrasPending){setMessage('Apply your flight extras before continuing.');return;}
     const values=new FormData(form);
     // Existing payment recovery uses the original order, never edited draft data.
-    const guests=payment?guestsFromForm(values,party,quote.product==='HOTEL'?hotelParty.map(person=>person.roomIndex):undefined):validatedGuests(form);
-    if(!guests)return;
+    const guests=payment?undefined:validatedGuests(form);
+    if(!payment&&!guests)return;
+    const contact=guests?paymentPreference(form,guests):undefined;
     // An unconfirmed promo total blocks payment, not navigation back to the
     // visible promo controls or a fresh review of an expired quote.
     if(uncertainPromoQuote===quote.quoteId){setMessage('Apply or remove the promo code to confirm your total before paying.');return;}
@@ -1230,6 +1241,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       if(!isResumableCheckout({...order,canResume:true})&&!isResumableHostedCheckout({...order,canResume:true}))throw Error('Payment order details could not be verified. The original attempt is preserved.');
       if(!saveCheckoutMarker({quoteId:quote.quoteId,bookingId:order.bookingId}))throw Error('Your payment order was created, but its recovery details could not be saved.');
       if(!mounted.current)return;
+      checkoutPrefill.current={bookingId:order.bookingId,contact};
       setPayment(order);
       if(quoteRemaining(quote.expiresAt,new Date().getTime())<=0){setPaymentUncertain(true);throw Error('The price review expired while checkout was being prepared. Your original order is preserved.');}
       await openCheckout(order,quote.quoteId);
@@ -1287,6 +1299,16 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const hasPreviousCheckout=Boolean(recovery.pending)||recovery.pendingCount>0;
   const checkoutLocked=busy||Boolean(payment)||paymentUncertain||recoveryBlocked;
   const bookingProgress=<ol className="booking-progress" aria-label="Booking progress">{[product==='HOTEL'?'Choose stay':'Choose flight',checkoutConfigured?'Details & payment':'Review selection',...(checkoutStarted && checkoutConfigured ? ['Confirmation'] : [])].map((label,index)=><li key={label} aria-current={step===index?'step':undefined} className={index<step?'is-complete':index===step?'is-current':''}><span aria-hidden="true">{index<step?'✓':index+1}</span>{label}</li>)}</ol>;
+  useEffect(()=>{
+    const workflow=document.getElementById('main-content');
+    const header=document.querySelector('.concierge-header');
+    if(!workflow||!header)return;
+    const setOffset=()=>workflow.style.setProperty('--booking-header-offset',`${Math.ceil(header.getBoundingClientRect().height)+12}px`);
+    setOffset();
+    const observer=new ResizeObserver(setOffset);
+    observer.observe(header);
+    return ()=>observer.disconnect();
+  },[]);
   const outward=groups.ONWARD?.[0]?.sI;
   const originCity=outward?.[0]?.da.code===submittedSearch.from?outward?.[0]?.da.city:undefined;
   const arrivalAirport=outward?.at(-1)?.aa;
@@ -1317,7 +1339,8 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     <div className={quote?"booking-layout is-inline-checkout":"booking-layout"} hidden={showSearchScene}><div className="booking-main">
       {recovery.checking&&!hasPreviousCheckout&&<div className="booking-status info-message" role="status">Checking for an interrupted checkout…</div>}
       {hasPreviousCheckout&&<section className="white-card booking-recovery" aria-label="Interrupted checkout">
-        <h2>{bookingDifferentTrip?'Previous payment status':'Check your previous payment'}</h2>
+        <details open={!bookingDifferentTrip}>
+        <summary><h2>{bookingDifferentTrip?'Previous payment status':'Check your previous payment'}</h2></summary>
         <p role="status">{recovery.message}</p>
         <p>{bookingDifferentTrip?'You can continue with a different trip. We’ll check for overlap before starting payment.':'You can check this payment here or continue with a different trip.'}</p>
         <div className="booking-recovery-actions">
@@ -1328,6 +1351,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           <Link className="secondary" href="/my-trips">Open My trips</Link>
         </div>
         {/sign in/i.test(recovery.message)&&<Link className="inline-link" href={accountHref('/book?'+new URLSearchParams(submittedSearch).toString())}>Sign in to check your payment</Link>}
+        </details>
       </section>}
       {!hasPreviousCheckout&&recovery.message&&<p className="info-message" role="status">{recovery.message} <Link href="/my-trips">My trips →</Link></p>}
       {!results&&!quote&&<div className="account-tabs booking-product-tabs" aria-label="Booking product"><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} aria-pressed={product==='FLIGHT'} onClick={()=>switchProduct('FLIGHT')}>✈ Flights</button><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} aria-pressed={product==='HOTEL'} onClick={()=>switchProduct('HOTEL')}>▤ Stays</button></div>}
@@ -1361,7 +1385,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         <div className="booking-verification-actions"><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>{if(product==='HOTEL')returnToRoomOptions();else backToFlightResults();}}>{product==='HOTEL'?'Back to room options':'Back to flights'}</button></div>
       </section>}
       <div id="booking-feedback" tabIndex={-1}>{message&&!verificationActive&&<div className="booking-status info-message" role="alert" tabIndex={-1}>
-        <p>{message}</p>{retryFlightReview&&product==='FLIGHT'&&!quote&&<button type="button" className="secondary" disabled={busy} onClick={()=>void review(retryFlightReview)}>Retry fare check</button>}{hotelReviewFailed&&rooms&&!quote&&<div className="hotel-review-recovery"><p>Choose another room or refresh the available options. Your search details are kept.</p><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');void loadHotelRooms({tjHotelId:rooms.hid,name:rooms.name,property:roomProperty},rooms.searchId);}}>Refresh room options</button><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');backToStays();}}>Browse other stays</button></div>}
+        <p>{message}</p>{quote?.quoteId===extrasRefreshBlockedQuote&&selection&&<button type="button" className="secondary" disabled={busy} onClick={()=>void review(selection,true,true,true)}>Review price without saved extras</button>}{retryFlightReview&&product==='FLIGHT'&&!quote&&<button type="button" className="secondary" disabled={busy} onClick={()=>void review(retryFlightReview)}>Retry fare check</button>}{hotelReviewFailed&&rooms&&!quote&&<div className="hotel-review-recovery"><p>Choose another room or refresh the available options. Your search details are kept.</p><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');void loadHotelRooms({tjHotelId:rooms.hid,name:rooms.name,property:roomProperty},rooms.searchId);}}>Refresh room options</button><button type="button" className="secondary" disabled={busy} onClick={()=>{setHotelReviewFailed(false);setMessage('');backToStays();}}>Browse other stays</button></div>}
         {!signInRequired&&/sign in/i.test(message)&&<Link className={signInWithoutSelection?"primary signin-search-again":"inline-link"} href={accountHref('/book?'+new URLSearchParams(Object.fromEntries(Object.entries(submittedSearch).filter(([key])=>!signInWithoutSelection||!['resumeSelection','resumeReview','selectionKey','autoSearch'].includes(key)))).toString())}>{signInWithoutSelection?'Sign in, then search again':'Sign in or create an account'}</Link>}
         {freshSearchRequired&&!payment&&!paymentUncertain&&<button className="secondary" type="button" disabled={busy||recoveryBlocked} onClick={recoverSearch}>Start a fresh search</button>}{(payment||paymentUncertain)&&<div className="booking-recovery-actions"><button type="button" className="secondary" disabled={busy} onClick={bookDifferentTrip}>Book a different trip</button><Link className="inline-link" href="/my-trips">View payment and booking status →</Link></div>}
       </div>}</div>
@@ -1412,8 +1436,8 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         }}>
 
         {!checkoutConfigured&&<section className="review-unavailable" aria-label="Payment unavailable"><h3>Payment unavailable</h3><p>This selection has been reviewed, but no booking has been made. Online payment and traveller entry are disabled.</p><div><button type="button" className="primary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>{setQuote(null);setExtrasPending(false);if(product==='HOTEL')backToStays();else backToFlightResults();}}>Back to results</button><Link className="secondary" href="/customer-support">Contact MaxTravel</Link></div></section>}
-        {previousReview&&<RefreshedTerms before={previousReview} after={quote}/>}
-        {initialPriceChange?.quoteId===quote.quoteId&&initialPriceChange.reviewedMinor===quote.totalMinor&&!extrasPending&&<InitialReviewPriceNotice change={initialPriceChange} product={quote.product}/>}
+        {previousReview&&<RefreshedTerms before={previousReview} after={quote} extrasRefresh={quote.extrasRefresh}/>}
+        {initialPriceChange?.quoteId===quote.quoteId&&initialPriceChange.reviewedMinor===quote.totalMinor&&!extrasPending&&<InitialReviewPriceNotice change={initialPriceChange} product={quote.product} estimateBreakdown={initialPriceChange.estimateBreakdown} reviewedBreakdown={quote.priceBreakdown}/>}
         <h1 className="visually-hidden">Booking review &amp; checkout</h1>
         <div className="checkout-stages"><div className={`booking-expiry${expired||needsReview?' is-expired':''}`} role={expired||needsReview?'alert':undefined}><div><strong>{payment?'Payment order created':expired||needsReview?'We’ll check the latest price when you continue':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':expired||needsReview?'Your details are kept. You’ll see any changes before choosing Agree & pay.':'We’ll check the price again if needed before payment.'}</p><small className="checkout-test-mode">In testing · No live bookings or payments</small></div>{busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}{!payment&&!paymentUncertain&&selection&&<button type="button" className="secondary" disabled={busy} aria-label={busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'} onClick={()=>void review(selection,true)}><span className="clock-refresh-wide">{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</span><span className="clock-refresh-short">{busy&&checkingSelection?'Checking…':'Refresh'}</span></button>}</div>{bookingProgress}</div>
         <div className="booking-inline-grid"><div className="booking-details-column">
@@ -1439,8 +1463,8 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           })}
           <details open={emergencyRequired}><summary>Emergency contact{emergencyRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>Contact name<input {...fieldProps('emergencyName')} name="emergencyName" onChange={event=>setEmergencyEntered(Boolean(event.target.value.trim()))} required={emergencyRequired} maxLength={100}/>{fieldError('emergencyName')}</label><label>Contact email<input {...fieldProps('emergencyEmail')} name="emergencyEmail" required={emergencyRequired||emergencyEntered} type="email"/>{fieldError('emergencyEmail')}</label><label>Contact phone with country code<input {...fieldProps('emergencyPhone')} name="emergencyPhone" required={emergencyRequired||emergencyEntered} type="tel" minLength={10} maxLength={20}/>{fieldError('emergencyPhone')}</label></div></details>
           </div>
-          {extrasResetNotice&&<p className="info-message" role="status">Flight extras were reset when the price was refreshed. Choose any extras again, or continue without extras.</p>}
-          {quote.product==='FLIGHT'&&<details id="booking-flight-extras" className="checkout-optional-extras"><summary><span>Seats, meals & extra baggage</span><small>{extrasPending?'Changes to review':'Optional'}</small></summary><CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={total=>{extrasApplied.current=true;setPromoRevision(n=>n+1);setExtrasResetNotice(false);setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total,discountMinor:0,promoCode:null}:current);}}/></details>}
+          {extrasResetNotice&&<p className="info-message" role="status">Unapplied changes to flight extras were cleared on refresh. Open flight extras to make those changes again.</p>}
+          {quote.product==='FLIGHT'&&<details id="booking-flight-extras" className="checkout-optional-extras"><summary><span>Seats, meals & extra baggage</span><small>{extrasPending?'Changes to review':quote.savedFlightExtrasCount?`${quote.savedFlightExtrasCount} saved`:'Optional'}</small></summary><CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={(total,savedFlightExtrasCount)=>{setPreviousReview(null);setPromoRevision(n=>n+1);setExtrasResetNotice(false);setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total,savedFlightExtrasCount,discountMinor:0,promoCode:null}:current);}}/></details>}
         </fieldset>
         <details id="booking-fare-conditions" className="review-conditions" open={cancellationNeedsAttention}><summary>{quote.product==='HOTEL'?'Stay conditions, cancellation & documents':'Fare conditions, cancellation & documents'}</summary>{hasCancellationTerms?(quote.product==='HOTEL'&&quote.review.option?.cancellation?<HotelCancellationTimeline value={quote.review.option.cancellation}/>:<SupplierPolicy title="Cancellation and fare rules" value={cancellationTerms}/>):<section className="supplier-policy" aria-label="Cancellation and fare rules"><h4>Cancellation and fare rules</h4><p className="policy-note">Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.</p></section>}<section className="supplier-policy" aria-label="Required booking details"><h4>Required booking details</h4>{requiredBookingDetails.length?<ul className="fare-features">{requiredBookingDetails.map(detail=><li key={detail}>{detail}</li>)}</ul>:<p className="policy-note">No additional documents are requested in this review. Traveller names must match their travel documents.</p>}</section></details>
         </div>
@@ -1451,7 +1475,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
             <summary><span>{quote.product==='HOTEL'?'Stay price breakdown':'Fare breakdown'}</span><small>INR · {quote.product==='HOTEL'?'entire stay':'all travellers'}</small></summary>
             <dl className="booking-summary-lines">
               <div className="summary-party-count"><dt>{quote.product==='HOTEL'?'Guests':'Travellers'}</dt><dd>{party.length}{quote.product==='HOTEL' ? ` · ${reviewedRooms.length} room${reviewedRooms.length===1?'':'s'}` : ''}</dd></div>
-              <div><dt>Reviewed {quote.product==='HOTEL'?'stay':'fare'}</dt><dd>{money(reviewBase)}</dd></div>
+              {quote.priceBreakdown ? bookingPriceLines(quote.product,quote.priceBreakdown).map(([label,amount])=><div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>) : <div><dt>Reviewed {quote.product==='HOTEL'?'stay':'fare'}</dt><dd>{money(reviewBase)}</dd></div>}
               {quote.totalMinor+(quote.discountMinor??0)!==reviewBase&&<div><dt>Selected flight extras</dt><dd>{money(quote.totalMinor+(quote.discountMinor??0)-reviewBase)}</dd></div>}
               {Boolean(quote.discountMinor)&&<div><dt>Promo {quote.promoCode}</dt><dd>−{money(quote.discountMinor!)}</dd></div>}
               <div className="booking-total"><dt>{checkoutConfigured?'Total payable':'Reviewed total'}</dt><dd>{money(quote.totalMinor)}</dd></div>
@@ -1472,12 +1496,13 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
               beforeOpen={()=>Boolean(checkoutForm.current&&validatedGuests(checkoutForm.current))}
               onApplyOffer={code=>promoActions.current?.applyOffer(code)}/>
             {billingRequired&&<BillingFields addressRequired={quote.product==='FLIGHT'} disabled={checkoutLocked}/>}
+            <MaxAiInlineAction label="Ask Max AI about this booking"/>
             {uncertainPromoQuote===quote.quoteId&&<div className="info-message" role="status" aria-label="Promo total confirmation"><p>{expired||needsReview?'Your promo total is unconfirmed. Check the latest price to continue with a fresh quote.':'Payment is paused until you apply or remove the promo code to confirm the total.'}</p></div>}
             {extrasPending&&<div className="checkout-pending-extras">
               <p role="status">{expired||needsReview?'Check the latest price, then choose your extras again.':'Your flight extras need review before you pay.'}</p>
               {!expired&&!needsReview&&<button type="button" className="inline-link" aria-controls="booking-flight-extras" onClick={()=>showCheckoutDisclosure('booking-flight-extras')}>Review flight extras</button>}
             </div>}
-            {!payment&&!paymentUncertain&&<p id="checkout-consent" className="checkout-acknowledgement">By paying, you accept the total, supplier rules and <Link href="/terms-and-conditions" target="_blank" rel="noopener noreferrer">booking terms</Link>. Confirmation follows once the supplier accepts your booking.</p>}
+            {!payment&&!paymentUncertain&&<p id="checkout-consent" className="checkout-acknowledgement">By paying, you accept the total, supplier rules and <Link href="/terms-of-use" target="_blank" rel="noopener noreferrer">booking terms</Link>. Confirmation follows once the supplier accepts your booking.</p>}
             <div className={`checkout-submit-action${!paymentUncertain?' mobile-booking-action':''}`}>
               <div className="mobile-action-total"><button type="button" className="checkout-summary-jump" aria-label="View booking summary" aria-controls="booking-summary" onClick={showCheckoutSummary}><small>View summary</small><strong>{money(quote.totalMinor)}</strong></button></div>
               {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button type="submit" className="primary booking-continue" aria-describedby={!payment&&!expired&&!needsReview?'checkout-consent':undefined} disabled={busy||(!expired&&!needsReview&&(uncertainPromoQuote===quote.quoteId||extrasPending))||Boolean(payment&&(expired||needsReview))||providerUnavailable||recoveryBlocked}>

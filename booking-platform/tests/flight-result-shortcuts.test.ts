@@ -9,8 +9,10 @@ const segment: Flight['sI'][number] = {
 };
 
 function flight(id: string, duration: number, price: number, currency?: string): Flight {
+  const arrival = 6 * 60 + 15 + duration;
+  const at = `2026-11-24T${String(Math.floor(arrival / 60)).padStart(2,'0')}:${String(arrival % 60).padStart(2,'0')}:00+05:30`;
   return {
-    sI: [{ ...segment, duration, fD: { ...segment.fD, fN: id } }],
+    sI: [{ ...segment, at, duration, fD: { ...segment.fD, fN: id } }],
     totalPriceList: [{ id, fareIdentifier: 'STANDARD', customerEstimateMinor: price, currency, fD: {} }],
   };
 }
@@ -25,6 +27,7 @@ test('each sort preview comes from the compatible itinerary it puts first', () =
   incompatible.sI[0].dt = '2026-11-24T02:00:00+05:30';
   const direct = flight('direct', 135, 695000);
   direct.sI[0].dt = '2026-11-24T05:00:00+05:30';
+  direct.sI[0].at = '2026-11-24T07:15:00+05:30';
   const options = flightResultShortcuts([incompatible, connecting, direct, flight('fast', 115, 775000)], 'RETURN', fare => fare.id !== 'incompatible');
   assert.deepEqual(options, {
     lowest: { priceMinor: 688000, durationMinutes: 315, departureLabel: '06:15' },

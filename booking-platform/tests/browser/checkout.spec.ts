@@ -95,6 +95,7 @@ test('payment options wait for passenger details and accept an international pho
 
 test('a hung fare review times out and can be retried without losing results', async ({page, provider}) => {
   await openFlightSearch(page);
+  await expect(page.locator('.fare-comparison-trigger').first()).toBeVisible();
   await page.clock.install();
   let reviewCount=0;
   let finishFirst!:()=>void;
@@ -226,6 +227,7 @@ test('dismissing and resuming payment reuses the same order and never claims con
   await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Checkout closed. Your payment order is preserved.');
   await page.getByRole('button', { name: 'Resume secure checkout', exact: true }).click();
   await expect.poll(() => page.evaluate('window.__syntheticGateway?.opens ?? []')).toEqual(['order_SYNTHETICONLY', 'order_SYNTHETICONLY']);
+  expect(await page.evaluate('window.__syntheticGateway.options.prefill')).toMatchObject({contact:'+919876543210'});
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/verify')).toHaveLength(0);
   expect(provider.requests('/api/payments/status')).toHaveLength(1);
@@ -429,6 +431,7 @@ test('an expired previous checkout lets a different hotel booking reach payment 
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'previous-checkout-can-start-new-trip');
   await recovery.getByRole('button', { name: 'Book a different trip', exact: true }).click();
+  await expect(recovery.locator('details')).not.toHaveAttribute('open');
   await expect(page.locator('#booking-search > summary')).toBeFocused();
   await page.getByRole('button', { name: 'Search stays', exact: true }).click();
   await page.getByRole('button', { name: 'Choose room', exact: true }).first().click();
@@ -451,6 +454,7 @@ test('starting another trip after dismissing payment cannot charge an overlappin
   await page.evaluate('window.__syntheticGateway.dismiss()');
   await page.getByRole('button', { name: 'Book a different trip', exact: true }).click();
   const recovery = page.getByRole('region', { name: 'Interrupted checkout', exact: true });
+  await recovery.getByText('Previous payment status',{exact:true}).click();
   await expect(recovery.getByRole('button', { name: /^Resume existing checkout/ })).toBeEnabled();
   await expect(page.getByRole('form', { name: 'Review and travellers' })).toHaveCount(0);
   provider.quote = reviewedQuote({ quoteId: newQuoteId });
@@ -815,7 +819,7 @@ test('flight verification dismisses on Back to flights and only the new fare rea
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[itinerary]}}}};
  await openFlightSearch(page);await selectVisibleFare(page);await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: Standard fare');
  await page.getByRole('button',{name:'Back to flights',exact:true}).click();await expect(page.locator('#flight-results-title')).toBeFocused();await expect(page.locator('#booking-signin-title')).toHaveCount(0);await expect(page.locator('.signin-selection-context')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel:selection:v1'))).toBeNull();
- const comparison=page.locator('.flight-shopping-list .fare-comparison').first();if(await comparison.getAttribute('open')===null)await comparison.locator(':scope > summary').click();
+ await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
  await page.locator('.fare-option').filter({has:page.getByRole('heading',{name:'Flexible fare',exact:true})}).getByRole('button',{name:'Check fare & continue',exact:true}).click();
  await expect(page.locator('.signin-selection-context')).toContainText('Selected fare: Flexible fare');await expect(page.locator('.signin-selection-context')).not.toContainText('Standard fare');
  const before=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('maxtravel:selection:v1')!));expect(before.selection).toEqual({priceIds:['replacement-flexible-id']});

@@ -11,11 +11,12 @@ body.stitch-theme {
   --brand-paper: var(--brand-ivory);
   --brand-sand: #e9eef5;
   --brand-tint: #f2f4f7;
+  --brand-page: #f7f9fc;
   --brand-gold: #bcd9fd;
   --brand-gold-ink: var(--brand-action);
   --brand-amber: var(--brand-gold);
   --brand-light-gold: #e2efff;
-  --brand-paper-sheen: none;
+  --brand-paper-sheen: linear-gradient(140deg, #fff 38%, #f3f7fd);
   --brand-page-sheen: none;
   --brand-gold-sheen: none;
   --brand-night-sheen: linear-gradient(115deg, #001736, #0d2c54);
@@ -25,13 +26,13 @@ body.stitch-theme {
   --ink: var(--brand-midnight);
   --muted: var(--brand-muted);
   --line: var(--brand-line);
-  --studio-paper: #f7f9fc;
+  --studio-paper: var(--brand-page);
   --studio-ink: var(--brand-ink);
   --studio-teal: var(--brand-action);
   --travel-navy: var(--brand-ink);
   --travel-display: var(--font-stitch-display), sans-serif;
   color: #191c1e;
-  background: #f7f9fc;
+  background: var(--brand-page);
   font-family: var(--font-stitch-body), sans-serif;
 }
 @font-face {

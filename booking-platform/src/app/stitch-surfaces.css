@@ -1,15 +1,15 @@
 /* Shared surfaces for booking, account and travel information pages. */
 .stitch-theme {
   --stitch-card-radius: 16px;
-  --stitch-outline: #dbe4ef;
-  --stitch-card-depth: 0 2px 4px #00173605, 0 12px 30px -22px #0d2c5452;
-  --stitch-light-surface: linear-gradient(140deg, #fff 38%, #f3f7fd);
-  --stitch-action-surface: linear-gradient(130deg, #001736, #0a3765);
-  --stitch-route-surface: linear-gradient(112deg, #001736 12%, #0b3563);
+  --stitch-outline: var(--brand-line);
+  --stitch-card-depth: var(--brand-shadow);
+  --stitch-light-surface: var(--brand-paper-sheen);
+  --stitch-action-surface: var(--brand-night-sheen);
+  --stitch-route-surface: var(--brand-night-sheen);
 }
 
 .stitch-theme .concierge-header {
-  border-bottom: 1px solid #dbe4ef;
+  border-bottom: 1px solid var(--stitch-outline);
   background-color: white;
   background-image: var(--stitch-light-surface);
   box-shadow: 0 4px 24px -16px #00173652;
@@ -19,7 +19,8 @@
   color: white;
 }
 .stitch-theme .concierge-testing {
-  background: linear-gradient(90deg, #edf4fd, #e3eefc, #edf4fd);
+  background: var(--brand-sand-sheen);
+  color: var(--brand-ink);
 }
 html body.stitch-theme .travel-footer.concierge-footer {
   border-top: 1px solid var(--stitch-outline);
@@ -171,8 +172,8 @@ body.stitch-theme .booking-workflow.booking-shopping:not(.has-journey, .is-searc
 }
 body.stitch-theme .booking-intro .booking-heading-icon { background: #e4efff; color: var(--brand-action); }
 body.stitch-theme .booking-workflow.journey-flow .booking-search-submit.primary:not(:disabled) {
-  background: #005bb3 var(--stitch-action-surface);
-  border-color: #0a3765;
+  background: var(--brand-action) var(--stitch-action-surface);
+  border-color: var(--brand-slate);
   color: #fff;
 }
 body.stitch-theme .booking-workflow .booking-search-panel:has(summary:not(.booking-criteria-strip)),

@@ -33,7 +33,7 @@ async function harness(content:ReturnType<typeof createHotelContentCache>){
   'server-only':'',
   './hotel-content':`${stateSource} export const hotelContentForSearch=state.content;`,
   './request-limit':'export async function requestLimit(){}',
-  './db':`${stateSource} export function database(){return {async query(sql,args){
+  './db':`${stateSource} export function transaction(){throw Error("Unexpected quote refresh transaction");} export function database(){return {async query(sql,args){
    state.queries.push({sql,args});
    const owned=state.owned&&args[0]==='owned-search'&&args[1]===state.owner.userId&&args[2]===state.owner.companyId;
    if(sql.includes('FROM supplier_searches'))return {rows:owned?[{product:'HOTEL',results:structuredClone(state.results),expires_at:state.expires,correlation_id:'owned-correlation',criteria:{product:'HOTEL',hotelIds:['10001','10002'],checkIn:'2027-01-01',checkOut:'2027-01-02',adults:1,nationality:'106'}}]:[]};

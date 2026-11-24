@@ -590,7 +590,7 @@ body .booking-workflow.journey-flow .checkout-cabin-header h3 { margin: 0; color
   line-height: 1.15;
   text-align: center;
 }
-.checkout-cabin-dialog .cabin-seat small { color: inherit; font-size: 11px; font-weight: 640; overflow-wrap: anywhere; }
+.checkout-cabin-dialog .cabin-seat small { color: inherit; font-size: 11px; font-weight: 640; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .checkout-cabin-dialog .cabin-seat strong { color: inherit; overflow-wrap: anywhere; }
 .checkout-cabin-dialog .cabin-seat abbr { font-size: 9px; text-decoration: none; }
 .checkout-cabin-dialog .cabin-seat:disabled { opacity: 1; cursor: not-allowed; }
@@ -617,4 +617,12 @@ body .booking-workflow.journey-flow .checkout-cabin-header h3 { margin: 0; color
   .checkout-cabin-header, .checkout-cabin-controls, .checkout-cabin-footer { padding-inline: 10px; }
   .checkout-cabin-scroll, .checkout-cabin-map, .checkout-cabin-list { padding-inline: 5px; }
   .checkout-cabin-row { grid-template-columns: repeat(3, minmax(0, 1fr)) 16px repeat(3, minmax(0, 1fr)); gap: 3px; }
+  .checkout-cabin-dialog .checkout-cabin-map .cabin-seat small { font-size: clamp(9px, 2.35vw, 11px); }
 }
+
+@media (min-width: 761px) {
+  #booking-review .checkout-extras .form-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+#booking-review .checkout-extras .form-row > strong { grid-column: 1 / -1; }
+#booking-review .checkout-extras .form-row > div { min-width: 0; }
+#booking-review .checkout-extras .form-row select { width: 100%; min-width: 0; }

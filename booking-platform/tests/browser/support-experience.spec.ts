@@ -10,8 +10,8 @@ test('support starts with four actionable customer tasks and verified contact ch
    await expect(main.getByRole('link',{name,exact:true})).toHaveAttribute('href',href);
  }
  const contact=page.getByRole('complementary',{name:'Talk to MaxTravel'});
- await expect(contact.getByRole('link',{name:'Call +917095018018',exact:true})).toHaveAttribute('href','tel:+917095018018');
- await expect(contact.getByRole('link',{name:'Email max@maxtravel.us',exact:true})).toHaveAttribute('href','mailto:max@maxtravel.us');
+ await expect(contact.getByRole('link',{name:'Call +91 70950 18018',exact:true})).toHaveAttribute('href','tel:+917095018018');
+ await expect(contact.getByRole('link',{name:'Email max@maxtravel.in',exact:true})).toHaveAttribute('href','mailto:max@maxtravel.in');
  await expect(contact).toContainText('Every day, 09:00 - 21:00 (India time)');
  await expect(contact).toContainText('Nothing is sent from this page.');
  await expect(page.locator('a[href*="wa.me"],a[href*="whatsapp.com"]')).toHaveCount(0);
@@ -38,15 +38,15 @@ test('support questions work by keyboard and disclose actual test and emergency 
  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
 });
 
-test('support booking task reaches an honest authentication gate and preserves account return',async({page,provider})=>{
+test('support booking task explains guest lookup and preserves the account return',async({page,provider})=>{
  provider.session=null;
  provider.overrides['GET /api/bookings']={status:401,body:{error:'Sign in to view your bookings.'}};
  await page.goto('/customer-support');
  await page.getByRole('main').getByRole('link',{name:'Manage a booking',exact:true}).click();
  await expect(page).toHaveURL('/my-trips');
  await expect(page.getByRole('heading',{name:'Your trips are private.'})).toBeVisible();
- await expect(page.getByRole('main').getByRole('alert')).toContainText('Sign in using the email address on your booking');
+ await expect(page.getByRole('main')).toContainText('sign in using the booking email to see trips across devices');
  await expect(page.getByRole('link',{name:'Sign in to view trips',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
- await expect(page.getByRole('link',{name:'Find a flight by PNR',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips%3Flookup%3Dflight');
+ await expect(page.getByText('Find a guest booking',{exact:true})).toBeVisible();
  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
 });

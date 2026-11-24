@@ -1,8 +1,8 @@
 type PolicySection = {heading:string; paragraphs:readonly string[]; bullets:readonly string[]; afterBullets?:readonly string[]};
-type LegalPolicy = {slug:string; title:string; sourceUrl?:string; effectiveDate?:string; effectiveDateLabel?:string; intro:readonly string[]; sections:readonly PolicySection[]};
+type LegalPolicy = {slug:string; title:string; effectiveDate?:string; effectiveDateLabel?:string; intro:readonly string[]; sections:readonly PolicySection[]};
 
 // Privacy Policy and Terms of Use carry over the published maxtravel.in text
-// and effective date. The other policies retain their maxtravel.us sources.
+// and effective date.
 export const legalPolicies: readonly LegalPolicy[] = [
   {
     "slug": "privacy-policy",
@@ -16,7 +16,7 @@ export const legalPolicies: readonly LegalPolicy[] = [
       {
         "heading": "1. About this policy",
         "paragraphs": [
-          "This policy explains how Max Travel handles personal information when you use maxtravel.in, create an account, make travel enquiries or bookings, or communicate with our team. Our office is in Secunderabad, India. For privacy questions and requests, email cs@maxtravel.in.",
+          "This policy explains how Max Travel handles personal information when you use maxtravel.in, create an account, make travel enquiries or bookings, or communicate with our team. Our office is in Secunderabad, India. For privacy questions and requests, email [support-email].",
           "The information involved depends on the services you use. Booking and payment sections apply when those services are available; a displayed search result or payment acknowledgement is not, by itself, a confirmed travel booking."
         ],
         "bullets": []
@@ -68,7 +68,7 @@ export const legalPolicies: readonly LegalPolicy[] = [
       {
         "heading": "6. WhatsApp and communication choices",
         "paragraphs": [
-          "We use WhatsApp for enquiries, support and updates consistent with your permission and preferences. Reply STOP, or email cs@maxtravel.in, to ask us to stop WhatsApp messages. You may also withdraw permission for optional marketing through that email address. Opting out does not cancel a booking; necessary service information may still be provided through another appropriate channel."
+          "We use WhatsApp for enquiries, support and updates consistent with your permission and preferences. Reply STOP, or email [support-email], to ask us to stop WhatsApp messages. You may also withdraw permission for optional marketing through that email address. Opting out does not cancel a booking; necessary service information may still be provided through another appropriate channel."
         ],
         "bullets": []
       },
@@ -83,7 +83,7 @@ export const legalPolicies: readonly LegalPolicy[] = [
       {
         "heading": "8. Access, correction and deletion requests",
         "paragraphs": [
-          "Email cs@maxtravel.in with the subject “Privacy request” and describe whether you want access, correction, deletion, account closure or withdrawal of consent. Include the email address or phone number associated with your interaction and, if relevant, a booking reference. Do not include passwords, OTPs or full payment details.",
+          "Email [support-email] with the subject “Privacy request” and describe whether you want access, correction, deletion, account closure or withdrawal of consent. Include the email address or phone number associated with your interaction and, if relevant, a booking reference. Do not include passwords, OTPs or full payment details.",
           "We may ask for proportionate information to verify your identity. We will assess and respond under applicable law, explaining any information that must be retained and why. Deletion is not an automatic cancellation or refund request. You may raise a privacy concern through the same contact and pursue remedies available under applicable law."
         ],
         "bullets": []
@@ -116,7 +116,7 @@ export const legalPolicies: readonly LegalPolicy[] = [
       {
         "heading": "1. About these terms",
         "paragraphs": [
-          "These terms cover your use of maxtravel.in and travel services arranged through Max Travel. Read them together with the Privacy Policy and the fare, room, package and other booking-specific conditions presented before you confirm a purchase. Our office is in Secunderabad, India. Contact cs@maxtravel.in for assistance."
+          "These terms cover your use of maxtravel.in and travel services arranged through Max Travel. Read them together with the Privacy Policy and the fare, room, package and other booking-specific conditions presented before you confirm a purchase. Our office is in Secunderabad, India. Contact [support-email] for assistance."
         ],
         "bullets": []
       },
@@ -171,81 +171,15 @@ export const legalPolicies: readonly LegalPolicy[] = [
       {
         "heading": "8. Privacy and communications",
         "paragraphs": [
-          "Our Privacy Policy explains how account, traveller, booking and communication information is handled. We may send necessary booking and account messages. Optional promotional communications are subject to your choices; you can ask to stop them by emailing cs@maxtravel.in. Reply STOP to stop WhatsApp messages. This does not cancel your booking."
+          "Our Privacy Policy explains how account, traveller, booking and communication information is handled. We may send necessary booking and account messages. Optional promotional communications are subject to your choices; you can ask to stop them by emailing [support-email]. Reply STOP to stop WhatsApp messages. This does not cancel your booking."
         ],
         "bullets": []
       },
       {
         "heading": "9. Complaints and changes to these terms",
         "paragraphs": [
-          "For a complaint, email cs@maxtravel.in with your booking reference and a brief description. We will review the issue and explain the next steps. You retain access to statutory complaints procedures and remedies.",
+          "For a complaint, email [support-email] with your booking reference and a brief description. We will review the issue and explain the next steps. You retain access to statutory complaints procedures and remedies.",
           "We may update these terms prospectively and show the revised effective date. Updated terms do not retrospectively replace the conditions accepted for an existing booking or reduce rights provided by applicable law."
-        ],
-        "bullets": []
-      }
-    ]
-  },
-  {
-    "slug": "terms-and-conditions",
-    "title": "Terms & Conditions",
-    "sourceUrl": "https://maxtravel.us/term-condition",
-    "intro": [
-      "These Terms and Conditions govern your use of the website and services. By accessing or using our website, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, you may not use our services."
-    ],
-    "sections": [
-      {
-        "heading": "Use of Our Services",
-        "paragraphs": [],
-        "bullets": [
-          "You agree to provide accurate and complete information when using our services, including during registration and booking processes.",
-          "You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account."
-        ]
-      },
-      {
-        "heading": "Booking and Transactions",
-        "paragraphs": [],
-        "bullets": [
-          "All bookings made through our website are subject to availability and confirmation by the company and our service providers.",
-          "Prices displayed on our website are subject to change without prior notice. We reserve the right to modify or cancel bookings if inaccuracies are found.",
-          "Payment for bookings must be made in full at the time of booking unless otherwise specified.",
-          "Refunds, cancellations, and modifications to bookings are subject to our Refund and Cancellation Policy, which is outlined separately on our website."
-        ]
-      },
-      {
-        "heading": "User Content",
-        "paragraphs": [],
-        "bullets": [
-          "By submitting content (such as reviews, comments, or feedback) to our website, you grant company a non-exclusive, royalty-free, perpetual, and worldwide license to use, reproduce, modify, adapt, publish, translate, distribute, and display such content.",
-          "You are solely responsible for the content you submit, and it must not violate any third-party rights or applicable laws."
-        ]
-      },
-      {
-        "heading": "Intellectual Property",
-        "paragraphs": [],
-        "bullets": [
-          "All content and materials on the company’s website, including but not limited to text, graphics, logos, images, and software, are the property of company or its licensors and are protected by copyright, trademark, and other intellectual property laws.",
-          "You may not use, reproduce, modify, distribute, or display any content from our website without prior written consent from the company."
-        ]
-      },
-      {
-        "heading": "Limitation of Liability",
-        "paragraphs": [],
-        "bullets": [
-          "We shall not be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in any way connected with the use of our website or services, including but not limited to loss of profits, data, or goodwill.",
-          "In no event shall MaxTravel's total liability to you exceed the amount paid by you for the services rendered."
-        ]
-      },
-      {
-        "heading": "Indemnification",
-        "paragraphs": [
-          "You agree to indemnify and hold the company harmless from any claims, damages, losses, liabilities, costs, and expenses (including legal fees) arising out of or in connection with your use of our website or services, your violation of these Terms and Conditions, or your violation of any rights of a third party."
-        ],
-        "bullets": []
-      },
-      {
-        "heading": "Modifications to Terms and Conditions",
-        "paragraphs": [
-          "Company reserves the right to modify or update these Terms and Conditions at any time without prior notice. The updated Terms and Conditions will be effective upon posting on our website. Your continued use of our services after any such changes constitutes acceptance of the revised Terms and Conditions."
         ],
         "bullets": []
       }
@@ -254,7 +188,6 @@ export const legalPolicies: readonly LegalPolicy[] = [
   {
     "slug": "cancellations-payment-policy",
     "title": "Cancellations & Payment Policy",
-    "sourceUrl": "https://maxtravel.us/cancellations-payment-policy",
     "intro": [
       "This Cancellations & Payment Policy governs cancellations, refunds, and payment procedures for bookings made through the company by using our services and making bookings, you agree to adhere to the terms outlined in this policy."
     ],
@@ -307,7 +240,6 @@ export const legalPolicies: readonly LegalPolicy[] = [
   {
     "slug": "disclaimer",
     "title": "Disclaimer",
-    "sourceUrl": "https://maxtravel.us/disclaimer",
     "intro": [
       "Welcome to our travel services platform! Before you dive into exploring our comprehensive travel offerings, please take a moment to read the following disclaimer.",
       "At our travel services, we strive to provide you with accurate and reliable information regarding our offerings. However, it's important to note that the travel industry is dynamic and subject to various factors beyond our control. While we make every effort to ensure the accuracy and completeness of the information presented on our platform, we cannot guarantee that all details will remain unchanged.",
@@ -322,4 +254,4 @@ export const legalPolicies: readonly LegalPolicy[] = [
   }
 ];
 export function getLegalPolicy(slug:string){return legalPolicies.find(policy=>policy.slug===slug);}
-export const legalContactEmail = 'cs@maxtravel.in';
+export const policySupportMarker = '[support-email]';

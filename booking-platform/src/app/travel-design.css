@@ -281,7 +281,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .booking-spinner { display: block; width: 22px; height: 22px; border: 2px solid #dae2eb; border-top-color: var(--blue); border-radius: 50%; animation: travel-spin .8s linear infinite; margin-bottom: 4px; }
 @keyframes travel-spin { to { transform: rotate(360deg); } }
 .booking-status p { margin: 0 0 8px; }
-.booking-recovery > p { font-size: 14px; line-height: 1.8; color: #657d8f; }
+.booking-recovery details > p { font-size: 14px; line-height: 1.8; color: #657d8f; }
 .booking-recovery-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin: 8px 0; }
 @media (max-width:600px) { .booking-recovery-actions > :is(.primary,.secondary) { width:100%; } }
 .live-booking .live-flight-card.is-selected { border-color: #8da9f0; }
@@ -427,5 +427,10 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 @media (prefers-reduced-motion: reduce) { .booking-spinner { animation: none; } }
 .live-booking .booking-traveller-fields[hidden] { display: none !important; }
 .live-booking .booking-recovery { border-color: #e5d7aa; background: #fffdf4; margin-bottom: 25px; }
-.live-booking .booking-recovery h2 { font-size: 24px; margin: 12px 0 17px; }
+.live-booking .booking-recovery summary { display:flex; justify-content:space-between; align-items:center; gap:12px; min-height:44px; cursor:pointer; }
+.live-booking .booking-recovery summary::after { content:'+'; flex:none; font-size:21px; }
+.live-booking .booking-recovery details[open] summary::after { content:'−'; }
+.live-booking .booking-recovery h2 { font-size:clamp(17px, 2vw, 22px); margin:0; }
+.live-booking .booking-recovery:has(details:not([open])) { padding-block:5px; margin-bottom:12px; }
+.live-booking .booking-recovery :is(summary,button,a) { scroll-margin-block:var(--booking-header-offset, 96px) 24px; }
 .live-booking .booking-recovery .secondary { background: #fffefa; border-color: #e6ddc2; }

@@ -1,4 +1,4 @@
-import { test, expect, capture, expectNoHorizontalOverflow } from './fixtures';
+import { test, expect, capture, expectNoHorizontalOverflow, departure, returning, searchId } from './fixtures';
 
 test('route guide preserves only the airport pair and never auto-searches', async ({ page, provider }, testInfo) => {
   await page.goto('/flights/mumbai-to-goa');
@@ -26,7 +26,7 @@ test('office details are consistent and contact actions are explicit', async ({ 
   await expect(card).toContainText('500003');
   await expect(card).toContainText('Every day, 09:00 - 21:00 (India time)');
   await expect(card.locator('a[href="tel:+917095018018"]')).toBeVisible();
-  await expect(card.locator('a[href="mailto:max@maxtravel.us"]')).toBeVisible();
+  await expect(card.locator('a[href="mailto:max@maxtravel.in"]')).toBeVisible();
   await expect(page.locator('a[href*="wa.me"],a[href*="whatsapp.com"]')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'public-office');
@@ -69,4 +69,23 @@ test.describe('public content without client JavaScript', () => {
     await expect(page.getByRole('heading', { name: 'Official planning references' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
+});
+
+
+test('the hotel directory hands the selected dates and adults to availability search', async ({page, provider}, info) => {
+ provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Fixture Goa stay',customerEstimateMinor:800000}]}};
+ await page.goto('/hotels');
+ const stay=page.getByRole('form',{name:'Check room availability'});
+ await stay.getByRole('combobox',{name:'Destination',exact:true}).fill('Goa');
+ await stay.getByRole('option',{name:'Goa, India',exact:true}).click();
+ await stay.getByLabel('Check-in',{exact:true}).fill(departure);
+ await stay.getByLabel('Check-out',{exact:true}).fill(returning);
+ await stay.getByRole('combobox',{name:'Adults',exact:true}).selectOption('3');
+ await expectNoHorizontalOverflow(page);
+ await capture(page,info,'hotel-directory-availability-search');
+ await stay.getByRole('button',{name:'Search stays',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Fixture Goa stay',exact:true})).toBeVisible();
+ expect(provider.requests('/api/travel/search')[0].body).toMatchObject({
+  product:'HOTEL',checkIn:departure,checkOut:returning,rooms:[{adults:3,children:0,childAge:[]}],
+ });
 });

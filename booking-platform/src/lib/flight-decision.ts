@@ -10,6 +10,8 @@ const fareNames = new Map([
  ['STANDARD', 'Standard fare'],
  ['FLEXIBLE', 'Flexible fare'],
  ['FLEX', 'Flexible fare'],
+ ['FLEXI', 'Flexi'],
+ ['FLEXI_PLUS', 'Flexi Plus'],
  ['CORPORATE', 'Corporate fare'],
  ['SPECIAL_RETURN', 'Special return fare'],
  ['STUDENT', 'Student fare'],
@@ -17,6 +19,13 @@ const fareNames = new Map([
  ['ARMED_FORCES', 'Armed forces fare'],
  ['SPICESAVER', 'SpiceSaver'],
  ['SPICEFLEX', 'SpiceFlex'],
+ ['STRETCH', 'Stretch'],
+ ['STRETCH_PLUS', 'Stretch Plus'],
+ ['SUPER_6E', 'Super 6E'],
+ ['LITE', 'Lite'],
+ ['NDC_VALUE', 'Value'],
+ ['NDC_XPRESS_VALUE', 'Xpress Value'],
+ ['NDC_CORPORATE_VALUE', 'Corporate Value'],
  ['SAVER', 'Saver fare'],
  ['SME', 'SME fare'],
 ]);
@@ -24,7 +33,7 @@ const readableFareWords = /^(?:economy|business|first|premium|value|basic|lite|p
 
 export function fareDecisionName(fare: FlightFare) {
  const identifier = typeof fare.fareIdentifier === 'string' ? fare.fareIdentifier.trim() : '';
- const name = fareNames.get(identifier.toUpperCase());
+ const name = fareNames.get(identifier.toUpperCase().replace(/[\s-]+/g, '_'));
  if (name) return name;
  return readableFareWords.test(identifier) ? identifier.toLowerCase().replace(/[_ ]+/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase()) : 'Fare option';
 }
@@ -32,7 +41,8 @@ export function fareDecisionName(fare: FlightFare) {
 /** Keep distinct offers with the same displayed name separately selectable. */
 export function fareDecisionLabel(fare: FlightFare, offers: readonly FlightFare[]) {
  const name = fareDecisionName(fare);
- const same = offers.filter(item => fareDecisionName(item) === name);
+ const price = comparableFareEstimate(fare,'INR');
+ const same = offers.filter(item => fareDecisionName(item) === name && comparableFareEstimate(item,'INR') === price);
  if (same.length < 2) return name;
  const position = same.findIndex(item => item.id === fare.id) + 1;
  return name === 'Fare option' ? `${name} ${position}` : `${name} · Option ${position}`;

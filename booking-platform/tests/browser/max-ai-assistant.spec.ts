@@ -1,6 +1,6 @@
 import {test, expect, capture, expectNoHorizontalOverflow, openFlightSearch, syntheticSession, searchId, departure} from './fixtures';
 import type {Page} from '@playwright/test';
-import type {MaxAiResponse} from '../../src/lib/max-ai-contract';
+import {MAX_AI_BROWSER_TIMEOUT_MS, type MaxAiResponse} from '../../src/lib/max-ai-contract';
 
 const endpoint = 'POST /api/travel/max-ai';
 const answer = (overrides: Partial<MaxAiResponse> = {}): MaxAiResponse => ({reply: 'Where are you flying from, where would you like to go, and on which dates?', cards: [], actions: [], conversationToken: 'synthetic-conversation-token', ...overrides});
@@ -22,7 +22,8 @@ test('Max AI opens accessibly and asks for missing travel details without starti
   await page.goto('/');
   await open(page);
   await expect(panel(page)).toHaveJSProperty('open', true);
-  await expect(input(page)).toBeFocused();
+  if((page.viewportSize()?.width??0)>760)await expect(input(page)).toBeFocused();
+  else await expect(panel(page).locator(':focus')).toBeVisible();
   await expect(panel(page)).toContainText('Your travel request is processed by Max AI');
   await capture(page, info, 'max-ai-welcome');
   await panel(page).getByRole('button', {name: 'Find a flight', exact: true}).click();
@@ -121,6 +122,49 @@ test('closing Max AI aborts its request and a late reply cannot reopen or replac
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
+for(const timeout of [false,true])test(`Max AI ${timeout?'times out':'stops immediately'} and can resend the same turn without duplicating it`,async({page})=>{
+ let release!:()=>void;
+ const held=new Promise<void>(resolve=>{release=resolve;});
+ let requests=0;
+ await page.route('**/api/travel/max-ai',async route=>{
+  const first=++requests===1;
+  if(first)await held;
+  await route.fulfill({json:answer({reply:first?'Ignored response':'The retry worked.'})}).catch(()=>{});
+ });
+ await page.clock.install();
+ await page.goto('/');await open(page);
+ const draft='Can you find a flight tomorrow?';
+ try{
+  await message(page,draft);
+  await expect.poll(()=>requests).toBe(1);
+  if(timeout){
+   await page.clock.fastForward(MAX_AI_BROWSER_TIMEOUT_MS+1000);
+   await expect(panel(page).getByRole('alert')).toContainText('too long');
+  }else{
+   await panel(page).getByRole('button',{name:'Stop Max AI response',exact:true}).click();
+   await expect(panel(page).getByRole('status')).toContainText('Response stopped');
+  }
+  await expect(input(page)).toHaveValue(draft);
+  await panel(page).getByRole('button',{name:'Send message to Max AI',exact:true}).click();
+  await expect(panel(page)).toContainText('The retry worked.');
+  await expect(panel(page).locator('.max-ai-message--user')).toHaveCount(1);
+  expect(requests).toBe(2);
+  release();
+  await expect(panel(page)).not.toContainText('Ignored response');
+ }finally{release();}
+});
+
+test('all Max AI starters can scroll clear of the composer',async({page})=>{
+ await page.setViewportSize({width:390,height:630});
+ await page.goto('/');await open(page);
+ const action=panel(page).getByRole('button',{name:'Plan a trip',exact:true});
+ await action.scrollIntoViewIfNeeded();
+ const composer=panel(page).getByRole('form',{name:'Message Max AI'});
+ const bounds=await action.boundingBox(), below=await composer.boundingBox();
+ expect(bounds&&below&&bounds.y+bounds.height<=below.y).toBe(true);
+ await expectNoHorizontalOverflow(page);
+});
+
 test('model prose stays plain text and unsafe result actions are never rendered', async ({page, provider}) => {
   const prose = '<img src=x onerror="window.aiInjected=true"> [Pay here](https://untrusted.invalid/pay)';
   provider.overrides[endpoint] = {body: answer({reply: prose, cards: [
@@ -192,14 +236,15 @@ test('a payment SDK container retained after dismissal cannot hide the Max AI la
   });
   await expect(launcher(page)).toBeVisible();
   await open(page);
-  await expect(input(page)).toBeFocused();
+  if((page.viewportSize()?.width??0)>760)await expect(input(page)).toBeFocused();
+  else await expect(panel(page).locator(':focus')).toBeVisible();
   await panel(page).getByRole('button', {name: 'Close Max AI', exact: true}).click();
   await expect(launcher(page)).toBeVisible();
   await expect(launcher(page)).toBeFocused();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('320px assistant stays within the viewport and its launcher clears the checkout action', async ({page, provider}, info) => {
+test('320px assistant opens from inline checkout help and keeps payment reachable', async ({page, provider}, info) => {
   await page.setViewportSize({width: 320, height: 740});
   provider.overrides[endpoint] = {body: answer({reply: 'You can review the selected flight and fare conditions in checkout.'})};
   await openFlightSearch(page);
@@ -207,10 +252,9 @@ test('320px assistant stays within the viewport and its launcher clears the chec
   await page.getByRole('button', {name: 'Check fare & continue', exact: true}).click();
   const bar = page.locator('.mobile-booking-action');
   await expect(bar).toBeVisible();
-  const launchBox = await launcher(page).boundingBox();
-  const barBox = await bar.boundingBox();
-  expect(launchBox!.y + launchBox!.height).toBeLessThanOrEqual(barBox!.y);
-  await open(page);
+  await expect(launcher(page)).toBeHidden();
+  await page.getByRole('button',{name:'Ask Max AI about this booking',exact:true}).click();
+  await expect(panel(page)).toBeVisible();
   const dialogBox = await panel(page).boundingBox();
   expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
   expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(320);
@@ -222,4 +266,18 @@ test('320px assistant stays within the viewport and its launcher clears the chec
   await panel(page).getByRole('button', {name: 'Close Max AI', exact: true}).click();
   await expect(bar.getByRole('button', {name: /^Agree & pay /})).toBeEnabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+test('the visa and contact enquiry buttons open the in-chat workflow without sending anything',async({page,provider})=>{
+  await page.goto('/visa-guide');
+  const visa=page.getByRole('button',{name:'Start a visa enquiry with Max AI',exact:true});
+  await visa.click();
+  await expect(input(page)).toHaveValue('I want to prepare a visa enquiry.');
+  await page.keyboard.press('Escape');
+  await expect(visa).toBeFocused();
+  await page.goto('/contact');
+  await page.getByRole('button',{name:'Start a travel enquiry with Max AI',exact:true}).click();
+  await expect(input(page)).toBeVisible();
+  expect(provider.requests('/api/travel/enquiries')).toHaveLength(0);
+  expect(provider.requests('/api/travel/max-ai')).toHaveLength(0);
 });

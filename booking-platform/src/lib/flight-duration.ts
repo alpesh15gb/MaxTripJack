@@ -7,7 +7,7 @@ export function segmentDurationLabel(value:unknown):string {
 }
 /** cT is deliberately unused: its adjacent-connection association is unverified. */
 export function connectionLabel(current:FlightSegment,next:FlightSegment,group?:string):string {
-  if(group==='COMBO'||next.isRs!==current.isRs)return 'Connection duration not supplied';
+  if(group==='COMBO'||Boolean(next.isRs)!==Boolean(current.isRs))return 'Connection duration not supplied';
   if(!current.aa.code||!next.da.code)return 'Connection duration not supplied';
   if(current.aa.code!==next.da.code)return `Transfer between ${current.aa.code} and ${next.da.code} · transfer time not supplied`;
   const arrival=flightInstant(current.at,current.aa),departure=flightInstant(next.dt,next.da);

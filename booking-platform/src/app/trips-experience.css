@@ -427,3 +427,11 @@ body .trips-workspace .primary { background: var(--brand-midnight, #101c2c) var(
 .trips-workspace .trips-support-icon { background: var(--brand-midnight, #101c2c) var(--brand-night-sheen); color: var(--brand-gold, #c6a66b); }
 .trips-workspace .trips-checklist :is(svg, a), .trips-workspace .trips-empty-icon { color: var(--brand-gold-ink, #806132); }
 .trips-workspace .trips-empty-icon { background: var(--brand-sand, #ede5d7) var(--brand-sand-sheen); }
+
+body .page-shell.trips-workspace.guest-trips-entry {
+  width: min(100% - 32px, 760px);
+  min-height: 0;
+  margin: clamp(20px, 4vw, 42px) auto;
+}
+.guest-trips-entry .booking-pnr-lookup { margin: 16px 0 0; padding-bottom: 4px; border-color: var(--brand-line); }
+.guest-trips-entry .booking-pnr-lookup p { line-height: 1.6; }

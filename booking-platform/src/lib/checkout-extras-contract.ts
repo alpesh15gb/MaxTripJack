@@ -36,6 +36,40 @@ export function checkoutCatalogue(review:unknown,seats:unknown):CheckoutSegment[
  if(segments.length>36)throw Error("Supplier itinerary has too many segments.");return segments;
 }
 
+/**
+ * Supplier segment IDs and seat codes can change between reviews. Only carry
+ * selections across an identical itinerary, and keep the exact supplier option.
+ */
+export function remapCheckoutChoices(previous: unknown, latest: unknown, catalogue: CheckoutSegment[], choices: CheckoutChoice[], previousSummary?: unknown): CheckoutChoice[] | null {
+ const segments = (review: unknown) => list(obj(review).tripInfos).map(trip => list(trip.sI));
+ const before = segments(previous), after = segments(latest);
+ if (before.length !== after.length || before.some((trip, index) => trip.length !== after[index].length)) return null;
+ const identity = (segment: Row) => [obj(segment.da).code, obj(segment.aa).code, segment.dt, segment.at, obj(obj(segment.fD).aI).code, obj(segment.fD).fN].map(value => String(value ?? ''));
+ const segmentIds = new Map<string, string>();
+ for (const [tripIndex, trip] of before.entries()) for (const [index, segment] of trip.entries()) {
+  const next = after[tripIndex][index], original = identity(segment), refreshed = identity(next);
+  if (typeof segment.id !== 'string' || typeof next.id !== 'string' || original.some((part, index) => part !== refreshed[index])) return null;
+  if (segment.id !== next.id && original.some(part => !part)) return null;
+  segmentIds.set(segment.id, next.id);
+ }
+ const summaries=list(previousSummary);
+ const mapped: CheckoutChoice[] = [];
+ for (const [index, choice] of choices.entries()) {
+  const segmentId = segmentIds.get(choice.segmentId);
+  if (!segmentId) return null;
+  const segment = catalogue.find(item => item.id === segmentId);
+  const options = segment?.options.filter(option => option.kind === choice.kind && !option.exitRow
+   && !(option.seatNumber && segment.occupiedSeats?.includes(option.seatNumber))) ?? [];
+  const summary=summaries[index];
+  const previousSeat=choice.kind==='SEAT'&&summary?.kind==='SEAT'&&summary.travellerIndex===choice.travellerIndex
+   ? /^Seat (\d{1,3}[A-Z]{1,2})(?: ·|$)/.exec(String(summary.label))?.[1] : undefined;
+  const match = options.filter(option => previousSeat ? option.seatNumber===previousSeat : option.code===choice.code);
+  if (match.length !== 1) return null;
+  mapped.push({...choice, segmentId, code: match[0].code});
+ }
+ return mapped;
+}
+
 /** Show the customer's price delta for each option, including variable charges.
  * Fixed charges already included in the flight total must not be charged twice. */
 export function customerCheckoutOptions(segments: CheckoutSegment[], baseMinor: number, rule?: PricingRule): CheckoutSegment[] {

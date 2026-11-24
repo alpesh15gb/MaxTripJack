@@ -10,7 +10,7 @@ type Props = {
   quoteId: string;
   disabled: boolean;
   onPending: (value: boolean) => void;
-  onSaved: (total: number) => void;
+  onSaved: (total: number, count: number) => void;
 };
 const optionLabels = {BAGGAGE: "Extra baggage", MEAL: "Meal"} as const;
 
@@ -104,7 +104,7 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
       setConfirmed(next);
       setApplied(true);
       setUncertain(false);
-      onSaved(data.totalMinor);
+      onSaved(data.totalMinor, next.length);
       onPending(false);
     } catch (cause) {
       if (!mounted.current) return;

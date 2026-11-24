@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   distDir:process.env.NEXT_DIST_DIR||".next",
   poweredByHeader: false,
   images: { formats: ["image/avif", "image/webp"], minimumCacheTTL: 2592000 },
+  async redirects() {
+    return [{source:"/terms-and-conditions",destination:"/terms-of-use",permanent:true}];
+  },
   async rewrites() {
     // Root-level sitemap URLs cover both hotel and flight page directories.
     // Keep the existing handlers as compatible internal destinations.

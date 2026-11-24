@@ -15,7 +15,7 @@ for(const width of [null,320])test(`aligned fare decisions expose duplicate labe
  await card.locator('.flight-segment-details>summary').click();await expect(card.locator('.flight-segment-details')).toContainText('Supplied Mumbai Airport');
  await card.locator('.fare-comparison-trigger').click();
  const offers=card.locator('.fare-option');await expect(offers).toHaveCount(3);
- await expect(offers.nth(0).getByRole('heading')).toHaveText('Corporate fare · Option 1');await expect(offers.nth(1).getByRole('heading')).toHaveText('Corporate fare · Option 2');
+ await expect(offers.nth(0).getByRole('heading')).toHaveText('Corporate fare');await expect(offers.nth(1).getByRole('heading')).toHaveText('Corporate fare');
  await expect(card.locator('.fare-shared-terms')).toContainText('meals and seat options at review');
  for(const offer of await offers.all()){
   const rows=offer.locator('.fare-decision-dimensions>div');await expect(rows).toHaveCount(4);

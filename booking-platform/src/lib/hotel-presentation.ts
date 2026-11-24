@@ -9,6 +9,7 @@ export type HotelCancellation = {
   deadlineDateTime?: string;
 };
 export type HotelRoomOption = {
+  priceBreakdown?: import('./booking-price-breakdown').BookingPriceBreakdown;
   optionId: string;
   optionType?: string;
   roomInfo: { id?: string; name: string }[];
@@ -48,13 +49,22 @@ const rateNoteLabels = {
   Instructions: 'Check-in instructions',
 } as const;
 
+function readableRateNote(text: string) {
+  return text.replace(/\s*"\s*}\s*$/, '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\t ]+/g, ' ')
+    .replace(/([a-z]{2}[.!?])(?=[A-Z][a-z])/g, '$1 ')
+    .trim();
+}
+
 /** Some room feeds put property instructions in the rate inclusions array. */
 export function hotelRateContent(inclusions: unknown, bookingNotes: unknown, noteLimit = 2000) {
   const perks = new Set<string>();
   const notes = new Set<string>();
   let noteLength = 0;
   const addNote = (value: string) => {
-    if (notes.has(value) || noteLength + value.length + (notes.size ? 2 : 0) > noteLimit) return;
+    value = readableRateNote(value);
+    if (!value || notes.has(value) || noteLength + value.length + (notes.size ? 2 : 0) > noteLimit) return;
     noteLength += value.length + (notes.size ? 2 : 0);
     notes.add(value);
   };
@@ -71,7 +81,7 @@ export function hotelRateContent(inclusions: unknown, bookingNotes: unknown, not
         }
       } catch { /* A partial supplier envelope is not a reliable policy. */ }
     } else if (instruction || text.length > 180) addNote(text);
-    else perks.add(text);
+    else if (!/["}]\s*}$/.test(text)) perks.add(text);
   };
   read(bookingNotes, true);
   if (Array.isArray(inclusions)) for (const item of inclusions.slice(0, 40)) read(item, false);
@@ -108,7 +118,7 @@ function hotelPhotos(source: unknown): NonNullable<HotelPropertyDetails['photos'
  * https://tripjack.com/page/api-doc#hotel-content. This is NOT the separate
  * static-detail schema. Descriptions are optional catalogue prose, never rates,
  * room inventory, cancellation promises or verified guest reviews. */
-function hotelDescription(source: unknown): Pick<HotelPropertyDetails, 'descriptionHeadline' | 'description'> {
+export function hotelDescription(source: unknown): Pick<HotelPropertyDetails, 'descriptionHeadline' | 'description'> {
   const plain = (value: unknown): value is Record<string, unknown> => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const prototype = Object.getPrototypeOf(value);
@@ -116,7 +126,7 @@ function hotelDescription(source: unknown): Pick<HotelPropertyDetails, 'descript
       !Object.keys(value).some(key => ['__proto__', 'prototype', 'constructor'].includes(key));
   };
   if (!plain(source)) return {};
-  const text = (value: unknown, max: number): string | undefined => {
+  const text = (value: unknown, max: number, stored = false): string | undefined => {
     if (typeof value !== 'string' || value.length > 32000) return undefined;
     const entities: Record<string, string> = {amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', bull: '•', hellip: '…', copy: '©', reg: '®'};
     // Decode once, before removing markup, so encoded scripts are not displayed.
@@ -134,19 +144,28 @@ function hotelDescription(source: unknown): Pick<HotelPropertyDetails, 'descript
       .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, '')
       .replace(/\s+/g, ' ').trim();
     // Broken markup is omitted rather than shown as a misleading description.
-    return cleaned && !/[<>]/.test(cleaned) ? cleaned.slice(0, max) : undefined;
+    if (!cleaned || /[<>]/.test(cleaned) || /^[{\[]/.test(cleaned)) return undefined;
+    const likelyCapped = stored && value.length === max && !/[.!?…]$/.test(cleaned);
+    if (cleaned.length <= max && !likelyCapped) return cleaned;
+    const prefix = cleaned.slice(0,max - 1).trimEnd();
+    const lastCompleteSentence = likelyCapped && max === 200 ? Array.from(prefix.matchAll(/[.!?](?=\s)/g)).at(-1) : undefined;
+    if (lastCompleteSentence?.index !== undefined) return prefix.slice(0,lastCompleteSentence.index + 1);
+    const boundary = prefix.lastIndexOf(' ');
+    return (boundary > 0 ? prefix.slice(0,boundary) : prefix) + '…';
   };
-  const headline = Object.hasOwn(source, 'headline') ? text(source.headline, 200) : undefined;
-  let description: string | undefined;
-  if (Object.hasOwn(source, 'default') && typeof source.default === 'string' && source.default.length <= 32000) {
+  const envelope = (input: unknown) => {
+    if (typeof input !== 'string' || input.length > 32000) return {};
     try {
-      const parsed: unknown = JSON.parse(source.default);
-      if (plain(parsed) && Object.values(parsed).every(value => typeof value === 'string')) {
-        const overview = Object.hasOwn(parsed, 'Overview') ? text(parsed.Overview, 4000) : undefined;
-        description = overview ?? (Object.hasOwn(parsed, 'Snippet') ? text(parsed.Snippet, 4000) : undefined);
-      }
-    } catch { /* Missing/malformed optional catalogue content remains unavailable. */ }
-  }
+      const parsed: unknown = JSON.parse(input);
+      return plain(parsed) ? parsed : {};
+    } catch { return {}; }
+  };
+  const fields = envelope(source.default);
+  const headlineFields = envelope(source.headline);
+  let description: string | undefined;
+  if (Object.values(fields).every(value => typeof value === 'string')) description = text(fields.Overview, 4000) ?? text(fields.Snippet, 4000);
+  description ??= text(source.storedDescription, 4000, true);
+  const headline = text(source.storedHeadline, 200, true) ?? text(source.headline, 200) ?? text(headlineFields.HeadLine ?? headlineFields.Headline ?? fields.HeadLine ?? fields.Headline, 200);
   return {...(headline ? {descriptionHeadline: headline} : {}), ...(description ? {description} : {})};
 }
 export function hotelPropertyDetails(source: unknown): HotelPropertyDetails {

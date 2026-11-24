@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {MAX_AI_SERVER_TIMEOUT_MS} from '@/lib/max-ai-contract';
 import {body,failure,HttpError,json,sameOrigin} from '@/lib/http';
 import {shoppingAccess,type ShoppingAccess} from '@/lib/guest-shopping';
 import {shoppingPeer} from '@/lib/guest-shopping-policy';
@@ -9,7 +10,7 @@ import {maxAiSensitiveMessage,runMaxAiTurn} from '@/lib/max-ai-engine';
 import {conversationConfigured,MaxAiConversationError,openMaxAiConversation,sealMaxAiConversation} from '@/lib/max-ai-conversation';
 
 export const runtime='nodejs';
-export const maxDuration=90;
+export const maxDuration=35;
 const inputSchema=z.object({message:z.string().trim().min(1).max(2000),conversationToken:z.string().max(50*1024).optional(),pageContext:z.object({pathname:z.string().max(500)}).strict().optional()}).strict();
 
 function withCookies(response:Response,cookies:string[]){
@@ -20,7 +21,21 @@ function withCookies(response:Response,cookies:string[]){
   return response;
 }
 
+const timeoutResponse=()=>json({error:'Max AI took too long to respond. Retry or use flight and hotel search.'},504);
+
 export async function POST(request:Request){
+  const signal=AbortSignal.any([request.signal,AbortSignal.timeout(MAX_AI_SERVER_TIMEOUT_MS)]);
+  if(signal.aborted)return timeoutResponse();
+  let onAbort!:()=>void;
+  const deadline=new Promise<Response>(resolve=>{
+    onAbort=()=>resolve(timeoutResponse());
+    signal.addEventListener('abort',onAbort,{once:true});
+  });
+  try{return await Promise.race([handleTurn(request,signal),deadline]);}
+  finally{signal.removeEventListener('abort',onAbort);}
+}
+
+async function handleTurn(request:Request,signal:AbortSignal){
   let access:ShoppingAccess|undefined;
   let runner:ReturnType<typeof createMaxAiTools>|undefined;
   const respond=(response:Response)=>withCookies(response,[...(access?.cookie?[access.cookie]:[]),...(runner?.cookies()??[])]);
@@ -28,11 +43,14 @@ export async function POST(request:Request){
     sameOrigin(request);
     const input=await body(request,inputSchema);
     if(!maxAiGatewayConfiguration()||!conversationConfigured())throw new HttpError(503,'Max AI is not connected yet. Please use the flight or hotel search while we finish connecting it.');
-    const signal=AbortSignal.any([request.signal,AbortSignal.timeout(80000)]);
+    signal.throwIfAborted();
     access=await shoppingAccess(request,'search');
+    signal.throwIfAborted();
     const peer=shoppingPeer(request,process.env.PUBLIC_SHOPPING_TRUST_PROXY==='true');
     await requestLimit('max-ai:global','turn',60);
+    signal.throwIfAborted();
     await requestLimit(`max-ai:peer:${peer}`,'turn',20);
+    signal.throwIfAborted();
     await requestLimit(access.actor.userId,'max-ai:turn',8);
     signal.throwIfAborted();
     const history=input.conversationToken?openMaxAiConversation(input.conversationToken,access.actor):[];
@@ -58,9 +76,10 @@ export async function POST(request:Request){
   }catch(error){
     if(error instanceof MaxAiProviderError){
       console.error('Max AI gateway',{reason:error.reason,httpStatus:error.status??null});
+      if(error.reason==='timeout')return respond(timeoutResponse());
       return respond(json({error:'Max AI is temporarily unavailable. Please try again shortly or use the flight and hotel search.'},503));
     }
-    if(request.signal.aborted||error instanceof DOMException&&['AbortError','TimeoutError'].includes(error.name))return respond(json({error:'Max AI took too long to respond. Please try a shorter request or use the search form.'},504));
+    if(signal.aborted||error instanceof DOMException&&['AbortError','TimeoutError'].includes(error.name))return respond(timeoutResponse());
     return respond(failure(error));
   }
 }

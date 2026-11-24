@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {createHotelCatalogueRepository} from '../src/lib/hotel-catalogue-repository';
-import {catalogueHotelSlug,type HotelCatalogueContent} from '../src/lib/hotel-catalogue';
+import {catalogueAddress,catalogueHotelSlug,type HotelCatalogueContent} from '../src/lib/hotel-catalogue';
 import {hotelSearchContext,normaliseHotelSearch} from '../src/lib/hotel-catalogue-search';
 
 const now=()=>new Date('2026-11-17T00:00:00Z');
@@ -28,6 +28,25 @@ test('normalization folds accents and punctuation without erasing non-Latin scri
   assert.equal(context.nameParts.length,6);
   assert.ok(context.nameParts.some((part,i)=>part==='seasons hotel'&&context.placeParts[i]==='mira road'));
   assert.ok(context.nameParts.some((part,i)=>part==='mira road'&&context.placeParts[i]==='seasons hotel'));
+});
+
+test('hotel browse puts real photos first and search sorts photos only within the same relevance rank',async()=>{
+  const {db,repository}=await fixture();
+  try {
+    await db.exec(await readFile(new URL('../db/034-hotel-catalogue-photo-order.sql',import.meta.url),'utf8'));
+    const legacyHeadline='A quiet beach house near the market. '+ 'x'.repeat(153) +' music syst';
+    await repository.upsert({...hotel('1','A Beach House','Goa','Goa, India'),
+      amenities:['Smoke-Complimentary Property','Smoke-free property'],descriptionHeadline:legacyHeadline.padEnd(200,'y').slice(0,200)});
+    const repaired=await repository.get('1');
+    assert.deepEqual(repaired?.amenities,['Smoke-free property']);
+    assert.equal(repaired?.descriptionHeadline,'A quiet beach house near the market.');
+    const photo={url:'https://pix8.agoda.net/hotelImages/1111/stay.jpg',isHero:true};
+    await repository.upsert({...hotel('2','Z Beach House','Goa','Goa, India'),photos:[photo]});
+    assert.deepEqual((await repository.list()).hotels.map(row=>row.hotelId),['2','1']);
+    assert.deepEqual((await repository.list({query:'Goa'})).hotels.map(row=>row.hotelId),['2','1']);
+    assert.deepEqual((await repository.list({query:'A Beach House'})).hotels.map(row=>row.hotelId),['1']);
+    assert.equal(catalogueAddress('Plot 5, Anjuna Road, Anjuna, Goa Anjuna, Goa 403519 Goa India, Anjuna, Goa, India, 403519','Anjuna','India'),'Plot 5, Anjuna Road, Anjuna, Goa, 403519, India');
+  } finally {await db.close();}
 });
 
 test('search migration backfills existing rows without changing supplier facts or canonical URLs',async()=>{

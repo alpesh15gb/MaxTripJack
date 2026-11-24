@@ -9,7 +9,7 @@ import HotelPropertyMedia from './hotel-property-media';
 import HotelCancellationTimeline from './hotel-cancellation-timeline';
 import {money} from './booking-flight-card';
 
-export type AvailableHotelOption={roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];optionType?:string;optionId:string;mealBasis?:string;pricing:{totalPrice:number;mf?:number;mft?:number};cancellation?:unknown;bookingNotes?:string};
+export type AvailableHotelOption={priceBreakdown?:HotelRoomOption['priceBreakdown'];roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];optionType?:string;optionId:string;mealBasis?:string;pricing:{totalPrice:number;mf?:number;mft?:number};cancellation?:unknown;bookingNotes?:string};
 export default function HotelRoomView({name,options,property,context,busy,now,checkingOptionId,selectedOptionId,onBack,onReview}:{name:string;options:AvailableHotelOption[];property?:HotelPropertyDetails;context:HotelStayContext|null;busy:boolean;now:number|null;checkingOptionId?:string;selectedOptionId?:string;onBack:()=>void;onReview:(optionId:string)=>void}){
  const nights=stayNights(context);
  const [rateFilters,setRateFilters]=useState({breakfast:false,freeCancellation:false});

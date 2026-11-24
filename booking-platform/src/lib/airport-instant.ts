@@ -9,7 +9,8 @@ export function airportInstant(value: unknown, airportCode: string, country?: st
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value)) return null;
   const wall = supplierInstant(value + "Z");
   if (wall === null) return null;
-  const zone = (zones as Record<string, string>)[airportCode] ?? (country === "IN" ? "Asia/Kolkata" : undefined);
+  const inIndia = /^(?:IN|INDIA)$/i.test(country?.trim() ?? "");
+  const zone = (zones as Record<string, string>)[airportCode] ?? (inIndia ? "Asia/Kolkata" : undefined);
   if (!zone) return null;
   try {
     const formatter = new Intl.DateTimeFormat("en-GB", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });

@@ -10,7 +10,7 @@ import { canonicalUrl, pageMetadata } from "../src/lib/seo";
 
 test("the content and SEO allowlists contain exactly the same authored paths", () => {
   const paths = ["/", ...publicPages.map(page => `/${page.slug}`), ...legalPolicies.map(page=>`/${page.slug}`), ...flightGuides.map(page => `/flights/${page.slug}`)];
-  assert.equal(paths.length, 35);
+  assert.equal(paths.length, 34);
   assert.equal(new Set(paths).size, paths.length);
   assert.deepEqual([...paths].sort(), PUBLIC_SEO_PAGES.map(page => page.path).sort());
   assert.equal(getPublicPage("not-authored"), undefined);
@@ -54,7 +54,7 @@ test("route planning CTAs fill only explicit airports, never an itinerary or aut
 test("business schema keeps owner hours and verified facts without unsupported trust claims", () => {
   const schema = businessStructuredData();
   assert.equal(schema.telephone, "+917095018018");
-  assert.equal(schema.email, "max@maxtravel.us");
+  assert.equal(schema.email, "max@maxtravel.in");
   assert.deepEqual(schema["@type"], ["Organization", "TravelAgency"]);
   assert.equal(businessProfile.hours.days.length, 7);
   assert.equal(businessProfile.hours.opens, "09:00");

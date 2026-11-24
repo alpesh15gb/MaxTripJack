@@ -18,6 +18,13 @@ test('BOM-GOX-DEL overnight duration includes the connection',()=>{
  assert.equal(connectionLabel(first,next),'Connection at GOX · 0h 50m');
 });
 
+test('HYD–GOX–DEL uses elapsed overnight time when Tripjack omits duration and one direction flag',()=>{
+ const outbound={...first,da:{code:'HYD'},dt:'2026-12-15T21:10',at:'2026-12-15T22:40',isRs:false};
+ const connection={...next,dt:'2026-12-16T00:35',at:'2026-12-16T03:20'};
+ assert.equal(journeyMinutes({sI:[outbound,connection],totalPriceList:[]},'ONWARD'),370);
+ assert.equal(connectionLabel(outbound,connection),'Connection at GOX · 1h 55m');
+});
+
 test('unknown airports remain unknown and explicit offsets remain authoritative',()=>{
  assert.equal(airportInstant('2026-11-23T21:10:00','ZZZ'),null);
  assert.equal(airportInstant('2026-11-23T21:10:00+04:00','GOX'),'2026-11-23T17:10:00Z');

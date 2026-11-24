@@ -118,13 +118,13 @@ test('automatic return advance clears group filters but preserves selected outbo
 
 test('flight sort controls reorder loaded options by price, duration and local departure', async ({page, provider}) => {
  const cheapest: Flight = flight('ONWARD', 'cheapest');
- cheapest.sI[0] = {...cheapest.sI[0], dt: `${departure}T10:00:00`, duration: 180, fD: {...cheapest.sI[0].fD, aI: {name: 'Price fixture'}}};
+ cheapest.sI[0] = {...cheapest.sI[0], dt: `${departure}T10:00:00`, at: `${departure}T13:00:00`, duration: 180, fD: {...cheapest.sI[0].fD, aI: {name: 'Price fixture'}}};
  cheapest.totalPriceList[0].customerEstimateMinor = 300000;
  const shortest: Flight = flight('ONWARD', 'shortest');
- shortest.sI[0] = {...shortest.sI[0], dt: `${departure}T11:00:00`, duration: 60, fD: {...shortest.sI[0].fD, aI: {name: 'Duration fixture'}}};
+ shortest.sI[0] = {...shortest.sI[0], dt: `${departure}T11:00:00`, at: `${departure}T12:00:00`, duration: 60, fD: {...shortest.sI[0].fD, aI: {name: 'Duration fixture'}}};
  shortest.totalPriceList[0].customerEstimateMinor = 600000;
  const earliest: Flight = flight('ONWARD', 'earliest');
- earliest.sI[0] = {...earliest.sI[0], dt: `${departure}T06:00:00`, duration: 120, fD: {...earliest.sI[0].fD, aI: {name: 'Departure fixture'}}};
+ earliest.sI[0] = {...earliest.sI[0], dt: `${departure}T06:00:00`, at: `${departure}T08:00:00`, duration: 120, fD: {...earliest.sI[0].fD, aI: {name: 'Departure fixture'}}};
  earliest.totalPriceList[0].customerEstimateMinor = 900000;
  const unknown: Flight = flight('ONWARD', 'unknown');
  unknown.sI[0] = {...unknown.sI[0], dt: 'unknown', at: 'unknown', duration: undefined, fD: {...unknown.sI[0].fD, aI: {name: 'Unknown fixture'}}};

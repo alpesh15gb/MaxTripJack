@@ -18,8 +18,8 @@ export const businessProfile = {
   phone: "+91 70950 18018",
   phoneE164: "+917095018018",
   phoneHref: "tel:+917095018018",
-  email: "max@maxtravel.us",
-  emailHref: "mailto:max@maxtravel.us",
+  email: "max@maxtravel.in",
+  emailHref: "mailto:max@maxtravel.in",
   address: {
     streetAddress: "G-10, Golden Hawk, Beside SBI, 1-8-208, Jogani, Ramgopalpet",
     addressLocality: "Secunderabad",

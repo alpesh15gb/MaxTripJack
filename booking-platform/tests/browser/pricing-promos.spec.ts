@@ -7,7 +7,7 @@ test('cabin seats show the customer price and recheck exact choices before payme
   {...paid,code:'6B',label:'Seat 6B',seatNumber:'6B',amountMinor:0},
   {...paid,code:'6C',label:'Seat 6C · Extra legroom',seatNumber:'6C',extraLegroom:true},
   {...paid,code:'6D',label:'Seat 6D · Exit row',seatNumber:'6D',exitRow:true},
-  {...paid,code:'6F',label:'Seat 6F',seatNumber:'6F'},
+  {...paid,code:'6F',label:'Seat 6F',seatNumber:'6F',amountMinor:89240},
  ];
  const first={id:'seat-segment',tripIndex:0,label:'HYD → BOM · 15 Dec 2026 · 05:05',options:seats,occupiedSeats:['6E']};
  const second={id:'connecting-segment',tripIndex:0,label:'BOM → DEL · 15 Dec 2026 · 08:00',options:[paid]};
@@ -26,6 +26,7 @@ test('cabin seats show the customer price and recheck exact choices before payme
  await expect(dialog.getByRole('heading',{name:'Choose your seats'})).toHaveCSS('color','rgb(255, 255, 255)');
  await expect(dialog.getByRole('group',{name:'Row 6'})).toBeVisible();
  await expect(dialog.getByRole('img',{name:'Seat 6E · occupied'})).toBeVisible();
+ await expect(dialog.getByRole('button',{name:'Seat 6F · +₹892.40',exact:true}).locator('small')).toHaveText('₹892.40');
  await expect(dialog.getByRole('button',{name:/Seat 6D.*contact support/})).toBeDisabled();
  const choosePaid=dialog.getByRole('button',{name:'Seat 6A · +₹903.90',exact:true});
  await choosePaid.click();

@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
-import {catalogueHotelId, HOTEL_CATALOGUE_FRESH_DAYS, HOTEL_CATALOGUE_SITEMAP_SIZE, type HotelCatalogueContent, type HotelCatalogueEnvironment, type HotelCatalogueRecord} from './hotel-catalogue';
-import {hotelSearchContext,hotelSearchCtes} from './hotel-catalogue-search';
+import {catalogueAddress, catalogueAmenities, catalogueHotelId, HOTEL_CATALOGUE_FRESH_DAYS, HOTEL_CATALOGUE_SITEMAP_SIZE, type HotelCatalogueContent, type HotelCatalogueEnvironment, type HotelCatalogueRecord} from './hotel-catalogue';
+import {hasCataloguePhoto,hotelSearchContext,hotelSearchCtes} from './hotel-catalogue-search';
+import {hotelDescription} from './hotel-presentation';
 
 export type CatalogueQuery = (sql: string, values?: unknown[]) => Promise<{rows: Record<string,unknown>[]} >;
 export type HotelCatalogueSyncState = {
@@ -44,7 +45,8 @@ function canonicalJson(value: unknown): string {
 }
 function record(row: Record<string,unknown>): HotelCatalogueRecord {
   if (!row.content || typeof row.content !== 'object' || Array.isArray(row.content)) throw new Error('Invalid catalogue record.');
-  return {...row.content as HotelCatalogueContent, hotelId:String(row.hotel_id),slug:String(row.slug),
+  const {descriptionHeadline, description, ...content} = row.content as HotelCatalogueContent;
+  return {...content,amenities:catalogueAmenities(content.amenities),address:catalogueAddress(content.address,content.city,content.countryName),...hotelDescription({storedHeadline:descriptionHeadline,storedDescription:description}),hotelId:String(row.hotel_id),slug:String(row.slug),
     environment:row.environment as HotelCatalogueEnvironment, active:row.active === true, contentReady:row.content_ready === true,
     contentUpdatedAt:instant(row.content_updated_at),checkedAt:instant(row.checked_at)};
 }
@@ -70,11 +72,11 @@ export function createHotelCatalogueRepository(query: CatalogueQuery, environmen
     if(context)values.push(context.text,context.nameParts,context.placeParts);
     const pageSql=context?`${ctes}
       SELECT catalogue.* FROM (
-        SELECT hotel_id,name,search_rank FROM scored WHERE search_rank<99 ORDER BY search_rank,name,hotel_id
+        SELECT hotel_id,name,search_rank,has_photo FROM scored WHERE search_rank<99 ORDER BY search_rank,has_photo DESC,name,hotel_id
         LIMIT $${values.length+1} OFFSET $${values.length+2}
       ) AS matched JOIN hotel_catalogue AS catalogue ON catalogue.environment=$1 AND catalogue.hotel_id=matched.hotel_id
-      ORDER BY matched.search_rank,matched.name,matched.hotel_id`
-      :`SELECT * FROM ${source} ORDER BY name,hotel_id LIMIT $${values.length+1} OFFSET $${values.length+2}`;
+      ORDER BY matched.search_rank,matched.has_photo DESC,matched.name,matched.hotel_id`
+      :`SELECT * FROM ${source} ORDER BY (${hasCataloguePhoto}) DESC,name,hotel_id LIMIT $${values.length+1} OFFSET $${values.length+2}`;
     const [found,count] = await Promise.all([
       query(pageSql,[...values,pageSize,(page-1)*pageSize]),
       query(`${ctes} SELECT count(*)::text AS total FROM ${source}`,values),

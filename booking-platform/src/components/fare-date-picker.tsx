@@ -18,19 +18,21 @@ function nextMonth(start:string,count=1){const d=new Date(at(start));d.setUTCMon
 
 /** Date field with an inline two-month calendar. Prices are indicative "from"
  * fares per adult; the hidden input keeps native form submission unchanged. */
-export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper,iconOnly=false}:{
+export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper,iconOnly=false,openOnMount=false,startAtMinimum=false}:{
  name?:string;label:string;value:string;min:string;max?:string;onChange:(value:string)=>void;iconOnly?:boolean;
- fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;
+ fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;openOnMount?:boolean;startAtMinimum?:boolean;
 }){
  const id=useId(),root=useRef<HTMLDivElement>(null),grid=useRef<HTMLDivElement>(null);
- const [open,setOpen]=useState(false);
- const [view,setView]=useState(()=>monthStart(value||min));
- const [focus,setFocus]=useState(value||min);
+ const firstMonth=monthStart(startAtMinimum?min:value||min);
+ const firstFocus=value>=min&&value<nextMonth(firstMonth,2)?value:min;
+ const [open,setOpen]=useState(openOnMount);
+ const [view,setView]=useState(firstMonth);
+ const [focus,setFocus]=useState(firstFocus);
  const hasFares=Boolean(fares&&Object.keys(fares).length);
  const close=useCallback(()=>setOpen(false),[]);
  useEffect(()=>{if(open)grid.current?.querySelector<HTMLButtonElement>(`[data-date="${focus}"]`)?.focus();},[open,focus,view]);
 
- function toggle(){setView(monthStart(value||min));setFocus(value||min);setOpen(current=>!current);}
+ function toggle(){setView(firstMonth);setFocus(firstFocus);setOpen(current=>!current);}
  function pick(date:string){onChange(date);setOpen(false);root.current?.querySelector<HTMLButtonElement>('.fare-date-trigger')?.focus();}
  function allowed(date:string){return date>=min&&(!max||date<=max);}
  function browseMonth(offset:number){

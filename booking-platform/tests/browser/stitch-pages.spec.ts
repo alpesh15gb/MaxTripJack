@@ -31,6 +31,12 @@ const examples = new Map([
   ['/packages/[slug]', '/packages/kerala-at-your-pace'],
 ]);
 const blankCataloguePages = new Set(['/flights/routes/page/2', '/hotels/page/2']);
+test('legacy terms permanently redirect to the single published terms page',async({request})=>{
+  const legacy=await request.get('/terms-and-conditions',{maxRedirects:0});
+  expect(legacy.status()).toBe(308);
+  expect(legacy.headers().location).toBe('/terms-of-use');
+});
+
 function pageFiles(directory: string): string[] {
   return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
     const path = `${directory}/${entry.name}`;
@@ -64,8 +70,8 @@ for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
     if (path === '/privacy-policy' || path === '/terms-of-use') {
       await expect(page.locator('.legal-effective-date time')).toHaveAttribute('datetime', '2026-10-27');
       await expect(page.locator('.legal-article section')).toHaveCount(path === '/privacy-policy' ? 10 : 9);
-      await expect(page.locator('.legal-article a[href="mailto:cs@maxtravel.in"]').first()).toBeVisible();
-      expect(await page.locator('.legal-site a[href^="mailto:"]').evaluateAll(links=>[...new Set(links.map(link=>link.getAttribute('href')))])).toEqual(['mailto:cs@maxtravel.in']);
+      await expect(page.locator('.legal-article a[href="mailto:max@maxtravel.in"]').first()).toBeVisible();
+      expect(await page.locator('.legal-site a[href^="mailto:"]').evaluateAll(links=>[...new Set(links.map(link=>link.getAttribute('href')))])).toEqual(['mailto:max@maxtravel.in']);
       await expect(page.locator('.max-ai-launcher')).toHaveCount(0);
       await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', `https://maxtravel.in${path}`);
     }

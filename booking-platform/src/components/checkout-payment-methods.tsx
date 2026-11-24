@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { bookingPhoneFromFields, bookingPhoneParts } from '@/lib/booking-phone';
+import { bookingPhoneParts } from '@/lib/booking-phone';
 import { displayMoney } from '@/lib/display-money';
 import type { CheckoutPromoOffer } from '@/lib/promo-offers';
 import type { RazorpayMethod } from '@/lib/razorpay-checkout-loader';
@@ -19,12 +19,10 @@ const methods: { id: RazorpayMethod; label: string; icon: string; description: s
   { id: 'wallet', label: 'Wallets', icon: 'account_balance_wallet', description: 'Choose an available digital wallet' },
 ];
 
-export function paymentPreference(form: HTMLFormElement) {
+export function paymentPreference(form: HTMLFormElement, guests: {email:string;phone:string}) {
   const method = methods.find(item => item.id === form.querySelector<HTMLInputElement>('input[name="gateway-method"]')?.value);
-  const email = form.querySelector<HTMLInputElement>('input[name="email"]')?.value.trim();
-  const phone = form.querySelector<HTMLInputElement>('input[name="phone"]')?.value.trim();
-  const code = form.querySelector<HTMLSelectElement>('select[name="phoneCountryCode"]')?.value ?? '';
-  const contact = phone ? bookingPhoneParts(bookingPhoneFromFields(phone, code)) : null;
+  const email = guests.email.trim();
+  const contact = bookingPhoneParts(guests.phone);
   return email && contact ? {email, contact: contact.international, ...(method ? {method:method.id} : {})} : undefined;
 }
 

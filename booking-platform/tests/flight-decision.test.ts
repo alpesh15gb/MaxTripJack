@@ -12,6 +12,9 @@ test('fare labels preserve recognizable brands and disambiguate each otherwise i
   'SpiceFlex','Economy Lite','Fare option 1','Fare option 2',
  ]);
  assert.equal(fareDecisionName({...fare,fareIdentifier:'PUBLISHED'}),'Standard fare');
+ assert.equal(fareDecisionName({...fare,fareIdentifier:'FLEXI_PLUS'}),'Flexi Plus');
+ assert.equal(fareDecisionName({...fare,fareIdentifier:'STRETCH_PLUS'}),'Stretch Plus');
+ assert.equal(fareDecisionName({...fare,fareIdentifier:'NDC_Xpress Value'}),'Xpress Value');
  assert.equal(offers[6].fareIdentifier,'ZX_412_B');
 });
 

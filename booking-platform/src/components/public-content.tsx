@@ -5,6 +5,7 @@ import {conversationConfigured} from "@/lib/max-ai-conversation";
 import HomeDesk from "./home-desk";
 import {StitchSymbol} from "./stitch-symbol";
 import OfficeEnquiryForm from "./office-enquiry-form";
+import {MaxAiInlineAction} from "./max-ai-assistant";
 import type {OfficeEnquiryService} from "@/lib/travel-enquiry-contract";
 import {officeDirectionsHref} from "@/lib/business-profile";
 import SeoJsonLd from "@/components/seo-json-ld";
@@ -97,7 +98,9 @@ export async function PublicPageView({page, contactTopic}: {page: PublicPage; co
     <main id="main-content" className="public-main">
       <Breadcrumbs items={breadcrumbs} />
       <header className="public-hero public-hero--editorial">
-        <div className="public-hero-copy"><p className="public-eyebrow">{assisted ? 'Assisted enquiry' : page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{(page.slug === "contact" || assisted) && <a className="public-button" href="#contact-options">{assisted ? `Discuss your ${assisted} enquiry` : 'See contact options'}<TravelIcon name="arrow" size={18} /></a>}{page.cta && !assisted && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}</div>
+        <div className="public-hero-copy"><p className="public-eyebrow">{assisted ? 'Assisted enquiry' : page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{(page.slug === "contact" || assisted) && <a className="public-button" href="#contact-options">{assisted ? `Discuss your ${assisted} enquiry` : 'See contact options'}<TravelIcon name="arrow" size={18} /></a>}{page.cta && !assisted && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}
+          {page.slug==="visa-guide"&&<MaxAiInlineAction label="Start a visa enquiry with Max AI" draft="I want to prepare a visa enquiry."/>}
+          {page.slug==="contact"&&!contactTopic&&<MaxAiInlineAction label="Start a travel enquiry with Max AI"/>}</div>
         <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />
       </header>
       {page.slug==='flights'&&<p className="public-inline-links"><Link href="/my-trips?lookup=flight">Already booked? Find your flight by PNR <span aria-hidden="true">→</span></Link></p>}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkoutCatalogue,customerCheckoutOptions,selectCheckoutExtras,checkoutExtrasFulfilled } from "../src/lib/checkout-extras-contract";
+import { checkoutCatalogue,customerCheckoutOptions,remapCheckoutChoices,selectCheckoutExtras,checkoutExtrasFulfilled } from "../src/lib/checkout-extras-contract";
 import { customerTotal } from "../src/lib/pricing-calculation";
 import { validateParty } from "../src/lib/guest-validation";
 import { searchSchema,bookingBody,type Guests } from "../src/lib/providers/contracts";
@@ -28,6 +28,20 @@ test("cabin display carries only explicit occupancy and extra-legroom metadata",
  const [segment]=checkoutCatalogue(review,seatMap);
  assert.deepEqual(segment.occupiedSeats,["6B"]);
  assert.deepEqual(segment.options.filter(option=>option.kind==="SEAT").map(option=>[option.seatNumber,option.extraLegroom]),[["6A",true]]);
+});
+test("refresh carries a still-offered paid seat only for an identical flight segment",()=>{
+ const leg={id:"one",da:{code:"HYD"},aa:{code:"DEL"},dt:"2026-12-04T08:30",at:"2026-12-04T10:50",fD:{aI:{code:"6E"},fN:"889"}};
+ const previous={tripInfos:[{sI:[leg]}]};
+ const latest={tripInfos:[{sI:[{...leg,id:"renumbered"}]}]};
+ const selections=[{segmentId:"one",travellerIndex:0,kind:"SEAT" as const,code:"10A"}];
+ const seatMap={tripSeatMap:{renumbered:{sInfo:[{code:"new-code",seatNo:"10A",amount:630,isBooked:false}]}}};
+ const summary=[{kind:"SEAT",travellerIndex:0,label:"Seat 10A"}];
+ const mapped=remapCheckoutChoices(previous,latest,checkoutCatalogue(latest,seatMap),selections,summary);
+ assert.deepEqual(mapped,[{...selections[0],segmentId:"renumbered",code:"new-code"}]);
+ assert.equal(selectCheckoutExtras(latest,seatMap,criteria,mapped!).amountMinor,63000);
+ assert.equal(remapCheckoutChoices(previous,latest,checkoutCatalogue(latest,{}),selections),null);
+ const changed={tripInfos:[{sI:[{...leg,id:"renumbered",at:"2026-12-04T10:30"}]}]};
+ assert.equal(remapCheckoutChoices(previous,changed,checkoutCatalogue(changed,seatMap),selections),null);
 });
 test("initial extras charge server options once and carry baggage across connections",()=>{const selected=selectCheckoutExtras(review,seats,criteria,[{segmentId:"one",travellerIndex:0,kind:"BAGGAGE",code:"BAG"},{segmentId:"one",travellerIndex:0,kind:"SEAT",code:"1A"},{segmentId:"two",travellerIndex:2,kind:"MEAL",code:"FREE"}]);assert.equal(selected.amountMinor,150000);assert.deepEqual(selected.travellers[0].ssrBaggageInfos,[{key:"one",code:"BAG"},{key:"two",code:"BAG"}]);assert.equal(checkoutCatalogue(review,seats)[0].options.some(o=>o.code==="1B"),false);});
 test("initial extras reject forged codes, duplicate seats, infants and exit rows",()=>{for(const choices of [[{segmentId:"one",travellerIndex:0,kind:"MEAL" as const,code:"FAKE"}],[{segmentId:"one",travellerIndex:3,kind:"MEAL" as const,code:"FOOD"}],[{segmentId:"one",travellerIndex:0,kind:"SEAT" as const,code:"EXIT"}],[{segmentId:"one",travellerIndex:0,kind:"SEAT" as const,code:"1A"},{segmentId:"one",travellerIndex:1,kind:"SEAT" as const,code:"1A"}]])assert.throws(()=>selectCheckoutExtras(review,seats,criteria,choices));});

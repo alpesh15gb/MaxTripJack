@@ -1,16 +1,16 @@
 /* The booking planner follows the two supplied Stitch compositions. */
 body .trip-home.stitch-home {
-  --s-ink:#001736; --s-blue:#005bb3; --s-muted:#455266; --s-paper:#f7f9fc; --s-low:#f2f4f7;
+  --s-ink:var(--brand-midnight); --s-blue:var(--brand-action); --s-muted:var(--brand-muted); --s-paper:var(--brand-page); --s-low:var(--brand-tint);
   --s-gutter:clamp(16px,3.75vw,48px); --s-width:1184px;
   --s-display:var(--font-stitch-display,Arial),sans-serif; --s-body:var(--font-stitch-body,Arial),sans-serif;
-  --s-shadow:0 2px 8px -2px #0d2c540c,0 8px 24px -4px #0d2c5414;
+  --s-shadow:var(--brand-shadow);
   background:var(--s-paper); color:var(--s-ink); font-family:var(--s-body);
 }
 .stitch-home .stitch-home-wrap, body .trip-home.stitch-home :is(.home-search-card,.home-confidence,.home-package-plans,.home-public-intro) {
   width:min(var(--s-width),calc(100% - 2 * var(--s-gutter))); max-width:none; margin-inline:auto;
 }
 .stitch-home .stitch-home-hero {
-  padding:32px 0 112px; background:linear-gradient(180deg,#001736 0%,#102f54 55%,#f7f9fc 100%); color:white;
+  padding:32px 0 112px; background:linear-gradient(180deg,var(--brand-midnight) 0%,var(--brand-slate) 55%,var(--brand-page) 100%); color:white;
 }
 .stitch-home .stitch-office-line { display:flex; align-items:center; gap:10px; font-size:12px; line-height:1.45; }
 .stitch-home .stitch-office-line>span { display:inline-flex; gap:7px; align-items:center; padding:5px 12px; background:#ffffff14; border:1px solid #ffffff2b; border-radius:999px; }
@@ -194,9 +194,9 @@ body .trip-home.stitch-home .public-route-card :is(p,.public-route-action) { dis
   body .trip-home.stitch-home .home-airports>.home-search-input,body .trip-home.stitch-home .home-airports>.home-search-input:last-child { padding:7px 10px; border:0; background:white; border-radius:8px; }
   body .trip-home.stitch-home .stitch-airport-value { flex-wrap:nowrap; gap:7px; background:white; }
   body .trip-home.stitch-home .home-swap { left:50%; top:50%; transform:translate(-50%,-50%) rotate(90deg); width:32px; height:32px; }
-  body .trip-home.stitch-home .stitch-add-return { display:none; }
+  body .trip-home.stitch-home .stitch-add-return { display:flex; flex-direction:column; padding:10px; }
   body .trip-home.stitch-home .home-search-input { padding:10px; }
-  body .trip-home.stitch-home .home-search-fields:is(.is-return,.is-hotel) .home-guests { grid-column:1/-1; display:flex; flex-direction:column; }
+  body .trip-home.stitch-home .home-search-fields:is(.is-return,.is-hotel,:has(.stitch-add-return)) .home-guests { grid-column:1/-1; display:flex; flex-direction:column; }
   body .trip-home.stitch-home .home-search-fields.is-hotel .home-hotel-destination { grid-column:1/-1; }
   body .trip-home.stitch-home .stitch-popular { grid-column:1/-1; display:block; padding:4px 0 1px; border:0; }
   body .trip-home.stitch-home .stitch-popular>div { flex-wrap:nowrap; overflow-x:auto; gap:5px; margin-top:4px; }

@@ -55,16 +55,52 @@ export function catalogueHotelSlug(name: string, city: string, hotelId: string):
   return `${base || 'hotel'}-${hotelId}`;
 }
 
+export function catalogueAddress(value: unknown, city?: string, country?: string): string {
+  const parts=catalogueText(value,1000).split(',').map(part=>part.trim()).filter(Boolean);
+  const uniquePlaces=[...new Set([
+    catalogueText(city,120),catalogueText(country,120),
+    ...parts.filter(part=>/^[\p{L}\p{M}]+$/u.test(part)),
+  ].filter(Boolean))].sort((a,b)=>b.length-a.length);
+  const placePattern=uniquePlaces.map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  const token=new RegExp(`(?:${[...placePattern,'[1-9][0-9]{5}'].join('|')})(?=\\s|$)`,'iu');
+  const segments=parts.flatMap(part=>{
+    const names:string[]=[];
+    let rest=part;
+    while(rest){
+      const match=token.exec(rest);
+      if(!match||match.index!==0)return [part];
+      names.push(match[0]);
+      rest=rest.slice(match[0].length).trimStart();
+    }
+    return names;
+  });
+  const seen = new Set<string>();
+  return segments.filter(part=>{
+    const key=part.toLowerCase();
+    if(!key||seen.has(key))return false;
+    seen.add(key);
+    return true;
+  }).join(', ');
+}
+
+export function catalogueAmenities(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const amenities = value.map(item => catalogueText(item,200)).map(item =>
+    /^smoke[- ](?:free|complimentary) property$/i.test(item) ? 'Smoke-free property' : item
+  ).filter(Boolean);
+  return [...new Set(amenities)].slice(0,40);
+}
+
 /** Catalogue facts have no date-specific price, availability, cancellation or review claims. */
 export function normaliseCatalogueHotel(raw: unknown, countryName: string, environment: HotelCatalogueEnvironment): HotelCatalogueContent | undefined {
   const source = hotelObject(raw), hotelId = catalogueHotelId(source.tjHotelId);
   if (!hotelId) return undefined;
   const property = hotelPropertyDetails(source);
   const name = catalogueText(source.name,200), city = catalogueText(property.city,200);
-  const address = catalogueText(property.address,1000), country = catalogueText(countryName,120);
+  const country = catalogueText(countryName,120), address = catalogueAddress(property.address,city,country);
   const description = catalogueText(property.description,4000);
   const descriptionHeadline = catalogueText(property.descriptionHeadline,200);
-  const amenities = [...new Set(property.amenities.map(item => catalogueText(item,200)).filter(Boolean))].slice(0,40);
+  const amenities = catalogueAmenities(property.amenities);
   const photos = (property.photos ?? []).filter(photo => safeHotelPhotoUrl(photo.url)).map(photo => ({
     url:photo.url, isHero:photo.isHero, ...(catalogueText(photo.caption,200) ? {caption:catalogueText(photo.caption,200)} : {}),
   }));

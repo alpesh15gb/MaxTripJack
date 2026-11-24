@@ -3,7 +3,7 @@ body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison { grid-temp
 body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-shopping-toolbar { padding: 0 0 16px; margin: 0; gap: 18px; }
 body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-shopping-toolbar h2 { font-size: 28px; }
 body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-search-filters { padding: 18px; gap: 16px; border-radius: 14px; }
-body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-filter-sidebar { display: grid; position: sticky; top: 20px; background: linear-gradient(155deg, #fff 38%, var(--brand-ivory)); }
+body .booking-workflow.journey-flow .hotel-shopping.hotel-comparison .hotel-filter-sidebar { display: grid; position: sticky; top: var(--booking-header-offset, 96px); background: linear-gradient(155deg, #fff 38%, var(--brand-ivory)); }
 .hotel-comparison .hotel-filter-heading { flex-wrap: wrap; gap: 8px; }
 .hotel-comparison .hotel-filter-heading h3 { font-size: 17px; }
 .hotel-comparison .hotel-shopping-results { min-width: 0; }

@@ -22,6 +22,8 @@ export function hotelSearchContext(input:string) {
 /** Only candidates passing the GIN document match are scored. The same CTE is
  * used for page rows and their total, so filtering cannot create empty pages.
  */
+export const hasCataloguePhoto = "CASE WHEN jsonb_typeof(content->'photos')='array' THEN jsonb_array_length(content->'photos')>0 ELSE false END";
+
 export function hotelSearchCtes(baseWhere:string) {
   // Country is an exact field, never another loose keyword. For each existing
   // split allow at most two additional scopes; locality rules remain unchanged.
@@ -30,13 +32,13 @@ export function hotelSearchCtes(baseWhere:string) {
     WHEN right(${field},length(search_country)+1)=' '||search_country THEN left(${field},length(${field})-length(search_country)-1)
     END END`;
   return `WITH candidates AS MATERIALIZED (
-    SELECT hotel_id,name,search_name,search_city,search_country,to_tsvector('simple',search_name) AS name_document,
+    SELECT hotel_id,name,search_name,search_city,search_country,(${hasCataloguePhoto}) AS has_photo,to_tsvector('simple',search_name) AS name_document,
       to_tsvector('simple',search_city||' '||search_country) AS place_document,
       to_tsvector('simple',search_address) AS address_document
     FROM hotel_catalogue WHERE ${baseWhere}
       AND search_normalized_document @@ plainto_tsquery('simple',$3)
   ), scored AS (
-    SELECT hotel_id,name,LEAST(
+    SELECT hotel_id,name,has_photo,LEAST(
       CASE WHEN search_name=$3 OR strip(name_document)=strip(to_tsvector('simple',$3)) THEN 0 WHEN search_city=$3 THEN 1 WHEN search_country=$3 THEN 2
         WHEN name_document @@ phraseto_tsquery('simple',$3) THEN 4
         WHEN place_document @@ phraseto_tsquery('simple',$3) THEN 5

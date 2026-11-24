@@ -33,9 +33,9 @@ test("account mail keeps configuration guard, recipient, subject and reset/verif
     assert.deepEqual(calls[0][0],{name:"maxtravel.in",host:"smtp.example.test",port:465,secure:true,auth:{user:"synthetic",pass:"synthetic"}});
     const message=calls[0][1] as Record<string,string>;
     assert.equal(message.from,"sender@example.test");assert.equal(message.to,"recipient@example.test");assert.equal(message.subject,"Reset password");
-    assert.equal(message.replyTo,"max@maxtravel.us");
+    assert.equal(message.replyTo,"max@maxtravel.in");
     assert.ok(message.text.startsWith("Reset password\n\nhttps://example.test/reset\n\nIf you did not request this, you can ignore this email."));
-    assert.match(message.text,/MaxTravel/);assert.match(message.text,/max@maxtravel.us/);
+    assert.match(message.text,/MaxTravel/);assert.match(message.text,/max@maxtravel.in/);
 
   } finally { process.env = env; delete globals.__accountMailTest; }
 });

@@ -34,11 +34,11 @@ export function flightStops(flight: Flight, group: string): number | null {
   if (group === 'COMBO' || !flight.sI.length) return null;
   return Math.max(0, flight.sI.length - 1);
 }
-/** Local airport timestamps have no common timezone. Use supplier duration for a
- * nonstop segment; resolve local timestamps using verified airport timezones. */
+/** Compare the scheduled elapsed time in verified airport timezones. A supplied
+ * nonstop duration is the fallback when the schedule cannot be compared. */
 export function journeyMinutes(flight: Flight, group?: string): number | null {
   if (group === 'COMBO' || !flight.sI.length) return null;
-  if (flight.sI.length === 1 && suppliedMinutes(flight.sI[0].duration)!==null) return suppliedMinutes(flight.sI[0].duration);
+  const nonstopFallback=flight.sI.length===1?suppliedMinutes(flight.sI[0].duration):null;
   const times=flight.sI.map(segment=>({start:flightInstant(segment.dt,segment.da),end:flightInstant(segment.at,segment.aa)}));
   // A connected itinerary needs an offset-bearing, chronological segment chain.
   // Segment durations alone do not include layovers; never sum them as a trip total.
@@ -46,10 +46,11 @@ export function journeyMinutes(flight: Flight, group?: string): number | null {
     if(time.start===null||time.end===null||time.end<=time.start)return true;
     if(index===0)return false;
     const previous=flight.sI[index-1],current=flight.sI[index];
-    return current.isRs!==previous.isRs||!previous.aa.code||previous.aa.code!==current.da.code||times[index-1].end!>time.start;
-  }))return null;
+    const differentLeg = Boolean(current.isRs) !== Boolean(previous.isRs);
+    return differentLeg||!previous.aa.code||previous.aa.code!==current.da.code||times[index-1].end!>time.start;
+  }))return nonstopFallback;
   const minutes=(times.at(-1)!.end!-times[0].start!)/60000;
-  return Number.isSafeInteger(minutes)&&minutes>0?minutes:null;
+  return Number.isSafeInteger(minutes)&&minutes>0?minutes:nonstopFallback;
 }
 export function durationLabel(minutes: number | null) {
   return minutes === null || !Number.isSafeInteger(minutes) || minutes <= 0 ? 'Total duration unavailable' : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;

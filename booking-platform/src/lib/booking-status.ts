@@ -15,6 +15,7 @@ export type BookingStatusDetails = {
   status: string;
   currency: string;
   totalMinor: string;
+  priceLines?: [string, number][];
   paymentStatus: string | null;
   createdAt: string;
   itinerary: BookingItinerary;
@@ -32,12 +33,13 @@ export type BookingStatusDetails = {
   refunds: { id: string; amountMinor: string; status: string }[];
 };
 
-type StatusInput = Pick<BookingStatusDetails, "product" | "status" | "paymentStatus" | "totalMinor" | "serviceKind">;
+type StatusInput = Pick<BookingStatusDetails, "product" | "status" | "paymentStatus" | "totalMinor" | "serviceKind"> & Partial<Pick<BookingStatusDetails, "passengers">>;
 type StatusView = {
   title: string;
   description: string;
   tone: "confirmed" | "pending" | "attention" | "neutral";
   confirmed: boolean;
+  documentReady: boolean;
   paymentReceived: boolean;
   paymentRequired: boolean;
   supplierStarted: boolean;
@@ -49,14 +51,27 @@ export function isBookingConfirmed(product: string, status: string, serviceKind?
   return product === "FLIGHT" && (status === "TICKETED" || serviceKind === "ANCILLARY" && status === "CONFIRMED");
 }
 
+export function supplierTicketReferences(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  return [...new Set(Object.values(value).flatMap(part => {
+    if (typeof part !== "string") return [];
+    const reference = part.trim();
+    return reference && !/^(?:N\/?A|NONE|NULL|PENDING|NOT ISSUED|-+)$/i.test(reference) ? [reference] : [];
+  }))];
+}
+
 /** Only persisted provider/supplier states establish success, never a return URL. */
 export function bookingStatusView(booking: StatusInput): StatusView {
   const paymentReceived = booking.paymentStatus === "CAPTURED";
   const paymentRequired = booking.totalMinor !== "0";
   const confirmed = isBookingConfirmed(booking.product, booking.status, booking.serviceKind);
+  const awaitingTicket = confirmed && booking.product === "FLIGHT" && booking.serviceKind !== "ANCILLARY"
+    && (!booking.passengers?.length || booking.passengers.some(passenger => !supplierTicketReferences(passenger.tickets).length));
+  const documentReady = confirmed && !awaitingTicket;
   const supplierStarted = confirmed || ["BOOKING_PENDING", "CONFIRMED"].includes(booking.status);
-  const base = { confirmed, paymentReceived, paymentRequired, supplierStarted };
-  if (confirmed) return { ...base, title: booking.serviceKind === "ANCILLARY" ? "Your flight extras are confirmed." : booking.serviceKind === "REISSUE" ? "Your replacement flight is ticketed." : booking.product === "HOTEL" ? "Your stay is confirmed." : "Your flight is ticketed.", description: "The supplier has confirmed this booking. Your reference and travel documents are below.", tone: "confirmed", poll: false };
+  const base = { confirmed, documentReady, paymentReceived, paymentRequired, supplierStarted };
+  if (awaitingTicket) return { ...base, title: "Your flight booking is confirmed.", description: "The airline booking is confirmed. A ticket number hasn’t been supplied yet. Keep your booking reference and check for updates before travelling.", tone: "pending", poll: false };
+  if (confirmed) return { ...base, title: booking.serviceKind === "ANCILLARY" ? "Your flight extras are confirmed." : booking.serviceKind === "REISSUE" ? "Your replacement flight is ticketed." : booking.product === "HOTEL" ? "Your stay is confirmed." : "Your flight is ticketed.", description: "The supplier has confirmed this booking. Use the confirmation document for your travel details.", tone: "confirmed", poll: false };
   if (booking.status === "CANCELLED") return { ...base, title: "Your booking is cancelled.", description: "The supplier has confirmed cancellation. Any refund is tracked separately below.", tone: "neutral", poll: false };
   if (booking.status === "CLOSED") return { ...base, title: "This booking is closed.", description: "Check your booking records or contact support for details. Closure does not establish a refund.", tone: "neutral", poll: false };
   if (booking.status === "BOOKING_FAILED") return { ...base, title: "Your booking could not be confirmed.", description: "We could not complete your booking. Check the payment and refund updates below, or contact support before making another payment.", tone: "attention", poll: true };

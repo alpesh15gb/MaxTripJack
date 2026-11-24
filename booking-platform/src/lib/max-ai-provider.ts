@@ -58,7 +58,7 @@ export function parseMaxAiCompletion(value:unknown):MaxAiAssistantMessage{
 export async function completeMaxAi(messages:ProviderMessage[],tools:MaxAiFunction[],options:{signal?:AbortSignal;config?:MaxAiGatewayConfig;fetch?:typeof fetch;timeoutMs?:number}={}):Promise<MaxAiAssistantMessage>{
   const config=options.config??maxAiGatewayConfiguration();
   if(!config)throw new MaxAiProviderError('configuration');
-  const timeout=AbortSignal.timeout(options.timeoutMs??25000);
+  const timeout=AbortSignal.timeout(options.timeoutMs??15_000);
   const signal=options.signal?AbortSignal.any([options.signal,timeout]):timeout;
   try{
     const response=await (options.fetch??fetch)(`${config.baseURL}/chat/completions`,{

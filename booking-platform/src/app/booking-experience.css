@@ -76,7 +76,8 @@
 .booking-workflow input::placeholder { color:#80909f; }
 .booking-workflow .booking-search-submit { width:100%; margin-top:12px; min-height:52px; font-size:16px; }
 .booking-workflow .search-footnote { font-size:12px; padding-top:12px; }
-.booking-workflow .booking-summary { position:sticky; top:96px; background:white; color:var(--booking-ink); border:1px solid #e0e7ed; border-radius:22px; padding:25px; box-shadow:0 8px 28px #142d4005; }
+.booking-workflow .booking-summary { position:sticky; top:var(--booking-header-offset, 96px); background:white; color:var(--booking-ink); border:1px solid #e0e7ed; border-radius:22px; padding:25px; box-shadow:0 8px 28px #142d4005; }
+.booking-workflow :is(#booking-search,#booking-rooms,#hotel-room-options,#booking-review,#booking-results,.booking-recovery) { scroll-margin-top:var(--booking-header-offset, 96px); }
 .booking-workflow .booking-summary h2 { font-size:25px; letter-spacing:-.7px; line-height:1.25; margin:12px 0; color:var(--booking-ink); }
 .booking-workflow .booking-summary h3 { font-size:17px; }
 .booking-workflow .booking-summary p { font-size:14px; line-height:1.65; color:var(--booking-muted); }

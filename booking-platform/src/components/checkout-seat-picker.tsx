@@ -16,7 +16,7 @@ type Props = {
 };
 
 const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
-const priceLabel = (seat: Seat) => seat.amountMinor > 0 ? `+${displayMoney(seat.amountMinor)}` : 'Included';
+const priceLabel = (seat: Seat) => seat.amountMinor > 0 ? `+${displayMoney(seat.amountMinor, true)}` : 'Included';
 
 function cabinRows(seats: Seat[], occupied: Set<string>) {
   if (seats.some(seat => !seat.seatNumber)) return [];
@@ -85,7 +85,7 @@ export default function CheckoutSeatPicker({ segments, types, choices, hasOtherC
       aria-pressed={selected} aria-label={`${seat.label} · ${status}`} disabled={seat.exitRow || taken}
       onClick={() => choose(selected ? '' : seat.code)}>
       <strong>{seat.seatNumber ?? seat.label}{seat.extraLegroom && !seat.exitRow && <abbr title="Extra legroom" aria-hidden="true"> XL</abbr>}</strong>
-      <small>{seat.exitRow ? 'Exit' : taken ? 'Taken' : seat.amountMinor > 0 ? displayMoney(seat.amountMinor) : 'Included'}</small>
+      <small>{seat.exitRow ? 'Exit' : taken ? 'Taken' : seat.amountMinor > 0 ? displayMoney(seat.amountMinor, true) : 'Included'}</small>
     </button>;
   }
 
@@ -136,7 +136,7 @@ export default function CheckoutSeatPicker({ segments, types, choices, hasOtherC
           <span>{current
             ? `${current.seatNumber ? 'Seat ' + current.seatNumber : current.label} · ${priceLabel(current)}`
             : selection ? 'Previously selected seat unavailable' : 'No seat selected for this traveller'}</span>
-          <strong>{totalNeedsRecheck ? 'Seat price needs rechecking' : `Seat estimate ${displayMoney(estimate)}`}</strong>
+          <strong>{totalNeedsRecheck ? 'Seat price needs rechecking' : `Seat estimate ${displayMoney(estimate, true)}`}</strong>
         </div>
         {selection && !current && <button type="button" className="inline-link" onClick={() => choose('')}>Remove previous seat</button>}
         {hasOtherChanges && <p>Your other pending extras will be applied when you confirm.</p>}

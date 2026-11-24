@@ -5,13 +5,12 @@ import {usePathname} from 'next/navigation';
 import {createContext, useCallback, useContext, useEffect, useId, useRef, useState, type MutableRefObject, type ReactNode} from 'react';
 import {authClient} from '@/lib/auth-client';
 import {displayMoney} from '@/lib/display-money';
-import {isMaxAiActionHref, type MaxAiAction, type MaxAiCard, type MaxAiResponse} from '@/lib/max-ai-contract';
+import {MAX_AI_BROWSER_TIMEOUT_MS, isMaxAiActionHref, type MaxAiAction, type MaxAiCard, type MaxAiResponse} from '@/lib/max-ai-contract';
 import {enquiryDraftSchema, type EnquiryDraft} from '@/lib/travel-enquiry-contract';
 import MaxAiEnquiry from './max-ai-enquiry';
 import {observeLauncherPlacement} from './max-ai-launcher-placement';
 import '@/app/max-ai.css';
 
-const REQUEST_TIMEOUT_MS = 90_000;
 const MAX_MESSAGE_LENGTH = 2_000;
 const starters = [
   {icon: 'flight', label: 'Find a flight', message: 'I want to book a flight ticket.'},
@@ -26,6 +25,7 @@ const starters = [
 type IconName = 'spark' | 'flight' | 'hotel' | 'trip' | 'passport' | 'shield' | 'cruise' | 'send' | 'close' | 'plus' | 'arrow' | 'stop';
 type ChatMessage = {id: number; role: 'user' | 'assistant'; text: string; cards?: MaxAiCard[]; actions?: MaxAiAction[]; notice?: string; enquiryDraft?: EnquiryDraft};
 type FailedRequest = {message: string; token?: string};
+const timeoutText = 'Max AI took too long to respond. You can retry or use the booking links below.';
 type DraftRequest = {text:string} | null;
 type CancelRef = MutableRefObject<(() => void) | null>;
 
@@ -103,37 +103,46 @@ function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextD
   const [failed, setFailed] = useState<FailedRequest | null>(null);
   const token = useRef<string | undefined>(undefined);
   const request = useRef<AbortController | null>(null);
-  const activePrompt = useRef('');
+  const activePrompt = useRef<FailedRequest | null>(null);
   const generation = useRef(0);
   const sequence = useRef(0);
   const input = useRef<HTMLTextAreaElement>(null);
-  const latest = useRef<HTMLDivElement>(null);
+  const conversationLog = useRef<HTMLDivElement>(null);
   const id = useId();
 
-  const stop = useCallback(() => {
-    if (!request.current) return;
+  const cancel = useCallback((timedOut: boolean) => {
+    const pending = activePrompt.current;
+    if (!request.current || !pending) return;
     generation.current += 1;
     request.current.abort();
     request.current = null;
+    activePrompt.current = null;
     setBusy(false);
-    setStopped(true);
-    setDraft(activePrompt.current);
+    setStopped(!timedOut);
+    setError(timedOut ? timeoutText : '');
+    setFailed(pending);
+    setDraft(pending.message);
   }, []);
+
+  const stop = useCallback(() => cancel(false), [cancel]);
 
   useEffect(() => {
     cancelRef.current = stop;
     return () => {cancelRef.current = null; generation.current += 1; request.current?.abort();};
   }, [cancelRef, stop]);
-  useEffect(() => {if (open) input.current?.focus({preventScroll:true});}, [open]);
+  useEffect(() => {if (open && window.matchMedia('(min-width: 761px)').matches) input.current?.focus({preventScroll:true});}, [open]);
   useEffect(() => {
-    if (!open || !messages.length) return;
-    latest.current?.scrollIntoView({block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
-  }, [messages, open]);
+    const log = conversationLog.current;
+    if (!open || !messages.length || !log) return;
+    const last = log.lastElementChild;
+    if (busy || error || stopped || !last) log.scrollTop = log.scrollHeight;
+    else log.scrollTop += last.getBoundingClientRect().top - log.getBoundingClientRect().top - 16;
+  }, [messages, open, busy, error, stopped]);
 
   function newChat() {
     generation.current += 1;
     request.current?.abort(); request.current = null; token.current = undefined;
-    activePrompt.current = '';
+    activePrompt.current = null;
     setMessages([]); setDraft(''); setBusy(false); setError(''); setStopped(false); setFailed(null);
     requestAnimationFrame(() => input.current?.focus({preventScroll: true}));
   }
@@ -143,13 +152,13 @@ function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextD
     if (!text || text.length > MAX_MESSAGE_LENGTH || request.current) return;
     const controller = new AbortController();
     request.current = controller;
-    activePrompt.current = text;
     const current = ++generation.current;
-    const previousToken = retry ? retry.token : token.current;
+    const repeated = retry ?? (failed?.message === text ? failed : undefined);
+    const previousToken = repeated ? repeated.token : token.current;
+    activePrompt.current = {message:text, token:previousToken};
     setBusy(true); setError(''); setStopped(false); setFailed(null); setDraft('');
-    if (!retry) setMessages(previous => [...previous.slice(-23), {id: ++sequence.current, role: 'user', text}]);
-    let timedOut = false;
-    const timeout = window.setTimeout(() => {timedOut = true; controller.abort();}, REQUEST_TIMEOUT_MS);
+    if (!repeated) setMessages(previous => [...previous.slice(-23), {id: ++sequence.current, role: 'user', text}]);
+    const timeout = window.setTimeout(() => {if (generation.current === current) cancel(true);}, MAX_AI_BROWSER_TIMEOUT_MS);
     try {
       const response = await fetch('/api/travel/max-ai', {
         method: 'POST', credentials: 'same-origin', redirect: 'error',
@@ -181,18 +190,18 @@ function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextD
       setMessages(previous => [...previous.slice(-23), {id: ++sequence.current, role: 'assistant', text: result.reply, cards: result.cards, actions: result.actions, notice: result.notice, enquiryDraft: result.enquiryDraft}]);
     } catch (cause) {
       if (generation.current !== current) return;
-      setError(timedOut ? 'Max AI is taking longer than expected. You can retry or use the booking screens below.' : cause instanceof Error && cause.name !== 'AbortError' ? cause.message : 'The response was stopped. Please try again when you are ready.');
+      setError(cause instanceof Error && cause.name !== 'AbortError' ? cause.message : 'The response was stopped. Please try again when you are ready.');
       setDraft(text);
       setFailed({message: text, token: previousToken});
     } finally {
       window.clearTimeout(timeout);
-      if (generation.current === current) {request.current = null; setBusy(false);}
+      if (generation.current === current) {request.current = null; activePrompt.current = null; setBusy(false);}
     }
   }
 
   return <>
     <div className="max-ai-conversation-tools"><span>Ask. Explore. Travel.</span><button type="button" onClick={newChat}><AiIcon name="plus" size={15}/>New chat</button></div>
-    <div className="max-ai-messages" aria-label="Conversation with Max AI" role="log" aria-live="polite" aria-relevant="additions">
+    <div ref={conversationLog} className="max-ai-messages" tabIndex={0} aria-label="Conversation with Max AI" role="log" aria-live="polite" aria-relevant="additions">
       {!messages.length && <section className="max-ai-welcome" aria-labelledby={`${id}-welcome`}>
         <div className="max-ai-welcome-mark"><AiIcon name="spark" size={31}/></div>
         <p className="max-ai-eyebrow">YOUR NEXT JOURNEY STARTS HERE</p>
@@ -201,7 +210,7 @@ function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextD
         <div className="max-ai-starters">{starters.map(starter => <button key={starter.label} type="button" onClick={() => void send(starter.message)}><AiIcon name={starter.icon}/><span>{starter.label}</span><AiIcon name="arrow" size={15}/></button>)}</div>
         <p className="max-ai-privacy">Your travel request is processed by Max AI. Enter passwords, verification codes and payment details only in the secure account or checkout screens.</p>
       </section>}
-      {messages.map((message, index) => <div ref={index === messages.length - 1 ? latest : undefined} className={`max-ai-message max-ai-message--${message.role}`} key={message.id}>
+      {messages.map((message, index) => <div className={`max-ai-message max-ai-message--${message.role}`} key={message.id}>
         <div className="max-ai-message-label">{message.role === 'assistant' && <AiIcon name="spark" size={14}/>}<span>{message.role === 'assistant' ? 'Max AI' : 'You'}</span></div>
         {message.text && <p className="max-ai-message-text">{message.text}</p>}
         {Boolean(message.cards?.length) && <div className="max-ai-results">{message.cards?.map((card, cardIndex) => <ResultCard key={`${card.id}-${cardIndex}`} card={card} onNavigate={onNavigate}/>)}</div>}
@@ -210,12 +219,12 @@ function Conversation({open, pathname, cancelRef, nextDraft, onNavigate}: {nextD
         {message.notice && <p className="max-ai-result-notice">{message.notice}</p>}
       </div>)}
       {busy && <div className="max-ai-working" role="status"><span aria-hidden="true"><i/><i/><i/></span>Max AI is working on your request…</div>}
-      {stopped && <p className="max-ai-stopped" role="status">Response stopped. You can send another message whenever you are ready.</p>}
+      {stopped && <p className="max-ai-stopped" role="status">Response stopped. You can retry the same message or edit it.</p>}
       {error && <div className="max-ai-error"><p role="alert">{error}</p>{failed && <button type="button" onClick={() => void send(failed.message, failed)}>Retry request</button>}<div className="max-ai-error-links"><Link href="/book?product=FLIGHT" prefetch={false} onClick={onNavigate}>Search flights</Link><Link href="/book?product=HOTEL" prefetch={false} onClick={onNavigate}>Search hotels</Link><Link href="/customer-support" prefetch={false} onClick={onNavigate}>Contact support</Link></div></div>}
     </div>
     <form className="max-ai-composer" onSubmit={event => {event.preventDefault(); void send(draft);}} aria-label="Message Max AI">
       <label className="max-ai-sr-only" htmlFor={`${id}-message`}>Your message to Max AI</label>
-      <div className="max-ai-input-row"><textarea ref={input} id={`${id}-message`} value={draft} disabled={busy} rows={2} maxLength={MAX_MESSAGE_LENGTH} placeholder="Where would you like to go?" onChange={event => {setDraft(event.target.value); setError(''); setFailed(null);}} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {event.preventDefault(); void send(draft);}}}/>{busy ? <button type="button" className="max-ai-send max-ai-stop" onClick={() => {stop(); requestAnimationFrame(() => input.current?.focus());}} aria-label="Stop Max AI response"><AiIcon name="stop" size={17}/><span>Stop</span></button> : <button type="submit" className="max-ai-send" disabled={!draft.trim()} aria-label="Send message to Max AI"><AiIcon name="send" size={19}/><span>Send</span></button>}</div>
+      <div className="max-ai-input-row"><textarea ref={input} id={`${id}-message`} value={draft} disabled={busy} rows={2} maxLength={MAX_MESSAGE_LENGTH} placeholder="Where would you like to go?" onChange={event => {setDraft(event.target.value); setError('');}} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {event.preventDefault(); void send(draft);}}}/>{busy ? <button key="stop" type="button" className="max-ai-send max-ai-stop" onClick={event => {event.preventDefault(); stop(); requestAnimationFrame(() => input.current?.focus({preventScroll:true}));}} aria-label="Stop Max AI response"><AiIcon name="stop" size={17}/><span>Stop</span></button> : <button key="send" type="submit" className="max-ai-send" disabled={!draft.trim()} aria-label="Send message to Max AI"><AiIcon name="send" size={19}/><span>Send</span></button>}</div>
       <p>AI assistant · Check current prices and policies before booking.</p>
     </form>
   </>;
@@ -242,10 +251,14 @@ function AssistantDialog({open, onClosed, returnFocusTo, nextDraft}: {nextDraft:
     const modal = dialog.current;
     if (!open || !modal) return;
     if (!modal.open) modal.showModal();
-    modal.querySelector('textarea')?.focus({preventScroll: true});
+    if (window.matchMedia('(min-width: 761px)').matches) modal.querySelector('textarea')?.focus({preventScroll: true});
+    const viewport = window.visualViewport;
+    const fit = () => {if(viewport)modal.style.setProperty('--max-ai-viewport-height', `${viewport.height}px`);};
+    fit();
+    viewport?.addEventListener('resize',fit);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {if (modal.open) modal.close(); document.body.style.overflow = overflow;};
+    return () => {if (modal.open) modal.close(); viewport?.removeEventListener('resize',fit); document.body.style.overflow = overflow;};
   }, [open]);
   useEffect(() => {
     if (priorPath.current !== pathname) {priorPath.current = pathname; dialog.current?.close();}
@@ -308,6 +321,16 @@ export function MaxAiFooterAction(){
   return <button className="max-ai-footer-action" type="button" aria-haspopup="dialog"
     onClick={event=>event.currentTarget.dispatchEvent(new Event('maxtravel:open-assistant',{bubbles:true}))}>
     <AiIcon name="spark" size={18}/> Ask Max AI
+  </button>;
+}
+
+export function MaxAiInlineAction({ label = 'Ask Max AI', draft }: { label?: string; draft?: string }) {
+  if (!useContext(MaxAiAvailable)) return null;
+  return <button className="secondary max-ai-inline-action" type="button" aria-haspopup="dialog"
+    onClick={event => event.currentTarget.dispatchEvent(draft
+      ? new CustomEvent('maxtravel:compose-message', {bubbles:true,detail:draft})
+      : new Event('maxtravel:open-assistant', {bubbles:true}))}>
+    <AiIcon name="spark" size={18}/> {label}
   </button>;
 }
 

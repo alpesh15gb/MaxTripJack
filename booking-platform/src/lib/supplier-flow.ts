@@ -1,7 +1,8 @@
 import "server-only";
 import {publicSupplierReview} from "./public-supplier-review";
 import { randomUUID } from "node:crypto";
-import { database } from "./db";
+import { isDeepStrictEqual } from "node:util";
+import { database, transaction } from "./db";
 import { HttpError } from "./http";
 import { tripjack,paths,Product } from "./providers/tripjack";
 import { Search,flightSearch,hotelSearch,minor } from "./providers/contracts";
@@ -14,11 +15,18 @@ import { hotelObject, hotelPropertyDetails } from "./hotel-presentation";
 import { SearchTiming } from "./search-timing";
 import { cachedFlightSearch, cachedHotelSearch } from "./flight-search-cache";
 import { observeSearchFare } from "./fare-calendar";
+import {bookingPriceBreakdown} from './booking-price-breakdown';
 import { exactAirportGroups } from "./flight-airport-scope";
 import { orderedFlightSelection } from "./flight-selection";
 import { createHotelReviewSnapshot,hotelReviewHash,SAVE_HOTEL_REVIEW_SNAPSHOT_SQL,HOTEL_REVIEW_SNAPSHOT_KEY } from "./hotel-review-snapshot";
 import {searchWarmCache} from './search-warm-cache';
 import {validateSearchCriteria} from './search-validation';
+import {checkoutCatalogue,checkoutChoices,remapCheckoutChoices,selectCheckoutExtras} from "./checkout-extras-contract";
+
+export class FlightExtrasRefreshError extends HttpError {
+ constructor(){super(409,"One or more saved flight extras could not be verified at the latest price. Try refreshing again, or review the flight without those extras.");}
+}
+
 export type Actor={userId:string;companyId:string|null};
 export async function pricingRule(product:Product,actor:Actor){const rules=await database().query<PricingRule>("SELECT * FROM pricing_rules WHERE active=true AND product=$1 AND (company_id=$2 OR company_id IS NULL) ORDER BY company_id NULLS LAST,created_at DESC LIMIT 1",[product,actor.companyId]);return rules.rows[0];}
 export async function owned(table:"supplier_searches"|"supplier_quotes"|"orders",id:string,actor:Actor){const result=await database().query(`SELECT * FROM ${table} WHERE id=$1 AND user_id=$2 AND company_id IS NOT DISTINCT FROM $3::uuid`,[id,actor.userId,actor.companyId]);if(!result.rows[0])throw new HttpError(404,"Record not found.");return result.rows[0];}
@@ -79,15 +87,20 @@ export async function customerHotelDetail(searchId:string,hid:string,actor:Actor
  const hasListingProperty=Object.keys(listingProperty).length>1||listingProperty.amenities.length>0;
  return {...customerHotelOptions(data,rule),property:properties[hid]||hasListingProperty?mergeHotelPropertyDetails(properties[hid],listingProperty):undefined};
 }
-export async function reviewSupplier(searchId:string,selection:{priceIds?:string[];hid?:string;optionId?:string},actor:Actor,signal?:AbortSignal){
+export async function reviewSupplier(searchId:string,selection:{priceIds?:string[];hid?:string;optionId?:string;previousQuoteId?:string;removeFlightExtras?:boolean},actor:Actor,signal?:AbortSignal){
  await requestLimit(actor.userId,"supplier-review",30);
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
  if(search.service_kind)throw new HttpError(400,"Use the flight service review flow for this search.");
  signal?.throwIfAborted();
- let data;let chosen:unknown;let flight:Parameters<typeof publicSupplierReview>[2];const reviewedAt=Date.now();
+ const previous=selection.previousQuoteId?await owned("supplier_quotes",selection.previousQuoteId,actor):null;
+ if(previous&&(search.product!=="FLIGHT"||previous.product!=="FLIGHT"||previous.service_kind||previous.search_id!==searchId))
+  throw new HttpError(400,"Refresh extras only for the same flight and traveller search.");
+ if(selection.removeFlightExtras&&!previous)throw new HttpError(400,"A previous flight review is required to remove saved extras.");
+ let data;let chosen:Record<string,unknown>;let flight:Parameters<typeof publicSupplierReview>[2];const reviewedAt=Date.now();
  if(search.product==="FLIGHT"){
   const groups=exactAirportGroups(search.results.searchResult?.tripInfos,search.criteria);
   let priceIds:string[];try{priceIds=orderedFlightSelection(groups,selection.priceIds??[],search.criteria);}catch(e){throw new HttpError(400,e instanceof Error?e.message:"Invalid fare selection.");}
+  if(previous&&!isDeepStrictEqual(previous.selection.priceIds,priceIds))throw new HttpError(400,"Saved extras belong to a different flight selection.");
   if(!search.criteria.returnDate&&!search.criteria.legs?.length){
    const selectedTrips=Object.values(groups).flat().filter(trip=>{
     const prices=hotelObject(trip).totalPriceList;
@@ -107,13 +120,50 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  const amount=product==="HOTEL"?data.option?.pricing?.totalPrice:data.totalPriceInfo?.totalFareDetail?.fC?.TF??data.totalPriceInfo?.fc?.TF;
  const currency=product==="HOTEL"?data.option?.pricing?.currency:"INR";
  if(!data.bookingId||amount===undefined||currency!=="INR")throw new HttpError(502,"Supplier review is missing required booking or INR pricing fields.");
- const supplierMinor=minor(amount);
- const rule=await pricingRule(product,actor);const totalMinor=customerTotal(supplierMinor,rule);
+ const baseSupplierMinor=minor(amount);
+ let supplierMinor=baseSupplierMinor;
+ let extrasRefresh:"kept"|"removed"|undefined;
+ let savedFlightExtrasCount=0;
+ if(previous?.selection.checkoutExtras){
+  const saved=checkoutChoices.safeParse(previous.selection.checkoutExtras.choices);
+  if(!saved.success&&!selection.removeFlightExtras)throw new FlightExtrasRefreshError();
+  const choices=saved.success?saved.data:[];
+  if(selection.removeFlightExtras){
+   if(!saved.success||choices.length)extrasRefresh="removed";
+  }else if(choices.length){
+   const hasSeats=choices.some(choice=>choice.kind==="SEAT");
+   if(hasSeats&&data.conditions?.isa!==true)throw new FlightExtrasRefreshError();
+   const seats=hasSeats?await tripjack("FLIGHT","/fms/v1/seat",{bookingId:data.bookingId},false,"POST",signal):{};
+   signal?.throwIfAborted();
+   try{
+    const next=remapCheckoutChoices(previous.review,data,checkoutCatalogue(data,seats),choices,previous.selection.checkoutExtras.summary);
+    if(!next)throw new FlightExtrasRefreshError();
+    const selected=selectCheckoutExtras(data,seats,search.criteria,next);
+    supplierMinor+=selected.amountMinor;
+    chosen={...chosen,checkoutBaseSupplierMinor:baseSupplierMinor,checkoutExtras:{...selected,choices:next}};
+    extrasRefresh="kept";
+    savedFlightExtrasCount=next.length;
+   }catch{throw new FlightExtrasRefreshError();}
+  }
+ }
+ const rule=await pricingRule(product,actor);
+ const baseTotalMinor=customerTotal(baseSupplierMinor,rule),totalMinor=customerTotal(supplierMinor,rule);
  if(!Number.isSafeInteger(totalMinor)||totalMinor<=0)throw new HttpError(502,"Supplier returned invalid price.");
  const seconds=product==="FLIGHT"?Number(data.conditions?.st):90;
  if(!Number.isFinite(seconds)||seconds<30)throw new HttpError(409,"Supplier review session unavailable or too short. Review again.");
  const expiresAt=new Date(reviewedAt+Math.min(seconds,180)*1000);if(expiresAt.getTime()-Date.now()<30000)throw new HttpError(409,"Supplier review expired while loading the rules. Review again.");
  signal?.throwIfAborted();
- const id=randomUUID();await database().query("INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",[id,searchId,actor.userId,actor.companyId,product,chosen,data,data.bookingId,supplierMinor,totalMinor,expiresAt]);
- return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,review:publicSupplierReview(product,data,flight)};
+ const id=randomUUID();
+ const insert="INSERT INTO supplier_quotes(id,search_id,user_id,company_id,product,selection,review,supplier_booking_id,supplier_minor,total_minor,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)";
+ const values=[id,searchId,actor.userId,actor.companyId,product,chosen,data,data.bookingId,supplierMinor,totalMinor,expiresAt];
+ if(previous)await transaction(async tx=>{
+  const prior=await tx.query("SELECT selection FROM supplier_quotes WHERE id=$1 AND user_id=$2 AND company_id IS NOT DISTINCT FROM $3::uuid FOR UPDATE",[previous.id,actor.userId,actor.companyId]);
+  if(!isDeepStrictEqual(prior.rows[0]?.selection,previous.selection))throw new HttpError(409,"Flight extras changed while refreshing. Check the latest price again.");
+  const order=await tx.query("SELECT id FROM orders WHERE quote_id=$1 LIMIT 1",[previous.id]);
+  if(order.rowCount)throw new HttpError(409,"A payment order already exists for this flight. Check My trips before paying again.");
+  signal?.throwIfAborted();
+  await tx.query(insert,values);
+ });
+ else await database().query(insert,values);
+ return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,priceBreakdown:bookingPriceBreakdown(product,data,baseTotalMinor),...(extrasRefresh?{extrasRefresh,baseTotalMinor,savedFlightExtrasCount}:{}),review:publicSupplierReview(product,data,flight)};
 }

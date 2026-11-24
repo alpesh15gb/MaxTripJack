@@ -1,13 +1,15 @@
+import {supplierConfirmation} from './supplier-confirmation';
 import {getCompanyProfile} from './company-settings';
 import { reportInrDecimal } from './booking-report-csv';
 import { database } from '@/lib/db';
 import { unseal } from '@/lib/vault';
 import { HttpError } from '@/lib/http';
 import {voucherLayout,voucherDate} from './booking-document-layout';
-import {hotelObject,hotelText,hotelRoomInfo,hotelStringList} from './hotel-presentation';
+import {hotelObject,hotelText,hotelRoomInfo,hotelRateContent} from './hotel-presentation';
 import {policyText} from './public-supplier-policy';
 import {hotelCancellationTimeline} from './hotel-cancellation-timeline';
-import {isBookingConfirmed} from './booking-status';
+import {bookingStatusView,isBookingConfirmed,supplierTicketReferences} from './booking-status';
+import {bookingReceiptPrice} from './booking-price-breakdown';
 
 type Guest={roomIndex?:number;ti?:string;fN?:string;lN?:string;pt?:string};
 const guestName=(t:Guest)=>[t.ti,t.fN,t.lN].filter(Boolean).join(' ')||'Guest name not provided';
@@ -24,11 +26,15 @@ export async function bookingDocument(id:string){
  const travellers:Guest[]=guests.travellers??[];
  const quote=(await database().query('SELECT review,service_payload FROM supplier_quotes WHERE id=$1',[order.quote_id])).rows[0];
  const option=hotelObject(hotelObject(quote?.review).option);
+ const rate=hotelRateContent(option.inclusions,option.bookingNotes);
+ const {passengers}=supplierConfirmation(supplier);
+ const {documentReady}=bookingStatusView({product:order.product,status:order.status,serviceKind:order.service_kind,totalMinor:String(order.total_minor),paymentStatus:null,passengers});
  const title=cancelled?'Cancelled booking record':order.service_kind==='ANCILLARY'?'Flight extras confirmation':order.service_kind==='REISSUE'?'Replacement flight confirmation':hotel?'Hotel confirmation voucher':'Booking confirmation';
  const {doc,paragraph:p,section,facts,row,finish}=voucherLayout(order.reference,title,order.created_at,await getCompanyProfile());
  const chunks:Buffer[]=[];
  const done=new Promise<Buffer>((resolve,reject)=>{doc.on('data',chunk=>chunks.push(Buffer.from(chunk)));doc.on('end',()=>resolve(Buffer.concat(chunks)));doc.on('error',reject);});
- p(cancelled?'BOOKING CANCELLED':order.status==='TICKETED'?'FLIGHT TICKETED':'BOOKING CONFIRMED',{bold:true,size:10,color:cancelled?'#a33232':'#006756'});
+ p(cancelled?'BOOKING CANCELLED':order.status==='TICKETED'&&documentReady?'FLIGHT TICKETED':'BOOKING CONFIRMED',{bold:true,size:10,color:cancelled?'#a33232':'#006756'});
+ if(!cancelled&&!documentReady)p('The airline has confirmed the booking. A ticket number has not been supplied yet.',{size:9});
  if(cancelled)p('This booking is cancelled. This record is not valid for travel and does not confirm that a refund has completed.',{bold:true});
  const criteria=order.itinerary_summary??{};
  p(hotel?hotelText(supplier.itemInfos?.HOTEL?.hInfo?.name)||'Your hotel stay':order.service_kind==='ANCILLARY'?'Your flight extras':'Your flight itinerary',{bold:true,size:21});
@@ -52,10 +58,11 @@ export async function bookingDocument(id:string){
   const rooms=hotelRoomInfo(option.roomInfo);
   if(rooms.length)row('Booked room category',rooms.map(r=>r.name).join(' / '));
   if(hotelText(option.mealBasis))row('Meal plan',hotelText(option.mealBasis)!);
-  const inclusions=hotelStringList(option.inclusions);
+  const inclusions=rate.inclusions;
   if(inclusions.length){section('Included with your rate');for(const inclusion of inclusions)p(inclusion);}
  }
  section('Booking total');
+ for(const [label, amount] of bookingReceiptPrice(order.product,quote?.review,order.total_minor,order.promo_snapshot,Boolean(criteria.checkoutExtras?.length)))row(label,`INR ${amount<0?'-':''}${reportInrDecimal(String(Math.abs(amount)))}`);
  p(`Booking amount: INR ${reportInrDecimal(String(order.total_minor))}`,{bold:true,size:17});
  p(hotel?'Total recorded for this booking. Any charges payable directly at the property or for additional services are governed by the booked rate and supplier policies.':'Total recorded for this booking. Additional services and changes are subject to airline and supplier policies.',{size:9,color:'#577076'});
  if(order.service_kind){
@@ -64,9 +71,7 @@ export async function bookingDocument(id:string){
   for(const extra of service?.summary??[])p(`${extra.segment} | ${extra.passenger} | ${extra.kind}: ${extra.label}`);
  }
  if(criteria.checkoutExtras?.length){section('Flight extras included');for(const extra of criteria.checkoutExtras){const guest=travellers[extra.travellerIndex];p(`${extra.segment} | ${guest?guestName(guest):`Traveller ${extra.travellerIndex+1}`} | ${extra.kind}: ${extra.label}`);}}
- const identifiers=new Set<string>();
- function visit(value:unknown){if(!value||typeof value!=='object')return;if(Array.isArray(value)){value.forEach(visit);return;}const obj=value as Record<string,unknown>;for(const field of ['pnrDetails','ticketNumberDetails']){const detail=obj[field];if(detail&&typeof detail==='object')for(const v of Object.values(detail))if(typeof v==='string')identifiers.add(`${field==='pnrDetails'?'PNR':'Ticket'}: ${v}`);}Object.values(obj).forEach(visit);}
- visit(supplier);
+ const identifiers=new Set(passengers.flatMap(passenger=>[...passenger.pnrs.map(pnr=>`PNR: ${pnr}`),...supplierTicketReferences(passenger.tickets).map(ticket=>`Ticket: ${ticket}`)]));
  if(identifiers.size){section('Supplier confirmation');identifiers.forEach(v=>p(v));}
  if(hotel){
   section('Cancellation policy');
@@ -78,7 +83,7 @@ export async function bookingDocument(id:string){
   const notes=[...new Set([policyText(option.cancellation),policyText(raw.policyText),policyText(raw.policy),policyText(raw.cancellation)].filter((v):v is string=>Boolean(v)))];
   for(const note of notes)p(note,{size:9});
   if(!timeline&&!notes.length)p('Detailed cancellation terms are not available in this booking record. Contact MaxTravel before requesting cancellation; a free cancellation entitlement is not implied.',{size:9});
-  const bookingNotes=policyText(option.bookingNotes);
+  const bookingNotes=rate.bookingNotes;
   if(bookingNotes){section('Hotel & rate conditions');p(bookingNotes,{size:9});}
  }
  const replacements=await database().query("SELECT reference,status FROM orders WHERE parent_order_id=$1 AND service_kind='REISSUE'",[id]);

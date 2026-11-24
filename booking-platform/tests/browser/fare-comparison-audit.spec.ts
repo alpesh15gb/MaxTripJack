@@ -60,7 +60,7 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
  const card=page.locator('.flight-shopping-list .live-flight-card'),disclosure=card.locator('.fare-comparison-trigger');
  await disclosure.press('Enter');await expect(card.getByRole('heading',{name:'Flight details and fare options'})).toBeFocused();
  const track=card.locator('.fare-decision-grid'),offers=track.locator('.fare-option');await expect(offers).toHaveCount(15);
- await expect(offers.first().getByRole('heading')).toHaveText('Corporate fare · Option 1');await expect(offers.last().getByRole('heading')).toHaveText('Corporate fare · Option 15');
+ await expect(offers.first().getByRole('heading')).toHaveText('Corporate fare');await expect(offers.last().getByRole('heading')).toHaveText('Corporate fare');
  await page.evaluate(()=>document.fonts.ready);
  const geometry=await track.evaluate(node=>({width:node.clientWidth,content:node.scrollWidth,overflow:getComputedStyle(node).overflowX,cards:Array.from(node.querySelectorAll('.fare-option')).map(offer=>{const box=offer.getBoundingClientRect();return {x:box.x,y:box.y,width:box.width,rows:Array.from(offer.querySelectorAll('.fare-decision-dimensions > div')).map(row=>row.getBoundingClientRect().y),action:offer.querySelector('.fare-option-action button')!.getBoundingClientRect().y};})}));
  expect(geometry.content).toBeGreaterThan(geometry.width);expect(['auto','scroll']).toContain(geometry.overflow);
@@ -72,7 +72,7 @@ for(const width of [null,320])test(`15 fare cards stay aligned and every exact o
  const previous=card.getByRole('button',{name:'Previous fare options',exact:true}),next=card.getByRole('button',{name:'Next fare options',exact:true});
  await expect(previous).toBeVisible();await expect(next).toBeVisible();
  const jump=card.getByRole('combobox',{name:'Jump to fare'});
- await expect(jump.locator('option').last()).toHaveText('Corporate fare · Option 15 · ₹6,400');
+ await expect(jump.locator('option').last()).toHaveText('Corporate fare · ₹6,400');
  await jump.selectOption('14');
  await expect(offers.last().getByRole('heading')).toBeFocused();
  await expect(offers.last().getByRole('heading')).toBeInViewport({ratio:.95});
@@ -161,14 +161,29 @@ test('a five-digit fare stays clear of its action on narrow screens',async({page
  if(info.project.name.includes('mobile'))await page.setViewportSize({width:320,height:750});
  const journey=flight();
  journey.totalPriceList[0].customerEstimateMinor=1_610_213;
+ journey.sI[0].fD.aI={code:'AI',name:'Air India'};
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[journey]}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
  const summary=page.locator('#booking-results .live-flight-card .fare-comparison-trigger');
  const price=summary.locator('.flight-price-amount'), action=summary.locator('.choose-fare-label');
  await expect(price).toHaveText('₹16,102.13');
- const priceBox=await price.boundingBox(), actionBox=await action.boundingBox();
- expect(priceBox&&actionBox&&priceBox.x+priceBox.width<=actionBox.x).toBe(true);
- await expectNoHorizontalOverflow(page);
+ const logo=page.locator('#booking-results .live-flight-card .airline-logo');
+ await expect(logo).toHaveCSS('background-color','rgb(120, 22, 48)');
+ await expect.poll(()=>logo.locator('img').evaluate(image=>(image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+ for(const width of (info.project.name.includes('mobile')?[320,390]:[1440,1280,1101,1024,780])){
+  await page.setViewportSize({width,height:850});
+  await expect(action).toBeVisible();
+  const geometry=await summary.evaluate(button=>{
+   const price=button.querySelector('.flight-price-amount')!;
+   const range=new Range();range.selectNodeContents(price);
+   const bounds=button.getBoundingClientRect();
+   const action=button.querySelector('.choose-fare-label')!.getBoundingClientRect();
+   return [...range.getClientRects()].every(rect=>rect.left>=bounds.left-1&&rect.right<=bounds.right+1&&
+    (rect.right<=action.left+1||rect.left>=action.right-1||rect.bottom<=action.top+1||rect.top>=action.bottom-1));
+  });
+  expect(geometry,`fare text and action fit at ${width}px`).toBe(true);
+  await expectNoHorizontalOverflow(page);
+ }
  await summary.click();
  await expect(page.getByRole('button',{name:'Check fare & continue',exact:true})).toBeVisible();
 });

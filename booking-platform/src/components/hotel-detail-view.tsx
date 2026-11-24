@@ -9,6 +9,7 @@ import type {HotelMetadataStatus} from './hotel-property-media';
 import type {AvailableHotelOption} from './hotel-room-view';
 import HotelCancellationTimeline from './hotel-cancellation-timeline';
 import {money} from './booking-flight-card';
+import {bookingPriceLines} from '@/lib/booking-price-breakdown';
 import HotelRoomFilters from './hotel-room-filters';
 import {StitchSymbol} from './stitch-symbol';
 import {TravelIcon} from './travel-icon';
@@ -172,7 +173,7 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
         <button type="button" className="primary" aria-describedby={`${groupId} ${planId} ${planId}-terms ${planId}-price`} disabled={busy||total===null} onClick={()=>onReview(option.optionId)}>{checking?'Checking your room…':'Continue with room'}</button>
         {checking&&<p ref={pendingRateStatus} role="status">Checking your selected room rate. Nothing is reserved yet.</p>}
        </div>
-       <details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary><HotelCancellationTimeline value={option.cancellation}/>{option.bookingNotes&&<section><h5>Property instructions</h5><p className="stay-booking-notes">{option.bookingNotes}</p></section>}</details>
+       <details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary>{option.priceBreakdown&&<section><h5>Estimated price breakdown</h5><dl className="stay-preview-facts">{bookingPriceLines('HOTEL',option.priceBreakdown).map(([label,amount])=><div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl></section>}<HotelCancellationTimeline value={option.cancellation}/>{option.bookingNotes&&<section><h5>Property instructions</h5><p className="stay-booking-notes">{option.bookingNotes}</p></section>}</details>
       </article>;
      })}</div>
     </section>;

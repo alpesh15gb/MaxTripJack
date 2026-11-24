@@ -25,5 +25,5 @@ export async function generateMetadata(props: Props) {
 
 export default async function HotelDirectoryPage(props: Props) {
   const { page, query, result } = await directoryRequest(props);
-  return <div className="catalogue-site"><TravelHeader active="hotels" hotelHref="/hotels" />{result.available ? <><HotelDirectoryContent hotels={result.hotels} total={result.total} page={page} query={query} /><SeoJsonLd id="hotel-directory-schema" data={hotelDirectoryStructuredData(result.hotels, page)} /></> : <HotelCatalogueUnavailable />}<TravelFooter /></div>;
+  return <div className="catalogue-site"><TravelHeader active="hotels" hotelHref="/hotels" />{result.available ? <><HotelDirectoryContent hotels={result.hotels} total={result.total} page={page} query={query} /><SeoJsonLd id="hotel-directory-schema" data={hotelDirectoryStructuredData(result.hotels, page)} /></> : <HotelCatalogueUnavailable query={query}/>}<TravelFooter /></div>;
 }

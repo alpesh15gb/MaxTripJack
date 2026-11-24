@@ -2,7 +2,7 @@ import type {Page} from '@playwright/test';
 import {reviewedTerms} from '../../src/lib/reviewed-terms';
 import {publicSupplierPolicy} from '../../src/lib/public-supplier-policy';
 import {hotelRoomInfo,hotelStringList} from '../../src/lib/hotel-presentation';
-import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,bookingId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
+import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,quoteId,bookingId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
 
 const renewedId='44444444-4444-4444-8444-444444444444';
 const pay=(page:Page)=>form(page).getByRole('button',{name:/^Agree & pay /});
@@ -125,7 +125,7 @@ test('reordered reviewed outbound/return journeys do not invent changed baggage 
  provider.quote=flightQuote([back,out],renewedId);await refresh(page);
  await expect(disclosure(page).getByRole('status')).toContainText('Total unchanged. No differences detected in the comparable details.');
  await expect(disclosure(page).locator(':scope > dl')).toHaveCount(0);await expect(disclosure(page)).not.toContainText('Previously:');
- await retainedTraveller(page);expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,priceIds:['onward-standard','return-standard']},{searchId,priceIds:['onward-standard','return-standard']}]);
+ await retainedTraveller(page);expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,priceIds:['onward-standard','return-standard']},{searchId,priceIds:['onward-standard','return-standard'],previousQuoteId:quoteId}]);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);await expectNoHorizontalOverflow(page);await capture(page,testInfo,'reordered-journeys-no-false-changes');
 });
 
@@ -221,22 +221,58 @@ test('typed optional documents survive becoming required and becoming optional a
  await retainedTraveller(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-for(const applied of [false,true])test(`expired checkout resets ${applied?'applied':'unapplied'} extras visibly without deadlock or payment`,async({page,provider})=>{
+for(const outcome of ['draft','kept','unavailable'] as const)test(`fare refresh handles ${outcome} flight extras before payment`,async({page,provider})=>{
  const started=Date.now();await page.clock.install({time:started});
  provider.quote=flightQuote([fare()]);provider.quote.expiresAt=new Date(started+60_000).toISOString();
- provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'extra-segment',tripIndex:0,label:'BOM → DEL',options:[{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:50000}]}],travellerTypes:['ADULT'],choices:[]}};
- provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:704000}};
- await openFlight(page);await fillTraveller(page);await page.locator('.checkout-optional-extras > summary').click();await page.getByRole('button',{name:'Choose flight extras',exact:true}).click();
- await form(page).getByRole('combobox',{name:'Meal',exact:true}).selectOption('MEAL1');
- if(applied){await page.getByRole('button',{name:'Apply extras and update total',exact:true}).click();await expect(page.getByRole('button',{name:'Extras applied',exact:true})).toBeVisible();await reviewPayment(page);}
- provider.quote=flightQuote([fare()],renewedId);await page.clock.fastForward(120_000);
+ const seat={kind:'SEAT',code:'10A',label:'Seat 10A',seatNumber:'10A',amountMinor:72450};
+ const saved={segmentId:'extra-segment',travellerIndex:0,kind:'SEAT',code:seat.code};
+ const catalogue={segments:[{id:'extra-segment',tripIndex:0,label:'BOM → DEL',options:[seat,{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:50000}]}],travellerTypes:['ADULT'],choices:[] as typeof saved[]};
+ provider.overrides['GET /api/travel/checkout-extras']={body:catalogue};
+ provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:726450}};
+ await openFlight(page);await fillTraveller(page);
+ await page.locator('.checkout-optional-extras > summary').click();
+ await page.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+ if(outcome==='draft')await form(page).getByRole('combobox',{name:'Meal',exact:true}).selectOption('MEAL1');
+ else {
+  await page.getByRole('button',{name:'Choose seats',exact:true}).click();
+  const picker=page.getByRole('dialog',{name:'Choose your seats'});
+  await picker.getByRole('button',{name:'Seat 10A · +₹724.50',exact:true}).click();
+  await picker.getByRole('button',{name:'Confirm seats',exact:true}).click();
+  await expect(pay(page)).toContainText('₹7,264.50');
+ }
+ const selectionKey=new URL(page.url()).searchParams.get('selectionKey');
+ provider.quote=flightQuote([fare()],renewedId);
+ if(outcome==='kept') {
+  Object.assign(provider.quote,{extrasRefresh:'kept',baseTotalMinor:654000,savedFlightExtrasCount:1,totalMinor:726450});
+  catalogue.choices=[saved];
+ }
+ if(outcome==='unavailable')provider.overrides['POST /api/travel/review']={status:409,body:{code:'FLIGHT_EXTRAS_REFRESH',error:'One or more saved flight extras could not be verified.'}};
+ await page.clock.fastForward(120_000);
  await form(page).getByRole('button',{name:'Check latest price & continue',exact:true}).click();
- await expect(form(page).getByLabel('First name',{exact:true})).toBeVisible();
- await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
- await expect(form(page).locator('.booking-traveller-fields').getByRole('status')).toContainText('Flight extras were reset');
- await expect(page.getByRole('button',{name:'Choose flight extras',exact:true})).toBeEnabled();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- await reviewPayment(page);await expect(pay(page)).toHaveText('Agree & pay ₹6,540');
+ if(outcome==='unavailable'){
+  const remove=page.getByRole('button',{name:'Review price without saved extras',exact:true});
+  await expect(remove).toBeVisible();
+  await expect(page.locator('#booking-summary .booking-total')).toContainText('₹7,264.50');
+  await expect(pay(page)).toHaveCount(0);
+  await expect(form(page).getByRole('button',{name:'Check latest price & continue',exact:true})).toBeVisible();
+  Object.assign(provider.quote,{extrasRefresh:'removed',baseTotalMinor:654000,savedFlightExtrasCount:0});
+  delete provider.overrides['POST /api/travel/review'];
+  await remove.click();
+  await expect(disclosure(page)).toContainText('Saved flight extras were removed at your request.');
+  expect(provider.requests('/api/travel/review').at(-1)?.body).toMatchObject({previousQuoteId:quoteId,removeFlightExtras:true});
+ }
+ await reviewPayment(page);await retainedTraveller(page);
+ if(outcome==='draft')await expect(form(page).locator('.booking-traveller-fields').getByRole('status')).toContainText('Unapplied changes to flight extras were cleared');
+ if(outcome==='kept'){
+  await expect(disclosure(page)).toContainText('Saved flight extras are included in the refreshed total.');
+  expect(new URL(page.url()).searchParams.get('selectionKey')).toBe(selectionKey);
+  await expect(pay(page)).toHaveText('Agree & pay ₹7,264.50');
+  await expect(page.locator('#booking-summary')).toContainText('₹724.50');
+  await page.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Change seats',exact:true})).toBeVisible();
+ }else await expect(pay(page)).toHaveText('Agree & pay ₹6,540');
+ expect(provider.requests('/api/travel/review')[1].body).toMatchObject({previousQuoteId:quoteId});
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 

@@ -31,7 +31,7 @@ async function harness() {
     'next/navigation': 'export function unstable_rethrow(){}',
     '@/lib/guest-shopping': `${stateCode} export async function shoppingAccess(request,scope){if(scope!=='detail')throw Error('Wrong scope');state.accessCalls++;return {actor:state.actor};}`,
     './request-limit': `${stateCode} export async function requestLimit(user,scope){state.limits.push(scope);}`,
-    './db': `${stateCode} export function database(){return {async query(sql,args){state.queries.push({sql,args});
+    './db': `${stateCode} export function transaction(){throw Error("Unexpected quote refresh transaction");} export function database(){return {async query(sql,args){state.queries.push({sql,args});
       if(sql.includes('FROM supplier_searches')){state.reads++;return {rows:args[0]===${JSON.stringify(searchId)}&&args[1]===state.owner.userId&&args[2]===state.owner.companyId?[state.search]:[]};}
       if(sql.includes('FROM pricing_rules'))return {rows:[{markup_minor:100,markup_basis_points:100,service_fee_minor:50}]};
       throw Error('Unexpected DB operation');

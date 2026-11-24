@@ -42,16 +42,23 @@ test('first roundtrip review explains the whole-party price increase and display
 });
 
 test('hotel bundle comparison stays inclusive and final review identifies each guests submitted room',async({page,provider},info)=>{
- const option={optionId:'two-room-bundle',roomInfo:[{id:'double',name:'Garden Double'},{id:'twin',name:'Garden Twin'}],mealBasis:'BREAKFAST',pricing:{totalPrice:13000,currency:'INR'}};
+ const option={optionId:'two-room-bundle',roomInfo:[{id:'double',name:'Garden Double'},{id:'twin',name:'Garden Twin'}],mealBasis:'BREAKFAST',pricing:{totalPrice:13000,currency:'INR'},priceBreakdown:{baseMinor:1100000,taxMinor:200000,managementFeeMinor:0,managementTaxMinor:0}};
  const rooms=[{adults:1,children:0,childAge:[]},{adults:1,children:0,childAge:[]}];
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Price Context Stay',customerEstimateMinor:900000}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[option]}};
- provider.quote=reviewedQuote({product:'HOTEL',hotelName:'Price Context Stay',totalMinor:1200000,summary:{checkIn:departure,checkOut:returning,adults:2,rooms},review:{option}});
+ provider.quote=reviewedQuote({product:'HOTEL',hotelName:'Price Context Stay',totalMinor:1200000,summary:{checkIn:departure,checkOut:returning,adults:2,rooms},review:{option},priceBreakdown:{baseMinor:1020000,taxMinor:180000,managementFeeMinor:0,managementTaxMinor:0}});
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001',city:'Goa',date:departure,end:returning,adults:'2',rooms:JSON.stringify(rooms.map(({adults,childAge})=>({adults,childAge}))),autoSearch:'1'}));
- await page.getByRole('button',{name:'Choose room',exact:true}).click();await page.getByRole('button',{name:'Continue with room',exact:true}).click();
+ await page.getByRole('button',{name:'Choose room',exact:true}).click();
+ await page.getByText('Full cancellation policy & room details',{exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Estimated price breakdown'})).toBeVisible();
+ await page.getByRole('button',{name:'Continue with room',exact:true}).click();
  await expect(notice(page)).toContainText('₹13,000');await expect(notice(page)).toContainText('₹12,000');
  await expect(notice(page)).not.toContainText('₹9,000');await expect(notice(page)).not.toContainText('₹26,000');
  await expect(notice(page)).toContainText('Full stay · all selected rooms and guests');
+ await expect(notice(page)).toContainText('Room rate -₹800 · Taxes and fees -₹200');
+ await expect(page.locator('#booking-summary')).toContainText('Supplier taxes and fees');
+ await expect(page.getByRole('button',{name:'Open Max AI travel assistant',exact:true})).toBeHidden();
+ await expect(page.getByRole('button',{name:'Ask Max AI about this booking',exact:true})).toBeVisible();
  await fillGuests(page,['Aarav','Isha']);
  const summary=page.locator('.final-traveller-summary');
  await expect(summary.getByRole('listitem').first()).toHaveCSS('display','grid');

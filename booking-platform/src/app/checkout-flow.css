@@ -294,7 +294,7 @@ body .booking-workflow.journey-flow .booking-review.is-inline-checkout .checkout
   body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-details-column .traveller-identity > label:first-child { flex: 0 0 auto; width: min(100%, calc(7em + 24px)); }
 }
 @media (min-width: 1001px) {
-  body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-review-column[data-fits-viewport] { position: sticky; top: 24px; }
+  body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-review-column[data-fits-viewport] { position: sticky; top: var(--booking-header-offset, 96px); }
 }
 @media (max-width: 700px) {
   body .booking-workflow.journey-flow .booking-review.is-inline-checkout { padding: 16px; }

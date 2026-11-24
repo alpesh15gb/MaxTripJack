@@ -1,5 +1,7 @@
 .max-ai-launcher { position:fixed; z-index:45; right:max(24px,env(safe-area-inset-right)); bottom:calc(24px + env(safe-area-inset-bottom) + var(--max-ai-lift,0px)); display:flex; align-items:center; gap:10px; min-height:54px; padding:9px 17px 9px 10px; border:1px solid #ffffff66; border-radius:18px; color:white; background:var(--brand-ink) var(--brand-night-sheen, none); box-shadow:0 8px 28px #10263d38; text-align:left; cursor:pointer; font:inherit; }
-.max-ai-launcher[hidden] { display:none; }
+.max-ai-launcher[hidden],
+body:has(#booking-review) :is(.max-ai-launcher,.max-ai-mobile-clearance) { display:none; }
+.max-ai-inline-action { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; }
 .max-ai-mobile-clearance { display:none; }
 .max-ai-footer-action { display:none; }
 .max-ai-launcher-icon { width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#d6e3ff; background:#ffffff10; }
@@ -33,7 +35,7 @@ body .max-ai-dialog[open] { display:flex; flex-direction:column; }
 .max-ai-conversation-tools { display:flex; justify-content:space-between; align-items:center; flex-shrink:0; gap:12px; padding:7px 18px; border-bottom:1px solid var(--brand-line); }
 .max-ai-conversation-tools > span { font-size:11px; color:var(--brand-muted); }
 .max-ai-conversation-tools button { display:flex; align-items:center; gap:5px; min-height:36px; padding:7px 3px; border:0; background:transparent; color:var(--brand-action); font-size:12px; font-weight:600; cursor:pointer; }
-.max-ai-messages { flex:1; min-height:0; padding:24px 18px 20px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--brand-line) transparent; scroll-padding-top:16px; }
+.max-ai-messages { flex:1; min-height:0; padding:24px 18px 20px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--brand-line) transparent; scroll-padding-top:16px; scroll-padding-bottom:18px; }
 .max-ai-welcome { padding:3px 3px 0; }
 .max-ai-welcome-mark { display:flex; align-items:center; gap:8px; height:52px; color:var(--brand-action); }
 .max-ai-welcome-mark > svg { padding:8px; width:48px; height:48px; border:1px solid var(--brand-border); border-radius:17px; color:var(--brand-action); background:radial-gradient(circle at 80% 20%,var(--brand-sand),var(--brand-ivory)); }
@@ -80,7 +82,7 @@ body .max-ai-dialog[open] { display:flex; flex-direction:column; }
 .max-ai-error > p { margin:0; color:#7b5c2b; font-size:13px; line-height:1.65; }
 .max-ai-error > button { min-height:44px; margin-top:8px; padding:7px 10px; border:1px solid #dbc69f; border-radius:8px; background:#fff; color:#715126; font-size:12px; font-weight:600; cursor:pointer; }
 .max-ai-error-links { display:flex; flex-wrap:wrap; gap:4px 13px; margin-top:8px; }.max-ai-error-links a { display:flex; align-items:center; min-height:36px; color:#70532c; font-size:12px; text-decoration:underline; text-underline-offset:3px; }
-.max-ai-composer { flex-shrink:0; padding:13px 16px 12px; margin:0; border-top:1px solid var(--brand-border); background:var(--brand-ivory) var(--brand-paper-sheen, none); }
+.max-ai-composer { position:static; flex:0 0 auto; padding:13px 16px 12px; margin:0; border-top:1px solid var(--brand-border); background:var(--brand-ivory) var(--brand-paper-sheen, none); }
 .max-ai-input-row { display:flex; align-items:flex-end; gap:8px; padding:5px; border:1px solid var(--brand-border); border-radius:14px; background:#fff; box-shadow:0 2px 9px #10263d04; }
 .max-ai-input-row:focus-within { border-color:var(--brand-action); box-shadow:0 0 0 2px var(--brand-sand); }
 .max-ai-input-row textarea { display:block; flex:1; min-width:0; min-height:58px; max-height:132px; padding:9px 8px; margin:0; border:0; border-radius:9px; resize:vertical; background:transparent; color:var(--brand-ink); font-size:14px; line-height:1.5; }
@@ -104,7 +106,7 @@ body .max-ai-dialog[open] { display:flex; flex-direction:column; }
  }
 }
 @media(max-width:600px) {
- body .max-ai-dialog { inset:0; width:100%; max-width:100%; height:100dvh; max-height:100dvh; margin:0; border:0; border-radius:0; }
+ body .max-ai-dialog { inset:0; width:100%; max-width:100%; height:var(--max-ai-viewport-height,100dvh); max-height:var(--max-ai-viewport-height,100dvh); margin:0; border:0; border-radius:0; }
  .max-ai-header { padding:14px 15px; }.max-ai-conversation-tools { padding-inline:16px; }
  .max-ai-messages { padding:22px 16px 18px; }.max-ai-message--user { margin-left:25px; }
  .max-ai-welcome h3 { font-size:36px; }.max-ai-starters { gap:8px; }.max-ai-starters button { min-height:64px; padding:12px 9px; gap:7px; }

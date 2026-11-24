@@ -1,3 +1,6 @@
+export const MAX_AI_SERVER_TIMEOUT_MS = 28_000;
+export const MAX_AI_BROWSER_TIMEOUT_MS = 30_000;
+
 import type {EnquiryDraft} from './travel-enquiry-contract';
 /** Public, browser-safe contract. Card actions are constructed by application tools, never the model. */
 export type MaxAiAction = {label: string; href: string};
@@ -24,7 +27,7 @@ export type MaxAiResponse = {
 const pages = new Set([
   '/', '/book', '/packages', '/my-trips', '/account', '/travellers', '/contact', '/customer-support',
   '/services', '/office', '/about', '/pricing-transparency', '/cancellations-payment-policy',
-  '/privacy-policy', '/terms-and-conditions', '/flight-booking-guide', '/visa-guide',
+  '/privacy-policy', '/terms-of-use', '/flight-booking-guide', '/visa-guide',
   '/passport-renewal-guide', '/travel-insurance-guide', '/holiday-packages-guide', '/cruise-holidays-guide',
   '/operations', '/operations/settings', '/operations/promos', '/operations/reports', '/operations/visibility',
 ]);

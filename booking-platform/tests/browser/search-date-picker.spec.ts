@@ -28,6 +28,19 @@ test('search pickers use mobile sheets and the desktop calendar blocks the backg
  }
 });
 
+test('adding a return opens the date picker without silently selecting a day',async({page})=>{
+ await page.goto('/');
+ await page.locator('.stitch-add-return').click();
+ const calendar=page.getByRole('dialog',{name:'Choose return',exact:true});
+ await expect(calendar).toBeVisible();
+ await expect(page.locator('input[type="hidden"][name="end"]')).toHaveValue('');
+ const date=calendar.locator('[role="gridcell"][tabindex="0"]');
+ const day=await date.getAttribute('data-date');
+ await date.press('Enter');
+ await expect(calendar).toBeHidden();
+ await expect(page.locator('input[type="hidden"][name="end"]')).toHaveValue(day!);
+});
+
 test('date picker Escape closes from month navigation and restores the field',async({page,provider},testInfo)=>{
  await page.goto('/');
  const field=page.getByRole('button',{name:/^Departure /});await field.click();

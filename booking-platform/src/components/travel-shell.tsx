@@ -22,7 +22,7 @@ export function TravelHeader({active, onProductChange, hotelHref = '/book?produc
   return <ConciergeHeader key={path} {...props} active={active ?? guide} onProductChange={onProductChange} hotelHref={hotelHref}
     mobileTitle={mobileTitle ?? (trips ? 'My Trips' : tripDetails ? 'Booking details' : path === '/book' ? 'Find your trip' : undefined)}
     dock={home || trips} isHome={home}
-    showTesting={path !== '/book'}/>;
+    showTesting/>;
 }
 
 function FooterPolicyLinks(){
@@ -64,7 +64,7 @@ export function TravelFooter({contactEmail}: {contactEmail?: string} = {}) {
     <div>
       <h2>Customer care &amp; legal</h2>
       <a className="concierge-footer-call" href={company.phoneHref}><strong>Call the travel desk</strong><span>{company.phone}</span></a>
-      <span>{company.hours.display}</span>
+      <span className="concierge-footer-hours">{company.hours.display}</span>
       <Link href="/customer-support">Booking support</Link>
       <a href={contactEmail ? `mailto:${contactEmail}` : company.emailHref}>Email us</a>
       <Link href="/contact?topic=partner#office-enquiry">Become a partner</Link>

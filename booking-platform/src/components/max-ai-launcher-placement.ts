@@ -1,6 +1,6 @@
 type Rectangle = { left: number; right: number; top: number; bottom: number };
 const GAP = 10;
-const CONTROL_SELECTOR = 'a,button:not(.stay-photo-tile),input,select,textarea,summary,.mobile-booking-action,.stay-mobile-action,.mobile-nav';
+const CONTROL_SELECTOR = 'a,button:not(.stay-photo-tile),input,select,textarea,summary,.mobile-booking-action,.stay-mobile-action,.mobile-nav,.concierge-footer-hours';
 const BAR_SELECTOR = '.mobile-booking-action,.stay-mobile-action,.mobile-nav';
 
 /** Always calculate from the resting position, so moving away cannot cause oscillation. */

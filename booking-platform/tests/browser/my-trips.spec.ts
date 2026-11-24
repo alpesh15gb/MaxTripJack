@@ -28,6 +28,17 @@ test('a verified account can find a flight by airline PNR', async ({page, provid
   expect(provider.requests('/api/bookings/lookup')[0].body).toEqual({pnr:'K5LQ72'});
 });
 
+test('a signed-out guest can look up a booking from the same browser by reference',async({page,provider})=>{
+  provider.session=null;
+  provider.overrides['POST /api/bookings/lookup']={body:{matches:[{id:ids.ticket,reference:'MT-1234ABCD'}],incomplete:false}};
+  await page.goto('/my-trips?lookup=flight');
+  await expect(page.getByRole('link',{name:'Sign in with the email on your booking'})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
+  await page.getByLabel('Booking reference or airline PNR').fill('MT-1234ABCD');
+  await page.getByRole('button',{name:'Find booking',exact:true}).click();
+  await expect(page.getByRole('link',{name:'Open booking MT-1234ABCD'})).toHaveAttribute('href',`/my-trips/${ids.ticket}`);
+  expect(provider.requests('/api/bookings/lookup')[0].body).toEqual({reference:'MT-1234ABCD'});
+});
+
 test('My trips shows truthful booking states and keeps supplier confirmation within each record', async ({ page, provider }, testInfo) => {
   const photo = 'https://pix8.agoda.net/hotelImages/123/stay.jpg';
   const hotelBooking = booking(ids.hotel, 'MX-SYNTHETIC-HOTEL', 'CONFIRMED', 'HOTEL', 0);

@@ -63,9 +63,10 @@ test("request indexing requires canonical origin, public path and no query varia
   assert.equal(requestMayBeIndexed(new URL(`${SITE_ORIGIN}/flights`), {}), false);
 });
 
-test("sitemap contains 24 editorial pages and four imported policies, with no query/private URL", () => {
-  assert.equal(PUBLIC_SEO_PAGES.length, 35);
-  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 35);
+test("sitemap contains the canonical public pages with no legacy terms, query or private URLs", () => {
+  assert.equal(PUBLIC_SEO_PAGES.length, 34);
+  assert.equal(new Set(PUBLIC_SEO_PAGES.map(page => page.path)).size, 34);
+  assert.equal(isPublicSeoPath('/terms-and-conditions'),false);
   const sitemap = buildSitemap(approved);
   assert.deepEqual(sitemap.map(entry => entry.url), PUBLIC_SEO_PAGES.map(page => canonicalUrl(page.path)));
   for (const entry of sitemap) {
@@ -138,7 +139,7 @@ test("owner-confirmed office is Secunderabad, India, 09:00–21:00 all seven day
   assert.equal(businessProfile.address.postalCode, "500003");
   assert.equal(businessProfile.address.addressCountry, "IN");
   assert.equal(businessProfile.phoneE164, "+917095018018");
-  assert.equal(businessProfile.email, "max@maxtravel.us");
+  assert.equal(businessProfile.email, "max@maxtravel.in");
   assert.equal(businessProfile.hours.timezone, "Asia/Kolkata");
   assert.equal(businessProfile.hours.opens, "09:00");
   assert.equal(businessProfile.hours.closes, "21:00");

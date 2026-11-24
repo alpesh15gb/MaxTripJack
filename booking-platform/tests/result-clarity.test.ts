@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {travelDateLabel,travelDateTimeLabel,travelTimeLabel} from '../src/lib/travel-date';
 import {durationLabel,journeyMinutes,type FlightSegment} from '../src/lib/booking-presentation';
 import {hotelAmenities} from '../src/lib/hotel-results';
-import {hotelPhotoCaption,hotelPropertyDetails} from '../src/lib/hotel-presentation';
+import {hotelPhotoCaption,hotelPropertyDetails,hotelDescription} from '../src/lib/hotel-presentation';
 import {hotelCancellationTimeline} from '../src/lib/hotel-cancellation-timeline';
 
 const first:FlightSegment={dt:'2026-10-31T23:00:00+05:30',at:'2026-11-01T01:00:00+05:30',fD:{aI:{name:'Test airline'},fN:'1'},da:{code:'BOM'},aa:{code:'DEL'}};
@@ -86,4 +86,16 @@ test('civil travel labels are independent of the viewer timezone',()=>{
    assert.equal(travelDateLabel('2026-11-08T01:30:00-10:00'),'8 Nov 2026');
   }
  } finally {if(original===undefined)delete process.env.TZ;else process.env.TZ=original;}
+});
+
+
+test('hotel text caps end on complete words for fresh and previously stored descriptions',()=>{
+ const long='A comfortable room. '.repeat(199)+'Enjoy the elegant music system, detailed property information and flexible dates.';
+ const cutoff='A comfortable room. '.repeat(199)+'Enjoy the music syst';
+ assert.equal(cutoff.length,4000);
+ const fresh=hotelDescription({default:JSON.stringify({Overview:long})}).description!;
+ const stored=hotelDescription({storedDescription:cutoff}).description!;
+ assert.ok(fresh.length<=4000 && fresh.endsWith('…'));
+ assert.ok(stored.startsWith('A comfortable room.'));
+ assert.ok(stored.endsWith('Enjoy the music…'));
 });

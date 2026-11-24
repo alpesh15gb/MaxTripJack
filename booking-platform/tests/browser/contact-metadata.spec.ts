@@ -14,7 +14,7 @@ for(const narrow of [false,true]){
   const contacts=page.getByRole('region',{name:'MaxTravel office and contact details'});
   await expect(contacts).toBeFocused();
   await expect(contacts.locator('a[href="tel:+917095018018"]')).toBeInViewport();
-  await expect(contacts.locator('a[href="mailto:max@maxtravel.us"]')).toBeVisible();
+  await expect(contacts.locator('a[href="mailto:max@maxtravel.in"]')).toBeVisible();
   await expect(contacts).toContainText('Every day, 09:00 - 21:00 (India time)');
   await expect(page).toHaveURL(/\/contact#contact-options$/);
   await testInfo.attach(`contact-options${narrow?'-320':''}-viewport`,{body:await page.screenshot({fullPage:false}),contentType:'image/png'});
