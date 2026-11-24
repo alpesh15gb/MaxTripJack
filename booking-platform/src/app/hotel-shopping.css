@@ -223,3 +223,17 @@ body .booking-workflow.journey-flow .stay-detail.stay-rate-comparison :is(.stay-
  .stay-rate-comparison .stay-room-rate-action > .primary { grid-column: 2; grid-row: 1 / 4; align-self: center; margin: 0; }
  .stay-rate-comparison .stay-room-rate-action > p[role=status] { grid-column: 1 / -1; }
 }
+.stay-rate-comparison .stay-room-rate-main .stay-plan-title { display: flex; align-items: flex-start; gap: 8px; }
+.stay-rate-comparison .stay-plan-title .stitch-symbol { color: #345e8e; margin-top: 3px; }
+body.stitch-theme .booking-workflow.journey-flow .stay-detail.stay-rate-comparison .stay-room-rate > .room-option-action {
+  background: linear-gradient(150deg, #f9fbff 18%, #edf4fc);
+}
+.stay-rate-comparison .stay-rate-total { min-width: 0; display: grid; gap: 3px; color: #435b75; font-size: 13px; }
+.stay-rate-comparison .stay-rate-total :is(small, p) { margin: 0; color: inherit; font-size: 13px; }
+.stay-rate-comparison .stay-rate-total strong { color: #112f51; font-size: clamp(23px, 2.5vw, 30px); line-height: 1.14; overflow-wrap: anywhere; }
+body .booking-workflow.journey-flow .stay-rate-comparison .stay-room-rate-action .stay-rate-cancellation {
+  display: flex; align-items: flex-start; gap: 6px; padding: 7px 8px; margin: 4px 0 0;
+  border-radius: 7px; color: #344f6e; background: #e5edf8; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere;
+}
+.stay-rate-cancellation svg { flex-shrink: 0; }
+body .booking-workflow.journey-flow .stay-rate-comparison .stay-room-rate-action .stay-rate-cancellation[data-free=true] { color: #195644; background: #e6f3ed; }

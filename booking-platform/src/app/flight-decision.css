@@ -74,7 +74,6 @@
 .journey-flow.booking-workflow .fare-decision-grid > .is-selected { border-color: var(--brand-midnight, #101C2C); background: var(--brand-ivory, #FAF9F6); }
 .fare-decision-grid .fare-option-heading { display: grid; align-content: start; gap: 7px; padding-bottom: 12px; border-bottom: 1px solid var(--brand-line, #d9d4cb); }
 .fare-decision-grid .fare-option-heading h4 { margin: 0; color: var(--brand-midnight, #101C2C); font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
-.journey-flow .fare-decision-grid .fare-option-heading > strong { color: var(--brand-midnight, #101C2C); font-size: 23px; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .journey-flow .fare-decision-grid .fare-price-comparison { margin: 0; color: var(--brand-gold-ink, #785A25); font-size: 14px; line-height: 1.45; }
 .fare-decision-dimensions { display: grid; margin: 0; font-size: 14px; line-height: 1.5; }
 .fare-decision-dimensions > div { display: grid; grid-template-columns: minmax(82px, .85fr) minmax(0, 1.15fr); align-items: baseline; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--brand-line, #d9d4cb); }
@@ -197,3 +196,18 @@
   .flight-segments-content { animation: flight-segments-reveal 160ms ease-out; }
   @keyframes flight-segments-reveal { from { opacity: .65; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
 }
+.journey-flow.booking-workflow .fare-decision-grid > .fare-option-compact {
+  background: linear-gradient(155deg, #fff 46%, #f5f8fd);
+}
+.journey-flow.booking-workflow .fare-decision-grid > .is-lowest-fare {
+  border-color: #799fc9;
+  box-shadow: inset 0 3px #375f91;
+  background: linear-gradient(160deg, #eaf3ff, #fff 42%, #f5f8fd);
+}
+.fare-decision-grid .fare-card-estimate { display: grid; gap: 3px; }
+.journey-flow .fare-decision-grid .fare-card-estimate > strong { font-size: clamp(22px, 2vw, 28px); line-height: 1.18; color: var(--brand-midnight); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fare-decision-grid .fare-card-estimate small { color: #4c6079; font-size: 13px; line-height: 1.45; }
+.journey-flow .fare-decision-grid .fare-price-comparison { color: #2c537d; font-weight: 700; }
+.fare-decision-dimensions > .fare-difference { background: #eaf3fd; box-shadow: inset 3px 0 #5e8ab9; }
+.journey-flow .fare-decision-grid .fare-changed-inclusions { display: flex; align-items: flex-start; gap: 6px; color: #305276; font-size: 13px; }
+.fare-changed-inclusions svg { flex-shrink: 0; margin-top: 2px; }

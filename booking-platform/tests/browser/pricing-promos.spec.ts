@@ -1,7 +1,17 @@
 import {test,expect,expectNoHorizontalOverflow,capture,openFlightSearch,quoteId,searchId,reviewedQuote,departure,returning} from './fixtures';
 const id='11111111-1111-4111-8111-111111111111';
-test('flight seat selection shows the customer price before the extras total is applied',async({page,provider})=>{
- provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'seat-segment',tripIndex:0,label:'HYD → BOM · 15 Dec 2026 · 05:05',options:[{kind:'SEAT',code:'6A',label:'Seat 6A',seatNumber:'6A',amountMinor:90390}]}],travellerTypes:['ADULT'],choices:[]}};
+test('cabin seats show the customer price and recheck exact choices before payment',async({page,provider},info)=>{
+ const paid={kind:'SEAT',code:'6A',label:'Seat 6A',seatNumber:'6A',amountMinor:90390};
+ const seats=[
+  paid,
+  {...paid,code:'6B',label:'Seat 6B',seatNumber:'6B',amountMinor:0},
+  {...paid,code:'6C',label:'Seat 6C · Extra legroom',seatNumber:'6C',extraLegroom:true},
+  {...paid,code:'6D',label:'Seat 6D · Exit row',seatNumber:'6D',exitRow:true},
+  {...paid,code:'6F',label:'Seat 6F',seatNumber:'6F'},
+ ];
+ const first={id:'seat-segment',tripIndex:0,label:'HYD → BOM · 15 Dec 2026 · 05:05',options:seats,occupiedSeats:['6E']};
+ const second={id:'connecting-segment',tripIndex:0,label:'BOM → DEL · 15 Dec 2026 · 08:00',options:[paid]};
+ provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[first,second],travellerTypes:['ADULT','ADULT','INFANT'],choices:[]}};
  provider.overrides['POST /api/travel/checkout-extras']={body:{totalMinor:744390}};
  await openFlightSearch(page);
  await page.locator('.fare-comparison > summary').first().click();
@@ -10,14 +20,55 @@ test('flight seat selection shows the customer price before the extras total is 
  await expect(form.locator('.booking-concierge h3')).toHaveCSS('color','rgb(255, 255, 255)');
  await form.locator('.checkout-optional-extras > summary').click();
  await form.getByRole('button',{name:'Choose flight extras',exact:true}).click();
- await expect(form.locator('.checkout-extras')).toContainText('HYD → BOM · 15 Dec 2026 · 05:05');
- const seat=form.getByRole('combobox',{name:'Seat',exact:true});
- await expect(seat.locator('option[value="6A"]')).toHaveText('Seat 6A · +₹903.90');
- await form.getByText('Browse seats by row',{exact:true}).click();
- await form.getByRole('button',{name:'Seat 6A · +₹903.90',exact:true}).click();
- await expect(seat).toHaveValue('6A');
- await form.getByRole('button',{name:'Apply extras and update total',exact:true}).click();
+ const openSeats=form.getByRole('button',{name:'Choose seats',exact:true});
+ await openSeats.click();
+ const dialog=page.getByRole('dialog',{name:'Choose your seats',exact:true});
+ await expect(dialog.getByRole('heading',{name:'Choose your seats'})).toHaveCSS('color','rgb(255, 255, 255)');
+ await expect(dialog.getByRole('group',{name:'Row 6'})).toBeVisible();
+ await expect(dialog.getByRole('img',{name:'Seat 6E · occupied'})).toBeVisible();
+ await expect(dialog.getByRole('button',{name:/Seat 6D.*contact support/})).toBeDisabled();
+ const choosePaid=dialog.getByRole('button',{name:'Seat 6A · +₹903.90',exact:true});
+ await choosePaid.click();
+ await expect(dialog.getByRole('status')).toContainText('Seat estimate ₹903.90');
+ await dialog.getByRole('button',{name:'Skip',exact:true}).click();
+ await expect(openSeats).toBeFocused();
+ expect(provider.requests('/api/travel/checkout-extras').filter(call=>call.method==='POST')).toHaveLength(0);
+ await openSeats.click();
+ await expect(choosePaid).toHaveAttribute('aria-pressed','false');
+ await choosePaid.click();
+ await dialog.getByLabel('Traveller',{exact:true}).selectOption('1');
+ await expect(dialog.getByRole('button',{name:'Seat 6A · Selected by another traveller',exact:true})).toBeDisabled();
+ await expect(dialog.getByLabel('Traveller',{exact:true}).locator('option')).toHaveCount(2);
+ await dialog.getByLabel('Flight',{exact:true}).selectOption('connecting-segment');
+ await expect(dialog.getByText('The airline supplied seat options without a complete cabin layout.')).toBeVisible();
+ await expect(choosePaid).toBeEnabled();
+ await dialog.getByLabel('Flight',{exact:true}).selectOption('seat-segment');
+ await dialog.getByLabel('Traveller',{exact:true}).selectOption('0');
+ await expect(choosePaid).toHaveAttribute('aria-pressed','true');
+ await expectNoHorizontalOverflow(page);
+ const skipBounds=await dialog.getByRole('button',{name:'Skip',exact:true}).boundingBox();
+ const confirmBounds=await dialog.getByRole('button',{name:'Confirm seats',exact:true}).boundingBox();
+ expect(skipBounds?.y).toBe(confirmBounds?.y);
+ await dialog.screenshot({path:info.outputPath('cabin-seat-picker.png'),animations:'disabled'});
+ if(info.project.name.includes('mobile')){
+  await page.setViewportSize({width:320,height:680});
+  await expectNoHorizontalOverflow(page);
+  expect(await dialog.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual((await dialog.boundingBox())!.width);
+  await expect(dialog.getByRole('button',{name:'Confirm seats'})).toBeInViewport();
+ }
+ await dialog.getByRole('button',{name:'Confirm seats',exact:true}).click();
  await expect(form.locator('#booking-summary .booking-total')).toContainText('₹7,443.90');
+ expect(provider.requests('/api/travel/checkout-extras').find(call=>call.method==='POST')?.body).toEqual({
+  quoteId,choices:[{segmentId:'seat-segment',travellerIndex:0,kind:'SEAT',code:'6A'}],
+ });
+ provider.overrides['POST /api/travel/checkout-extras']={status:400,body:{error:'This seat is no longer available.'}};
+ await form.getByRole('button',{name:'Change seats',exact:true}).click();
+ await dialog.getByRole('button',{name:'Seat 6B · Included',exact:true}).click();
+ await dialog.getByRole('button',{name:'Confirm seats',exact:true}).click();
+ await expect(form.getByRole('alert')).toContainText('This seat is no longer available.');
+ await expect(form.locator('#booking-summary .booking-total')).toContainText('₹7,443.90');
+ await form.getByRole('button',{name:'Discard changes',exact:true}).click();
+ await expect(form.getByRole('alert')).toHaveCount(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 test('admin edits pricing with percentage service fee and can deactivate the rule',async({page,provider},info)=>{

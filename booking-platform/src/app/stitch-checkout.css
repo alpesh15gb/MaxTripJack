@@ -503,10 +503,118 @@ body .checkout-active:has(#booking-review) > :is(.back,.booking-intro) { display
  .stitch-voucher .voucher-mobile-actions a { min-height: 70px; }
  .stitch-voucher .voucher-property.with-gallery { margin: -16px -16px 10px; border-radius: 12px 12px 0 0; }
 }
-.checkout-seat-rows { margin-top: 8px; }
-.checkout-seat-rows > summary { min-height: 44px; padding-block: 10px; cursor: pointer; color: #005bb3; font-weight: 650; }
-.checkout-seat-rows p { margin: 0 0 8px; color: #536172; font-size: 13px; }
-.checkout-seat-map { max-height: 280px; overflow: auto; display: grid; gap: 8px; }
-.checkout-seat-map [role=group] > div { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 4px; }
-.checkout-seat-map button { display: grid; min-height: 44px; min-width: 62px; padding: 5px 8px; border: 1px solid #a6b4c4; border-radius: 7px; background: white; }
-.checkout-seat-map button[aria-pressed=true] { color: white; background: #005bb3; }
+.checkout-seat-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--stitch-outline);
+  border-radius: 12px;
+  background: var(--stitch-light-surface);
+}
+.checkout-seat-entry-icon, .checkout-cabin-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: #dfeeff;
+  color: #144575;
+}
+.checkout-seat-entry strong small { margin-inline-start: 5px; font-weight: 550; color: var(--brand-muted); }
+.checkout-seat-entry p { margin: 4px 0 0; font-size: 13px; color: var(--brand-muted); }
+.checkout-cabin-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(640px, 100% - 20px);
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--stitch-outline);
+  border-radius: 18px;
+  color: var(--brand-midnight);
+  background: #f4f7fb;
+  box-shadow: 0 24px 80px #00173666;
+}
+.checkout-cabin-dialog::backdrop { background: #071a34a8; }
+.checkout-cabin-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; max-height: min(820px, 100dvh - 20px); }
+.checkout-cabin-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--stitch-route-surface);
+  color: white;
+}
+.checkout-cabin-mark { background: #ffffff1f; color: #d9eaff; }
+body .booking-workflow.journey-flow .checkout-cabin-header h3 { margin: 0; color: white; font: 780 clamp(18px, 3vw, 24px)/1.2 var(--font-stitch-display), sans-serif; }
+.checkout-cabin-header p { margin: 4px 0 0; font-size: 13px; color: #d9eaff; }
+.checkout-cabin-header button { width: 44px; min-height: 44px; padding: 0; border: 1px solid #b8d7ff66; border-radius: 10px; background: #ffffff17; color: white; font-size: 24px; }
+.checkout-cabin-controls { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 10px; padding: 12px 18px; background: white; border-bottom: 1px solid var(--stitch-outline); }
+.checkout-cabin-controls label { display: grid; gap: 4px; min-width: 0; font-size: 13px; font-weight: 700; }
+.checkout-cabin-controls p { grid-column: 1/-1; margin: 0; color: var(--brand-muted); font-size: 13px; overflow-wrap: anywhere; }
+.checkout-cabin-controls select { width: 100%; min-width: 0; min-height: 44px; padding: 5px 8px; border: 1px solid #a7b7cc; border-radius: 9px; background: white; color: var(--brand-midnight); font-size: 14px; }
+.checkout-cabin-scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 12px 14px; }
+.checkout-cabin-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; margin: 0 0 12px; padding: 0; list-style: none; }
+.checkout-cabin-legend li { display: inline-flex; align-items: center; gap: 5px; color: #3f536d; font-size: 12px; }
+.checkout-cabin-legend li::before { content: ''; width: 10px; height: 10px; border: 1px solid var(--seat-line); border-radius: 3px; background: var(--seat-fill); }
+.checkout-cabin-dialog { --seat-line: #5b83ad; --seat-fill: #edf5ff; --seat-ink: #133a65; }
+.checkout-cabin-dialog [data-seat-status=included] { --seat-line: #569383; --seat-fill: #edf8f3; --seat-ink: #174f40; }
+.checkout-cabin-dialog [data-seat-status=legroom] { --seat-line: #b89551; --seat-fill: #fff5dc; --seat-ink: #5c4319; }
+.checkout-cabin-dialog :is([data-seat-status=occupied], [data-seat-status=assigned], [data-seat-status=restricted]) { --seat-line: #c6cfda; --seat-fill: #e7edf5; --seat-ink: #485a71; }
+.checkout-cabin-dialog :is([data-seat-status=selected], .cabin-seat[aria-pressed=true]) { --seat-line: #123a66; --seat-fill: #123a66; --seat-ink: white; }
+.checkout-cabin-map, .checkout-cabin-list { max-width: 510px; margin-inline: auto; padding: 12px; border: 1px solid var(--stitch-outline); border-radius: 14px; background: white; }
+.checkout-cabin-front { width: min(150px, 70%); margin-inline: auto; border: 1px solid var(--stitch-outline); border-radius: 70px 70px 0 0; padding: 9px 4px 5px; text-align: center; font-size: 12px; color: var(--brand-muted); }
+.checkout-cabin-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 26px repeat(3, minmax(0, 1fr)); gap: 5px; align-items: stretch; min-width: 0; margin-top: 5px; }
+.checkout-cabin-row > * { grid-row: 1; min-width: 0; }
+.checkout-cabin-row-number, .checkout-cabin-columns { color: #4b607b; font-weight: 700; font-size: 12px; text-align: center; }
+.checkout-cabin-row-number { grid-column: 4; align-self: center; }
+.checkout-cabin-columns { padding-block: 5px; border-top: 1px solid var(--stitch-outline); }
+.checkout-cabin-dialog .cabin-seat {
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 3px 1px;
+  border: 1px solid var(--seat-line);
+  border-radius: 7px;
+  background: var(--seat-fill);
+  color: var(--seat-ink);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.15;
+  text-align: center;
+}
+.checkout-cabin-dialog .cabin-seat small { color: inherit; font-size: 11px; font-weight: 640; overflow-wrap: anywhere; }
+.checkout-cabin-dialog .cabin-seat strong { color: inherit; overflow-wrap: anywhere; }
+.checkout-cabin-dialog .cabin-seat abbr { font-size: 9px; text-decoration: none; }
+.checkout-cabin-dialog .cabin-seat:disabled { opacity: 1; cursor: not-allowed; }
+.checkout-cabin-dialog .cabin-seat:enabled:hover { box-shadow: inset 0 0 0 1px currentColor; }
+.checkout-cabin-dialog :is(button, select, [tabindex]):focus-visible { outline: 2px solid #176fbf; outline-offset: 2px; }
+.checkout-cabin-header button:focus-visible { outline-color: #d9eaff; }
+.checkout-cabin-list p { margin: 0 0 10px; color: var(--brand-muted); font-size: 13px; }
+.checkout-cabin-list > div { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 88px), 1fr)); }
+.checkout-cabin-footer { z-index: 1; background: white; border-top: 1px solid var(--stitch-outline); padding: 12px 18px max(12px, env(safe-area-inset-bottom)); }
+.checkout-cabin-footer p { margin: 5px 0 0; color: var(--brand-muted); font-size: 13px; }
+.checkout-cabin-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; font-size: 13px; }
+.checkout-cabin-total span { color: var(--brand-muted); }
+.checkout-cabin-total strong { font-size: 15px; }
+.checkout-cabin-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 10px; }
+.checkout-cabin-dialog .checkout-cabin-actions button {
+  display: grid; place-items: center; min-width: 0; min-height: 44px; padding: 6px 12px;
+  border: 1px solid #a6b9cd; border-radius: 9px; font-size: 14px; font-weight: 720; line-height: 1.2;
+}
+.checkout-seat-dismiss { color: #133455; background: white; }
+.checkout-seat-confirm { color: white; background: var(--stitch-action-surface); }
+@media (max-width: 440px) {
+  .checkout-seat-entry { grid-template-columns: auto minmax(0, 1fr); }
+  .checkout-seat-entry button { grid-column: 1/-1; }
+  .checkout-cabin-header, .checkout-cabin-controls, .checkout-cabin-footer { padding-inline: 10px; }
+  .checkout-cabin-scroll, .checkout-cabin-map, .checkout-cabin-list { padding-inline: 5px; }
+  .checkout-cabin-row { grid-template-columns: repeat(3, minmax(0, 1fr)) 16px repeat(3, minmax(0, 1fr)); gap: 3px; }
+}

@@ -93,7 +93,12 @@ test('hotel NAME opens property overview, gallery, room rate, review and reversi
  await gallery.click();await page.goBack();await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('#hotel-detail-title')).toBeVisible();
  await page.locator('.stay-rate-preview > .primary').click();await expect(page.locator('#hotel-room-options-title')).toBeInViewport();
  const breakfast=page.locator('.room-option-card').filter({hasText:'₹9,200'});await expect(breakfast.getByRole('heading',{name:'Breakfast included'})).toBeVisible();
- await expect(page.locator('.room-option-card')).toHaveCount(2);await capture(page,testInfo,'hotel-room-rate-comparison');
+ await expect(breakfast.locator('.stay-rate-total')).toContainText('Estimated full stay total');
+ await expect(breakfast.locator('.stay-rate-total')).toContainText('4 nights · 1 room · 2 guests');
+ await expect(breakfast.locator('.stay-rate-cancellation')).toContainText('Non-refundable');
+ await expect(page.locator('.room-option-card')).toHaveCount(2);
+ await breakfast.screenshot({path:testInfo.outputPath('hotel-room-rate-card.png'),animations:'disabled'});
+ await capture(page,testInfo,'hotel-room-rate-comparison');
  await breakfast.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'exact-breakfast'}]);
  await page.getByRole('button',{name:'Change selection',exact:true}).click();await expect(page.locator('#hotel-detail-title')).toBeVisible();

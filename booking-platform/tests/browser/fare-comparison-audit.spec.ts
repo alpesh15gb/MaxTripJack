@@ -19,6 +19,8 @@ test('fare comparison preserves distinct offers, orders comparable totals and sh
  await expect(offers.nth(1)).toContainText('₹3,261.50');await expect(offers.nth(2)).toContainText('₹7,799.50');await expect(offers.nth(3)).toContainText('Price at review');
  await expect(offers.nth(1)).toContainText('+₹13 vs lowest shown fare');
  await expect(offers.nth(1).locator('.fare-difference').first()).toContainText('25 Kg');
+ await expect(offers.nth(1)).toContainText('Differs in checked baggage, cancellation');
+ await expect(offers.first().locator('.fare-card-estimate')).toContainText('Estimated total · all travellers');
  await expect(card.locator('.fare-comparison-guidance')).toContainText('Lowest INR estimates first; unpriced offers last.');
  await expect(card.locator('.fare-shared-terms')).toHaveText('Totals are estimates for all travellers. Check the final price, cancellation and change fees, seat inclusions and eligibility at review.');
  await expect(card.locator('.fare-details-unavailable')).toHaveCount(1);

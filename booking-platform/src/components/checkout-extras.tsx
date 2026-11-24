@@ -3,6 +3,8 @@
 import {useState, useEffect, useMemo, useRef} from "react";
 import type {CheckoutChoice, CheckoutSegment} from "@/lib/checkout-extras-contract";
 import {displayMoney} from "@/lib/display-money";
+import CheckoutSeatPicker from "./checkout-seat-picker";
+import {TravelIcon} from "./travel-icon";
 
 type Props = {
   quoteId: string;
@@ -10,31 +12,7 @@ type Props = {
   onPending: (value: boolean) => void;
   onSaved: (total: number) => void;
 };
-const optionLabels = {BAGGAGE: "Extra baggage", MEAL: "Meal", SEAT: "Seat"} as const;
-type ExtraOption = CheckoutSegment['options'][number];
-const optionPrice = (option: ExtraOption) => option.amountMinor > 0 ? `+${displayMoney(option.amountMinor)}` : 'No additional charge';
-
-function SeatRows({options, selected, unavailable, onChoose}: {options:ExtraOption[];selected?:string;unavailable:Set<string>;onChoose:(code:string)=>void}) {
-  const rows = new Map<number, ExtraOption[]>();
-  for (const option of options) {
-    if (!option.seatNumber) continue;
-    const row = Number.parseInt(option.seatNumber, 10);
-    rows.set(row, [...(rows.get(row) ?? []), option]);
-  }
-  if (!rows.size) return null;
-  return <details className="checkout-seat-rows">
-    <summary>Browse seats by row</summary>
-    <p>Available seats reported by the airline, grouped by row.</p>
-    <div className="checkout-seat-map">
-      {[...rows].sort(([a],[b])=>a-b).map(([row,seats])=><div role="group" aria-label={`Row ${row}`} key={row}>
-        <strong>Row {row}</strong>
-        <div>{seats.sort((a,b)=>a.seatNumber!.localeCompare(b.seatNumber!)).map(seat=><button type="button" key={seat.code}
-          aria-pressed={seat.code===selected} aria-label={`${seat.label} · ${optionPrice(seat)}`} disabled={unavailable.has(seat.code)}
-          onClick={()=>onChoose(seat.code===selected?'':seat.code)}><strong>{seat.seatNumber}</strong><small>{optionPrice(seat)}</small>{seat.label.includes('Extra legroom')&&<small>Extra legroom</small>}</button>)}</div>
-      </div>)}
-    </div>
-  </details>;
-}
+const optionLabels = {BAGGAGE: "Extra baggage", MEAL: "Meal"} as const;
 
 function sameChoices(a: CheckoutChoice[], b: CheckoutChoice[]) {
   return a.length === b.length && a.every(choice => b.some(other =>
@@ -49,12 +27,17 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
   const [types, setTypes] = useState<string[]>([]);
   const [choices, setChoices] = useState<CheckoutChoice[]>([]);
   const [confirmed, setConfirmed] = useState<CheckoutChoice[]>([]);
+  const [seatPickerOpen, setSeatPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState("");
   const changed = useMemo(() => choices !== confirmed && !sameChoices(choices, confirmed), [choices, confirmed]);
   const dirty = uncertain || changed;
+  const seatSegments = segments?.filter(segment =>
+    segment.options.some(option => option.kind === "SEAT" && !option.exitRow)
+    || choices.some(choice => choice.kind === "SEAT" && choice.segmentId === segment.id)) ?? [];
+  const savedSeatCount = confirmed.filter(choice => choice.kind === "SEAT").length;
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -72,6 +55,7 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
       setTypes(data.travellerTypes);
       setConfirmed(data.choices);
       setChoices(data.choices);
+      onPending(false);
     } catch (cause) {
       if (mounted.current) setError(cause instanceof Error && cause.name === "Error" ? cause.message : "Airline options could not be loaded. Try again or continue without extras.");
     } finally {
@@ -99,14 +83,14 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
     panel.current?.closest("details")?.querySelector("summary")?.focus();
   }
 
-  async function save() {
+  async function save(next = choices) {
     setLoading(true);
     setError("");
     let rejected = false;
     try {
       const response = await fetch("/api/travel/checkout-extras", {
         method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({quoteId, choices}), signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({quoteId, choices: next}), signal: AbortSignal.timeout(15000),
       });
       // A validation rejection leaves the last confirmed total intact. A
       // timeout, a conflict with another update, or a broken reply may not.
@@ -117,7 +101,7 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
         throw Error("The updated total could not be confirmed.");
       }
       if (!mounted.current) return;
-      setConfirmed(choices);
+      setConfirmed(next);
       setApplied(true);
       setUncertain(false);
       onSaved(data.totalMinor);
@@ -138,27 +122,41 @@ export default function CheckoutExtras({quoteId, disabled, onPending, onSaved}: 
       {loading ? "Loading airline options…" : "Choose flight extras"}
     </button> : <>
       <p className="muted">Prices include applicable booking charges. Apply your choices to recheck availability and see the updated total before payment.</p>
-      {segments.map(segment => <fieldset disabled={disabled || loading || uncertain} key={segment.id}>
+      {seatSegments.length > 0 && types.some(type => type !== "INFANT") && <div className="checkout-seat-entry">
+        <span className="checkout-seat-entry-icon"><TravelIcon name="airplane" size={22}/></span>
+        <div><strong>Seat selection <small>Optional</small></strong><p>{savedSeatCount ? `${savedSeatCount} seat${savedSeatCount === 1 ? '' : 's'} selected` : 'You can continue with airline-assigned seating.'}</p></div>
+        <button type="button" className="secondary" disabled={disabled || loading || uncertain} onClick={() => setSeatPickerOpen(true)}>{savedSeatCount ? 'Change seats' : 'Choose seats'}</button>
+      </div>}
+      {seatPickerOpen && <CheckoutSeatPicker segments={seatSegments} types={types} choices={choices} hasOtherChanges={!sameChoices(choices.filter(choice => choice.kind !== "SEAT"), confirmed.filter(choice => choice.kind !== "SEAT"))}
+        onClose={() => setSeatPickerOpen(false)} onConfirm={next => {
+          setSeatPickerOpen(false);
+          if (sameChoices(next, confirmed)) { setChoices(confirmed); onPending(false); return; }
+          setChoices(next);
+          onPending(true);
+          void save(next);
+        }}/>}
+      {segments.filter(segment => segment.options.some(option => option.kind !== "SEAT")).map(segment => <fieldset disabled={disabled || loading || uncertain} key={segment.id}>
         <legend>{segment.label}</legend>
-        {segment.options.some(option => !option.exitRow) ? types.map((type, index) => type === "INFANT" ? null :
+        {types.map((type, index) => type === "INFANT" ? null :
           <div className="form-row" key={index}>
             <strong>Traveller {index + 1} · {type.toLowerCase()}</strong>
-            {(["BAGGAGE", "MEAL", "SEAT"] as const).map(kind => {
-              const options = segment.options.filter(option => option.kind === kind && !option.exitRow);
+            {(["BAGGAGE", "MEAL"] as const).map(kind => {
+              const options = segment.options.filter(option => option.kind === kind);
               if (!options.length) return null;
               const selected = choices.find(choice => choice.segmentId === segment.id && choice.travellerIndex === index && choice.kind === kind);
-              const unavailable = new Set(kind==='SEAT'?choices.filter(choice=>choice.segmentId===segment.id&&choice.kind==='SEAT'&&choice.travellerIndex!==index).map(choice=>choice.code):[]);
               return <div key={kind}><label>{optionLabels[kind]}
                 <select value={selected?.code ?? ""} onChange={event => choose(segment, index, kind, event.target.value)}>
-                  <option value="">{kind === "SEAT" ? "Airline allocation" : "No extra"}</option>
-                  {options.map(option => <option key={option.code} value={option.code} disabled={unavailable.has(option.code)}>{option.label} · {optionPrice(option)}</option>)}
+                  <option value="">No extra</option>
+                  {options.map(option => <option key={option.code} value={option.code}>{option.label} · {option.amountMinor > 0 ? `+${displayMoney(option.amountMinor)}` : "No additional charge"}</option>)}
                 </select>
-              </label>{kind==='SEAT'&&<SeatRows options={options} selected={selected?.code} unavailable={unavailable} onChoose={code=>choose(segment,index,kind,code)}/>}</div>;
+              </label></div>;
             })}
-          </div>) : <p className="muted">No optional extras available for this flight.</p>}
+          </div>)}
       </fieldset>)}
+      {seatSegments.length === 0 && segments.every(segment => segment.options.every(option => option.kind === "SEAT")) && <p className="muted">No optional extras available for this flight.</p>}
       {types.includes("INFANT") && <p className="muted">Infants cannot select extras.</p>}
       {segments.some(segment => segment.options.some(option => option.exitRow)) && <p className="muted">Contact support for exit-row seats.</p>}
+      {error && !uncertain && <button className="inline-link" type="button" disabled={disabled || loading} onClick={() => void load()}>Refresh airline options</button>}
       {uncertain && <p className="info-message">Check the latest price using Refresh reviewed price, or apply your choices again to confirm the total.</p>}
       {(dirty || applied) && <div className="checkout-extras-actions">
         <button className="secondary" type="button" disabled={disabled || loading || !dirty} onClick={() => void save()}>

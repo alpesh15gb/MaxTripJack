@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { StitchSymbol } from './stitch-symbol';
-import BookingActivity from './booking-activity';
 
 export type PendingSearch = {
   title: string;
@@ -25,7 +24,11 @@ export default function SearchJourneyPending({ product, context, onStop }: {
   const flight = product === 'FLIGHT';
   const mapping = context?.phase === 'destination';
   const title = mapping ? 'Finding properties in this destination…' : flight ? 'Checking flight availability…' : 'Checking hotel availability…';
-  const detail = mapping ? 'We’ll check rates for your dates once we find matching properties.' : 'Waiting for live supplier availability.';
+  const detail = takingLonger
+    ? mapping ? 'This destination is taking longer to match. You can wait or edit your search.'
+      : 'Availability is taking longer to check. You can wait or edit your search.'
+    : mapping ? 'We’ll check rates for your dates once we find matching properties.'
+      : flight ? 'Checking seats and fares for your trip.' : 'Checking room rates for your dates and guests.';
 
   return (
     <section id="booking-pending" className="stitch-search-pending" aria-label="Search in progress">
@@ -41,7 +44,29 @@ export default function SearchJourneyPending({ product, context, onStop }: {
           <StitchSymbol name="tune" size={17}/>Stop search &amp; edit
         </button>
       </header>
-      <BookingActivity title={title} detail={detail} product={product} takingLonger={takingLonger}/>
+      <div className="stitch-search-live">
+        <div className="stitch-search-scene" data-product={flight ? 'flight' : 'hotel'} aria-hidden="true">
+          {flight ? <>
+            <span className="stitch-scene-cloud stitch-scene-cloud-near"/>
+            <span className="stitch-scene-cloud stitch-scene-cloud-far"/>
+            <span className="stitch-scene-path"/>
+            <span className="stitch-scene-origin"/>
+            <span className="stitch-scene-arrival"/>
+            <span className="stitch-scene-plane"><StitchSymbol name="flight_takeoff" size={30}/></span>
+          </> : <>
+            <span className="stitch-scene-moon"/>
+            <span className="stitch-scene-horizon"/>
+            <span className="stitch-scene-hotel">
+              {Array.from({length: 6}, (_, index) => <i key={index}/>)}
+              <span/>
+            </span>
+          </>}
+        </div>
+        <div className="stitch-search-copy" role="status" aria-label="Search and booking activity">
+          <strong>{title}</strong>
+          <p>{detail}</p>
+        </div>
+      </div>
       <div className="stitch-pending-layout" aria-hidden="true">
         <div className="stitch-pending-filters">
           <span className="stitch-pending-line"/>

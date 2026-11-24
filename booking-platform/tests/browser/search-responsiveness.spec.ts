@@ -33,7 +33,12 @@ for(const product of ['FLIGHT','HOTEL'] as const){
   try{
    await page.goto('/book?'+new URLSearchParams(query));
    const pending=page.getByRole('status',{name:'Search and booking activity'});
-   await expect(pending).toContainText('Waiting for live supplier availability');
+   await expect(pending).toContainText(product==='FLIGHT'?'Checking seats and fares for your trip.':'Checking room rates for your dates and guests.');
+   const art=page.locator(product==='FLIGHT'?'.stitch-scene-plane':'.stitch-scene-hotel i').first();
+   await expect(art).toHaveCSS('animation-name',product==='FLIGHT'?'stitch-plane-cruise':'stitch-window-light');
+   await expect(page.getByRole('button',{name:'Stop search & edit'})).toBeEnabled();
+   await page.emulateMedia({reducedMotion:'reduce'});
+   await expect(art).toHaveCSS('animation-name','none');
    await expect(pending).toBeInViewport();expect(requested).toBe(true);
    await expect(page.locator('#booking-results')).toHaveCount(0);
    const form=page.locator('#booking-search form');
@@ -71,10 +76,10 @@ test('hotel search shows the chosen stay criteria during mapping before checking
   await expect(pending.getByRole('heading',{name:'Goa',exact:true})).toBeVisible();
   const status=pending.getByRole('status',{name:'Search and booking activity'});
   await expect(status).toContainText('Finding properties in this destination');
-  await expect(status).not.toContainText('Waiting for live supplier availability');
+  await expect(status).not.toContainText('Checking hotel availability');
   expect(rateCalls).toBe(0);
   releaseMapping();
-  await expect(status).toContainText('Waiting for live supplier availability');
+  await expect(status).toContainText('Checking hotel availability');
   await expect.poll(()=>rateCalls).toBe(1);
   releaseRates();
   await expect(page.getByRole('article',{name:'Fixture Stay'})).toContainText('₹8,000');

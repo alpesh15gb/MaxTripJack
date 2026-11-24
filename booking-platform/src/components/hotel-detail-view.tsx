@@ -10,7 +10,9 @@ import type {AvailableHotelOption} from './hotel-room-view';
 import HotelCancellationTimeline from './hotel-cancellation-timeline';
 import {money} from './booking-flight-card';
 import HotelRoomFilters from './hotel-room-filters';
-import {filterRoomPlans,roomMealLabel,type RoomPlanFilters} from '@/lib/hotel-room-filters';
+import {StitchSymbol} from './stitch-symbol';
+import {TravelIcon} from './travel-icon';
+import {filterRoomPlans,hasFreeCancellation,roomMealLabel,type RoomPlanFilters} from '@/lib/hotel-room-filters';
 
 export type HotelDetailViewProps={name:string;property?:HotelPropertyDetails;metadataStatus?:HotelMetadataStatus;context:HotelStayContext|null;options:AvailableHotelOption[];roomsStatus:'loading'|'ready'|'error';roomsError?:string;busy:boolean;now:number|null;checkingOptionId?:string;selectedOptionId?:string;onBack:()=>void;onRetry:()=>void;onEditSearch?:()=>void;onReview:(optionId:string)=>void;galleryOpen?:boolean;onGalleryChange?:(open:boolean)=>void};
 function optionTotal(option:AvailableHotelOption){const value=option.pricing?.totalPrice;return typeof value==='number'&&Number.isFinite(value)&&value>0&&Number.isSafeInteger(Math.round(value*100))?Math.round(value*100):null;}
@@ -150,15 +152,23 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
      <div className="stay-room-rates">{group.options.map((option,index)=>{
       const total=optionTotal(option),selected=selectedOptionId===option.optionId,checking=busy&&checkingOptionId===option.optionId;
       const planId=`${groupId}-plan-${index}`;
+      const freeCancellation=hasFreeCancellation(option,now);
+      const cancellation=hotelCancellationLabel(option.cancellation,now??NaN);
+      const mealLabel=roomMealLabel(option);
+      const inclusions=option.inclusions?.filter(item=>{
+       const text=item.trim().toLowerCase();
+       const repeatsBreakfast=mealLabel==='Breakfast included'&&/^(?:(?:complimentary|free|daily) )?breakfast(?: included)?$/.test(text);
+       return text!==mealLabel.toLowerCase()&&!repeatsBreakfast;
+      });
       return <article className={`room-option-card stay-room-rate${selected?' is-selected':''}`} key={option.optionId} data-room-option-id={option.optionId} aria-label={`Rate ${index+1}: ${group.label}`} aria-describedby={planId}>
        <div className="stay-room-rate-main">
         {selected&&<span className="room-selection-label">Selected room rate</span>}
-        <h4 className="stay-plan-title" id={planId}>{roomMealLabel(option)}</h4>
-        <p className="stay-plan-cancellation" id={`${planId}-terms`}>{hotelCancellationLabel(option.cancellation,now??NaN)}</p>
-        {Boolean(option.inclusions?.length)&&<ul className="stay-rate-inclusions">{option.inclusions?.map((item,i)=><li key={`${item}-${i}`}>{item}</li>)}</ul>}
+        <h4 className="stay-plan-title" id={planId}><StitchSymbol name="restaurant" size={18}/>{mealLabel}</h4>
+        {Boolean(inclusions?.length)&&<ul className="stay-rate-inclusions">{inclusions?.map((item,i)=><li key={`${item}-${i}`}>{item}</li>)}</ul>}
        </div>
        <div className="room-option-action stay-room-rate-action">
-        <small>Estimated full stay total</small><strong id={`${planId}-price`}>{total===null?'Price unavailable':money(total)}</strong><p>{stayLabel}</p>
+        <div className="stay-rate-total"><small>Estimated full stay total</small><strong id={`${planId}-price`}>{total===null?'Price unavailable':money(total)}</strong><p>{stayLabel}</p></div>
+        <p className="stay-rate-cancellation" data-free={freeCancellation} id={`${planId}-terms`}><TravelIcon name={freeCancellation?'check':'receipt'} size={16}/><span>{cancellation}</span></p>
         <button type="button" className="primary" aria-describedby={`${groupId} ${planId} ${planId}-terms ${planId}-price`} disabled={busy||total===null} onClick={()=>onReview(option.optionId)}>{checking?'Checking your room…':'Continue with room'}</button>
         {checking&&<p ref={pendingRateStatus} role="status">Checking your selected room rate. Nothing is reserved yet.</p>}
        </div>

@@ -234,6 +234,8 @@ export default function BookingFlightCard({
           const checking = busy && checkingFareId === fare.id;
           const fareHeadingId = `${id}-offer-${index}`;
           const rows = fareDecisionDetails(fare, compatible && price !== null ? baseline : undefined);
+          const differences = rows.filter(row => row.differs).map(row => row.label.toLowerCase());
+          const unverifiedInclusions = showBaseline && difference > 0 && differences.length === 0;
           const passengerBaggage = Object.entries(fare.fD).filter(([kind]) => kind !== 'ADULT').map(([kind, detail]) =>
             <p className="fare-passenger-baggage muted" key={kind}>{kind.toLowerCase()}: cabin baggage {baggageDecisionLabel(detail.bI?.cB).replace(/^Not supplied$/, 'not supplied')} · checked baggage {baggageDecisionLabel(detail.bI?.iB).replace(/^Not supplied$/, 'not supplied')}</p>
           );
@@ -268,11 +270,13 @@ export default function BookingFlightCard({
           >
             <div className="fare-option-heading">
               <h4 id={fareHeadingId} tabIndex={-1}>{fareName}</h4>
-              <strong>{price === null ? 'Price at review' : money(price)}</strong>
+              <div className="fare-card-estimate">
+                <strong>{price === null ? 'Price at review' : money(price)}</strong>
+                <small>{price === null ? 'All travellers' : 'Estimated total · all travellers'}</small>
+              </div>
               {showBaseline && (fare.id === baseline?.id || difference > 0) && <p className="fare-price-comparison">
                 {difference > 0 ? `+${money(difference)} vs lowest shown fare` : 'Lowest shown estimate'}
               </p>}
-              {showBaseline && difference > 0 && !rows.some(row => row.differs) && <p className="fare-details-unavailable">The airline hasn’t supplied an extra benefit for this fare. Check the rules before choosing it.</p>}
             </div>
             <dl className="fare-decision-dimensions">
               {rows.map(({ label, value, differs }) => <div key={label} className={differs ? 'fare-difference' : undefined}>
@@ -280,7 +284,9 @@ export default function BookingFlightCard({
                 <dd>{value}{differs && <span className="fare-difference-note"> · Differs from lowest shown fare</span>}</dd>
               </div>)}
             </dl>
-            {(passengerBaggage.length > 0 || eligibility) && <div className="fare-option-notes">
+            {(differences.length > 0 || unverifiedInclusions || passengerBaggage.length > 0 || eligibility) && <div className="fare-option-notes">
+              {differences.length > 0 && <p className="fare-changed-inclusions"><TravelIcon name="swap" size={15}/> Differs in {differences.join(', ')}</p>}
+              {unverifiedInclusions && <p className="muted">Check the fare rules for any additional inclusions.</p>}
               {passengerBaggage}
               {eligibility && <p className={compatible ? 'muted' : 'fare-ineligible'}>{eligibility}</p>}
             </div>}

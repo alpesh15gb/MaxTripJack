@@ -4,7 +4,7 @@ import { customerTotal, type PricingRule } from "./pricing-calculation";
 import { travelDateTimeLabel } from "./travel-date";
 export const checkoutChoices=z.array(z.object({segmentId:z.string().min(1).max(100),travellerIndex:z.number().int().min(0).max(17),kind:z.enum(["BAGGAGE","MEAL","SEAT"]),code:z.string().min(1).max(100)}).strict()).max(972);
 export type CheckoutChoice=z.infer<typeof checkoutChoices>[number];
-export type CheckoutSegment={id:string;tripIndex:number;label:string;options:{kind:"BAGGAGE"|"MEAL"|"SEAT";code:string;label:string;amountMinor:number;exitRow?:boolean;seatNumber?:string}[]};
+export type CheckoutSegment={id:string;tripIndex:number;label:string;occupiedSeats?:string[];options:{kind:"BAGGAGE"|"MEAL"|"SEAT";code:string;label:string;amountMinor:number;exitRow?:boolean;extraLegroom?:boolean;seatNumber?:string}[]};
 type Row=Record<string,unknown>;
 const obj=(v:unknown):Row=>v&&typeof v==="object"&&!Array.isArray(v)?v as Row:{};
 const list=(v:unknown):Row[]=>Array.isArray(v)?v.map(obj):[];
@@ -14,11 +14,24 @@ export function checkoutCatalogue(review:unknown,seats:unknown):CheckoutSegment[
   if(typeof segment.id!=="string"||!segment.id||segments.some(s=>s.id===segment.id))throw Error("Supplier segment identifiers are incomplete or duplicated.");
   const options:CheckoutSegment["options"]=[];
   for(const kind of ["BAGGAGE","MEAL"] as const)for(const option of list(obj(segment.ssrInfo)[kind]))if(typeof option.code==="string"&&typeof option.amount==="number"&&option.amount>=0)options.push({kind,code:option.code,label:typeof option.desc==="string"?option.desc:option.code,amountMinor:minor(option.amount)});
-  for(const seat of list(obj(maps[segment.id]).sInfo))if(seat.isBooked===false&&typeof seat.code==="string"&&typeof seat.amount==="number"&&seat.amount>=0){
-   const number=String(seat.seatNo??seat.code).trim().toUpperCase();
-   options.push({kind:"SEAT",code:seat.code,label:`Seat ${number}${seat.isExitRow?" · Exit row":""}${seat.isLegRoom?" · Extra legroom":""}`,amountMinor:minor(seat.amount),exitRow:seat.isExitRow===true,...(/^\d{1,3}[A-Z]{1,2}$/.test(number)?{seatNumber:number}:{})});
+  const occupiedSeats = new Set<string>();
+  for (const seat of list(obj(maps[segment.id]).sInfo)) {
+   const number = String(seat.seatNo ?? seat.code ?? '').trim().toUpperCase();
+   const seatNumber = /^\d{1,3}[A-Z]{1,2}$/.test(number) ? number : undefined;
+   if (seat.isBooked === true && seatNumber) occupiedSeats.add(seatNumber);
+   if (seat.isBooked !== false || typeof seat.code !== 'string' || typeof seat.amount !== 'number' || seat.amount < 0) continue;
+   const exitRow = seat.isExitRow === true;
+   const extraLegroom = seat.isLegRoom === true;
+   options.push({
+    kind: 'SEAT', code: seat.code, label: `Seat ${number}${exitRow ? ' · Exit row' : ''}${extraLegroom ? ' · Extra legroom' : ''}`,
+    amountMinor: minor(seat.amount), exitRow,
+    ...(extraLegroom ? {extraLegroom} : {}), ...(seatNumber ? {seatNumber} : {}),
+   });
   }
-  segments.push({id:segment.id,tripIndex,label:`${String(obj(segment.da).code??"")} → ${String(obj(segment.aa).code??"")} · ${travelDateTimeLabel(segment.dt)}`,options});
+  segments.push({
+   id: segment.id, tripIndex, label: `${String(obj(segment.da).code??"")} → ${String(obj(segment.aa).code??"")} · ${travelDateTimeLabel(segment.dt)}`,
+   options, ...(occupiedSeats.size ? {occupiedSeats: [...occupiedSeats]} : {}),
+  });
  }
  if(segments.length>36)throw Error("Supplier itinerary has too many segments.");return segments;
 }

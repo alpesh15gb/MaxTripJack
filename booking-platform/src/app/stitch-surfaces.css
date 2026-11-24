@@ -314,3 +314,72 @@ body.stitch-theme :is(#booking-review,#booking-rooms) .stay-booking-notes {
 .booking-date-input { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 6px; min-width: 0; }
 .booking-date-input .fare-date-icon-only { padding: 0; border: 0; min-width: 0; }
 .booking-date-input .fare-date-icon-only .fare-date-trigger { display: grid; place-items: center; min-height: 44px; min-width: 44px; padding: 0; border: 1px solid #a6b4c4; border-radius: 8px; color: #005bb3; background: #fff; }
+/* Search scenes are decorative. Availability can replace them at any time. */
+.stitch-search-live {
+  display: grid;
+  grid-template-columns: clamp(140px, 25vw, 325px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(14px, 3vw, 35px);
+  min-height: 132px;
+  padding: clamp(12px, 2vw, 22px);
+  border: 1px solid var(--stitch-outline);
+  border-radius: var(--stitch-card-radius);
+  background: var(--stitch-light-surface);
+  box-shadow: var(--stitch-card-depth);
+}
+.stitch-search-copy strong { display: block; color: var(--brand-midnight); font: 780 clamp(16px, 2vw, 24px)/1.22 var(--font-stitch-display), sans-serif; }
+.stitch-search-copy p { margin: 6px 0 0; color: var(--brand-muted); font-size: 14px; line-height: 1.45; }
+.stitch-search-scene {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  height: 110px;
+  border-radius: 13px;
+  background: linear-gradient(165deg, #e5f0ff, #caddf4 68%, #f5f9ff);
+}
+.stitch-scene-path { position: absolute; inset: 44% 11% auto; height: 55%; border-top: 2px dashed #527eac; border-radius: 50%; transform: rotate(-8deg); }
+.stitch-scene-origin, .stitch-scene-arrival { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: #215987; box-shadow: 0 0 0 4px #fff8; }
+.stitch-scene-origin { left: 12%; top: 69%; }
+.stitch-scene-arrival { right: 11%; top: 53%; }
+.stitch-scene-plane { position: absolute; z-index: 1; top: 31%; left: 42%; color: #0b3767; animation: stitch-plane-cruise 3.5s ease-in-out .18s infinite alternate; }
+.stitch-scene-cloud { position: absolute; width: 44px; height: 12px; border-radius: 30px; background: #fff9; animation: stitch-cloud-drift 5s ease-in-out .18s infinite alternate; }
+.stitch-scene-cloud::before { content: ''; position: absolute; left: 12px; bottom: 4px; width: 21px; height: 19px; border-radius: 100%; background: inherit; }
+.stitch-scene-cloud-near { left: 12%; top: 29%; }
+.stitch-scene-cloud-far { right: 11%; bottom: 22%; animation-direction: alternate-reverse; }
+.stitch-search-scene[data-product=hotel] { background: linear-gradient(148deg, #214669, #0d2645 72%); }
+.stitch-scene-moon { position: absolute; right: 15%; top: 16%; width: 17px; height: 17px; border-radius: 50%; background: #efd6a3; box-shadow: 0 0 16px #efd6a366; }
+.stitch-scene-horizon { position: absolute; inset: auto -5% -28% -5%; height: 55%; border-radius: 50%; background: #4a6e8b; transform: rotate(-6deg); }
+.stitch-scene-hotel {
+  position: absolute;
+  bottom: 13%;
+  left: 50%;
+  width: 64px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 10px 8px 0;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(110deg, #e3edfa, #93b5d9);
+  box-shadow: 0 6px 18px #00173670;
+}
+.stitch-scene-hotel::before { content: ''; position: absolute; inset: -5px -4px auto; height: 6px; border-radius: 4px; background: #8ea8c3; }
+.stitch-scene-hotel i { height: 13px; border-radius: 2px; background: #37587d; animation: stitch-window-light 3.8s ease-in-out var(--window-delay, .24s) infinite; }
+.stitch-scene-hotel i:nth-child(2n) { --window-delay: .85s; background: #ffe0a2; }
+.stitch-scene-hotel i:nth-child(3n) { --window-delay: 1.4s; }
+.stitch-scene-hotel > span { grid-column: 2; height: 13px; border-radius: 7px 7px 0 0; background: #385779; }
+@keyframes stitch-plane-cruise { from { transform: translate(-20px, 8px) rotate(-5deg); } to { transform: translate(20px, -7px) rotate(4deg); } }
+@keyframes stitch-cloud-drift { to { transform: translateX(14px); } }
+@keyframes stitch-window-light { 0%, 100% { opacity: .58; } 48%, 72% { background: #ffe0a2; opacity: 1; } }
+@media (max-width: 560px) {
+  .stitch-search-live { grid-template-columns: clamp(88px, 26vw, 125px) minmax(0, 1fr); gap: 12px; min-height: 110px; }
+  .stitch-search-scene { height: 86px; }
+  .stitch-scene-cloud { width: 30px; }
+  .stitch-scene-plane { left: 35%; }
+  .stitch-scene-hotel { width: 48px; gap: 4px; padding-inline: 6px; }
+  .stitch-scene-hotel i { height: 10px; }
+  .stitch-scene-moon { right: 10%; width: 12px; height: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stitch-search-scene :is(.stitch-scene-plane, .stitch-scene-cloud, .stitch-scene-hotel i) { animation: none; }
+}
