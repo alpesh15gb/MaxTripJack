@@ -213,23 +213,6 @@ export async function expectFlightToolbarValuesFit(page: Page) {
   // The sort remains outside the native modal and becomes inert while it is open.
   if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();
   await expect(page.getByRole('group', { name: 'Sort flights', exact: true })).toBeVisible();
-  async function assertFits(label:string){
-    const select = page.getByRole('combobox', { name: label, exact: true });
-    const size = await select.evaluate(element => {
-      const input = element as HTMLSelectElement;
-      const style = getComputedStyle(input);
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d')!;
-      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      return {
-        label: input.selectedOptions[0]?.label ?? '',
-        text: context.measureText(input.selectedOptions[0]?.label ?? '').width,
-        available: input.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 20,
-      };
-    });
-    expect(size.label).not.toBe('');
-    expect(size.available, `${label} must show the selected value rather than clip it`).toBeGreaterThanOrEqual(size.text);
-  }
   const filters=page.getByRole('button',{name:/^Filters/});
   if(!(await filters.isVisible())){
     const sidebar=page.getByRole('complementary',{name:'Flight result controls'});
@@ -238,14 +221,19 @@ export async function expectFlightToolbarValuesFit(page: Page) {
     return;
   }
   await filters.click();
-  for(const label of ['Airline (any segment)','Stops'])await assertFits(label);
+  // Phones use the same one-click facets as the desktop sidebar, not dropdowns.
+  await expect(dialog.getByRole('combobox')).toHaveCount(0);
+  await expect(dialog.getByRole('button',{name:'Filter by Non-stop'})).toBeVisible();
   if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();
 }
 
 export async function chooseFlightFilter(page: Page, field: 'Stops'|'Airline (any segment)'|'Departure time', value: string) {
   const select=page.getByRole('combobox',{name:field,exact:true});
   if(await select.isVisible()){await select.selectOption(value);return;}
-  const sidebar=page.getByRole('complementary',{name:'Flight result controls'});
+  const dialog=page.getByRole('dialog',{name:'Filter flights',exact:true});
+  const toggle=page.getByRole('button',{name:/^Filters/});
+  if(!(await dialog.isVisible())&&await toggle.isVisible())await toggle.click();
+  const sidebar=await dialog.isVisible()?dialog:page.getByRole('complementary',{name:'Flight result controls'});
   const label=field==='Stops'?['Non-stop','1 stop','2 stops'][Number(value)]:value;
   const times:Record<string,string>={EARLY:'Early morning',MORNING:'Morning',AFTERNOON:'Afternoon',EVENING:'Evening'};
   const button=field==='Departure time'?sidebar.getByRole('button',{name:new RegExp(`^${times[value]} \\d`)}):sidebar.getByRole('button',{name:`Filter by ${label}`,exact:true});

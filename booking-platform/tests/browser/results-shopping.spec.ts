@@ -159,7 +159,7 @@ test('mobile flight filters contain keyboard focus and preserve refinements afte
  const dialog=page.getByRole('dialog',{name:'Filter flights',exact:true});
  await expect(dialog).toBeVisible();
  await expect(dialog).toHaveJSProperty('open',true);
- await dialog.getByLabel('Stops',{exact:true}).selectOption('0');
+ await dialog.getByRole('button',{name:'Filter by Non-stop',exact:true}).click();
  const apply=dialog.getByRole('button',{name:'Show 2 flights',exact:true});
  await expect(apply).toBeVisible();
  await apply.focus();
@@ -169,7 +169,7 @@ test('mobile flight filters contain keyboard focus and preserve refinements afte
  await expect(trigger).toBeFocused();
  await expect(page.locator('.live-flight-card')).toHaveCount(2);
  await trigger.click();
- await expect(dialog.getByLabel('Stops',{exact:true})).toHaveValue('0');
+ await expect(dialog.getByRole('button',{name:'Filter by Non-stop',exact:true})).toHaveAttribute('aria-pressed','true');
  await dialog.getByRole('button',{name:'Reset flight filters',exact:true}).click();
  await dialog.getByRole('button',{name:'Show 3 flights',exact:true}).click();
  await expect(dialog).toBeHidden();

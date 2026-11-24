@@ -480,3 +480,12 @@ body:has(.concierge-header) .booking-workflow.results-only { margin-top:0; }
   #booking-results .live-flight-card .flight-price-from { display: block; }
   #booking-results .live-flight-card .choose-fare-label { padding-inline: 10px; }
 }
+
+/* Quick maximum-total caps (from the VPS revamp), derived from loaded fares. */
+#booking-results .stitch-budget-caps { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+#booking-results .stitch-budget-caps button { min-height:36px; padding:6px 11px; border:1px solid #c7d3e0; border-radius:999px; background:#fff; color:#003765; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+#booking-results .stitch-budget-caps button[aria-pressed=true] { background:#d9e8ff; border-color:#005bb3; }
+/* Phone filter sheet reuses the one-click desktop facets. */
+#booking-results .flight-sheet-facets .stitch-facets-header { justify-content:flex-end; }
+#booking-results .flight-sheet-facets .stitch-facets-header h3 { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+#booking-results .flight-sheet-facets :is(.stitch-facet-option,.stitch-budget-caps button) { min-height:44px; }

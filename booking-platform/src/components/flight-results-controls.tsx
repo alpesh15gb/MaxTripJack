@@ -32,6 +32,7 @@ export type FlightFilterProps = {
 
 type FlightFilterFieldsProps = FlightFilterProps & { airlines: string[] };
 type Props = FlightFilterFieldsProps & {
+  flights?: readonly Flight[];
   count: number;
   nonstopCount?: number;
   sortBy: FlightSort;
@@ -76,30 +77,18 @@ export function FlightActiveFilterChips(props: FlightFilterProps & {withNonstopT
   </section>;
 }
 
-function FlightFilterFields(props: FlightFilterFieldsProps) {
-  return <div className="flight-extra-filters is-expanded">
-    <div className="flight-filter-intro"><strong>Refine your flights</strong><p>Filter loaded options. Times are local to the departure airport.</p></div>
-    {props.airlineQuery&&<p className="flight-filter-note">Matching carrier: <strong>{props.airlineQuery}</strong> on every segment. Choose an airline below to replace this preference.</p>}
-    <label>Airline (any segment)<select aria-label="Airline (any segment)" value={props.airline} onChange={event => props.onAirline(event.target.value)} disabled={props.disabled}>
-      <option value="ALL">All airlines</option>{props.airlines.map(name => <option key={name} value={name}>{name}</option>)}
-    </select></label>
-    <label>Stops<select aria-label="Stops" value={props.stops} disabled={props.disabled || props.group === 'COMBO'} onChange={event => props.onStops(event.target.value)}>
-      <option value="ALL">Any number of stops</option><option value="0">Non-stop</option><option value="1">1 stop</option><option value="2">2 stops</option>
-    </select></label>
-    <label>Departure time<select aria-label="Departure time" value={props.departure} disabled={props.disabled || props.group === 'COMBO'} onChange={event => props.onDeparture(event.target.value)}>
-      <option value="ALL">Any departure time</option><option value="EARLY">Before 06:00</option><option value="MORNING">06:00–11:59</option><option value="AFTERNOON">12:00–17:59</option><option value="EVENING">18:00–23:59</option>
-    </select></label>
-    <label>Maximum total for all travellers (₹)<input type="number" min="0" step="1" inputMode="numeric" placeholder="No limit" value={props.budget} disabled={props.disabled} onChange={event => props.onBudget(event.target.value)}/></label>
-    <p className="flight-filter-note">Estimated journey total for all travellers. Only compatible fares are compared. Unpriced options are excluded when a limit is set.</p>
+function FlightFilterFields(props: FlightFilterFieldsProps & {flights?: readonly Flight[]}) {
+  return <div className="flight-extra-filters is-expanded flight-sheet-facets">
+    <FlightFacets {...props}/>
     {props.group === 'COMBO' && <p className="muted">Complete itineraries: inspect each flight below. Stop and departure filters do not apply across multiple journeys.</p>}
-    <button className="secondary" type="button" disabled={props.disabled} onClick={()=>resetFlightFilters(props)}>Reset flight filters</button>
   </div>;
 }
 
-export function FlightDesktopFilters(props: FlightFilterFieldsProps & {flights: readonly Flight[]}) {
+/** One-click facets shared by the desktop sidebar and the phone filter sheet. */
+function FlightFacets(props: FlightFilterFieldsProps & {flights?: readonly Flight[]}) {
   const stopPrices = new Map<string, number>(), airlinePrices = new Map<string, number>();
   let lowest=Infinity, highest=0;
-  for(const flight of props.flights){
+  for(const flight of props.flights ?? []){
     const fare=estimatedFare(flight);
     if(!Number.isFinite(fare))continue;
     lowest=Math.min(lowest,fare);highest=Math.max(highest,fare);
@@ -108,8 +97,10 @@ export function FlightDesktopFilters(props: FlightFilterFieldsProps & {flights: 
     for(const segment of flight.sI){const name=segment.fD.aI.name;airlinePrices.set(name,Math.min(airlinePrices.get(name)??Infinity,fare));}
   }
   const min=Math.floor(lowest/100),max=Math.ceil(highest/100);
+  // Quick caps from the loaded fares (not fixed amounts), rounded up to ₹500.
+  const caps=Number.isFinite(min)&&max>min?[...new Set([0.25,0.5,0.75].map(step=>Math.ceil((min+(max-min)*step)/500)*500))].filter(cap=>cap>min&&cap<max):[];
   const choice=(value:string,label:string,selected:string,onChange:(value:string)=>void,estimate?:number)=><button type="button" className="stitch-facet-option" key={value} disabled={props.disabled} aria-label={`Filter by ${label}`} aria-pressed={selected===value} onClick={()=>onChange(selected===value?'ALL':value)}><span className="stitch-facet-tick" aria-hidden="true">{selected===value?'✓':''}</span><span>{label}</span><small>{estimate!==undefined?displayMoney(estimate):'—'}</small></button>;
-  return <aside className="results-toolbar flight-shopping-controls flight-desktop-filters" aria-label="Flight result controls">
+  return <>
     <div className="stitch-flight-facets">
       <div className="stitch-facets-header"><h3>Filters</h3><button type="button" aria-label="Reset flight filters" onClick={()=>resetFlightFilters(props)} disabled={props.disabled}>Reset all</button></div>
       {props.airlineQuery&&<p className="flight-filter-note">Matching {props.airlineQuery} on every segment.</p>}
@@ -129,8 +120,15 @@ export function FlightDesktopFilters(props: FlightFilterFieldsProps & {flights: 
       <section className="stitch-facet-budget"><h4>Price range</h4>
         {Number.isFinite(min)&&max>min&&<><input aria-label="Maximum fare slider" type="range" min={min} max={max} step="1" value={props.budget?Math.max(min,Math.min(max,Number(props.budget)||max)):max} onChange={e=>props.onBudget(Number(e.target.value)===max?'':e.target.value)} disabled={props.disabled}/><div><small>{displayMoney(min*100)}</small><small>{displayMoney(max*100)}</small></div></>}
         <label>Maximum total for all travellers (₹)<input type="number" min="0" step="1" inputMode="numeric" placeholder="No limit" value={props.budget} disabled={props.disabled} onChange={e=>props.onBudget(e.target.value)}/></label>
+      {caps.length>0&&<div className="stitch-budget-caps" role="group" aria-label="Quick maximum total">{caps.map(cap=><button key={cap} type="button" aria-pressed={props.budget===String(cap)} disabled={props.disabled} onClick={()=>props.onBudget(props.budget===String(cap)?'':String(cap))}>Up to {displayMoney(cap*100)}</button>)}</div>}
       </section>
     </div>
+  </>;
+}
+
+export function FlightDesktopFilters(props: FlightFilterFieldsProps & {flights: readonly Flight[]}) {
+  return <aside className="results-toolbar flight-shopping-controls flight-desktop-filters" aria-label="Flight result controls">
+    <FlightFacets {...props}/>
     <FlightDeskLink/>
   </aside>;
 }

@@ -1433,7 +1433,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
               <span>Sort by</span>
               <p id="flight-sort-fare-scope">Estimated fares for all travellers</p>
             </div>}
-            {!checkoutStarted&&<FlightResultsControls {...flightFilterProps} sortBy={effectiveSort} onSort={changeFlightSort}/>}
+            {!checkoutStarted&&<FlightResultsControls {...flightFilterProps} flights={groupFlights.map(comparableFlight)} sortBy={effectiveSort} onSort={changeFlightSort}/>}
           </div></div>
           {flightRows.length>0&&shownGroup!=='COMBO'&&<FlightResultColumns/>}
           {visibleFlightRows.length>0&&<FlightDeskLink/>}

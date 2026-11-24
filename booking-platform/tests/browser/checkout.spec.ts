@@ -312,7 +312,8 @@ test('unknown local-time duration is not guessed and COMBO journeys are not conn
   const comboFilters=page.getByRole('dialog',{name:'Filter flights',exact:true});
   if(await filters.isVisible()){
     await filters.click();
-    await expect(comboFilters.getByRole('combobox',{name:'Stops',exact:true})).toBeDisabled();
+    await expect(comboFilters.getByText('Check stops for each flight in the complete itinerary.')).toBeVisible();
+    await expect(comboFilters.getByRole('button',{name:'Filter by Non-stop',exact:true})).toHaveCount(0);
     await comboFilters.getByRole('button',{name:'Close filters',exact:true}).click();
   }else await expect(page.getByText('Check stops for each flight in the complete itinerary.')).toBeVisible();
   await expect(page.locator('.combo-itinerary')).toContainText('BOM → DEL');
@@ -684,14 +685,14 @@ test('mobile filters expand accessibly without replacing the visible sort or tri
  const filters=page.getByRole('button',{name:/^Filters/});
  if(await filters.isVisible()){
   await expect(filters).toHaveAttribute('aria-expanded','false');
-  await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Filter by IndiGo',exact:true})).toHaveCount(0);
   await filters.focus();await filters.press('Enter');await expect(page.locator('.flight-filter-trigger')).toHaveAttribute('aria-expanded','true');await expect(page.getByRole('dialog',{name:'Filter flights',exact:true})).toBeVisible();
-  await page.getByRole('combobox',{name:'Airline (any segment)',exact:true}).selectOption('IndiGo');
-  await expect(page.getByRole('combobox',{name:'Stops',exact:true})).toBeVisible();
+  await page.getByRole('dialog',{name:'Filter flights',exact:true}).getByRole('button',{name:'Filter by IndiGo',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Filter flights',exact:true}).getByRole('button',{name:'Filter by Non-stop',exact:true})).toBeVisible();
   const dialog=page.getByRole('dialog',{name:'Filter flights',exact:true});
   await dialog.getByRole('button',{name:'Close filters',exact:true}).click();await expect(filters).toHaveAttribute('aria-expanded','false');await expect(filters).toBeFocused();
   await filters.focus();await filters.press('Enter');
-  await expect(page.getByRole('combobox',{name:'Airline (any segment)',exact:true})).toHaveValue('IndiGo');
+  await expect(page.getByRole('dialog',{name:'Filter flights',exact:true}).getByRole('button',{name:'Filter by IndiGo',exact:true})).toHaveAttribute('aria-pressed','true');
   await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(filters).toBeFocused();
   await expectFlightToolbarValuesFit(page);
  }
