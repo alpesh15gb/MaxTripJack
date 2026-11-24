@@ -63,7 +63,7 @@ export async function completeMaxAi(messages:ProviderMessage[],tools:MaxAiFuncti
   try{
     const response=await (options.fetch??fetch)(`${config.baseURL}/chat/completions`,{
       method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:`Bearer ${config.apiKey}`},
-      body:JSON.stringify({model:config.model,messages,max_tokens:1200,stream:false,...(tools.length?{tools,tool_choice:'auto'}:{})}),
+      body:JSON.stringify({model:config.model,messages,max_tokens:tools.some(tool=>tool.function.name==='prepare_enquiry')?1200:tools.length?900:320,stream:false,...(tools.length?{tools,tool_choice:'auto'}:{})}),
       redirect:'error',cache:'no-store',signal,
     });
     if(!response.ok){void response.body?.cancel().catch(()=>{});throw new MaxAiProviderError('http',response.status);}

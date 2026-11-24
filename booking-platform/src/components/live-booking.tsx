@@ -61,9 +61,8 @@ import HotelCancellationTimeline from './hotel-cancellation-timeline';
 import RefreshedTerms from './refreshed-terms';
 import InitialReviewPriceNotice from './initial-review-price-notice';
 import {initialReviewPriceChange,selectedFlightEstimate,selectedFlightsInJourneyOrder,selectedHotelEstimate,type InitialReviewPriceChange} from '@/lib/checkout-selection-context';
-import type {ReviewTerm} from '@/lib/review-term-changes';
+import {compareReviewedTerms,type ReviewTerm} from '@/lib/review-term-changes';
 import CheckoutPromo, { type CheckoutPromoActions } from './checkout-promo';
-import {MaxAiInlineAction} from './max-ai-assistant';
 import CheckoutExtras from './checkout-extras';
 import CheckoutPaymentMethods, {paymentPreference} from './checkout-payment-methods';
 import {bookingCallingCodes, bookingPhoneParts} from '@/lib/booking-phone';
@@ -87,6 +86,18 @@ type Results={searchId:string;propertyContentPending?:boolean;propertyContentUna
 const callingCodes=bookingCallingCodes();
 
 type Quote={extrasRefresh?:'kept'|'removed';baseTotalMinor?:number;savedFlightExtrasCount?:number;priceBreakdown?:BookingPriceBreakdown|null;discountMinor?:number;promoCode?:string|null;quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;childrenAges?:number[];rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{terms?:ReviewTerm[];fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
+function refreshedReviewUnchanged(before:Quote,after:Quote){
+  const oldTerms=before.review.terms,newTerms=after.review.terms;
+  if(before.product!==after.product||before.totalMinor!==after.totalMinor||after.extrasRefresh==='removed'||!oldTerms?.length||!newTerms?.length)return false;
+  if([...oldTerms,...newTerms].some(term=>term.value===null)||compareReviewedTerms(oldTerms,newTerms).length)return false;
+  // The comparable terms are useful for focus, but supplier requirements and
+  // the payable breakdown must also agree before we call a refresh unchanged.
+  return ['conditions','fareRules','alerts'].every(key=>JSON.stringify(before.review[key as keyof Quote['review']]??null)===JSON.stringify(after.review[key as keyof Quote['review']]??null))
+    &&JSON.stringify(before.review.option?.compliance??null)===JSON.stringify(after.review.option?.compliance??null)
+    &&JSON.stringify(before.review.option?.cancellation??null)===JSON.stringify(after.review.option?.cancellation??null)
+    &&JSON.stringify(before.priceBreakdown??null)===JSON.stringify(after.priceBreakdown??null)
+    &&before.discountMinor===after.discountMinor&&before.promoCode===after.promoCode&&before.savedFlightExtrasCount===after.savedFlightExtrasCount;
+}
 type Selection={priceIds?:string[];hid?:string;optionId?:string};
 type Payment={provider?:'RAZORPAY';bookingId:string;orderId:string;amount:number;currency:string;keyId:string}|{provider:'PAYGLOCAL';bookingId:string;checkoutUrl:string;amount:number;currency:'INR'};
 class BookingApiError extends Error { constructor(message:string,public status:number,public code?:string,public fields:GuestIssue[]=[]){super(message);} }
@@ -555,7 +566,16 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       const form=checkoutForm.current;if(!form)return;
       updateTravellerSummary(form);
       if(pending.validate&&!validatedGuests(form))return;
-      requestAnimationFrame(()=>{const title=document.getElementById('refreshed-terms-title');title?.focus({preventScroll:true});title?.scrollIntoView({behavior:'auto',block:'nearest'});});
+      requestAnimationFrame(()=>{
+        // A refresh triggered by the final payment action should return the
+        // customer to that action when the supported terms and total agree.
+        // Changed or incomplete terms still demand attention above the form.
+        const target=pending.validate&&previousReview&&refreshedReviewUnchanged(previousReview,quote)
+          ?form.querySelector<HTMLElement>('.booking-continue')
+          :document.getElementById('refreshed-terms-title');
+        target?.focus({preventScroll:true});
+        target?.scrollIntoView({behavior:'auto',block:target?.classList.contains('booking-continue')?'center':'nearest'});
+      });
     },0);
     return()=>clearTimeout(timer);
     // Runs once per completed refresh, using committed fields and requirements.
@@ -588,6 +608,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   ].filter((detail):detail is string=>detail!==null);
   const remaining=quote&&now!==null?quoteRemaining(quote.expiresAt,now):null;
   const expired=remaining!==null&&remaining<=0;
+  const refreshUnchanged=Boolean(previousReview&&quote&&refreshedReviewUnchanged(previousReview,quote));
   const groups=useMemo(()=>Object.fromEntries(Object.entries(results?.results.searchResult?.tripInfos??{}).map(([key,flights])=>[key,groupIdenticalFlights(flights)])),[results]);
   const fareGroups=orderedGroups(groups),pairedFares=fareGroups.length>1;
   const shownGroup=fareGroups.includes(activeGroup)?activeGroup:fareGroups[0];
@@ -1439,7 +1460,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         {previousReview&&<RefreshedTerms before={previousReview} after={quote} extrasRefresh={quote.extrasRefresh}/>}
         {initialPriceChange?.quoteId===quote.quoteId&&initialPriceChange.reviewedMinor===quote.totalMinor&&!extrasPending&&<InitialReviewPriceNotice change={initialPriceChange} product={quote.product} estimateBreakdown={initialPriceChange.estimateBreakdown} reviewedBreakdown={quote.priceBreakdown}/>}
         <h1 className="visually-hidden">Booking review &amp; checkout</h1>
-        <div className="checkout-stages"><div className={`booking-expiry${expired||needsReview?' is-expired':''}`} role={expired||needsReview?'alert':undefined}><div><strong>{payment?'Payment order created':expired||needsReview?'We’ll check the latest price when you continue':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':expired||needsReview?'Your details are kept. You’ll see any changes before choosing Agree & pay.':'We’ll check the price again if needed before payment.'}</p><small className="checkout-test-mode">In testing · No live bookings or payments</small></div>{busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}{!payment&&!paymentUncertain&&selection&&<button type="button" className="secondary" disabled={busy} aria-label={busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'} onClick={()=>void review(selection,true)}><span className="clock-refresh-wide">{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</span><span className="clock-refresh-short">{busy&&checkingSelection?'Checking…':'Refresh'}</span></button>}</div>{bookingProgress}</div>
+        <div className="checkout-stages"><div className={`booking-expiry${expired||needsReview?' is-expired':''}`} role={expired||needsReview?'alert':undefined}><div><strong>{payment?'Payment order created':expired||needsReview?'Price review expired':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':expired||needsReview?'Your traveller details are saved on this screen. Refresh the price below, then choose Agree & pay. Refreshing does not start payment.':'We’ll check the price again if needed before payment.'}</p><small className="checkout-test-mode">In testing · No live bookings or payments</small></div>{busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}{!payment&&!paymentUncertain&&selection&&!expired&&!needsReview&&<button type="button" className="secondary" disabled={busy} aria-label={busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'} onClick={()=>void review(selection,true)}><span className="clock-refresh-wide">{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</span><span className="clock-refresh-short">{busy&&checkingSelection?'Checking…':'Refresh'}</span></button>}</div>{bookingProgress}</div>
         <div className="booking-inline-grid"><div className="booking-details-column">
           <SelectedJourneyReceipt context={<div className="review-selection-context">
             <h2 id="booking-review-title" tabIndex={-1}>{!checkoutConfigured?'Your reviewed selection':quote.product==='HOTEL'?'Hotel stay':'Flight itinerary'}</h2>
@@ -1496,7 +1517,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
               beforeOpen={()=>Boolean(checkoutForm.current&&validatedGuests(checkoutForm.current))}
               onApplyOffer={code=>promoActions.current?.applyOffer(code)}/>
             {billingRequired&&<BillingFields addressRequired={quote.product==='FLIGHT'} disabled={checkoutLocked}/>}
-            <MaxAiInlineAction label="Ask Max AI about this booking"/>
+            {previousReview&&!payment&&!paymentUncertain&&!expired&&!needsReview&&!providerUnavailable&&<p className={`checkout-refresh-guidance${refreshUnchanged?' is-unchanged':' is-changed'}`} role="status">{refreshUnchanged?'Price and comparable terms rechecked. Your details are kept; choose Agree & pay below to open secure checkout.':'The price review is updated. Check the refreshed terms above before you pay.'}</p>}
             {uncertainPromoQuote===quote.quoteId&&<div className="info-message" role="status" aria-label="Promo total confirmation"><p>{expired||needsReview?'Your promo total is unconfirmed. Check the latest price to continue with a fresh quote.':'Payment is paused until you apply or remove the promo code to confirm the total.'}</p></div>}
             {extrasPending&&<div className="checkout-pending-extras">
               <p role="status">{expired||needsReview?'Check the latest price, then choose your extras again.':'Your flight extras need review before you pay.'}</p>
@@ -1506,7 +1527,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
             <div className={`checkout-submit-action${!paymentUncertain?' mobile-booking-action':''}`}>
               <div className="mobile-action-total"><button type="button" className="checkout-summary-jump" aria-label="View booking summary" aria-controls="booking-summary" onClick={showCheckoutSummary}><small>View summary</small><strong>{money(quote.totalMinor)}</strong></button></div>
               {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button type="submit" className="primary booking-continue" aria-describedby={!payment&&!expired&&!needsReview?'checkout-consent':undefined} disabled={busy||(!expired&&!needsReview&&(uncertainPromoQuote===quote.quoteId||extrasPending))||Boolean(payment&&(expired||needsReview))||providerUnavailable||recoveryBlocked}>
-                {providerUnavailable?'Online payment unavailable':busy?'Processing…':payment?'Resume secure checkout':expired||needsReview?'Check latest price & continue':<>Agree &amp; pay <span className="checkout-pay-amount">{money(quote.totalMinor)}</span></>}
+                {providerUnavailable?'Online payment unavailable':busy?'Processing…':payment?'Resume secure checkout':expired||needsReview?'Refresh price to pay':<>Agree &amp; pay <span className="checkout-pay-amount">{money(quote.totalMinor)}</span></>}
               </button>}
             </div>
             <CheckoutPartySummary party={party} roomIndexes={quote.product==='HOTEL'?hotelParty.map(guest=>guest.roomIndex):undefined}

@@ -274,6 +274,8 @@ body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-
 }
 body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-review-column .checkout-summary-policy { margin: 0 0 12px; font-size: 13px; line-height: 1.5; }
 body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-review-column .checkout-summary-policy :is(button,a) { display: inline-flex; align-items: center; min-height: 44px; color: var(--brand-gold-ink, #725321); text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+body .booking-workflow.journey-flow .booking-review.is-inline-checkout .checkout-refresh-guidance { margin: 14px 0 0; padding: 12px 14px; border: 1px solid #d9e6dc; border-left: 3px solid #35785b; border-radius: 10px; background: #f2f8f3; color: #183c2a; font-size: 13px; line-height: 1.55; }
+body .booking-workflow.journey-flow .booking-review.is-inline-checkout .checkout-refresh-guidance.is-changed { border-color: #ebdec7; border-left-color: #9a6721; background: #fff9ef; color: #694513; }
 body .booking-workflow.journey-flow .booking-review.is-inline-checkout .checkout-summary-jump { display: none; }
 @media (min-width: 1200px) {
   body .booking-workflow.journey-flow .booking-review.is-inline-checkout .booking-details-column .traveller-identity { display: grid; grid-template-columns: 94px repeat(2, minmax(0, 1fr)); }

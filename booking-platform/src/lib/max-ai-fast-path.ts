@@ -2,8 +2,15 @@
 export function maxAiFastPath(message:string,hasHistory:boolean):{reply:string}|{tool:'my_trips'}|null{
   const value=message.trim().toLowerCase().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   if(['my bookings','my trips','show my bookings','show me my bookings','show me my trips','show me my bookings and their current status','check my bookings'].includes(value))return {tool:'my_trips'};
+  if(!hasHistory&&['hi','hello','hey','namaste'].includes(value))return {reply:'Hello! I’m Max AI. I can help with flights, hotels, visas, travel insurance, holiday packages, cruises or an existing booking. What are you planning?'};
+  // These are stable travel definitions, not live inventory or the visitor's
+  // booking status. Answering directly avoids a slow and sometimes vague model
+  // response to a common pre-purchase question.
+  if(value.length<=240&&/^(?:what(?:'s| is)|explain|how (?:does|do)|(?:what is the )?difference between)\b/.test(value)&&!/\b(?:my|our|this|that|selected|specific|current|today|latest|price|cost|refund|cancel)\b/.test(value)){
+    if(/\b(?:pnr|record locator|booking reference)\b/.test(value)&&/\b(?:e-?ticket|electronic ticket|ticket number)\b/.test(value))return {reply:'An airline PNR (record locator) identifies a reservation. An e-ticket number identifies an issued ticket for a passenger. A PNR by itself does not prove that a ticket has been issued. For your own trip, open My trips and check the separate supplier confirmation and ticket details.'};
+    if(/\bcodeshare\b/.test(value)&&/\b(?:flight|airline|operat\w*)\b/.test(value))return {reply:'A codeshare flight is sold under one airline’s flight number but flown by another airline. The operating airline runs the aircraft and usually handles check-in and onboard service. Check the operating carrier and terminal on the selected itinerary and confirm details before departure.'};
+  }
   if(hasHistory)return null;
-  if(['hi','hello','hey','namaste'].includes(value))return {reply:'Hello! I’m Max AI. I can help with flights, hotels, visas, travel insurance, holiday packages, cruises or an existing booking. What are you planning?'};
   const request=value.replace(/^(?:please )?(?:i (?:want|need|would like)(?: to (?:book|buy|find|plan|apply for))?|help me (?:find|book|plan|apply for)|(?:find|book|plan|buy))\s+/,'').replace(/^(?:a|an|some)\s+/,'');
   if(['visa','visa assistance'].includes(request))return {reply:'MaxTravel can help with visa enquiries. Which country are you visiting, what is your passport nationality, and is the trip for tourism, business or another purpose? Please include your intended travel month or dates if known.'};
   if(['insurance','travel insurance'].includes(request))return {reply:'I can help prepare a travel-insurance enquiry. Where are you travelling, what are your dates or approximate duration, and how many travellers are there with their ages? Keep medical records and passport numbers out of chat.'};

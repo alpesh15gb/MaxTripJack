@@ -174,7 +174,7 @@ test('expired Pay refreshes the total and waits for a second explicit Agree & pa
  await openFlight(page);await fillTraveller(page);await reviewPayment(page);
  provider.quote={...flightQuote([fare('ONWARD',0,'No allowance')],renewedId),totalMinor:724000};
  await page.clock.fastForward(120_000);
- await form(page).getByRole('button',{name:'Check latest price & continue',exact:true}).click();
+ await form(page).getByRole('button',{name:'Refresh price to pay',exact:true}).click();
  await expect(pay(page)).toHaveText('Agree & pay ₹7,240');
  await expect(disclosure(page)).toContainText('Total changed from ₹6,540 to ₹7,240');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
@@ -248,14 +248,14 @@ for(const outcome of ['draft','kept','unavailable'] as const)test(`fare refresh 
  }
  if(outcome==='unavailable')provider.overrides['POST /api/travel/review']={status:409,body:{code:'FLIGHT_EXTRAS_REFRESH',error:'One or more saved flight extras could not be verified.'}};
  await page.clock.fastForward(120_000);
- await form(page).getByRole('button',{name:'Check latest price & continue',exact:true}).click();
+ await form(page).getByRole('button',{name:'Refresh price to pay',exact:true}).click();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  if(outcome==='unavailable'){
   const remove=page.getByRole('button',{name:'Review price without saved extras',exact:true});
   await expect(remove).toBeVisible();
   await expect(page.locator('#booking-summary .booking-total')).toContainText('₹7,264.50');
   await expect(pay(page)).toHaveCount(0);
-  await expect(form(page).getByRole('button',{name:'Check latest price & continue',exact:true})).toBeVisible();
+  await expect(form(page).getByRole('button',{name:'Refresh price to pay',exact:true})).toBeVisible();
   Object.assign(provider.quote,{extrasRefresh:'removed',baseTotalMinor:654000,savedFlightExtrasCount:0});
   delete provider.overrides['POST /api/travel/review'];
   await remove.click();

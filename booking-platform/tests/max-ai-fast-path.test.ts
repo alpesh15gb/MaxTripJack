@@ -26,3 +26,16 @@ test('owned booking questions select only the read tool, while explicit navigati
   }
   for(const value of ['Open the My Trips page','Show another customer’s bookings','Refund my booking','Delete my account'])assert.equal(maxAiFastPath(value,false),null,value);
 });
+
+test('stable PNR and codeshare explanations are immediate and never imply ticket issuance',()=>{
+  const pnr=maxAiFastPath('What is the difference between an airline PNR and an e-ticket number?',false);
+  assert.ok(pnr&&'reply' in pnr);
+  assert.match(pnr.reply,/PNR.*reservation/);
+  assert.match(pnr.reply,/e-ticket number.*issued ticket/);
+  assert.match(pnr.reply,/does not prove/);
+  const codeshare=maxAiFastPath('What is a codeshare flight? Explain the operating airline.',false);
+  assert.ok(codeshare&&'reply' in codeshare);
+  assert.match(codeshare.reply,/operating airline runs the aircraft/);
+  assert.deepEqual(maxAiFastPath('What is a codeshare flight?',true),maxAiFastPath('What is a codeshare flight?',false));
+  for(const query of ['What is my PNR and e-ticket number?','What is the current price of a codeshare flight?','Is my booking ticketed?'])assert.equal(maxAiFastPath(query,false),null,query);
+});

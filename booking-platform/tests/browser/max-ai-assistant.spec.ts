@@ -244,26 +244,18 @@ test('a payment SDK container retained after dismissal cannot hide the Max AI la
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
-test('320px assistant opens from inline checkout help and keeps payment reachable', async ({page, provider}, info) => {
+test('320px checkout keeps payment reachable without an AI detour', async ({page, provider}, info) => {
   await page.setViewportSize({width: 320, height: 740});
-  provider.overrides[endpoint] = {body: answer({reply: 'You can review the selected flight and fare conditions in checkout.'})};
   await openFlightSearch(page);
   await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button', {name: 'Check fare & continue', exact: true}).click();
   const bar = page.locator('.mobile-booking-action');
   await expect(bar).toBeVisible();
   await expect(launcher(page)).toBeHidden();
-  await page.getByRole('button',{name:'Ask Max AI about this booking',exact:true}).click();
-  await expect(panel(page)).toBeVisible();
-  const dialogBox = await panel(page).boundingBox();
-  expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
-  expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(320);
-  expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(741);
-  await message(page, 'Explain the next step');
-  await expect(panel(page)).toContainText('review the selected flight');
+  await expect(page.getByRole('button',{name:'Ask Max AI about this booking',exact:true})).toHaveCount(0);
+  await expect(panel(page)).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
-  await capture(page, info, 'max-ai-320px-checkout-help');
-  await panel(page).getByRole('button', {name: 'Close Max AI', exact: true}).click();
+  await capture(page, info, 'checkout-320px-no-ai-detour');
   await expect(bar.getByRole('button', {name: /^Agree & pay /})).toBeEnabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

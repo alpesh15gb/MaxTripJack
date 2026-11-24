@@ -177,10 +177,10 @@ test('expired payment action refreshes in place, preserves guests and Back/Forwa
   provider.quote = reviewedQuote({ expiresAt: new Date(Date.now() - 60_000).toISOString() });
   await openReviewedFlight(page);await fillDomesticTraveller(page);
   const review=page.locator('#booking-review');
-  await expect(review.getByRole('button',{name:'Check latest price & continue',exact:true})).toBeEnabled();
+  await expect(review.getByRole('button',{name:'Refresh price to pay',exact:true})).toBeEnabled();
   await capture(page,testInfo,'expired-quote');
   provider.quote=reviewedQuote({quoteId:'44444444-4444-4444-8444-444444444444',totalMinor:724000});
-  await review.getByRole('button',{name:'Check latest price & continue',exact:true}).click();
+  await review.getByRole('button',{name:'Refresh price to pay',exact:true}).click();
   await expect(review.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();
   await expect(review.getByRole('button',{name:/^Agree & pay ₹7,240/})).toBeEnabled();
   await expect(review.getByRole('checkbox')).toHaveCount(0);
@@ -198,6 +198,25 @@ test('expired payment action refreshes in place, preserves guests and Back/Forwa
   await page.getByRole('button',{name:'Change selection',exact:true}).click();
   await expect(page.locator('.flight-shopping-list')).toBeVisible();
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
+for(const width of [390,1280])test(`unchanged expired review returns to the payment action at ${width}px`,async({page,provider})=>{
+  await page.setViewportSize({width,height:850});
+  const terms=[{key:'synthetic-fare',label:'Fare conditions',value:'Standard fare'}];
+  provider.quote=reviewedQuote({expiresAt:new Date(Date.now()-60_000).toISOString(),review:{terms,conditions:{}}});
+  await openReviewedFlight(page);await fillDomesticTraveller(page);
+  const form=page.locator('#booking-review');
+  await expect(form.getByRole('button',{name:'Refresh price to pay',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Refresh reviewed price',exact:true})).toHaveCount(0);
+  provider.quote=reviewedQuote({quoteId:'44444444-4444-4444-8444-444444444444',expiresAt:new Date(Date.now()+180_000).toISOString(),review:{terms,conditions:{}}});
+  await form.getByRole('button',{name:'Refresh price to pay',exact:true}).click();
+  const pay=form.getByRole('button',{name:/^Agree & pay /});
+  await expect(pay).toBeFocused();
+  await expect(form.locator('.checkout-refresh-guidance')).toContainText('Price and comparable terms rechecked');
+  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+  await pay.click();
+  await expect.poll(()=>provider.requests('/api/payments/create').length).toBe(1);
 });
 
 test('dismissing and resuming payment reuses the same order and never claims confirmation', async ({ page, provider }, testInfo) => {
@@ -271,8 +290,8 @@ test('supplier review-required errors do not automatically repeat payment creati
   await showPaymentReview(page);
   await page.locator('#booking-review').getByRole('button', { name: /^Agree & pay / }).click();
   await expect(page.locator('#booking-feedback').getByRole('alert')).toContainText('Price changed. Accept the latest review.');
-  await expect(page.getByRole('button', { name: 'Refresh reviewed price', exact: true })).toBeVisible();
-  await expect(page.locator('#booking-review').getByRole('button', { name: 'Check latest price & continue',exact:true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Refresh reviewed price', exact: true })).toHaveCount(0);
+  await expect(page.locator('#booking-review').getByRole('button', { name: 'Refresh price to pay',exact:true })).toBeEnabled();
   expect(provider.requests('/api/payments/create')).toHaveLength(1);
   expect(provider.requests('/api/payments/verify')).toHaveLength(0);
   expect(await page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(0);

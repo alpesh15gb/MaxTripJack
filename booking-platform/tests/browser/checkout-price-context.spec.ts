@@ -58,7 +58,7 @@ test('hotel bundle comparison stays inclusive and final review identifies each g
  await expect(notice(page)).toContainText('Room rate -₹800 · Taxes and fees -₹200');
  await expect(page.locator('#booking-summary')).toContainText('Supplier taxes and fees');
  await expect(page.getByRole('button',{name:'Open Max AI travel assistant',exact:true})).toBeHidden();
- await expect(page.getByRole('button',{name:'Ask Max AI about this booking',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Ask Max AI about this booking',exact:true})).toHaveCount(0);
  await fillGuests(page,['Aarav','Isha']);
  const summary=page.locator('.final-traveller-summary');
  await expect(summary.getByRole('listitem').first()).toHaveCSS('display','grid');

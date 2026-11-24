@@ -1,6 +1,6 @@
 import 'server-only';
 import {completeMaxAi,type MaxAiFunction,type MaxAiAssistantMessage,MaxAiProviderError} from './max-ai-provider';
-import {maxAiSystemPrompt} from './max-ai-prompt';
+import {maxAiGeneralPrompt,maxAiSystemPrompt} from './max-ai-prompt';
 import {finalizeMaxAiNarrative,maxAiClarificationQuestions} from './max-ai-narrative';
 import type {MaxAiMessage} from './max-ai-conversation';
 import type {MaxAiAction,MaxAiCard} from './max-ai-contract';
@@ -8,6 +8,7 @@ import {isMaxAiActionHref} from './max-ai-contract';
 import {indiaToday} from './booking-presentation';
 import {maxAiFastPath} from './max-ai-fast-path';
 import {maxAiFlightIntent} from './max-ai-flight-intent';
+import {maxAiModelScope} from './max-ai-model-scope';
 import {enquiryDraftSchema,enquiryServiceLabels,type EnquiryDraft} from './travel-enquiry-contract';
 export {maxAiSensitiveMessage} from './max-ai-sensitive';
 
@@ -30,7 +31,8 @@ export async function runMaxAiTurn(input:{message:string;history:MaxAiMessage[];
   const messages:MaxAiMessage[]=[...input.history,{role:'user',content:input.message}];
   const cards:MaxAiCard[]=[],actions:MaxAiAction[]=[];
   const allowed=new Set(options.definitions.map(tool=>tool.function.name));
-  const system={role:'system' as const,content:maxAiSystemPrompt(options.today??indiaToday(),maxAiPageContext(input.page))};
+  const scope=maxAiModelScope(messages,options.definitions);
+  const system={role:'system' as const,content:(scope.general?maxAiGeneralPrompt:maxAiSystemPrompt)(options.today??indiaToday(),maxAiPageContext(input.page))};
   const signal=options.signal??AbortSignal.timeout(80000);
   let toolCount=0,modelCalls=0,providerMs=0,toolMs=0,notice:string|undefined,enquiryDraft:EnquiryDraft|undefined;
   let fastPath='model';
@@ -74,7 +76,7 @@ export async function runMaxAiTurn(input:{message:string;history:MaxAiMessage[];
     signal.throwIfAborted();
     let answer:MaxAiAssistantMessage;
     const providerStarted=performance.now();modelCalls++;
-    try{answer=await complete([system,...messages],options.definitions,{signal});}
+    try{answer=await complete([system,...messages],scope.definitions,{signal});}
     catch(error){
       providerMs+=performance.now()-providerStarted;
       if(!(error instanceof MaxAiProviderError)||(!cards.length&&!actions.length&&!enquiryDraft))throw error;

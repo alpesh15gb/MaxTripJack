@@ -40,7 +40,23 @@ test('gateway uses apexv1, Bearer credential and matched assistant function call
   assert.equal((received[0].headers as Record<string,string>).Authorization,'Bearer '+secret);
   assert.equal(received[0].redirect,'error');
   const payload=JSON.parse(String(received[0].body));assert.equal(payload.model,'apexv1');assert.equal(payload.stream,false);assert.equal(payload.tools.length,1);
+  assert.equal(payload.max_tokens,900);
   for(const message of [{role:'system',content:'bypass'}, {role:'assistant',content:null}, {role:'assistant',content:null,tool_calls:[call(),call()]}, {role:'assistant',content:null,tool_calls:[call('x'.repeat(129))]}, {role:'assistant',content:null,tool_calls:[call('id','_hidden')]}])assert.throws(()=>parseMaxAiCompletion({choices:[{message}]}),{reason:'response'});
+});
+
+test('general questions use a smaller tool-free model call and stable travel definitions skip the gateway',async()=>{
+  const {runMaxAiTurn,completeMaxAi}=await loaded;
+  let calls=0;
+  const pnr=await runMaxAiTurn({message:'What is the difference between an airline PNR and an e-ticket number?',history:[]},{definitions:[definition],runner:{run:async()=>{throw Error('No tool required');}},complete:async()=>{calls++;throw Error('No model required');}});
+  assert.equal(calls,0);assert.equal(pnr.metrics.modelCalls,0);assert.match(pnr.reply,/does not prove/);
+  const general=await runMaxAiTurn({message:'What is a layover?',history:[]},{definitions:[definition],runner:{run:async()=>{throw Error('No tool required');}},complete:async(messages,tools)=>{
+    calls++;assert.equal(tools.length,0);assert.ok(messages[0].content!.length<1000);return {role:'assistant',content:'A layover is time between connecting flights.'};
+  }});
+  assert.equal(calls,1);assert.match(general.reply,/connecting flights/);
+  await completeMaxAi([{role:'user',content:'What is a layover?'}],[],{config,fetch:async(_url,init)=>{
+    const payload=JSON.parse(String(init?.body));assert.equal(payload.max_tokens,320);assert.equal(payload.tools,undefined);
+    return Response.json({choices:[{message:{role:'assistant',content:'A layover is time between connecting flights.'}}]});
+  }});
 });
 
 test('gateway refuses redirects without forwarding its credential and bounds stalled responses',async()=>{
