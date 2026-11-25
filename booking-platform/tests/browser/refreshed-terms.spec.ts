@@ -223,7 +223,7 @@ test('typed optional documents survive becoming required and becoming optional a
 
 for(const outcome of ['draft','kept','unavailable'] as const)test(`fare refresh handles ${outcome} flight extras before payment`,async({page,provider})=>{
  const started=Date.now();await page.clock.install({time:started});
- provider.quote=flightQuote([fare()]);provider.quote.expiresAt=new Date(started+60_000).toISOString();
+ provider.quote=flightQuote([fare()]);provider.quote.expiresAt=new Date(started+180_000).toISOString();
  const seat={kind:'SEAT',code:'10A',label:'Seat 10A',seatNumber:'10A',amountMinor:72450};
  const saved={segmentId:'extra-segment',travellerIndex:0,kind:'SEAT',code:seat.code};
  const catalogue={segments:[{id:'extra-segment',tripIndex:0,label:'BOM → DEL',options:[seat,{kind:'MEAL',code:'MEAL1',label:'Vegetarian meal',amountMinor:50000}]}],travellerTypes:['ADULT'],choices:[] as typeof saved[]};
@@ -247,7 +247,7 @@ for(const outcome of ['draft','kept','unavailable'] as const)test(`fare refresh 
   catalogue.choices=[saved];
  }
  if(outcome==='unavailable')provider.overrides['POST /api/travel/review']={status:409,body:{code:'FLIGHT_EXTRAS_REFRESH',error:'One or more saved flight extras could not be verified.'}};
- await page.clock.fastForward(120_000);
+ await page.clock.fastForward(190_000);
  await form(page).getByRole('button',{name:'Refresh price to pay',exact:true}).click();
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  if(outcome==='unavailable'){
@@ -274,6 +274,53 @@ for(const outcome of ['draft','kept','unavailable'] as const)test(`fare refresh 
  }else await expect(pay(page)).toHaveText('Agree & pay ₹6,540');
  expect(provider.requests('/api/travel/review')[1].body).toMatchObject({previousQuoteId:quoteId});
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ if(outcome==='kept'){
+  provider.overrides['POST /api/payments/create']={body:{bookingId,orderId:'order_SYNTHETICONLY',amount:726450,currency:'INR',keyId:'rzp_test_SYNTHETICONLY'}};
+  await pay(page).click();
+  await expect.poll(()=>page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
+  expect(provider.requests('/api/payments/create')[0].body).toMatchObject({quoteId:renewedId,acceptedTotalMinor:726450});
+ }
+});
+
+test('saved seat and meal near expiry refresh without form validation and then reach payment',async({page,provider})=>{
+ const started=Date.now();await page.clock.install({time:started});
+ provider.quote=flightQuote([fare()]);provider.quote.expiresAt=new Date(started+50_000).toISOString();
+ const seat={kind:'SEAT' as const,code:'10A',label:'Seat 10A',seatNumber:'10A',amountMinor:72450};
+ const meal={kind:'MEAL' as const,code:'MEAL1',label:'Vegetarian meal',amountMinor:50000};
+ provider.overrides['GET /api/travel/checkout-extras']={body:{segments:[{id:'extra-segment',tripIndex:0,label:'BOM → DEL',options:[seat,meal]}],travellerTypes:['ADULT'],choices:[]}};
+ provider.overrides['POST /api/travel/checkout-extras']={body:{quoteId,totalMinor:726450}};
+ await openFlight(page);
+ await form(page).locator('.checkout-optional-extras > summary').click();
+ await page.getByRole('button',{name:'Choose flight extras',exact:true}).click();
+ await page.getByRole('button',{name:'Choose seats',exact:true}).click();
+ const picker=page.getByRole('dialog',{name:'Choose your seats'});
+ await picker.getByRole('button',{name:'Seat 10A · +₹724.50',exact:true}).click();
+ await picker.getByRole('button',{name:'Confirm seats',exact:true}).click();
+ provider.overrides['POST /api/travel/checkout-extras']={body:{quoteId,totalMinor:776450}};
+ await form(page).getByRole('combobox',{name:'Meal',exact:true}).selectOption('MEAL1');
+ await form(page).getByRole('button',{name:'Apply extras and update total',exact:true}).click();
+ expect(provider.requests('/api/travel/checkout-extras').filter(call=>call.method==='POST').at(-1)?.body).toMatchObject({choices:[
+  {segmentId:'extra-segment',travellerIndex:0,kind:'SEAT',code:'10A'},
+  {segmentId:'extra-segment',travellerIndex:0,kind:'MEAL',code:'MEAL1'},
+ ]});
+ await page.clock.fastForward(36_000);
+ await expect(form(page).getByRole('button',{name:'Refresh price to pay',exact:true})).toBeEnabled();
+ // The refresh action must work before passenger details are complete.
+ provider.quote=flightQuote([fare()],renewedId);
+ provider.quote.expiresAt=new Date(started+96_000).toISOString(); // a fresh 60-second supplier window
+ Object.assign(provider.quote,{extrasRefresh:'kept',baseTotalMinor:654000,savedFlightExtrasCount:2,totalMinor:776450});
+ await form(page).getByRole('button',{name:'Refresh price to pay',exact:true}).click();
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ expect(provider.requests('/api/travel/review').at(-1)?.body).toMatchObject({previousQuoteId:quoteId});
+ await form(page).locator('[name="first-0"]').fill('Aarav');
+ await form(page).locator('[name="last-0"]').fill('Example');
+ await form(page).locator('[name="email"]').fill('traveller@example.test');
+ await form(page).locator('[name="phone"]').fill('9876543210');
+ provider.overrides['POST /api/payments/create']={body:{bookingId,orderId:'order_SYNTHETICONLY',amount:776450,currency:'INR',keyId:'rzp_test_SYNTHETICONLY'}};
+ await expect(pay(page)).toBeEnabled();
+ await pay(page).click();
+ await expect.poll(()=>page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
+ expect(provider.requests('/api/payments/create')[0].body).toMatchObject({quoteId:renewedId,acceptedTotalMinor:776450});
 });
 
 test('flight extras can be discarded before a save while an unconfirmed save still blocks payment',async({page,provider})=>{

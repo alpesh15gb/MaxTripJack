@@ -307,6 +307,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const [extrasResetNotice,setExtrasResetNotice]=useState(false);
   const [extrasRefreshBlockedQuote,setExtrasRefreshBlockedQuote]=useState<string|null>(null);
   const refreshedContinuation=useRef<{quoteId:string;validate:boolean}|null>(null);
+  const receivedReviewWindow=useRef<{quoteId:string;refreshAtSeconds:number}|null>(null);
   const [gstEntered,setGstEntered]=useState(false),[emergencyEntered,setEmergencyEntered]=useState(false);
   const [reviewBase,setReviewBase]=useState(0),[now,setNow]=useState<number|null>(null);
   const [selection,setSelection]=useState<Selection|null>(null),[payment,setPayment]=useState<Payment|null>(null);
@@ -608,6 +609,14 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   ].filter((detail):detail is string=>detail!==null);
   const remaining=quote&&now!==null?quoteRemaining(quote.expiresAt,now):null;
   const expired=remaining!==null&&remaining<=0;
+  // Supplier reviews are short lived. Give a checkout with saved extras enough
+  // time for the prepayment fare check and gateway order before starting it.
+  // Keep the buffer below one third of the actual supplier review window so
+  // short-lived fares can still reach payment after a successful refresh.
+  const reviewWindow=receivedReviewWindow.current;
+  const extrasRefreshAt=reviewWindow&&reviewWindow.quoteId===quote?.quoteId?reviewWindow.refreshAtSeconds:0;
+  const extrasRefreshSoon=Boolean(!payment&&quote?.product==='FLIGHT'&&quote.savedFlightExtrasCount&&remaining!==null&&remaining<=extrasRefreshAt);
+  const priceRefreshNeeded=expired||needsReview||extrasRefreshSoon;
   const refreshUnchanged=Boolean(previousReview&&quote&&refreshedReviewUnchanged(previousReview,quote));
   const groups=useMemo(()=>Object.fromEntries(Object.entries(results?.results.searchResult?.tripInfos??{}).map(([key,flights])=>[key,groupIdenticalFlights(flights)])),[results]);
   const fareGroups=orderedGroups(groups),pairedFares=fareGroups.length>1;
@@ -970,6 +979,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     try{
       const value=await api<Quote>('/api/travel/review',{searchId:reviewSearchId,...nextSelection,...(previousQuoteId?{previousQuoteId}:{}),...(removeFlightExtras?{removeFlightExtras:true}:{})},AbortSignal.any([task.signal,deadline.signal]));
       if(current(task.id)){
+        receivedReviewWindow.current={quoteId:value.quoteId,refreshAtSeconds:Math.min(60,Math.floor(quoteRemaining(value.expiresAt,Date.now())/3))};
         refreshedContinuation.current=renew?{quoteId:value.quoteId,validate:validateAfterRefresh}:null;
         if(!renew)checkoutQuoteIds.current.clear();
         checkoutQuoteIds.current.add(value.quoteId);
@@ -1227,7 +1237,9 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(!quote||!checkoutConfigured||providerUnavailable||busy||busyRef.current||refreshedContinuation.current||paymentUncertain||recoveryBlocked)return;
     // An expired primary action only refreshes and revalidates. Paying always
     // requires a separate explicit click against the newly displayed total.
-    if(quoteRemaining(quote.expiresAt,new Date().getTime())<=0||needsReview){
+    const reviewWindow=receivedReviewWindow.current;
+    const refreshAt=quote.product==='FLIGHT'&&quote.savedFlightExtrasCount&&reviewWindow&&reviewWindow.quoteId===quote.quoteId?reviewWindow.refreshAtSeconds:0;
+    if(quoteRemaining(quote.expiresAt,new Date().getTime())<=refreshAt||needsReview){
       if(payment){setMessage('Your reviewed price has expired. Your original order is preserved; check My trips before making another payment.');return;}
       if(selection)await review(selection,true,true);
       return;
@@ -1460,7 +1472,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         {previousReview&&<RefreshedTerms before={previousReview} after={quote} extrasRefresh={quote.extrasRefresh}/>}
         {initialPriceChange?.quoteId===quote.quoteId&&initialPriceChange.reviewedMinor===quote.totalMinor&&!extrasPending&&<InitialReviewPriceNotice change={initialPriceChange} product={quote.product} estimateBreakdown={initialPriceChange.estimateBreakdown} reviewedBreakdown={quote.priceBreakdown}/>}
         <h1 className="visually-hidden">Booking review &amp; checkout</h1>
-        <div className="checkout-stages"><div className={`booking-expiry${expired||needsReview?' is-expired':''}`} role={expired||needsReview?'alert':undefined}><div><strong>{payment?'Payment order created':expired||needsReview?'Price review expired':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':expired||needsReview?'Your traveller details are saved on this screen. Refresh the price below, then choose Agree & pay. Refreshing does not start payment.':'We’ll check the price again if needed before payment.'}</p><small className="checkout-test-mode">In testing · No live bookings or payments</small></div>{busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}{!payment&&!paymentUncertain&&selection&&!expired&&!needsReview&&<button type="button" className="secondary" disabled={busy} aria-label={busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'} onClick={()=>void review(selection,true)}><span className="clock-refresh-wide">{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</span><span className="clock-refresh-short">{busy&&checkingSelection?'Checking…':'Refresh'}</span></button>}</div>{bookingProgress}</div>
+        <div className="checkout-stages"><div className={`booking-expiry${priceRefreshNeeded?' is-expired':''}`} role={priceRefreshNeeded?'alert':undefined}><div><strong>{payment?'Payment order created':expired?'Price review expired':needsReview?'Price review needed':extrasRefreshSoon?'Refresh fare & extras before payment':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':priceRefreshNeeded?'Your selected extras and traveller details are kept. Refresh the fare below, then choose Agree & pay for the latest total. Refreshing does not start payment.':'We’ll check the price again if needed before payment.'}</p><small className="checkout-test-mode">In testing · No live bookings or payments</small></div>{busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}{!payment&&!paymentUncertain&&selection&&!priceRefreshNeeded&&<button type="button" className="secondary" disabled={busy} aria-label={busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'} onClick={()=>void review(selection,true)}><span className="clock-refresh-wide">{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</span><span className="clock-refresh-short">{busy&&checkingSelection?'Checking…':'Refresh'}</span></button>}</div>{bookingProgress}</div>
         <div className="booking-inline-grid"><div className="booking-details-column">
           <SelectedJourneyReceipt context={<div className="review-selection-context">
             <h2 id="booking-review-title" tabIndex={-1}>{!checkoutConfigured?'Your reviewed selection':quote.product==='HOTEL'?'Hotel stay':'Flight itinerary'}</h2>
@@ -1526,8 +1538,8 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
             {!payment&&!paymentUncertain&&<p id="checkout-consent" className="checkout-acknowledgement">By paying, you accept the total, supplier rules and <Link href="/terms-of-use" target="_blank" rel="noopener noreferrer">booking terms</Link>. Confirmation follows once the supplier accepts your booking.</p>}
             <div className={`checkout-submit-action${!paymentUncertain?' mobile-booking-action':''}`}>
               <div className="mobile-action-total"><button type="button" className="checkout-summary-jump" aria-label="View booking summary" aria-controls="booking-summary" onClick={showCheckoutSummary}><small>View summary</small><strong>{money(quote.totalMinor)}</strong></button></div>
-              {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button type="submit" className="primary booking-continue" aria-describedby={!payment&&!expired&&!needsReview?'checkout-consent':undefined} disabled={busy||(!expired&&!needsReview&&(uncertainPromoQuote===quote.quoteId||extrasPending))||Boolean(payment&&(expired||needsReview))||providerUnavailable||recoveryBlocked}>
-                {providerUnavailable?'Online payment unavailable':busy?'Processing…':payment?'Resume secure checkout':expired||needsReview?'Refresh price to pay':<>Agree &amp; pay <span className="checkout-pay-amount">{money(quote.totalMinor)}</span></>}
+              {paymentUncertain?<Link className="primary" href="/my-trips">Check payment status in My trips</Link>:<button type={priceRefreshNeeded&&!payment?'button':'submit'} onClick={priceRefreshNeeded&&!payment?()=>{if(selection)void review(selection,true,true);}:undefined} className="primary booking-continue" aria-describedby={!payment&&!priceRefreshNeeded?'checkout-consent':undefined} disabled={busy||(!priceRefreshNeeded&&(uncertainPromoQuote===quote.quoteId||extrasPending))||Boolean(payment&&priceRefreshNeeded)||(priceRefreshNeeded&&!selection)||providerUnavailable||recoveryBlocked}>
+                {providerUnavailable?'Online payment unavailable':busy?'Processing…':payment?'Resume secure checkout':priceRefreshNeeded?'Refresh price to pay':<>Agree &amp; pay <span className="checkout-pay-amount">{money(quote.totalMinor)}</span></>}
               </button>}
             </div>
             <CheckoutPartySummary party={party} roomIndexes={quote.product==='HOTEL'?hotelParty.map(guest=>guest.roomIndex):undefined}
