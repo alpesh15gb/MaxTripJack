@@ -17,7 +17,7 @@ test('flight refresh persists rechecked paid seats and requires explicit removal
   summary:[{kind:'SEAT',travellerIndex:0,label:'Seat 10A'}],
  }};
  const state={
-  available:true, inserts:[] as unknown[][],
+  available:true, inserts:[] as unknown[][], retired:[] as unknown[],
   search:{
    product:'FLIGHT',expires_at:new Date(Date.now()+90_000),
    criteria:{product:'FLIGHT',from:'HYD',to:'DEL',date:'2026-12-04',adults:1,children:0,infants:0},
@@ -46,6 +46,7 @@ test('flight refresh persists rechecked paid seats and requires explicit removal
     if(sql.includes('FROM pricing_rules'))return {rows:[state.rule]};
     if(sql.includes('FROM orders'))return {rows:[],rowCount:0};
     if(sql.startsWith('INSERT INTO supplier_quotes')){state.inserts.push(args);return {rowCount:1,rows:[]};}
+    if(sql.startsWith('UPDATE supplier_quotes SET expires_at=LEAST')){state.retired.push(args[0]);return {rowCount:1,rows:[]};}
     throw Error('Unexpected query');
    }}}
    export async function transaction(run){return run(database());}`,
@@ -75,9 +76,11 @@ test('flight refresh persists rechecked paid seats and requires explicit removal
   assert.equal(kept.totalMinor-kept.baseTotalMinor!,72450);
   assert.deepEqual((state.inserts[0][5] as typeof selection).checkoutExtras.choices,[{segmentId:'new-leg',travellerIndex:0,kind:'SEAT',code:'new-seat-code'}]);
   assert.equal(state.inserts[0][8],717000);
+  assert.deepEqual(state.retired,['old-quote']);
   state.available=false;
   await assert.rejects(review('owned-search',input,actor),/saved flight extras could not be verified/);
   assert.equal(state.inserts.length,1,'An unverified refresh must not persist a quote without the seat');
+  assert.deepEqual(state.retired,['old-quote'],'A failed refresh must not retire a quote');
   const removed=await review('owned-search',{...input,removeFlightExtras:true},actor);
   assert.equal(removed.extrasRefresh,'removed');
   assert.equal(removed.totalMinor,customerTotal(654000,rule));

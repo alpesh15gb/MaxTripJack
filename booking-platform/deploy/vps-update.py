@@ -472,12 +472,18 @@ class Update:
         for file in input_files:
             interpolation_names.update(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)", Path(file).read_text()))
         compose_env = compose_interpolation_environment(interpolation_names, containers, project, os.environ)
-        # Profile-gated workers (e.g. catalogue-worker) are absent from the rendered
-        # model unless their profile is active. Naming the running services makes
-        # Compose enable exactly their profiles; stopped profiled services (such as a
-        # backup job whose env file is absent) stay out of the model.
+        # Compose versions can filter the entire model when services are named.
+        # Keep the base model, then resolve only the active app/worker services
+        # omitted by profile gating. Infrastructure can be managed separately.
         running = sorted({(c["Config"].get("Labels") or {}).get("com.docker.compose.service", "") for c in containers} - {""})
-        normalized = resolved_compose(json.loads(self.run(command + ["config", "--format", "json", *running], cwd=working, env=compose_env)))
+        render = command + ["config", "--format", "json"]
+        normalized = resolved_compose(json.loads(self.run(render, cwd=working, env=compose_env)))
+        profiled = sorted(set(running) - normalized.get("services", {}).keys() - {"postgres", "redis", "evolution"})
+        if profiled:
+            extras = resolved_compose(json.loads(self.run(render + profiled, cwd=working, env=compose_env)))
+            for key in ("services", "networks", "volumes", "configs", "secrets"):
+                if key in extras:
+                    normalized.setdefault(key, {}).update(extras[key])
         defaults = image_environment_defaults(containers, app["Image"], lambda image: self.inspect("image", image),
             lambda service: print(f"Worker {service} image is no longer stored locally; using the app image defaults (same build).", flush=True))
         frozen = freeze_config(normalized, containers, defaults,
@@ -514,8 +520,10 @@ class Update:
             after["services"][service].pop("pull_policy", None)
         if stack["project"] == "max-travel-booking":
             after["services"]["app"]["environment"].update(PAYMENT_PROVIDER="PAYGLOCAL", PAYGLOCAL_ENV="UAT")
-            after["services"]["app"]["environment"].pop("MIGRATION_DATABASE_URL", None)
-            after["services"]["app"]["environment"].pop("RUNTIME_DATABASE_PASSWORD", None)
+            for service in stack["services"]:
+                settings = after["services"][service]["environment"]
+                for credential in ("POSTGRES_PASSWORD", "MIGRATION_DATABASE_URL", "RUNTIME_DATABASE_PASSWORD"):
+                    settings.pop(credential, None)
         if stack["project"] == "max-travel-crm":
             after = retire_crm_messaging(after, stack["services"])
         stack.update(image=image, sha=sha, after_config=after)
@@ -568,7 +576,7 @@ class Update:
         if not self.once(booking, booking["after"], ["-e", "require('fs').accessSync('db/019-cancellation-reconciliation.sql');console.log('Booking migration included');"]).strip():
             raise StopUpdate("Booking candidate lacks the recovery migration.")
         self.once(crm, crm["after"], ["-e", "for(const p of ['prisma/migrations/20261031100000_case_workflow/migration.sql','prisma/migrations/20261102010000_data_imports/migration.sql'])require('fs').accessSync(p);console.log('CRM workflow and import migrations included');"])
-        self.once(booking, booking["after"], ["-e", "const fs=require('fs');for(const p of ['server.js','package.json','.next/BUILD_ID','public/brand/maxtravel-logo.jpg'])fs.accessSync(p,fs.constants.R_OK);console.log('Booking non-root runtime files readable');"])
+        self.once(booking, booking["after"], ["-e", "const fs=require('fs');for(const p of ['server.js','package.json','.next/BUILD_ID','public/brand/maxtravel-logo.jpg','scripts/standalone-server.mjs','dist/migrate-auth.mjs'])fs.accessSync(p,fs.constants.R_OK);console.log('Booking non-root runtime files readable');"])
         self.write("release.json", {"bookingCommit": booking["sha"], "crmCommit": crm["sha"], "integration": summary,
                                   "images": {s["project"]: s["image"] for s in self.stacks}})
         print("Candidates built and verified. Pausing only the two travel applications and their active workers.", flush=True)
@@ -580,10 +588,11 @@ class Update:
         dump = self.directory / "booking-before.dump"
         with dump.open("wb") as target:
             self.run(["docker", "exec", "max-travel-booking-postgres-1", "pg_dump", "-U", pg_user, "-d", pg_db, "-Fc"], output_file=target)
-        with dump.open("rb") as source:
-            self.run(["docker", "exec", "-i", "max-travel-booking-postgres-1", "pg_restore", "--list"], input_file=source)
         if dump.stat().st_size == 0:
             raise StopUpdate("Empty booking database backup.")
+        with dump.open("rb") as source:
+            self.run(["docker", "exec", "-i", "max-travel-booking-postgres-1", "pg_restore",
+                      "--exit-on-error", "--file=/dev/null"], input_file=source)
         crm_backups = self.directory / "crm-backups"
         crm_backups.mkdir(mode=0o700)
         bind = str(crm_backups) + ":/maxtravel-recovery"
@@ -601,6 +610,8 @@ class Update:
         self.migration_attempted = True
         self.write("migration-started.json", {"started": True})
         self.once(booking, migration_file, ["scripts/migrate.mjs"])
+        self.once(booking, migration_file, ["--conditions=react-server", "--import",
+                  "./scripts/standalone-server.mjs", "dist/migrate-auth.mjs"])
         self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "deploy"])
         self.once(crm, crm["after"], ["node_modules/prisma/build/index.js", "migrate", "status"])
         for stack in (crm, booking):

@@ -17,13 +17,14 @@ const safeStatus = (value: unknown): string | null => typeof value === "string" 
 export async function executeCancellation(cancellationId: string, actorId: string | null, allowSubmission = true) {
   const id = z.string().uuid().parse(cancellationId), lease = randomUUID();
   const cancellation = await transaction(async tx => {
-    const row = (await tx.query("SELECT c.*,o.product,o.supplier_booking_id,o.status AS booking_status,now() AS checked_now FROM cancellation_requests c JOIN orders o ON o.id=c.order_id WHERE c.id=$1 FOR UPDATE OF c,o", [id])).rows[0];
+    const row = (await tx.query("SELECT c.*,o.product,o.supplier_booking_id,o.status AS booking_status FROM cancellation_requests c JOIN orders o ON o.id=c.order_id WHERE c.id=$1 FOR UPDATE OF c,o", [id])).rows[0];
     if (!row || !row.supplier_booking_id) throw new HttpError(404, "Supplier booking not found.");
     if (["CONFIRMED", "REJECTED"].includes(row.status)) return row;
     if (!["AWAITING_ACCEPTANCE", "SUPPLIER_PENDING"].includes(row.status)) throw new HttpError(409, "Cancellation is not ready for submission.");
     if (!tripjackApiKey(row.product)) throw new HttpError(503, "Cancellation is temporarily unavailable. Please contact MaxTravel.");
     if (!allowSubmission && !row.supplier_attempted_at) throw new HttpError(409, "Cancellation has not been submitted by staff.");
-    const now = new Date(row.checked_now).getTime();
+    const checked = await tx.query<{checked_now:Date}>("SELECT clock_timestamp() AS checked_now");
+    const now = checked.rows[0].checked_now.getTime();
     if ((row.lease_until && new Date(row.lease_until).getTime() > now) || (row.next_check && new Date(row.next_check).getTime() > now)) {
       throw new HttpError(409, "A supplier status check is in progress or scheduled. Check the next check time before trying again.");
     }
@@ -31,7 +32,7 @@ export async function executeCancellation(cancellationId: string, actorId: strin
     if (!row.supplier_attempted_at && (!row.accepted_at || new Date(row.offer_expires_at).getTime() <= now)) throw new HttpError(409, "A current customer-accepted offer is required.");
     // Claim a lease longer than both bounded provider calls. Persist submission
     // BEFORE HTTP: recovery only checks status, even after a lost response/crash.
-    await tx.query("UPDATE cancellation_requests SET status='SUPPLIER_PENDING',supplier_attempted_at=COALESCE(supplier_attempted_at,now()),lease_token=$2,lease_until=now()+interval '180 seconds',next_check=now()+interval '180 seconds',poll_attempts=LEAST(poll_attempts,2147483646)+1 WHERE id=$1", [id, lease]);
+    await tx.query("UPDATE cancellation_requests SET status='SUPPLIER_PENDING',supplier_attempted_at=COALESCE(supplier_attempted_at,$3),lease_token=$2,lease_until=$3::timestamptz+interval '180 seconds',next_check=$3::timestamptz+interval '180 seconds',poll_attempts=LEAST(poll_attempts,2147483646)+1 WHERE id=$1", [id, lease, checked.rows[0].checked_now]);
     return row;
   });
   if (["CONFIRMED", "REJECTED"].includes(cancellation.status)) return { status: cancellation.status, message: message(cancellation.status) };
@@ -45,7 +46,7 @@ export async function executeCancellation(cancellationId: string, actorId: strin
       if (product === "HOTEL") await tripjack("HOTEL", `/oms/v3/hotel/cancel-booking/${encodeURIComponent(cancellation.supplier_booking_id)}`, undefined, true);
       else {
         const submitted = await tripjack("FLIGHT", "/oms/v1/air/amendment/submit-amendment", cancellationBody(cancellation), true);
-        if (typeof submitted.amendmentId === "string" && submitted.amendmentId.length <= 200) {
+        if (typeof submitted.amendmentId === "string" && submitted.amendmentId.trim() && submitted.amendmentId.length <= 200) {
           amendmentId = submitted.amendmentId;
           await database().query("UPDATE cancellation_requests SET supplier_amendment_id=$2 WHERE id=$1 AND lease_token=$3 AND status='SUPPLIER_PENDING'", [id, amendmentId, lease]);
         }
@@ -55,16 +56,20 @@ export async function executeCancellation(cancellationId: string, actorId: strin
   try {
     if (product === "FLIGHT" && amendmentId) {
       const details = await tripjack("FLIGHT", "/oms/v1/air/amendment/amendment-details", { amendmentId }, true);
-      supplierStatus = safeStatus(details.amendmentStatus);
-      confirmed = supplierStatus === "SUCCESS";
-      rejected = supplierStatus === "REJECTED";
+      if (details.bookingId === cancellation.supplier_booking_id && details.amendmentId === amendmentId) {
+        supplierStatus = safeStatus(details.amendmentStatus);
+        confirmed = supplierStatus === "SUCCESS";
+        rejected = supplierStatus === "REJECTED";
+      } else {
+        checkError = "AMENDMENT_REFERENCE_UNAVAILABLE";
+      }
     } else {
       const details = await tripjack(product, paths[product].details, { bookingId: cancellation.supplier_booking_id }, true);
       supplierStatus = safeStatus(details.order?.status);
       confirmed = !cancellation.is_partial && supplierStatus === "CANCELLED";
       if (product === "FLIGHT" && !amendmentId && !confirmed) checkError = "AMENDMENT_REFERENCE_UNAVAILABLE";
     }
-    if (!supplierStatus) checkError = "UNKNOWN_STATUS";
+    if (!supplierStatus && !checkError) checkError = "UNKNOWN_STATUS";
   } catch { checkError = "SUPPLIER_UNAVAILABLE"; }
 
   return transaction(async tx => {

@@ -44,17 +44,21 @@ export function saveCheckoutMarker(marker:CheckoutMarker){
     writeCheckoutMarkers(markers);return true;
   }catch{return false;}
 }
-export function clearCheckoutMarker(expected?:Partial<CheckoutMarker>){
+export function clearCheckoutMarker(expected?:Partial<CheckoutMarker>, onlyWithoutBooking=false){
   if(!expected||(!expected.quoteId&&!expected.bookingId)||
     (expected.quoteId!==undefined&&(typeof expected.quoteId!=='string'||!uuid.test(expected.quoteId)))||
-    (expected.bookingId!==undefined&&(typeof expected.bookingId!=='string'||!uuid.test(expected.bookingId))))return;
+    (expected.bookingId!==undefined&&(typeof expected.bookingId!=='string'||!uuid.test(expected.bookingId))))return false;
   try{
     const markers=readCheckoutMarkers();
+    // Status for a quote without a booking must never clear a marker that
+    // gained a booking while the status request was in flight.
+    if(onlyWithoutBooking&&(!expected.quoteId||markers.some(marker=>marker.quoteId===expected.quoteId&&marker.bookingId)))return false;
     const remaining=markers.filter(marker=>!((!expected.quoteId||marker.quoteId===expected.quoteId)&&(!expected.bookingId||marker.bookingId===expected.bookingId)));
     if(remaining.length!==markers.length)writeCheckoutMarkers(remaining);
-  }catch{/* Preserve unresolved markers and the in-memory guard when storage is unavailable. */}
+    return true;
+  }catch{return false;}
 }
-export type CheckoutRecoveryStatus={provider?:string;checkoutUrl?:string;bookingId?:string;status?:string;paymentStatus?:string;intentState?:string;canResume:boolean;checkoutResolved?:boolean;quoteExpiresAt?:string;message?:string;orderId?:string;keyId?:string;amount?:number;currency?:string};
+export type CheckoutRecoveryStatus={found?:boolean;quoteId?:string;provider?:string;checkoutUrl?:string;bookingId?:string;status?:string;paymentStatus?:string;intentState?:string;canResume:boolean;checkoutResolved?:boolean;quoteExpiresAt?:string;message?:string;orderId?:string;keyId?:string;amount?:number;currency?:string};
 export function isResumableCheckout(value:CheckoutRecoveryStatus):value is CheckoutRecoveryStatus&{bookingId:string;orderId:string;keyId:string;amount:number;currency:string}{
   return (value.provider===undefined||value.provider==='RAZORPAY')&&value.canResume===true&&typeof value.bookingId==='string'&&uuid.test(value.bookingId)&&typeof value.orderId==='string'&&Boolean(value.orderId)&&typeof value.keyId==='string'&&Boolean(value.keyId)&&typeof value.amount==='number'&&Number.isSafeInteger(value.amount)&&value.amount>0&&value.currency==='INR';
 }
@@ -62,9 +66,11 @@ export function parseCheckoutRecoveryStatus(value:unknown):CheckoutRecoveryStatu
   if(!value||typeof value!=='object'||Array.isArray(value))return null;
   const row=value as Record<string,unknown>;
   if(typeof row.canResume!=='boolean'||typeof row.status!=='string')return null;
+  if(row.status==='EXPIRED_WITHOUT_PAYMENT'&&(row.bookingId!==undefined||row.found!==false||typeof row.quoteId!=='string'||!uuid.test(row.quoteId)))return null;
   const result:CheckoutRecoveryStatus={canResume:row.canResume,status:row.status};
-  for(const key of ['provider','checkoutUrl','bookingId','paymentStatus','intentState','quoteExpiresAt','message','orderId','keyId','currency'] as const)if(typeof row[key]==='string')result[key]=row[key];
+  for(const key of ['quoteId','provider','checkoutUrl','bookingId','paymentStatus','intentState','quoteExpiresAt','message','orderId','keyId','currency'] as const)if(typeof row[key]==='string')result[key]=row[key];
   if(typeof row.amount==='number')result.amount=row.amount;
+  if(typeof row.found==='boolean')result.found=row.found;
   if(typeof row.checkoutResolved==='boolean')result.checkoutResolved=row.checkoutResolved;
   return result;
 }
@@ -72,6 +78,10 @@ export function isResolvedCheckout(value:CheckoutRecoveryStatus){
   return value.checkoutResolved===true&&value.canResume===false&&typeof value.bookingId==='string'&&uuid.test(value.bookingId)&&(
     value.paymentStatus==='CAPTURED'||['PAID','BOOKING_PENDING','TICKETED','CONFIRMED','BOOKING_FAILED','CANCELLED','CLOSED'].includes(value.status??'')
   );
+}
+export function isExpiredCheckoutWithoutPayment(value:CheckoutRecoveryStatus, expected:CheckoutMarker){
+  return value.status==='EXPIRED_WITHOUT_PAYMENT'&&value.found===false&&value.canResume===false&&value.checkoutResolved===true&&
+    value.bookingId===undefined&&expected.bookingId===undefined&&value.quoteId===expected.quoteId&&uuid.test(expected.quoteId);
 }
 
 /** Only server-issued UAT checkout destinations; never trust callback query fields. */

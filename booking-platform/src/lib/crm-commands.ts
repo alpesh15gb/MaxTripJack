@@ -9,6 +9,7 @@ import { verifySignature } from "./signatures";
 import { crmCommandContext } from "./crm-command-context";
 import { requestLimit } from "./request-limit";
 import { configuredAuthBaseURL } from "./auth-origin";
+import { mappedCrmStaffPermissions } from "./access";
 export const commandSchema=z.object({id:z.string().uuid(),bookingId:z.string().uuid(),actorId:z.string().min(1).max(100),action:z.enum(["STATUS","RESYNC","RECONCILE","CANCELLATION_REQUEST","CANCELLATION_CHARGES","CANCELLATION_REVIEW","CANCELLATION_OFFER","CANCELLATION_EXECUTE","REFUND_REQUEST","REFUND_APPROVE","REFUND_EXECUTE"]),targetId:z.string().uuid().optional(),data:z.record(z.string(),z.unknown()).default({})}).strict();
 export type CrmCommand=z.infer<typeof commandSchema>;
 const permissions:Record<CrmCommand["action"],string>={STATUS:"bookings:read",RESYNC:"integrations:manage",RECONCILE:"bookings:reconcile",CANCELLATION_REQUEST:"cancellations:manage",CANCELLATION_CHARGES:"cancellations:manage",CANCELLATION_REVIEW:"cancellations:manage",CANCELLATION_OFFER:"cancellations:manage",CANCELLATION_EXECUTE:"cancellations:execute",REFUND_REQUEST:"refunds:manage",REFUND_APPROVE:"refunds:manage",REFUND_EXECUTE:"refunds:execute"};
@@ -25,9 +26,9 @@ export async function verifyCrmCommand(request:Request){
  const command=commandSchema.parse(JSON.parse(raw));if(command.id!==id)throw new HttpError(400,"Command identity mismatch.");
  let mapping:Record<string,string>;try{mapping=JSON.parse(process.env.CRM_STAFF_ACTORS??"{}");}catch{throw new HttpError(503,"CRM actor mapping unavailable.");}
  const userId=Object.hasOwn(mapping,command.actorId)?mapping[command.actorId]:null;if(!userId)throw new HttpError(403,"CRM staff member is not mapped to a booking administrator.");
- const permission=permissions[command.action];const actor=await database().query('SELECT g.permissions FROM admin_grants g JOIN "user" u ON u.id=g.user_id LEFT JOIN customer_accounts a ON a.user_id=u.id LEFT JOIN companies c ON c.id=a.company_id WHERE g.user_id=$1 AND g.active=true AND u."emailVerified"=true AND u."twoFactorEnabled"=true AND COALESCE(a.active,true)=true AND (a.company_id IS NULL OR c.status=\'APPROVED\')',[userId]);
- if(!actor.rows[0]?.permissions.includes(permission))throw new HttpError(403,"Mapped administrator does not have this operation permission.");
- if(command.action==="STATUS"&&command.data.financial===true&&!actor.rows[0].permissions.includes("finance:read"))throw new HttpError(403,"Live financial status requires finance permission.");
+ const permission=permissions[command.action],grants=await mappedCrmStaffPermissions(userId);
+ if(!grants.includes(permission))throw new HttpError(403,"Mapped administrator does not have this operation permission.");
+ if(command.action==="STATUS"&&command.data.financial===true&&!grants.includes("finance:read"))throw new HttpError(403,"Live financial status requires finance permission.");
  await requestLimit(userId,"crm-commands",60);
  if(!(await database().query("SELECT id FROM orders WHERE id=$1",[command.bookingId])).rowCount)throw new HttpError(404,"Booking unavailable.");
  if(command.action.startsWith("CANCELLATION_")&&command.action!=="CANCELLATION_REQUEST"){const target=await database().query("SELECT id FROM cancellation_requests WHERE id=$1 AND order_id=$2",[command.targetId,command.bookingId]);if(!target.rowCount)throw new HttpError(404,"Cancellation does not belong to this booking.");}

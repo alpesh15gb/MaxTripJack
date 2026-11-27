@@ -31,7 +31,9 @@ class SafetyTests(unittest.TestCase):
                    "Mounts": [], "Config": {"Labels": labels, "Env": []}}
             worker = {"Name": "/max-travel-booking-catalogue-worker-1", "Image": "sha256:app", "Mounts": [],
                       "Config": {"Labels": {"com.docker.compose.project": "max-travel-booking", "com.docker.compose.service": "catalogue-worker"}, "Env": []}}
-            rendered = {"name": "max-travel-booking", "services": {"app": {"image": "max-travel-booking:local"},
+            base = {"name": "max-travel-booking", "services": {"app": {"image": "max-travel-booking:local"},
+                        "refund-worker": {"image": "max-travel-booking:local"}}}
+            profile = {"name": "max-travel-booking", "services": {
                         "catalogue-worker": {"image": "max-travel-booking:local", "profiles": ["catalogue"]}}}
             state = update.Update.__new__(update.Update)
             state.directory, state.number, state.stacks = recovery, 0, []
@@ -43,16 +45,17 @@ class SafetyTests(unittest.TestCase):
                     return "app-id\nworker-id\n"
                 if "config" in args and "--format" in args:
                     if "catalogue-worker" not in args:
-                        return json.dumps({**rendered, "services": {"app": rendered["services"]["app"]}})
-                    return json.dumps(rendered)
+                        return json.dumps(base)
+                    return json.dumps(profile)
                 raise AssertionError(args)
             state.run = run
             with contextlib.redirect_stdout(io.StringIO()):
                 stack = state.snapshot("max-travel-booking-app-1", "max-travel-booking")
             self.assertEqual(sorted(stack["services"]), ["app", "catalogue-worker"])
-            render = next(c for c in calls if "config" in c and "--format" in c)
-            self.assertEqual(render[render.index("json") + 1:], ["app", "catalogue-worker"])
-            self.assertNotIn("--profile", render)
+            renders = [c for c in calls if "config" in c and "--format" in c]
+            self.assertEqual([render[render.index("json") + 1:] for render in renders], [[], ["catalogue-worker"]])
+            self.assertTrue(all("--profile" not in render for render in renders))
+            self.assertEqual(sorted(stack["config"]["services"]), ["app", "catalogue-worker", "refund-worker"])
 
     def test_pruned_worker_image_uses_app_image_defaults_but_app_and_database_never_do(self):
         images = {"sha256:app": {"Config": {"Env": ["PATH=/usr/bin", "NODE_ENV=production"]}}, "sha256:pg": {"Config": {"Env": ["PGDATA=/data"]}}}
@@ -139,6 +142,9 @@ class SafetyTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("docker"), "Docker engine and Compose CLI required for retained-data proof")
     def test_recreated_container_uses_the_same_retained_volume_and_keeps_its_data(self):
+        engine = subprocess.run(["docker", "version", "--format", "{{.Server.Version}}"], capture_output=True, timeout=20)
+        if engine.returncode or not engine.stdout.strip():
+            self.skipTest("Docker Engine is unavailable")
         identity = "maxtravelmountproof" + uuid.uuid4().hex[:16]
         volume, image = identity + "-data", "python:3.10-alpine"
         def call(args):
@@ -375,6 +381,35 @@ class SafetyTests(unittest.TestCase):
             self.assertIn("warning", (state.directory / "operation-001.stderr.log").read_text())
 
     @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI required for real interpolation regression")
+    def test_real_production_compose_keeps_database_owner_inputs_out_of_runtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            compose_file = root / "compose.production.yaml"
+            shutil.copyfile(Path(__file__).parents[2] / compose_file.name, compose_file)
+            env_file = root / ".env.production"
+            env_file.write_text(
+                "POSTGRES_PASSWORD=synthetic-owner\nMIGRATION_DATABASE_URL=synthetic-owner-url\n"
+                "RUNTIME_DATABASE_PASSWORD=synthetic-provisioning\n"
+                "DATABASE_URL=postgresql://maxtravel_app:fixture@postgres/maxtravel\n"
+            )
+            env = dict(os.environ)
+            env.pop("POSTGRES_PASSWORD", None)
+            args = ["docker", "compose", "--project-directory", str(root), "--env-file", str(env_file),
+                    "--profile", "*", "-f", str(compose_file), "config", "--format", "json"]
+            result = subprocess.run(args, cwd=root, env=env, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, "Production Compose must validate with synthetic inputs")
+            services = json.loads(result.stdout)["services"]
+            self.assertEqual(services["postgres"]["environment"]["POSTGRES_PASSWORD"], "synthetic-owner")
+            for name, service in services.items():
+                if name == "postgres":
+                    continue
+                runtime = service["environment"]
+                for variable in ("POSTGRES_PASSWORD", "MIGRATION_DATABASE_URL", "RUNTIME_DATABASE_PASSWORD"):
+                    self.assertEqual(runtime.get(variable), "", f"{name} must not receive {variable}")
+                self.assertEqual(runtime["DATABASE_URL"], "postgresql://maxtravel_app:fixture@postgres/maxtravel")
+                self.assertEqual(service["depends_on"]["postgres"]["condition"], "service_healthy")
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI required for real interpolation regression")
     def test_real_compose_required_database_variable_and_literal_secret_roundtrip(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -595,6 +630,9 @@ class SafetyTests(unittest.TestCase):
                 self.assertTrue(state.migration_attempted)
                 if fail_migration:
                     raise update.StopUpdate("synthetic migration failure")
+            if command[-1] == "dist/migrate-auth.mjs":
+                events.append("auth-migration")
+                self.assertTrue(state.migration_attempted)
             return "candidate-check-ok"
 
         state.snapshot, state.checkout_build, state.inspect = snapshot, build, inspect
@@ -616,6 +654,8 @@ class SafetyTests(unittest.TestCase):
             self.assertLess(events.index("build:max-travel-crm"), events.index("stop"))
             self.assertLess(events.index("postgres-backup-verified"), events.index("migration"))
             self.assertLess(events.index("crm-restore-verified"), events.index("migration"))
+            self.assertLess(events.index("migration"), events.index("auth-migration"))
+            self.assertLess(events.index("auth-migration"), events.index("health:max-travel-booking"))
             ups = [c for c in commands if "up" in c]
             self.assertEqual(len(ups), 3)  # Both apps and the one pre-existing CRM worker.
             self.assertTrue(all("--no-deps" in c and "--no-build" in c for c in ups))
@@ -627,7 +667,10 @@ class SafetyTests(unittest.TestCase):
             self.assertFalse(state.completed)
             self.assertTrue(state.migration_attempted)
             self.assertFalse(any("up" in c for c in commands))
-            self.assertTrue(all("--list" in c for c in commands if "pg_restore" in c))
+            restore_checks = [c for c in commands if "pg_restore" in c]
+            self.assertEqual(len(restore_checks), 1)
+            self.assertIn("--file=/dev/null", restore_checks[0])
+            self.assertNotIn("-d", restore_checks[0])
 
 
 if __name__ == "__main__":

@@ -10,6 +10,9 @@ export class TripjackRequestError extends HttpError {
 export async function tripjack(product:Product,path:string,payload?:unknown,booker=false,method:"GET"|"POST"="POST",signal?:AbortSignal){
  const key=tripjackApiKey(product);
  if(!key)throw new HttpError(503,`The ${product.toLowerCase()} service is temporarily unavailable. Please try again later or contact MaxTravel.`);
+ const bookingDetails=path===paths[product].details;
+ const bookingReference=bookingDetails&&typeof payload==="object"&&payload!==null&&"bookingId" in payload?payload.bookingId:undefined;
+ if(bookingDetails&&(typeof bookingReference!=="string"||!bookingReference.trim()))throw new HttpError(502,"Supplier booking reference is unavailable.");
  // UAT-only until supplier certification. No arbitrary client-supplied hosts or paths.
  const host=product==="FLIGHT"||path.startsWith("/ums/")||path==="/hms/v3/nationality-info"?"https://apitest.tripjack.com":booker?"https://apitest-hotel-booker.tripjack.com":"https://apitest-hms.tripjack.com";
  let response:Response;
@@ -22,6 +25,9 @@ export async function tripjack(product:Product,path:string,payload?:unknown,book
   const upstream=tripjackFailureMetadata(product,response.status,data);
   console.warn("[tripjack:request-failed]",upstream);
   throw new TripjackRequestError(upstream,product==="HOTEL"&&path==="/hms/v3/hotel/review"?"The supplier could not validate this room rate. Refresh room options or choose another stay. No booking or payment was made by this review.":"We could not complete your request. Refresh availability or contact MaxTravel.");
+ }
+ if(bookingDetails&&data.order?.bookingId!=null&&data.order.bookingId!==bookingReference){
+  throw new HttpError(502,"The supplier returned details for a different booking. Please check again or contact MaxTravel.");
  }
  return data;
 }

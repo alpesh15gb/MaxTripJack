@@ -72,6 +72,10 @@ test("existing configuration safeguards remain enforced and secrets stay unprint
     { RAZORPAY_KEY_ID: "rzp_live_secret-marker" },
     { RAZORPAY_KEY_SECRET: undefined },
     { BETTER_AUTH_URL: "http://merchant.example.test" },
+    { BETTER_AUTH_URL: "https://merchant.example.test/secret-marker" },
+    { CRM_EVENTS_URL: "https://crm.example.test/events?credential=secret-marker" },
+    { DATABASE_URL: "https://maxtravel_app:secret-marker@localhost/db" },
+    { DATABASE_URL: "postgresql://maxtravel_app:secret-marker@localhost/" },
     { MIGRATION_DATABASE_URL: "postgresql://owner:secret-marker@localhost/db" },
   ]) {
     const result = check(patch);

@@ -11,12 +11,20 @@ test("verified phone authorizes customer bookings but preserves email, MFA, comp
         args.path === "./db" ? "export function database(){return {query:async sql=>__fixture.query(sql)};}" :
         args.path === "./http" ? "export class HttpError extends Error{constructor(status,message){super(message);this.status=status;}}" :
         args.path === "./request-limit" ? "export async function requestLimit(){}" :
-        args.path === "./crm-command-context" ? "export const crmCommandContext={getStore:()=>undefined};" : "" }));
+        args.path === "./crm-command-context" ? "export const crmCommandContext={getStore:()=>__fixture.delegated};" : "" }));
     } }] });
   const fixture = {
     session: { user: { id: "customer", email: "opaque@phone.maxtravel.invalid", emailVerified: false, phoneNumber: "+919876543210", phoneNumberVerified: true, twoFactorEnabled: true } },
     account: null as null | { company_id: string | null; active: boolean },
+    delegated: undefined as {userId:string;permission:string}|undefined,
+    companyApproved: true,
     query(sql: string) {
+      if (sql.includes('SELECT g.permissions,u.email')) {
+        assert.match(sql,/COALESCE\(a\.active,true\)=true AND \(a\.company_id IS NULL OR c\.status='APPROVED'\)/);
+        const rows = this.account?.active === false || (this.account?.company_id && !this.companyApproved)
+          ? [] : [{email:this.session.user.email,permissions:['bookings:read']}];
+        return {rows,rowCount:rows.length};
+      }
       const rows = sql.includes("SELECT company_id") ? this.account ? [this.account] : [] : sql.includes("FROM companies") ? [{ id: "company" }] : [{ permissions: ["bookings:read"] }];
       return { rows, rowCount: rows.length };
     },
@@ -41,4 +49,14 @@ test("verified phone authorizes customer bookings but preserves email, MFA, comp
   await assert.rejects(compiled.exports.principal(request), { status: 403 });
   fixture.account = null; fixture.session.user.emailVerified = false; fixture.session.user.phoneNumberVerified = false;
   await assert.rejects(compiled.exports.principal(request), { status: 403 });
+  fixture.delegated = {userId:'customer',permission:'bookings:read'};
+  fixture.account = {company_id:'company',active:false};
+  await assert.rejects(compiled.exports.administrator(request,'bookings:read'),{status:403});
+  fixture.account.active = true; fixture.companyApproved = false;
+  await assert.rejects(compiled.exports.administrator(request,'bookings:read'),{status:403});
+  fixture.companyApproved = true; fixture.session.user.email = 'opaque@phone.maxtravel.invalid';
+  await assert.rejects(compiled.exports.administrator(request,'bookings:read'),{status:403});
+  fixture.session.user.email = 'verified@example.test';
+  await compiled.exports.administrator(request,'bookings:read');
+  await assert.rejects(compiled.exports.administrator(request,'refunds:execute'),{status:403});
 });

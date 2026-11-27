@@ -22,9 +22,23 @@ export async function principal(request: Request) {
   }
   return { userId: session.user.id, companyId: account?.company_id ?? null, session };
 }
+export async function mappedCrmStaffPermissions(userId: string) {
+  const {rows:[grant]} = await database().query<{permissions:string[]; email:string}>(
+    `SELECT g.permissions,u.email FROM admin_grants g
+     JOIN "user" u ON u.id=g.user_id
+     LEFT JOIN customer_accounts a ON a.user_id=u.id LEFT JOIN companies c ON c.id=a.company_id
+     WHERE g.user_id=$1 AND g.active=true AND u."emailVerified"=true AND u."twoFactorEnabled"=true
+     AND COALESCE(a.active,true)=true AND (a.company_id IS NULL OR c.status='APPROVED')`, [userId],
+  );
+  return grant && customerEmail(grant) ? grant.permissions : [];
+}
 export async function administrator(request: Request, permission: string) {
   const delegated=crmCommandContext.getStore();
-  if(delegated){if(delegated.permission!==permission)throw new HttpError(403,"Command permission mismatch.");const grant=await database().query('SELECT g.permissions FROM admin_grants g JOIN "user" u ON u.id=g.user_id WHERE g.user_id=$1 AND g.active=true AND u."emailVerified"=true AND u."twoFactorEnabled"=true',[delegated.userId]);if(!grant.rows[0]?.permissions.includes(permission))throw new HttpError(403,"Mapped grant is no longer active.");return {userId:delegated.userId,companyId:null};}
+  if(delegated){
+    if(delegated.permission!==permission)throw new HttpError(403,"Command permission mismatch.");
+    if (!(await mappedCrmStaffPermissions(delegated.userId)).includes(permission)) throw new HttpError(403,"Mapped grant is no longer active.");
+    return {userId:delegated.userId,companyId:null};
+  }
   const actor = await principal(request);
   if (!actor.session.user.emailVerified || !customerEmail(actor.session.user)) throw new HttpError(403, "Admin access requires a verified email.");
   if (!actor.session.user.twoFactorEnabled) throw new HttpError(403, "Admin access requires two-factor authentication.");

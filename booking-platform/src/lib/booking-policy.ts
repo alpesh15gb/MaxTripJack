@@ -9,5 +9,5 @@ export function refundableAmount(paidMinor: number, completedMinor: number, rese
   return requestedMinor;
 }
 export function canReadOrder(userId: string, companyId: string | null, order: { user_id: string; company_id: string | null }) {
-  return companyId ? order.company_id === companyId : order.company_id === null && order.user_id === userId;
+  return order.company_id === companyId && order.user_id === userId;
 }

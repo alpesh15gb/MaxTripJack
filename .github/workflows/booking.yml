@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 -B -m unittest discover -s booking-platform/deploy/tests -v
+      - run: bash booking-platform/deploy/tests/backup-restore.sh
   isolated-production-image:
     name: Booking production Docker image · isolated context
     runs-on: ubuntu-latest
@@ -25,7 +26,7 @@ jobs:
           import {accessSync, constants, readdirSync, statSync} from 'node:fs';
           import {join} from 'node:path';
           assert.equal(process.getuid(), 10001);
-          for (const path of ['server.js', '.next/BUILD_ID', '.next/required-server-files.json', 'scripts/standalone-server.mjs', 'scripts/migrate.mjs', 'scripts/provision-runtime-role.mjs', 'scripts/release-check.mjs']) accessSync(path, constants.R_OK);
+          for (const path of ['server.js', '.next/BUILD_ID', '.next/required-server-files.json', 'scripts/standalone-server.mjs', 'scripts/migrate.mjs', 'scripts/booking-migrations.mjs', 'scripts/provision-runtime-role.mjs', 'scripts/release-check.mjs']) accessSync(path, constants.R_OK);
           function readableTree(path) {
             accessSync(path, constants.R_OK);
             if (statSync(path).isDirectory()) {
@@ -39,6 +40,20 @@ jobs:
           for (const name of ['next', 'next/navigation', 'pg', 'nodemailer', 'pdfkit', 'jose', 'payglocal-js-client', 'payglocal-js-client/src/generateJWS.js', 'better-auth', 'zod', 'server-only']) await import(name);
           console.log('Non-root runtime artifacts and library imports verified offline.');
           JS
+      - name: Verify production HTTP headers and CSP nonces from the Docker image
+        run: |
+          container=booking-header-smoke
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$container" --read-only --tmpfs /tmp --publish 127.0.0.1:3109:3000 booking-isolation:${{ github.sha }}
+          for i in $(seq 1 30); do
+            if curl --max-time 5 -fsS -o /dev/null http://127.0.0.1:3109/book; then
+              node booking-platform/tests/production-security.mjs
+              exit $?
+            fi
+            sleep 2
+          done
+          docker logs "$container"
+          exit 1
   cross-app-contracts:
     name: Web/native disclosure contracts
     runs-on: ubuntu-latest
@@ -51,7 +66,7 @@ jobs:
           cache-dependency-path: booking-platform/package-lock.json
       - run: npm ci --prefix booking-platform
       - name: Verify actual web projection against native disclosure
-        run: booking-platform/node_modules/.bin/tsx --test tests/contracts/*.test.ts
+        run: booking-platform/node_modules/.bin/tsx --tsconfig booking-platform/tsconfig.json --test tests/contracts/*.test.ts
   verify:
     runs-on: ubuntu-latest
     defaults:
@@ -67,7 +82,7 @@ jobs:
         ports: ['55439:5432']
         options: --health-cmd "pg_isready -U maxtravel -d maxtravel_ci" --health-interval 5s --health-timeout 5s --health-retries 20
       mail:
-        image: axllent/mailpit:latest
+        image: axllent/mailpit:v1.34.0
         ports: ['11025:1025', '18025:8025']
     steps:
       - uses: actions/checkout@v4
@@ -118,7 +133,8 @@ jobs:
       - name: Start fixture server and check flows
         run: |
           npm run start > /tmp/booking-ci.log 2>&1 &
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && break || sleep 2; done
+          for i in $(seq 1 30); do curl --max-time 5 -fsS http://127.0.0.1:3000/api/health && break || sleep 2; done
+          curl --max-time 5 -fsS http://127.0.0.1:3000/api/health
           npm run test:integration
           # Keep real authentication limits enabled between independent fixture identities.
           sleep 60

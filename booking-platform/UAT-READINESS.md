@@ -1,10 +1,22 @@
 # UAT readiness
 
+The [27 November launch audit](docs/LAUNCH-AUDIT-2026-11-27.md) records the latest code and fixture verification. The provider acceptance matrix below still requires approved merchant and supplier environments.
+
+## TripJack booking and after-sales verification — 27 November 2026
+
+Six local Next.js and PostgreSQL suites passed across flight and hotel booking, full and partial flight cancellation, hotel cancellation and status polling, paid and free ancillaries, reissue, and refund reconciliation. The supplier fixtures covered interrupted responses and read-only recovery without a second submission. The follow-up passed all 932 unit checks and 102 targeted desktop and mobile browser cases, along with TypeScript, scoped lint, and the production web and worker builds. These runs used synthetic supplier and payment responses.
+
+The local regression cases verify that an incorrect booking or amendment reference cannot complete a booking or after-sales request. Hotel checkout checks the selected room and property, requires a different lead adult in each room, and blocks supplier booking when the post-payment review changes availability or room terms. Flight extras charge connecting baggage on the first segment and carry it through at zero cost. A flight cancellation still marked `REQUESTED` after five checks is flagged for staff follow-up. [TripJack Hotel v3 and flight API reference](https://tripjack.com/page/api-doc)
+
+TripJack UAT booking and after-sales acceptance is open. Confirm the stable public outbound IPv4 from the runner that will send requests and have TripJack allowlist it for both flight and Hotel v3 UAT. Configure `TRIPJACK_FLIGHT_API_KEY` and `TRIPJACK_HOTEL_API_KEY` in that runner’s private environment. From `booking-platform`, run `node scripts/diagnose-checkout.mjs` before any test submission. The diagnostic reports key presence, UAT account access, and whether a wallet balance can be read. Use a dedicated UAT account and TripJack-approved passenger, hotel, and fare scenarios when moving from the diagnostic to writes.
+
+Record each supplier reference, acknowledgement and final result against the case that produced it. Confirm ticket or voucher status before after-sales, verify each passenger and segment for partial changes and ancillaries, and reconcile the replacement and original tickets for reissue. Keep raw supplier evidence in the approved private evidence channel. Hotel certification also lists hold and confirm and five-room scenarios, which need a scope decision with TripJack for this instant-booking, four-room application. [TripJack Hotel v3 certification cases](https://tripjack.com/page/api-doc)
+
 ## Update — 1 November 2026
 
 User-supplied diagnostics from the running VPS booking container confirm TripJack flight and hotel keys are configured. A direct UAT DEL–BOM search returned HTTP 200, success and 250 results; the hotel nationality lookup returned HTTP 200, success and 207 entries. Application-layer flight search then returned a search reference and 243 results. The app found India in its nationality list, mapped 100 Goa hotel IDs, and returned a hotel search reference with 31 available properties. These checks establish those search/catalogue paths, not fare review, booking, payment or after-sales acceptance. Razorpay key ID, secret and webhook secret were absent from that container at the time of the check.
 
-Protected Vercel previews use isolated synthetic databases. Cross-app verification remains in local loopback fixtures, as requested. The current unit suite has 446 checks; full provider acceptance below remains separate. Preview origin checks now share the same configured/deployment URL resolution for authentication, writes, guest shopping and internal CRM commands.
+Protected Vercel previews use isolated synthetic databases. Cross-app verification uses local loopback fixtures. That audit ran 446 unit checks. Preview origin checks share the same configured/deployment URL resolution for authentication, writes, guest shopping and internal CRM commands.
 
 ## Earlier coding audit — 18 October 2026
 
@@ -46,8 +58,7 @@ Record booking/order references and sanitized results. Never attach API keys, co
 
 - Ambiguous supplier identifiers, exit-row eligibility and complex combinations of partial reissue/cancellation/extras require staff assistance.
 - Signed confirmation PDFs can be imported as private CRM attachments. Verify document permissions and current booking revision before staff download. The event receiver does not automatically send PDFs or attach them to customer email; customer delivery remains an explicit action subject to payment and audited-exception rules. See [CRM confirmation delivery](docs/crm-confirmation-delivery.md).
-- Physical-device validation, independent security/load checks, backup restoration, production configuration and signed APK/IPA releases remain pending.
-- The local preview still runs the preceding version. Its replacement was blocked by automatic approval review; browser verification was blocked by browser access policy. Source builds and simulated API checks do not establish visual acceptance.
+- Physical-device validation, independent security/load checks, a production restore rehearsal, production configuration and signed APK/IPA releases remain pending. The local restore drill is recorded in the launch audit.
 
 ## Local checks
 

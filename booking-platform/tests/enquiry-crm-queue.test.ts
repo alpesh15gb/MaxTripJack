@@ -1,3 +1,5 @@
+import type {PoolClient} from 'pg';
+import {reserveCrmDispatch} from '../src/lib/crm-outbox';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID,createHash} from 'node:crypto';
@@ -70,20 +72,27 @@ test('actual PostgreSQL migration and dedicated queue isolate booking events, mo
   assert.throws(()=>frozenSafarEnquiry({...first,crm_environment:frozen.environment==='test'?'live':'test'}),/identity/);
   assert.throws(()=>frozenSafarEnquiry({...first,delivery_payload:JSON.stringify({...JSON.parse(frozen.body),schemaVersion:1})}),/identity/);
   assert.throws(()=>frozenSafarEnquiry({...first,delivery_payload:'x'.repeat(65537)}),/bounded/);
+  const reserve = (id:string,lease:string) => reserveCrmDispatch({query:async (sql:string,args:unknown[])=>({rowCount:(await db.query(sql,args)).affectedRows})} as Pick<PoolClient,'query'>,id,lease);
+  assert.equal(await reserve(first.id,firstLease),true);
   await db.query("UPDATE outbox_events SET lease_until=now()-interval '1 second' WHERE id=$1",[first.id]);
+  assert.equal(await reserve(first.id,firstLease),false,'A slow preparer cannot revive an expired lease');
   const recordId=randomUUID(),ack=[first.id,firstLease,frozen.reference,recordId,frozen.environment];
   assert.equal((await db.query(recordSafarEnquirySql,ack)).affectedRows,0,'An expired lease cannot acknowledge even before reclamation');
-  assert.equal((await db.query(deferSafarEnquirySql,[first.id,firstLease,20])).affectedRows,0,'An expired lease cannot change retry state');
+  assert.equal((await db.query(deferSafarEnquirySql,[first.id,firstLease,20,1])).affectedRows,0,'An expired lease cannot change retry state');
   const nextLease=randomUUID(),reclaimed=(await db.query<SafarEnquiryJob>(claimSafarEnquirySql,[nextLease])).rows[0];assert.equal(reclaimed.id,first.id);
+  assert.equal(reclaimed.attempts,1,'The dispatch is counted even when a process disappears before acknowledging');
+  assert.equal(reclaimed.delivery_payload,first.delivery_payload,'Replays preserve the receiver identity and exact signed body');
+  assert.equal(await reserve(first.id,firstLease),false);
   assert.equal((await db.query(recordSafarEnquirySql,ack)).affectedRows,0,'A replaced lease cannot acknowledge');
-  assert.equal((await db.query(deferSafarEnquirySql,[first.id,firstLease,20])).affectedRows,0,'A replaced lease cannot defer');
+  assert.equal((await db.query(deferSafarEnquirySql,[first.id,firstLease,20,1])).affectedRows,0,'A replaced lease cannot defer');
   assert.equal((await db.query(recordSafarEnquirySql,[first.id,nextLease,frozen.reference,recordId,frozen.environment==='test'?'live':'test'])).affectedRows,0,'A mismatched environment cannot be marked delivered');
   assert.equal((await db.query(recordSafarEnquirySql,[first.id,nextLease,frozen.reference,recordId,frozen.environment])).affectedRows,1);
   const saved=(await db.query<{crm_reference:string;crm_lead_id:string}>('SELECT crm_reference,crm_lead_id FROM travel_enquiries WHERE id=$1',[first.aggregate_id])).rows[0];assert.deepEqual(saved,{crm_reference:frozen.reference,crm_lead_id:recordId});
-  assert.equal((await db.query(deferSafarEnquirySql,[first.id,nextLease,20])).affectedRows,0,'A delivered event cannot be deferred');
+  assert.equal((await db.query(deferSafarEnquirySql,[first.id,nextLease,20,1])).affectedRows,0,'A delivered event cannot be deferred');
   for(let attempt=0;attempt<12;attempt++){
     const lease=randomUUID(),job=(await db.query<SafarEnquiryJob>(claimSafarEnquirySql,[lease])).rows[0];assert(job);assert.equal(job.attempts,attempt);
-    assert.equal((await db.query(deferSafarEnquirySql,[job.id,lease,20])).affectedRows,1);
+    assert.equal(await reserve(job.id,lease),true);
+    assert.equal((await db.query(deferSafarEnquirySql,[job.id,lease,20,0])).affectedRows,1);
     assert.equal((await db.query(claimSafarEnquirySql,[randomUUID()])).rows.length,0,'Retry backoff is respected');
     await db.query("UPDATE outbox_events SET next_attempt=now()-interval '1 second' WHERE id=$1",[job.id]);
   }

@@ -161,6 +161,26 @@ test("failed access checks never show an empty register or privileged navigation
   expect(provider.requests("/api/admin/bookings")).toHaveLength(0);
 });
 
+test("an operations action stays local when its recovery request cannot be saved",async({page,provider})=>{
+  await page.addInitScript(()=>{
+    const setItem=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){
+      if(key.startsWith('maxtravel:ops:pending:'))throw new DOMException('Storage unavailable','QuotaExceededError');
+      setItem.call(this,key,value);
+    };
+  });
+  provider.overrides["GET /api/admin/bookings"] = {body:{rows:[row],total:1,hasMore:false}};
+  await page.goto('/operations');
+  await page.getByRole('button',{name:'Open record →',exact:true}).click();
+  await page.getByRole('button',{name:'Check supplier booking status →',exact:true}).click();
+  const dialog=page.getByRole('dialog');
+  const submit=dialog.getByRole('button',{name:'Check existing booking',exact:true});
+  await submit.click();
+  await expect(dialog.getByRole('status')).toContainText('No action was sent');
+  await expect(submit).toBeEnabled();
+  expect(provider.requests(`/api/admin/bookings/${row.id}/reconcile`)).toHaveLength(0);
+});
+
 
 test("hotel cancellation follow-up stays visible with supplier and next-check progress",async({page,provider},info)=>{
   provider.overrides["GET /api/admin/cancellations"]={body:{rows:[{id:"22222222-2222-4222-8222-222222222222",reference:"MX-HOTEL-PENDING",product:"HOTEL",status:"SUPPLIER_PENDING",supplier_status:"CANCELLATION_PENDING",last_checked_at:"2026-11-01T10:00:00Z",next_check:"2026-11-02T10:00:00Z",follow_up_required_at:"2026-11-01T10:00:00Z",poll_attempts:9,is_partial:false,reason:"Fixture change of plans",created_at:"2026-10-30T10:00:00Z"}],total:1,page:1,hasMore:false}};

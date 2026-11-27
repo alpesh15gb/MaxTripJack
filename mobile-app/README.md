@@ -6,11 +6,11 @@ Expo / React Native Android and iOS source sharing the booking-platform APIs. Su
 
 
 
-Run npm ci, npm run typecheck, then npx expo start --dev-client. Native Razorpay requires a development/release native build; Expo Go cannot execute checkout. Build with npx expo run:android or configure EAS using eas.json. iOS binaries require macOS/Xcode or EAS and signing credentials.
+Run `npm ci`, `npm run lint` and `npm run typecheck`. Install a native development build before starting Metro with `npx expo start --dev-client`. The development profile includes `expo-dev-client` and supports the native Razorpay module. Build with `npx expo run:android`, or use the EAS development profile for Android and iOS.
 
 
 
-Set EXPO_PUBLIC_API_URL to the reachable HTTPS API origin used by backend BETTER_AUTH_URL. Device localhost means the device, not the computer. Release builds reject non-HTTPS URLs. Never include provider secrets in native environment variables.
+Set `EXPO_PUBLIC_API_URL` to the reachable API origin used by backend `BETTER_AUTH_URL`. Set it separately in the Expo development, preview and production environments. The preview and production build hook requires an HTTPS origin without credentials, a path or query parameters. Device localhost refers to the device itself. Keep provider credentials on the backend.
 
 
 
@@ -18,7 +18,7 @@ JavaScript checks: npx expo export --platform android --output-dir dist-android 
 
 
 
-Native authenticator enrolment, recovery-code sign-in and saved-traveller create/edit/delete are implemented. Email verification/reset links use the web account flow. Destination lookup needs backend catalogue sync. Existing Expo/Metro dependency advisories need resolution/assessment before release; compatible audit fixes were applied without forcing a broken SDK downgrade.
+Native authenticator enrolment, recovery-code sign-in and saved traveller management use the shared account service. Email verification and reset links use the web account flow. Destination lookup requires the backend catalogue. Check dependency compatibility with `npx expo install --check` and review the current dependency report with `npm audit`.
 
 
 

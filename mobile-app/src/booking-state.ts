@@ -45,8 +45,13 @@ export function createPaymentRecovery(storage:RecoveryStorage,key:string|null) {
     async start(id:string){
       if(!key||!hydrated||quoteId!==null||clearing!==null)return false;
       quoteId=id;
-      await storage.set(key,id);
-      return true;
+      try {
+        await storage.set(key,id);
+        return true;
+      } catch (error) {
+        if (quoteId===id) quoteId=null;
+        throw error;
+      }
     },
     async verified(expectedQuoteId:string){
       if(quoteId!==expectedQuoteId)return;

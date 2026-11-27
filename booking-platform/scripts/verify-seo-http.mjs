@@ -10,12 +10,14 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { officeServices } from "../src/lib/business-profile.ts";
 import {legalPolicies} from "../src/lib/legal-policies.ts";
 import { PUBLIC_SEO_PAGES } from "../src/lib/seo-registry.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+const buildDir = process.env.NEXT_DIST_DIR || ".next";
 const origin = "https://maxtravel.in";
 const privatePaths = ["/book", "/account", "/my-trips", "/travellers", "/operations", "/operations/visibility", "/reset-password?token=synthetic-secret-do-not-index"];
 const publicPaths = PUBLIC_SEO_PAGES.map(page => page.path);
@@ -116,7 +118,7 @@ async function unusedPort() {
 async function withServer(settings, run) {
   const port = await unusedPort();
   const base = `http://127.0.0.1:${port}`;
-  const env = { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: process.env.HOME ?? "/tmp", NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1", ...settings };
+  const env = { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: process.env.HOME ?? "/tmp", NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1", NEXT_DIST_DIR: buildDir, ...settings };
   const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)], { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] });
   let logs = "";
   const record = data => { logs = (logs + data.toString()).slice(-20_000); };
@@ -150,7 +152,7 @@ async function withServer(settings, run) {
   }
 }
 
-check(existsSync(new URL("../.next/BUILD_ID", import.meta.url)), "Run npm run build first");
+check(existsSync(resolve(root, buildDir, "BUILD_ID")), `Run npm run build for ${buildDir} first`);
 // Next loads local .env files itself. Fail closed instead of inheriting secrets
 // or touching an operator's files to suppress the loader.
 for (const file of [".env", ".env.local", ".env.production", ".env.production.local"]) {
@@ -189,14 +191,33 @@ await withServer({ SEO_INDEXING_ENABLED: "false", SEO_SITE_ORIGIN: origin }, asy
     check(!/(?:₹|INR\s*)\s*[0-9][0-9,]*(?:\.[0-9]+)?/.test(cleanText(html)), `${path}: no invented public fare`);
     check(!/guaranteed (?:lowest|cheapest|first.place)|\b\d[\d,]*\s+(?:happy customers|verified reviews)\b/i.test(cleanText(html)), `${path}: no unsupported superlatives/testimonials`);
     if (path === "/") {
-      const hero = tags(html, "img").find(tag => tag.alt === "The Eiffel Tower and the Seine at blue hour");
-      check(Boolean(hero), "Homepage editorial hero is an actual accessible responsive image");
-      check(Boolean(hero.srcset) && hero.sizes === "100vw", "Full-bleed hero declares responsive candidates across the viewport");
-      check(hero.loading !== "lazy", "Above-fold editorial hero is not deferred as a below-fold image");
+      const hero = [...html.matchAll(/<section\b([^>]*)>([\s\S]*?)<\/section>/gi)].find(match => attrs(match[1])["aria-labelledby"] === "home-title")?.[2];
+      check(Boolean(hero), "Homepage introduction is server-rendered and linked to its heading");
+      check(tags(hero, "h1").some(tag => tag.id === "home-title") && Boolean(h1[0]), "Homepage has a titled hero before scripting");
+      check(/flights.*stays.*holidays/i.test(cleanText(hero)) && cleanText(hero).includes("Secunderabad"), "Homepage introduction identifies the products and local travel desk");
+      check(tags(hero, "svg").some(tag => tag["aria-hidden"] === "true" && tag.focusable === "false"), "Decorative hero artwork stays out of the reading and focus order");
+      check(tags(html, "section").some(tag => tag.id === "trip-search" && Boolean(tag["aria-label"])), "Homepage renders a named trip-search entry");
+      const links = tags(html, "a");
+      for (const link of ["/flights", "/hotels", "/packages", "/visa-guide", "/office", "/pricing-transparency"]) {
+        check(links.some(tag => tag.href === link), `Homepage exposes a crawlable link to ${link}`);
+      }
+      const images = tags(html, "img");
+      const headerLogo = images.find(tag => tag.class?.split(/\s+/).includes("maxtravel-logo--header"));
+      check(Boolean(headerLogo?.alt && headerLogo.srcset && headerLogo.sizes), "Above-fold logo has a text alternative and responsive image candidates");
+      equal(headerLogo.loading, "eager", "Above-fold logo loads eagerly");
+      check(images.some(tag => tag.class?.split(/\s+/).includes("maxtravel-logo--footer") && tag.loading === "lazy"), "Below-fold logo loads lazily");
       const imagePreloads = tags(html, "link").filter(tag => tag.rel === "preload" && tag.as === "image");
-      check(imagePreloads.length === 1 && imagePreloads[0].imagesrcset === hero.srcset && imagePreloads[0].imagesizes === hero.sizes, "Only the above-fold responsive hero receives an image preload");
-      const socialImage = tags(html, "meta").find(tag => tag.property === "og:image");
-      equal(socialImage?.content, origin + "/travel/paris-evening.webp", "Homepage share preview uses the current editorial hero");
+      check(imagePreloads.length === 1 && imagePreloads[0].imagesrcset === headerLogo.srcset && imagePreloads[0].imagesizes === headerLogo.sizes, "Only the above-fold responsive logo receives an image preload");
+      const metadata = tags(html, "meta");
+      const shareImage = "/travel/paris-evening.webp";
+      equal(metadata.find(tag => tag.property === "og:image")?.content, origin + shareImage, "Homepage Open Graph image uses the published travel photo");
+      equal(metadata.find(tag => tag.name === "twitter:image")?.content, origin + shareImage, "Homepage Twitter card uses the same published photo");
+      equal(metadata.find(tag => tag.name === "twitter:card")?.content, "summary_large_image", "Homepage uses a large social preview card");
+      equal(metadata.find(tag => tag.property === "og:image:alt")?.content, "The Eiffel Tower and the Seine at blue hour", "Homepage share image has a descriptive text alternative");
+      const shareResponse = await request(shareImage);
+      equal(shareResponse.status, 200, "Homepage share image is served");
+      equal(shareResponse.headers.get("content-type"), "image/webp", "Homepage share image uses its declared media format");
+      check((await shareResponse.arrayBuffer()).byteLength > 0, "Homepage share image includes real photo bytes");
     }
     if (["/contact", "/office", "/about"].includes(path)) {
       check(cleanText(html).includes("Secunderabad"), `${path}: correct India office identity`);

@@ -9,7 +9,9 @@ let serial = 0;
 async function harness() {
   const quoteId = '30cf55a8-7c40-42e2-a7b9-0499667a556a';
   const guests = { travellers: [{ ti: 'Mr', pt: 'ADULT', fN: 'Synthetic', lN: 'Guest' }], email: 'synthetic@example.test', phone: '9000000000' };
-  const state = { account: {} as unknown, product: 'HOTEL', walletCalls: 0, gatewayCalls: 0, orderWrites: 0, existing: false, guests, promo: null as Record<string,unknown>|null, snapshots:[] as unknown[],
+  const state = { account: {} as unknown, product: 'HOTEL', walletCalls: 0, gatewayCalls: 0, orderWrites: 0, existing: false,
+    paymentStatus: 'CREATED', orderStatus: 'PAYMENT_PENDING', providerAmount: '200620', finalFresh: true, guests,
+    promo: null as Record<string,unknown>|null, snapshots:[] as unknown[],
     quote: { id: quoteId, search_id: 'synthetic-search', product: 'HOTEL', total_minor: 200620, supplier_minor: '200620' as unknown, selection: {}, review: {}, promo_code_id:null as string|null,undiscounted_minor:null as number|null,discount_minor:0, expires_at: new Date(Date.now() + 60000).toISOString() } };
   const key = `__wallet_route_test_${++serial}`, globals = globalThis as unknown as Record<string, unknown>;
   globals[key] = state;
@@ -36,7 +38,13 @@ async function harness() {
     '@/lib/db': `${scope}
       async function query(sql,values){
         if(sql.includes('SELECT * FROM supplier_quotes'))return {rows:[state.quote],rowCount:1};
-        if(sql.includes('JOIN gateway_intents'))return {rows:state.existing?[{id:'existing-booking',provider:'RAZORPAY',guests_encrypted:'synthetic-ciphertext',gateway_order_id:'order_existing'}]:[],rowCount:state.existing?1:0};
+        if(sql.includes('JOIN gateway_intents'))return {rows:state.existing?[{
+          id:'existing-booking',provider:'RAZORPAY',guests_encrypted:'synthetic-ciphertext',gateway_order_id:'order_existing',
+          intent_state:'CREATED',status:state.orderStatus,payment_status:state.paymentStatus,currency:'INR',
+          total_minor:state.quote.total_minor,amount_minor:state.providerAmount,quote_expires_at:state.quote.expires_at,
+          fare_validation_state:null,booking_validation_state:null,
+        }]:[],rowCount:state.existing?1:0};
+        if(sql.includes('expires_at>clock_timestamp()'))return {rows:[{fresh:state.finalFresh}],rowCount:1};
         if(sql.startsWith('SELECT * FROM promo_codes'))return {rows:state.promo?[state.promo]:[]};
         if(sql.startsWith('UPDATE orders SET promo_snapshot')){state.snapshots.push(values[1]);return {rowCount:1};}
         if(sql.startsWith('INSERT INTO orders')){state.orderWrites++;return {rows:[],rowCount:1};}
@@ -90,6 +98,40 @@ test('real payment route resumes existing checkout without another wallet probe 
     state.existing=true;state.account={user:{bs:{walletBalance:null}}};
     const response=await send();assert.equal(response.status,200);assert.equal((await response.json()).orderId,'order_existing');
     assert.equal(state.walletCalls,0);assert.equal(state.gatewayCalls,0);assert.equal(state.orderWrites,0);
+  } finally { cleanup(); }
+});
+
+test('existing authorized, settled and inconsistent payments never reopen through create', async () => {
+  const { state, send, cleanup } = await harness();
+  try {
+    state.existing = true;
+    for (const [paymentStatus, orderStatus, providerAmount] of [
+      ['AUTHORIZED', 'PAYMENT_PENDING', '200620'],
+      ['CAPTURED', 'PAID', '200620'],
+      ['CREATED', 'MANUAL_REVIEW', '200620'],
+      ['CREATED', 'PAYMENT_PENDING', '200000'],
+    ]) {
+      Object.assign(state, {paymentStatus, orderStatus, providerAmount});
+      const response = await send();
+      assert.equal(response.status, 409);
+      assert.equal((await response.json()).orderId, undefined);
+    }
+    assert.equal(state.walletCalls, 0);
+    assert.equal(state.gatewayCalls, 0);
+    assert.equal(state.orderWrites, 0);
+  } finally { cleanup(); }
+});
+
+test('a quote that expires during creation preflight cannot commit an order', async () => {
+  const { state, send, cleanup } = await harness();
+  try {
+    state.account = {user:{bs:{walletBalance:2006.2}}};
+    state.finalFresh = false;
+    const response = await send();
+    assert.equal(response.status, 409);
+    assert.equal(state.walletCalls, 1);
+    assert.equal(state.gatewayCalls, 0);
+    assert.equal(state.orderWrites, 0);
   } finally { cleanup(); }
 });
 

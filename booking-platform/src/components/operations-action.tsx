@@ -393,6 +393,14 @@ export default function OperationsAction({
   }, []);
   async function send(request: Command) {
     if (locked.current) return;
+    const storageKey = "maxtravel:ops:pending:" + actorId;
+    try {
+      const record = row && {id:row.id,reference:row.reference,name:row.name,product:row.product,status:row.status};
+      sessionStorage.setItem(storageKey, JSON.stringify({action,row:record,command:request,requestId}));
+    } catch {
+      setMessage("This browser could not save the request for safe recovery. Enable session storage, then try again. No action was sent."+(pending?" The earlier outcome is still unconfirmed.":""));
+      return;
+    }
     locked.current = true;
     setBusy(true);
     setMessage("");
@@ -400,12 +408,6 @@ export default function OperationsAction({
     const controller = new AbortController(),
       timer = setTimeout(() => controller.abort(), 35000);
     try {
-      try {
-        sessionStorage.setItem(
-          "maxtravel:ops:pending:" + actorId,
-          JSON.stringify({ action, row, command: request, requestId }),
-        );
-      } catch {}
       const response = await fetch(request.path, {
         method: "POST",
         signal: controller.signal,
@@ -413,20 +415,22 @@ export default function OperationsAction({
         body:
           request.body === undefined ? undefined : JSON.stringify(request.body),
       });
-      const data = await response.json();
-      if (response.status >= 500)
-        throw Error(data.error ?? "The service could not confirm the outcome.");
+      const data = await response.json().catch(()=>null);
+      const outcome = data && typeof data==="object" && !Array.isArray(data) ? data : null;
+      const errorText = typeof outcome?.error==="string" ? outcome.error : null;
+      if (!outcome || response.status >= 500 || response.status===408 || (pending && (response.status===401 || response.status===403)))
+        throw Error(errorText ?? "The service could not confirm the outcome.");
       try {
-        sessionStorage.removeItem("maxtravel:ops:pending:" + actorId);
+        sessionStorage.removeItem(storageKey);
       } catch {}
       setPending(null);
       if (!response.ok) {
-        setMessage(data.error ?? "This action could not be completed.");
+        setMessage(errorText ?? "This action could not be completed.");
         return;
       }
-      setResult(data);
+      setResult(outcome);
       setMessage(
-        data.message ??
+        typeof outcome.message==="string" ? outcome.message :
           "Update recorded. Review the current status before taking the next action.",
       );
       onSaved();
@@ -480,6 +484,7 @@ export default function OperationsAction({
         onChange={e=>{if(action!=="pricing-create"&&action!=="pricing-edit")return;const f=new FormData(e.currentTarget);try{const base=minor(f.get('sampleCost'));const total=customerTotal(base,{markup_minor:minor(f.get('markup')),service_fee_minor:minor(f.get('fee')),service_fee_basis_points:minor(f.get('feePercentage')),markup_basis_points:f.get('mode')==='MARGIN'?0:minor(f.get('percentage')),margin_basis_points:f.get('mode')==='MARGIN'?minor(f.get('percentage')):0});setPricePreview(`Customer total: INR ${(total/100).toFixed(2)} | Uplift before other costs: INR ${((total-base)/100).toFixed(2)}`);}catch{setPricePreview('Enter valid amounts. Target margin must be between 0% and 95%.');}}}
         onSubmit={(e) => {
           e.preventDefault();
+          if(busy || pending || result)return;
           try {
             void send(
               command(action, new FormData(e.currentTarget), row, requestId),

@@ -31,7 +31,7 @@ Signed booking snapshots, confirmation PDF import and controlled CRM operations 
 
 ## Release status
 
-See [delivery status](booking-platform/DELIVERY-STATUS.md), [UAT readiness](booking-platform/UAT-READINESS.md) and [security controls](booking-platform/SECURITY.md). Remaining TripJack booking/after-sales and PayGlocal’s missing merchant travel payload and merchant UAT, deployed CRM acceptance, physical-device validation, production configuration and signing remain pending.
+See the [27 November launch audit](booking-platform/docs/LAUNCH-AUDIT-2026-11-27.md) for the current verification and release decision. The [UAT acceptance matrix](booking-platform/UAT-READINESS.md) and [security controls](booking-platform/SECURITY.md) record the remaining provider, production and device checks.
 
 Root GitHub Actions workflows validate both projects separately using their individual dependency lockfiles. Credentials, databases, dependencies and generated builds are excluded from Git.
 

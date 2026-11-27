@@ -1,5 +1,16 @@
 import { test, expect, departure, expectNoHorizontalOverflow, capture, syntheticSession } from './fixtures';
 
+test('initial session outage keeps sign-in available while account details stay private', async ({page, provider})=>{
+ provider.session=null;
+ provider.overrides['GET /api/auth/get-session']={status:503,body:{message:'Synthetic temporary outage'}};
+ await page.goto('/account');
+ const card=page.locator('.account-card');
+ await expect(card.getByRole('status')).toContainText('You can still sign in below');
+ await expect(card.getByRole('button',{name:'Sign in',exact:true}).first()).toBeVisible();
+ await expect(card.getByLabel('Password',{exact:true})).toBeEditable();
+ await expect(card.getByRole('button',{name:'Check account access',exact:true})).toHaveCount(0);
+});
+
 const reset='/reset-password?token=synthetic-only&returnTo=%2Fbook%3Ffrom%3DBOM%26to%3DDEL';
 async function fillReset(page:import('@playwright/test').Page){
  await page.getByLabel('New password',{exact:true}).fill('SyntheticNewPassword123');
@@ -69,7 +80,7 @@ test('lost access during pending-status refresh removes private records and stop
  await expect(page.getByText(pending.reference,{exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Load older trips',exact:true})).toHaveCount(0);
  const reads=provider.requests('/api/bookings').length;await page.clock.fastForward(20_000);expect(provider.requests('/api/bookings')).toHaveLength(reads);
- await expect(page.getByRole('link',{name:'Open account',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
+ await expect(page.getByRole('link',{name:'Sign in to view trips',exact:true})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
  await expectNoHorizontalOverflow(page);await capture(page,info,'trips-access-expired');
  delete provider.overrides['GET /api/bookings'];await page.reload();await expect(page.getByText(pending.reference,{exact:true})).toBeVisible();
  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
@@ -218,9 +229,9 @@ test('settled trips hide on network uncertainty and clear on confirmed sign-out'
  await expect(page.getByText(pending.reference,{exact:true})).toBeHidden();
  delete provider.overrides['GET /api/auth/get-session'];provider.session=null;
  await page.getByRole('button',{name:'Check account access',exact:true}).click();
- await expect(page.getByRole('main').getByRole('alert')).toContainText('Sign in to view your private booking updates');
+ await expect(page.getByRole('main').getByRole('heading',{name:'Your trips are private.'})).toBeVisible();
  await expect(page.getByText(pending.reference,{exact:true})).toHaveCount(0);
- await expect(page.getByRole('link',{name:'Open account',exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Sign in to view trips',exact:true})).toBeVisible();
 });
 
 test('MFA enrollment secrets and pending completion are scoped to the authenticated identity',async({page,provider})=>{

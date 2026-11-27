@@ -54,12 +54,12 @@ Run without flags for an inspection; use `--apply` for the update. The updater:
    connection is held only in a separate private migration configuration, not
    added to the new application runtime.
 5. Stops only the previously running travel applications/workers, takes a
-   PostgreSQL custom-format dump and verifies its archive catalogue, and runs
+   PostgreSQL custom-format dump and reads back its contents, and runs
    the existing CRM backup plus a restore verification into a separate recovery
    directory. Uploads/package media are part of that CRM backup.
-6. Applies the committed booking migrations through 019 and CRM migrations
-   through `20261031100000_case_workflow`; no reset, seed or live-data restore is
-   used. CRM's normal startup may safely recheck its migrations.
+6. Applies the pinned candidate's booking and authentication migrations with
+   the migration-owner connection and runs CRM's committed migrations.
+   CRM's normal startup may recheck its migrations.
 7. Starts the two apps, verifies their health and the PayGlocal payment hold,
    resumes only their previously running worker services, and checks that all
    those services use the candidate images. Existing historical payment provider

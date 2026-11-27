@@ -8,6 +8,15 @@ export type PaymentResumeRecord = {
   payment_status: string | null; amount_minor: number | string | null; currency: string | null;
 };
 
+// Share the persisted payment evidence between status and create retries.
+export const PAYMENT_RESUME_COLUMNS = `o.id,o.status,o.total_minor,
+  q.expires_at AS quote_expires_at,q.fare_validation_state,q.booking_validation_state,o.service_kind,q.review,
+  g.provider,g.state AS intent_state,g.gateway_order_id,p.status AS payment_status,p.amount_minor,p.currency`;
+export const PAYMENT_RESUME_TABLES = `FROM orders o LEFT JOIN supplier_quotes q ON q.id=o.quote_id
+    AND q.user_id=o.user_id AND q.company_id IS NOT DISTINCT FROM o.company_id
+  LEFT JOIN gateway_intents g ON g.order_id=o.id
+  LEFT JOIN payments p ON p.order_id=o.id AND p.gateway_order_id=g.gateway_order_id AND p.provider=g.provider`;
+
 export function paymentResumeStatus(record: PaymentResumeRecord, now = Date.now(),provider:'RAZORPAY'|'PAYGLOCAL'='RAZORPAY') {
   const fresh = record.quote_expires_at !== null && new Date(record.quote_expires_at).getTime() > now;
   const amount = Number(record.total_minor);

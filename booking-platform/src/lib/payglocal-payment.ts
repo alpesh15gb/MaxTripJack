@@ -52,9 +52,11 @@ export async function persistPayGlocalInitiation(tx:Tx,bookingId:string,result:I
 /** Transport timeout is uncertainty, not failure or permission to resubmit. */
 export async function markPayGlocalUnknown(tx:Tx,bookingId:string) {
   const row=await load(tx,bookingId);
-  if(row.state==="CAPTURED") return;
+  // A delayed initiation failure must not replace a status learned while the
+  // provider request was in flight.
+  if(row.gid || row.state!=="STARTED") return;
   await tx.query("UPDATE payglocal_attempts SET state='UNKNOWN',updated_at=now() WHERE order_id=$1",[bookingId]);
-  if(!row.gid) await tx.query("UPDATE gateway_intents SET state='UNKNOWN' WHERE order_id=$1",[bookingId]);
+  await tx.query("UPDATE gateway_intents SET state='UNKNOWN' WHERE order_id=$1",[bookingId]);
 }
 
 /** Recover a lost initiate response using the authenticated status endpoint's

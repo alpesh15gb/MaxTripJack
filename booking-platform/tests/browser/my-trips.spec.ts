@@ -39,6 +39,34 @@ test('a signed-out guest can look up a booking from the same browser by referenc
   expect(provider.requests('/api/bookings/lookup')[0].body).toEqual({reference:'MT-1234ABCD'});
 });
 
+test('booking lookup recovers from a malformed success without replacing My trips',async({page,provider})=>{
+  provider.session=null;
+  provider.overrides['POST /api/bookings/lookup']={body:{matches:{},incomplete:false}};
+  await page.goto('/my-trips');
+  const input=page.getByLabel('Booking reference or airline PNR');
+  await input.fill('MT-1234ABCD');
+  const submit=page.getByRole('button',{name:'Find booking',exact:true});
+  await submit.click();
+  await expect(page.getByRole('status').filter({hasText:'The lookup response was incomplete'})).toBeVisible();
+  await expect(input).toHaveValue('MT-1234ABCD');
+  provider.overrides['POST /api/bookings/lookup']={body:{matches:[{id:ids.ticket,reference:'MT-1234ABCD'}],incomplete:false}};
+  await submit.click();
+  const match=page.getByRole('link',{name:'Open booking MT-1234ABCD'});
+  await expect(match).toHaveAttribute('href',`/my-trips/${ids.ticket}`);
+  await input.fill('MT-2345ABCD');
+  await expect(match).toHaveCount(0);
+});
+
+test('an incomplete trip list offers recovery instead of claiming there are no bookings',async({page,provider})=>{
+  provider.overrides['GET /api/bookings']={body:{bookings:null,hasMore:false}};
+  await page.goto('/my-trips');
+  await expect(page.getByText('The trip list response was incomplete. Try again.')).toBeVisible();
+  delete provider.overrides['GET /api/bookings'];
+  provider.bookingsPages['1']={hasMore:false,bookings:[booking(ids.pending,'MX-TRIP-RECOVERED','PAYMENT_PENDING')]};
+  await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await expect(page.getByText('MX-TRIP-RECOVERED',{exact:true})).toBeVisible();
+});
+
 test('My trips shows truthful booking states and keeps supplier confirmation within each record', async ({ page, provider }, testInfo) => {
   const photo = 'https://pix8.agoda.net/hotelImages/123/stay.jpg';
   const hotelBooking = booking(ids.hotel, 'MX-SYNTHETIC-HOTEL', 'CONFIRMED', 'HOTEL', 0);

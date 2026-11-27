@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CHECKOUT_RECOVERY_KEY,parseCheckoutMarker,readCheckoutMarkers,saveCheckoutMarker,clearCheckoutMarker,isResumableCheckout,isResumableHostedCheckout,parseCheckoutRecoveryStatus,isResolvedCheckout} from '../src/lib/checkout-recovery';
+import {CHECKOUT_RECOVERY_KEY,parseCheckoutMarker,readCheckoutMarkers,saveCheckoutMarker,clearCheckoutMarker,isResumableCheckout,isResumableHostedCheckout,parseCheckoutRecoveryStatus,isResolvedCheckout,isExpiredCheckoutWithoutPayment} from '../src/lib/checkout-recovery';
 const id='11111111-1111-4111-8111-111111111111';
 test('interruption marker keeps only opaque IDs and discards all guest/payment payloads',()=>{assert.deepEqual(parseCheckoutMarker(JSON.stringify({quoteId:id,bookingId:id,guests:{name:'Private'},email:'private@example.com',keyId:'key',orderId:'gateway'})),{quoteId:id,bookingId:id});assert.equal(parseCheckoutMarker('{'),null);assert.equal(parseCheckoutMarker(JSON.stringify({quoteId:'invalid'})),null);});
 test('recovery can never open a partial or non-INR payment contract',()=>{assert.equal(isResumableCheckout({canResume:true}),false);assert.equal(isResumableCheckout({canResume:false,bookingId:id,orderId:'order',keyId:'key',amount:100,currency:'INR'}),false);assert.equal(isResumableCheckout({canResume:true,bookingId:id,orderId:'order',keyId:'key',amount:100,currency:'USD'}),false);assert.equal(isResumableCheckout({canResume:true,bookingId:id,orderId:'order',keyId:'key',amount:100,currency:'INR'}),true);});
@@ -25,6 +25,19 @@ test('hosted return alone is not payment proof and invalid amounts cannot reopen
 
 const otherId='22222222-2222-4222-8222-222222222222';
 const bookingId='33333333-3333-4333-8333-333333333333';
+test('an expired quote clears only on an exact no-order status for the original marker',()=>{
+ const response={status:'EXPIRED_WITHOUT_PAYMENT',quoteId:id,found:false,canResume:false,checkoutResolved:true};
+ const parsed=parseCheckoutRecoveryStatus(response);
+ assert.ok(parsed);
+ assert.equal(isExpiredCheckoutWithoutPayment(parsed,{quoteId:id}),true);
+ assert.equal(isResolvedCheckout(parsed),false);
+ assert.equal(isExpiredCheckoutWithoutPayment(parsed,{quoteId:otherId}),false);
+ assert.equal(isExpiredCheckoutWithoutPayment(parsed,{quoteId:id,bookingId}),false);
+ assert.equal(isExpiredCheckoutWithoutPayment({...parsed,checkoutResolved:false},{quoteId:id}),false);
+ for(const override of [{found:true},{quoteId:undefined},{bookingId:null},{bookingId}]){
+  assert.equal(parseCheckoutRecoveryStatus({...response,...override}),null);
+ }
+});
 function withStorage(run:(store:{value:string|null;failRead:boolean;failWrite:boolean})=>void){
  const prior=Object.getOwnPropertyDescriptor(globalThis,'sessionStorage');
  const store={value:null as string|null,failRead:false,failWrite:false};
@@ -35,6 +48,12 @@ function withStorage(run:(store:{value:string|null;failRead:boolean;failWrite:bo
  }});
  try{run(store);}finally{if(prior)Object.defineProperty(globalThis,'sessionStorage',prior);else Reflect.deleteProperty(globalThis,'sessionStorage');}
 }
+test('no-order recovery preserves a marker upgraded after the status request',()=>withStorage(()=>{
+ assert.equal(saveCheckoutMarker({quoteId:id}),true);
+ assert.equal(saveCheckoutMarker({quoteId:id,bookingId}),true);
+ assert.equal(clearCheckoutMarker({quoteId:id},true),false);
+ assert.deepEqual(readCheckoutMarkers(),[{quoteId:id,bookingId}]);
+}));
 
 test('legacy marker survives another checkout and collection round-trips back to a singleton',()=>withStorage(store=>{
  store.value=JSON.stringify({quoteId:id,bookingId,guests:{name:'Private'}});

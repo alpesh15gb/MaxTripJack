@@ -30,7 +30,10 @@ export class FlightExtrasRefreshError extends HttpError {
 export type Actor={userId:string;companyId:string|null};
 export async function pricingRule(product:Product,actor:Actor){const rules=await database().query<PricingRule>("SELECT * FROM pricing_rules WHERE active=true AND product=$1 AND (company_id=$2 OR company_id IS NULL) ORDER BY company_id NULLS LAST,created_at DESC LIMIT 1",[product,actor.companyId]);return rules.rows[0];}
 export async function owned(table:"supplier_searches"|"supplier_quotes"|"orders",id:string,actor:Actor){const result=await database().query(`SELECT * FROM ${table} WHERE id=$1 AND user_id=$2 AND company_id IS NOT DISTINCT FROM $3::uuid`,[id,actor.userId,actor.companyId]);if(!result.rows[0])throw new HttpError(404,"Record not found.");return result.rows[0];}
-export function assertFresh(expires:Date|string){if(new Date(expires).getTime()<=Date.now())throw new HttpError(409,"This quote or search expired. Search and review again.");}
+export function assertFresh(expires:Date|string){
+ const expiry = new Date(expires).getTime();
+ if (!Number.isFinite(expiry) || expiry <= Date.now()) throw new HttpError(409,"This quote or search expired. Search and review again.");
+}
 export async function searchSupplier(criteria:Search,actor:Actor,timing=new SearchTiming(),warm?:{intent:string;peer:string;sessionFingerprint?:string}){
  await timing.measure("limit",()=>requestLimit(actor.userId,"supplier-search",20));
  validateSearchCriteria(criteria);
@@ -68,7 +71,18 @@ export async function customerHotelContent(searchId:string,actor:Actor){
  const propertyContentStatuses=Object.fromEntries(Object.entries(hotelContentForSearch.statuses(ids,search.criteria.hotelIds)).map(([id,status])=>[id,status==='pending'?'unavailable':status]));
  return {searchId,properties:Object.fromEntries(hotels.map(hotel=>[hotel.tjHotelId,mergeHotelPropertyDetails(properties[hotel.tjHotelId],hotel.property)])),propertyContentStatuses};
 }
-function hotelDetailRequest(criteria:Extract<Search,{product:'HOTEL'}>,correlationId:string,hid:string){const {hids,...input}=hotelSearch(criteria,correlationId);void hids;return tripjack('HOTEL',paths.HOTEL.detail,{...input,hid});}
+function assertHotelSelection(data:unknown,hid:string,optionId?:string){
+ const hotel=hotelObject(data),selectedOption=hotelObject(hotel.option).optionId;
+ if((('tjHotelId' in hotel||'hotelId' in hotel)&&hotelListingId(hotel)!==hid)||(optionId!==undefined&&selectedOption!==undefined&&selectedOption!==optionId)){
+  throw new HttpError(502,"The supplier returned a different room or hotel. Refresh room options and try again.");
+ }
+}
+async function hotelDetailRequest(criteria:Extract<Search,{product:'HOTEL'}>,correlationId:string,hid:string){
+ const {hids,...input}=hotelSearch(criteria,correlationId);void hids;
+ const data=await tripjack('HOTEL',paths.HOTEL.detail,{...input,hid});
+ assertHotelSelection(data,hid);
+ return data;
+}
 export async function hotelDetail(searchId:string,hid:string,actor:Actor){const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);if(search.product!=="HOTEL"||!search.criteria.hotelIds.includes(hid))throw new HttpError(400,"Hotel not part of this search.");return hotelDetailRequest(search.criteria,search.correlation_id,hid);}
 export async function customerHotelDetail(searchId:string,hid:string,actor:Actor){
  const search=await owned("supplier_searches",searchId,actor);assertFresh(search.expires_at);
@@ -114,6 +128,7 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
   if(!search.criteria.hotelIds.includes(selection.hid))throw new HttpError(400,"Hotel not part of this search.");
   const reviewHash=hotelReviewHash(search.results,selection.hid,selection.optionId);
   chosen={hid:selection.hid,optionId:selection.optionId,reviewHash,correlationId:search.correlation_id};data=await tripjack("HOTEL",paths.HOTEL.review,chosen,false,"POST",signal);
+  assertHotelSelection(data,selection.hid,selection.optionId);
  }
  const product=search.product as Product;
  if(product==="HOTEL"&&data.option?.inventory?.available===false)throw new HttpError(409,"Room option unavailable. Search again to choose another room.");
@@ -163,6 +178,9 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
   if(order.rowCount)throw new HttpError(409,"A payment order already exists for this flight. Check My trips before paying again.");
   signal?.throwIfAborted();
   await tx.query(insert,values);
+  // The two quote writes commit together under the same lock checkout uses.
+  // Customers may only pay the newly presented review after a refresh.
+  await tx.query("UPDATE supplier_quotes SET expires_at=LEAST(expires_at,clock_timestamp()) WHERE id=$1",[previous.id]);
  });
  else await database().query(insert,values);
  return {quoteId:id,product,summary:search.criteria,hotelName:product==="HOTEL"?search.results.hotels?.find((h:unknown)=>hotelListingId(h)===selection.hid)?.name??null:null,totalMinor,currency:"INR",expiresAt,priceBreakdown:bookingPriceBreakdown(product,data,baseTotalMinor),...(extrasRefresh?{extrasRefresh,baseTotalMinor,savedFlightExtrasCount}:{}),review:publicSupplierReview(product,data,flight)};

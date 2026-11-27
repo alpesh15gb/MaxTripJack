@@ -22,7 +22,7 @@ export const recordSafarEnquirySql=`WITH locked_enquiry AS (
 ) UPDATE outbox_events SET delivered_at=now(),lease_token=NULL,lease_until=NULL
  WHERE id IN (SELECT crm_event_id FROM saved) AND lease_token=$2`;
 
-export const deferSafarEnquirySql=`UPDATE outbox_events SET attempts=attempts+1,next_attempt=now()+($3 * interval '1 second'),lease_token=NULL,lease_until=NULL
+export const deferSafarEnquirySql=`UPDATE outbox_events SET attempts=attempts+$4,next_attempt=now()+($3 * interval '1 second'),lease_token=NULL,lease_until=NULL
  WHERE id=$1 AND lease_token=$2 AND lease_until>clock_timestamp() AND event_type='enquiry.created' AND delivered_at IS NULL
  AND EXISTS(SELECT 1 FROM travel_enquiries WHERE crm_event_id=$1 AND crm_receiver='safar')`;
 

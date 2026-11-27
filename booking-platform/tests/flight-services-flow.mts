@@ -12,8 +12,9 @@ const base=process.env.BETTER_AUTH_URL!;if(new URL(base).hostname!=="127.0.0.1")
 const originalFetch=globalThis.fetch,before={PAYMENT_PROVIDER:process.env.PAYMENT_PROVIDER,TRIPJACK_FLIGHT_API_KEY:process.env.TRIPJACK_FLIGHT_API_KEY,RAZORPAY_KEY_ID:process.env.RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET:process.env.RAZORPAY_KEY_SECRET};
 const parent=randomUUID(),email=`services-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",gatewayOrder="",gatewayPayment="",expectedAmount=0,addCalls=0,reissueCalls=0,lost=false,providerCalls=0,reissueTerms:Record<string,unknown>={conditions:{st:180,restriction:"Changes remain subject to supplier confirmation"},alerts:["Seat eligibility still applies"]},appliedSegments:Record<string,unknown>[]=[];const searches:string[]=[],quotes:string[]=[],children:string[]=[];
 const person={ti:"Mr",pt:"ADULT",fN:"Test",lN:"Guest"},guests={travellers:[person],email,phone:"9000000000"};
-const segment=(id:string,paxId:string,from:string,to:string,first:boolean)=>({id,da:{code:from},aa:{code:to},dt:"2027-01-01T10:00",bI:{tI:[{...person,id:paxId}],ssrInfo:{BAGGAGE:[{code:"BAG",desc:"Extra baggage",...(first?{amount:1000}:{})}],MEAL:[{code:"MEAL",desc:"Meal",amount:500},{code:"FREE",desc:"Included meal",amount:0}]}}});
-const ssr={status:{success:true},tripInfos:[{sI:[segment("s1","p1","BOM","HYD",true),segment("s2","p2","HYD","DEL",false)]}]};
+const segment=(id:string,paxId:string,from:string,to:string,baggageAmount:number)=>({id,da:{code:from},aa:{code:to},dt:"2027-01-01T10:00",bI:{tI:[{...person,id:paxId}],ssrInfo:{BAGGAGE:[{code:"BAG",desc:"Extra baggage",amount:baggageAmount}],MEAL:[{code:"MEAL",desc:"Meal",amount:500},{code:"FREE",desc:"Included meal",amount:0}]}}});
+const ssr={status:{success:true},tripInfos:[{sI:[segment("s1","p1","BOM","HYD",1000),segment("s2","p2","HYD","DEL",0)]}]};
+let reissueSubmission:unknown,ssrDetailsAmendmentId:string|undefined;
 try{
  const signup=await originalFetch(base+"/api/auth/sign-up/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password,name:"Service Test"})});assert.equal(signup.status,200);userId=(await signup.json()).user.id;await database().query('UPDATE "user" SET "emailVerified"=true WHERE id=$1',[userId]);
  const login=await originalFetch(base+"/api/auth/sign-in/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password})});assert.equal(login.status,200);cookie=login.headers.getSetCookie().map(v=>v.split(";")[0]).join("; ");
@@ -24,11 +25,11 @@ try{
  if(url.endsWith("/ancillaries/fetch/ssr"))return ok(ssr);
  if(url.endsWith("/ancillaries/fetch/seat"))return ok({status:{success:true},tripSeatMap:{tripSeat:{s1:{sInfo:[{code:"14A",seatNo:"14A",isBooked:false,amount:3000},{code:"15A",seatNo:"15A",isBooked:true,amount:0}]}}}});
  if(url.endsWith("/add/ssr")){appliedSegments=body.sI.map((segment:{id:string;bI:{tI:{id:string;sbi?:unknown;smi?:unknown;ssi?:unknown}[]}})=>({id:segment.id,tI:segment.bI.tI.map(p=>({id:p.id,ssrBaggageInfos:p.sbi,ssrMeaInfos:p.smi,ssrSeatInfos:p.ssi}))}));addCalls++;assert.equal(body.paymentInfos[0].amount,expectedAmount/100);if(expectedAmount===450000){assert.equal(body.sI[0].bI.tI[0].sbi.amount,1000);assert.equal(body.sI[1].bI.tI[0].sbi.amount,0);assert.equal(body.sI[1].bI.tI[0].id,"p2");}if(lost)throw Error("Lost SSR response");return ok({status:{success:true},amendmentids:[`amend-${addCalls}`]});}
- if(url.endsWith("/amendment-details"))return ok({status:{success:true},bookingId:`ORIGINAL-${parent}`,amendmentStatus:"SUCCESS",totalAmount:expectedAmount/100,SSRAmendmentDetails:appliedSegments});
+ if(url.endsWith("/amendment-details"))return ok({status:{success:true},bookingId:`ORIGINAL-${parent}`,amendmentId:ssrDetailsAmendmentId,amendmentStatus:"SUCCESS",totalAmount:expectedAmount/100,SSRAmendmentDetails:appliedSegments});
  if(url.endsWith("/reissue/poll/searchquery-list")){assert.deepEqual(body.searchQuery.paxIds,["original-pax"]);assert.equal(body.searchQuery.pnr,"PNR123");return ok({status:{success:true},requestId:"rq"});}
  if(url.endsWith("/reissue/poll/search"))return ok({status:{success:true},searchResult:{tripInfos:{ONWARD:[{sI:[],totalPriceList:[{id:"replacement",fD:{ADULT:{fC:{TF:2000}}}}]}]}}});
  if(url.endsWith("/reissue/review"))return ok({status:{success:true},bookingId:`NEW-${parent}`,...reissueTerms,internalAccounting:{commission:999,apiKey:"private-provider-metadata"},totalPriceInfo:{totalFareDetail:{fC:{TF:2000}}},travellerInfo:[{...person,id:"original-pax"}]});
- if(url.endsWith("/auto-reissue")){reissueCalls++;assert.equal(body.paymentInfos[0].amount,2000);assert.equal(body.oldBookingId,`ORIGINAL-${parent}`);assert.equal(body.travellerInfo[0].id,"original-pax");throw Error("Lost reissue response");}
+ if(url.endsWith("/auto-reissue")){reissueCalls++;reissueSubmission=body;throw Error("Lost reissue response");}
  if(url.endsWith("/booking-details"))return ok({status:{success:true},order:{status:"SUCCESS"},travellerInfo:[{...person,id:"original-pax",pnrDetails:{"BOM-DEL":"PNR123"}}]});
  if(url==="https://api.razorpay.com/v1/orders"){assert.equal(body.amount,expectedAmount);return ok({id:gatewayOrder,amount:expectedAmount,currency:"INR"});}
  if(url===`https://api.razorpay.com/v1/payments/${gatewayPayment}`)return ok({id:gatewayPayment,order_id:gatewayOrder,amount:expectedAmount,currency:"INR",status:"captured"});throw Error("Unexpected provider call");};
@@ -114,9 +115,24 @@ try{
   if(runWorker)await runBookingJob();return payment.bookingId;
  }
  const search=await searchFlightService(parent,{kind:"ANCILLARY"},actor);searches.push(search.searchId);const choices=[{segmentId:"s1",paxId:"p1",kind:"BAGGAGE" as const,code:"BAG"},{segmentId:"s1",paxId:"p1",kind:"MEAL" as const,code:"MEAL"},{segmentId:"s1",paxId:"p1",kind:"SEAT" as const,code:"14A"}];
+ assert.ok("segments" in search.results);
+ const connecting=search.results.segments.find(segment=>segment.id==="s2");
+ assert.ok(connecting);
+ assert.deepEqual(connecting.options.map((option:{kind:string})=>option.kind),["MEAL","MEAL"]);
+ await assert.rejects(()=>reviewFlightService({searchId:search.searchId,choices:[{...choices[0],segmentId:"s2",paxId:"p2"}]},actor),{status:400});
  const quote=await reviewFlightService({searchId:search.searchId,choices},actor);quotes.push(quote.quoteId);assert.equal(quote.totalMinor,450000);assert.deepEqual(quote.review,{version:1,blocked:false,lines:[{label:"Supplier quote validity (seconds)",text:"180"}]});await rejectUnsafeNew(quote);const child=await checkout(quote);assert.equal((await database().query("SELECT status FROM orders WHERE id=$1",[child])).rows[0].status,"CONFIRMED");assert.equal(addCalls,1);
  await assert.rejects(()=>reviewFlightService({searchId:search.searchId,choices:[{...choices[2],code:"15A"}]},actor));
- const free=await reviewFlightService({searchId:search.searchId,choices:[{segmentId:"s2",paxId:"p2",kind:"MEAL",code:"FREE"}]},actor);quotes.push(free.quoteId);await rejectUnsafeNew(free);const freeChild=await checkout(free);assert.equal(free.totalMinor,0);assert.equal((await database().query("SELECT status FROM orders WHERE id=$1",[freeChild])).rows[0].status,"CONFIRMED");
+ const free=await reviewFlightService({searchId:search.searchId,choices:[{segmentId:"s2",paxId:"p2",kind:"MEAL",code:"FREE"}]},actor);quotes.push(free.quoteId);await rejectUnsafeNew(free);const freeChild=await checkout(free,false);assert.equal(free.totalMinor,0);
+ ssrDetailsAmendmentId="unrelated-amendment";
+ await runBookingJob();
+ assert.equal((await database().query("SELECT status FROM orders WHERE id=$1",[freeChild])).rows[0].status,"BOOKING_PENDING");
+ const freeSubmissions=addCalls;
+ ssrDetailsAmendmentId=`amend-${freeSubmissions}`;
+ await database().query("UPDATE booking_jobs SET next_attempt=now() WHERE order_id=$1",[freeChild]);
+ await runBookingJob();
+ assert.equal((await database().query("SELECT status FROM orders WHERE id=$1",[freeChild])).rows[0].status,"CONFIRMED");
+ assert.equal(addCalls,freeSubmissions);
+ ssrDetailsAmendmentId=undefined;
  const replacement=await searchFlightService(parent,{kind:"REISSUE",tripIndex:0,date:"2027-01-03",travellerIndexes:[0]},actor);searches.push(replacement.searchId);const supportedTerms=reissueTerms;
  for(const unsupported of [
   {conditions:{st:180,unknownRestriction:"Material but unsupported"},alerts:["Known notice"]},
@@ -137,6 +153,11 @@ try{
  assert.deepEqual(rq.review,{version:1,blocked:false,lines:[{label:"Supplier quote validity (seconds)",text:"180"},{label:"Service restriction",text:"Changes remain subject to supplier confirmation"},{label:"Supplier notice",text:"Seat eligibility still applies"}]});
  assert.doesNotMatch(JSON.stringify(rq),/private-provider-metadata|internalAccounting|original-pax|totalPriceInfo/);
  const reissued=await checkout(rq);assert.equal((await database().query("SELECT status FROM orders WHERE id=$1",[reissued])).rows[0].status,"TICKETED");assert.equal(reissueCalls,1);await assert.rejects(()=>searchFlightService(parent,{kind:"REISSUE",tripIndex:0,date:"2027-01-04",travellerIndexes:[0]},actor));
+ assert.deepEqual(reissueSubmission,{
+  bookingId:`NEW-${parent}`,oldBookingId:`ORIGINAL-${parent}`,
+  paymentInfos:[{amount:2000,bookingId:`NEW-${parent}`}],
+  travellerInfo:[{...person,id:"original-pax"}],deliveryInfo:{emails:[email],contacts:["+919000000000"]},
+ });
  // Unknown SSR outcomes must remain manual, with no repeated supplier submission.
  await database().query("UPDATE orders SET status='BOOKING_FAILED' WHERE id=$1",[reissued]);const uncertain=await reviewFlightService({searchId:search.searchId,choices:[choices[2]]},actor);quotes.push(uncertain.quoteId);lost=true;const unknown=await checkout(uncertain);assert.equal((await database().query("SELECT status FROM orders WHERE id=$1",[unknown])).rows[0].status,"MANUAL_REVIEW");const beforeCalls=addCalls;await runBookingJob();assert.equal(addCalls,beforeCalls);
  // A capture is not authority to dispatch a new service when stored terms are

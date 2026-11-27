@@ -333,7 +333,7 @@ export default function OperationsConsole() {
       try {
         const r = await fetch("/api/admin/context", {
             cache: "no-store",
-            signal: c.signal,
+            signal: AbortSignal.any([c.signal,AbortSignal.timeout(15_000)]),
           }),
           data = await r.json();
         if (!r.ok)
@@ -390,7 +390,7 @@ export default function OperationsConsole() {
     if (!tab) return;
     const c = new AbortController(),
       query = new URLSearchParams({ page: String(page), q, status });
-    fetch(`/api/admin/${tab}?${query}`, { cache: "no-store", signal: c.signal })
+    fetch(`/api/admin/${tab}?${query}`, { cache: "no-store", signal: AbortSignal.any([c.signal,AbortSignal.timeout(15_000)]) })
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) throw Error(data.error ?? "Records could not be loaded.");

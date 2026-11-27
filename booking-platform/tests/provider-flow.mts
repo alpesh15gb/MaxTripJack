@@ -17,6 +17,7 @@ const originalFetch=globalThis.fetch;
 const pool=new Pool({connectionString:process.env.DATABASE_URL});
 const email=`provider-${randomUUID()}@example.test`,password=randomBytes(24).toString("hex");let userId="",cookie="",bookingId="",searchId="",quoteId="",bookCalls=0,reviewCalls=0,validateCalls=0,walletBalance=100000;
 let gatewayOrder=`order_${randomUUID().replaceAll("-","")}`,gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
+let flightDetailsReference="TJ-other-fixture";
 const fixtureBookings:string[]=[],fixtureQuotes:string[]=[],fixtureSearches:string[]=[];
 const privateReviewMarker="SYNTHETIC_REVIEW_PRIVATE";
 const flightConditions={st:300,isa:false,pcs:{pm:false,pped:false,privateReviewMarker},dob:{adobr:false,cdobr:false,idobr:false,privateReviewMarker},gst:{igm:false,privateReviewMarker},iecr:false,ipa:false,privateReviewMarker};
@@ -37,7 +38,7 @@ try{
    if(url.endsWith("/farerule"))return ok({status:{success:true},fareRule:{miscInfo:"Contract cancellation policy"}});
    if(url.endsWith("/fare-validate")){validateCalls++;return ok({status:{success:true}});}
    if(url.endsWith("/air/book")){bookCalls++;assert.equal(payload.paymentInfos[0].amount,5000);throw new Error("Simulated connection loss AFTER supplier accepted booking");}
-   if(url.endsWith("/booking-details"))return ok({status:{success:true},order:{status:"SUCCESS",bookingId:"TJ-contract"}});
+   if(url.endsWith("/booking-details"))return ok({status:{success:true},order:{status:"SUCCESS",bookingId:flightDetailsReference}});
    throw Error("Unexpected supplier endpoint");
   }
   if(url.startsWith("https://apitest-hms.tripjack.com")||url.startsWith("https://apitest-hotel-booker.tripjack.com")){
@@ -76,7 +77,15 @@ try{
  const replay=await createPayment(request("/api/payments/create",{quoteId,guests,acceptedTotalMinor:quote.totalMinor}));assert.equal((await replay.json()).orderId,gatewayOrder);
  const verified=await verifyPayment(request("/api/payments/verify",{bookingId,razorpay_order_id:gatewayOrder,razorpay_payment_id:gatewayPayment,razorpay_signature:signature(`${gatewayOrder}|${gatewayPayment}`,"contract-test-secret")}));assert.equal(verified.status,200);
  const paidStatus=await (await readPaymentStatus(`bookingId=${bookingId}`)).json();assert.equal(paidStatus.canResume,false);assert.equal(paidStatus.checkoutResolved,true);assert.equal(paidStatus.orderId,undefined);
- await runBookingJob();assert.equal(bookCalls,1);assert.equal((await pool.query("SELECT status FROM orders WHERE id=$1",[bookingId])).rows[0].status,"TICKETED");
+ await runBookingJob();
+ assert.equal(bookCalls,1);
+ assert.equal((await pool.query("SELECT status FROM orders WHERE id=$1",[bookingId])).rows[0].status,"BOOKING_PENDING");
+ assert.equal((await pool.query("SELECT 1 FROM supplier_booking_payloads WHERE order_id=$1",[bookingId])).rowCount,0);
+ flightDetailsReference="TJ-contract";
+ await pool.query("UPDATE booking_jobs SET next_attempt=now() WHERE order_id=$1",[bookingId]);
+ await runBookingJob();
+ assert.equal(bookCalls,1);
+ assert.equal((await pool.query("SELECT status FROM orders WHERE id=$1",[bookingId])).rows[0].status,"TICKETED");
  await runBookingJob();assert.equal(bookCalls,1);
  const pdf=await confirmationDocument(new Request(base+`/api/bookings/${bookingId}/document`,{headers:{cookie}}),{params:Promise.resolve({id:bookingId})});assert.equal(pdf.status,200);assert.equal(pdf.headers.get("Content-Type"),"application/pdf");assert.equal(pdf.headers.get("Cache-Control"),"private, no-store");assert.equal(Buffer.from(await pdf.arrayBuffer()).subarray(0,5).toString(),"%PDF-");
  console.log("PASS: mocked flight search → review → server-priced Razorpay order → signed capture verification → supplier timeout recovery → ticketed; duplicate checkout and tampered totals handled.");

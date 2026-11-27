@@ -20,6 +20,7 @@ let gatewayOrder=`order_${randomUUID().replaceAll("-","")}`,gatewayPayment=`pay_
 const fixtureBookings:string[]=[],fixtureQuotes:string[]=[],fixtureSearches:string[]=[];
 const ssr={BAGGAGE:[{code:"BAG",amount:1000}],MEAL:[{code:"MEAL",amount:250}]};
 const hotelOption={optionId:"hotel-option",pricing:{totalPrice:5000,currency:"INR",mf:0,mft:0},cancellation:{isRefundable:true,penalties:[]},compliance:{panRequired:false,passportRequired:false,gstType:"NA"}};
+let hotelResponseId="100001",hotelOptionId=hotelOption.optionId;
 const before={PAYMENT_PROVIDER:process.env.PAYMENT_PROVIDER,TRIPJACK_FLIGHT_API_KEY:process.env.TRIPJACK_FLIGHT_API_KEY,TRIPJACK_HOTEL_API_KEY:process.env.TRIPJACK_HOTEL_API_KEY,RAZORPAY_KEY_ID:process.env.RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET:process.env.RAZORPAY_KEY_SECRET};
 try{
  const signup=await originalFetch(base+"/api/auth/sign-up/email",{method:"POST",headers:{origin:base,"Content-Type":"application/json"},body:JSON.stringify({email,password,name:"Provider Contract Test"})});assert.equal(signup.status,200);userId=(await signup.json()).user.id;
@@ -43,8 +44,8 @@ try{
   if(url.startsWith("https://apitest-hms.tripjack.com")||url.startsWith("https://apitest-hotel-booker.tripjack.com")){
    assert.equal(new Headers(init?.headers).get("apikey"),"contract-test-hotel-key");
    if(url.endsWith("/listing"))return ok({status:{success:true},hotels:[{tjHotelId:"100001",name:"Contract Hotel",options:[hotelOption]}]});
-   if(url.endsWith("/pricing"))return ok({status:{success:true},options:[hotelOption],reviewHash:"hotel-review-hash"});
-   if(url.endsWith("/review"))return ok({status:{success:true},bookingId:"TJ-hotel-contract",option:hotelOption});
+   if(url.endsWith("/pricing"))return ok({status:{success:true},tjHotelId:hotelResponseId,options:[hotelOption],reviewHash:"hotel-review-hash"});
+   if(url.endsWith("/review"))return ok({status:{success:true},tjHotelId:hotelResponseId,bookingId:"TJ-hotel-contract",option:{...hotelOption,optionId:hotelOptionId}});
    if(url.endsWith("/hotel/book")){bookCalls++;assert.equal(payload.paymentInfos[0].amount,5000);assert.equal(payload.roomTravellerInfo.length,2);assert.deepEqual(payload.roomTravellerInfo.map((r:{travellerInfo:unknown[]})=>r.travellerInfo.length),[3,2]);return ok({status:{success:true}});}
    if(url.endsWith("/booking-details"))return ok({status:{success:true},order:{status:"SUCCESS",bookingId:"TJ-hotel-contract"}});
    throw Error("Unexpected hotel endpoint");
@@ -88,9 +89,22 @@ try{
  console.log("PASS: uncertain prepayment validation cannot replay or change extras; fresh post-payment fare changes block Book and preserve captured funds for operations.");
  gatewayAmount=500000;gatewayOrder=`order_${randomUUID().replaceAll("-","")}`;gatewayPayment=`pay_${randomUUID().replaceAll("-","")}`;
  const hotelSearch=await searchSupplier({product:"HOTEL",hotelIds:["100001"],checkIn:"2026-12-20",checkOut:"2026-12-22",adults:1,childrenAges:[5],rooms:[{adults:2,children:1,childAge:[5]},{adults:1,children:1,childAge:[8]}],nationality:"106"},actor);fixtureSearches.push(hotelSearch.searchId);
+ hotelResponseId="100002";
+ await assert.rejects(()=>customerHotelDetail(hotelSearch.searchId,"100001",actor),/different room or hotel/);
+ await assert.rejects(()=>reviewSupplier(hotelSearch.searchId,{hid:"100001",optionId:"hotel-option"},actor),/room options changed or expired/);
+ hotelResponseId="100001";
  await customerHotelDetail(hotelSearch.searchId,"100001",actor);
+ hotelOptionId="different-option";
+ await assert.rejects(()=>reviewSupplier(hotelSearch.searchId,{hid:"100001",optionId:"hotel-option"},actor),/different room or hotel/);
+ hotelOptionId=hotelOption.optionId;
+ assert.equal((await pool.query("SELECT count(*)::int AS n FROM supplier_quotes WHERE search_id=$1",[hotelSearch.searchId])).rows[0].n,0);
  const hotelQuote=await reviewSupplier(hotelSearch.searchId,{hid:"100001",optionId:"hotel-option"},actor);fixtureQuotes.push(hotelQuote.quoteId);
  const hotelGuests={...guests,travellers:[{...guests.travellers[0],roomIndex:0},{...guests.travellers[0],fN:"Second",roomIndex:0},{ti:"Master",pt:"CHILD",fN:"Young",lN:"Guest",roomIndex:0,dob:"2021-01-01"},{...guests.travellers[0],fN:"Third",roomIndex:1},{ti:"Master",pt:"CHILD",fN:"Older",lN:"Guest",roomIndex:1,dob:"2018-01-01"}]};
+ const duplicateLeads={...hotelGuests,travellers:hotelGuests.travellers.map((guest,index)=>index===3?{...guest,fN:hotelGuests.travellers[0].fN}:guest)};
+ const invalidGuests=await createPayment(request("/api/payments/create",{quoteId:hotelQuote.quoteId,guests:duplicateLeads,acceptedTotalMinor:hotelQuote.totalMinor}));
+ assert.equal(invalidGuests.status,400);
+ assert.equal((await invalidGuests.json()).fields[0].path,"guests.travellers.3.fN");
+ assert.equal((await pool.query("SELECT count(*)::int AS n FROM orders WHERE quote_id=$1",[hotelQuote.quoteId])).rows[0].n,0);
  const hotelPayment=await createPayment(request("/api/payments/create",{quoteId:hotelQuote.quoteId,guests:hotelGuests,acceptedTotalMinor:hotelQuote.totalMinor}));assert.equal(hotelPayment.status,200);const hotelGateway=await hotelPayment.json();fixtureBookings.push(hotelGateway.bookingId);
  const hotelVerified=await verifyPayment(request("/api/payments/verify",{bookingId:hotelGateway.bookingId,razorpay_order_id:gatewayOrder,razorpay_payment_id:gatewayPayment,razorpay_signature:signature(`${gatewayOrder}|${gatewayPayment}`,"contract-test-secret")}));assert.equal(hotelVerified.status,200);
  await runBookingJob();assert.equal((await pool.query("SELECT status FROM orders WHERE id=$1",[hotelGateway.bookingId])).rows[0].status,"CONFIRMED");assert.equal(bookCalls,2);

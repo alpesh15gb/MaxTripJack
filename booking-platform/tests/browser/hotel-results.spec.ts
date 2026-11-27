@@ -67,7 +67,7 @@ for(const width of [320,390])test(`${width}px hotel totals and room actions stay
  for(let index=0;index<2;index++){
   const action=rates.nth(index).locator('.stay-room-rate-action');
   await action.scrollIntoViewIfNeeded();
-  const bounds=await amountBounds('.stay-room-rate-action>strong',index);
+  const bounds=await amountBounds('.stay-room-rate-action .stay-rate-total>strong',index);
   expect(bounds.lines).toBe(1);expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.left);expect(bounds.textRight).toBeLessThanOrEqual(bounds.right);
   const button=action.getByRole('button',{name:'Continue with room',exact:true});
   const buttonBounds=await button.evaluate(node=>{const range=document.createRange();range.selectNodeContents(node);const box=node.getBoundingClientRect(),text=range.getBoundingClientRect();return {height:box.height,left:box.left,right:box.right,textLeft:text.left,textRight:text.right,lines:range.getClientRects().length};});

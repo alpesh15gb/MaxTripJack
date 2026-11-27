@@ -63,3 +63,12 @@ html body .booking-workflow.journey-flow.has-journey .booking-progress li,html b
 html body .booking-progress li>:is(span:first-child,b){font-size:11px}
 /* Floor for supporting copy in the booking journey and home search. */
 html body :is(.booking-workflow,.trip-home) small{font-size:max(12px,.8em)}
+
+/* Keep account and trip headings in the same family as the booking workspace. */
+.stitch-theme :is(.account-experience-main,.trips-workspace) {
+  font-family: var(--font-stitch-body), sans-serif;
+}
+.stitch-theme :is(.account-experience-main,.trips-workspace) :is(h1,h2,h3) {
+  font-family: var(--font-stitch-display), sans-serif;
+  font-weight: 600;
+}

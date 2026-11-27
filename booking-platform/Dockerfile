@@ -19,6 +19,7 @@ COPY --chown=travel:travel --from=build /app/public ./public
 COPY --chown=travel:travel --from=build /app/dist ./dist
 COPY --chown=travel:travel --from=build /app/scripts/standalone-server.mjs ./scripts/standalone-server.mjs
 COPY --chown=travel:travel --from=build /app/scripts/migrate.mjs ./scripts/migrate.mjs
+COPY --chown=travel:travel --from=build /app/scripts/booking-migrations.mjs ./scripts/booking-migrations.mjs
 COPY --chown=travel:travel --from=build /app/scripts/migrate-company-settings.mjs ./scripts/migrate-company-settings.mjs
 COPY --chown=travel:travel --from=build /app/scripts/migrate-search-catalogues.mjs ./scripts/migrate-search-catalogues.mjs
 COPY --chown=travel:travel --from=build /app/scripts/migrate-checkout-identity.mjs ./scripts/migrate-checkout-identity.mjs

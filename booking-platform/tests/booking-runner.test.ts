@@ -39,7 +39,7 @@ async function harness(){
     if(sql.startsWith('SELECT id FROM payments'))return {rows:[{id:'captured'}],rowCount:1};
     if(sql.startsWith("UPDATE booking_jobs SET attempted=true")){state.job.attempted=true;state.job.state='POLLING';return {rows:[{order_id:state.order.id}],rowCount:1};}
     if(sql.startsWith("UPDATE orders SET status='BOOKING_PENDING'")){state.order.status='BOOKING_PENDING';state.order.supplier_booking_id=values[0];return {rows:[],rowCount:1};}
-    if(sql.startsWith('SELECT o.id FROM orders'))return {rows:[{id:state.order.id}],rowCount:1};
+    if(sql.startsWith('SELECT o.id,o.status FROM orders'))return {rows:[{id:state.order.id,status:state.order.status}],rowCount:1};
     if(sql.startsWith('UPDATE orders SET status=$1')){state.order.status=values[0];return {rows:[],rowCount:1};}
     if(sql.startsWith('UPDATE orders SET status=$2')){state.order.status=values[1];return {rows:[],rowCount:1};}
     if(sql.startsWith('INSERT INTO supplier_booking_payloads'))return {rows:[],rowCount:1};
@@ -113,5 +113,17 @@ test('existing terminal failures stay untouched and exhausted uncertain attempts
   h.state.job.state='REVIEW';h.state.order.status='BOOKING_FAILED';assert.equal(await h.run(),false);assert.equal(h.state.reviewCalls,0);
   h.state.job.state='POLLING';h.state.job.attempted=true;h.state.job.checks=35;h.state.order.status='BOOKING_PENDING';h.state.order.supplier_booking_id='existing-reference';h.state.detailsFail=true;
   await h.run();assert.equal(h.state.order.status,'MANUAL_REVIEW');assert.equal(h.state.bookCalls,0);assert.equal(h.state.reviewCalls,0);
+ }finally{h.cleanup();}
+});
+
+test('a stale ready job cannot rewrite a terminal order or publish a failure',async()=>{
+ const h=await harness();try{
+  h.state.order.status='CANCELLED';
+  assert.equal(await h.run(),true);
+  assert.equal(h.state.job.state,'DONE');
+  assert.equal(h.state.order.status,'CANCELLED');
+  assert.equal(h.state.reviewCalls,0);
+  assert.equal(h.state.bookCalls,0);
+  assert.deepEqual(h.state.events,[]);
  }finally{h.cleanup();}
 });

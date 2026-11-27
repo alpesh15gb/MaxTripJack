@@ -152,6 +152,14 @@ function TripSupport({ upcoming }: { upcoming: Booking[] }) {
 function mergeBookings(current: Booking[], incoming: Booking[]) {
   return [...new Map([...current, ...incoming].map(booking => [booking.id, booking])).values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
+function bookingPage(data: {bookings?:unknown;hasMore?:unknown} | null) {
+  if (!Array.isArray(data?.bookings) || typeof data.hasMore !== "boolean" ||
+    !data.bookings.every(row => row && typeof row.id === "string" && typeof row.reference === "string" &&
+      typeof row.status === "string" && typeof row.product === "string" && typeof row.created_at === "string")) {
+    throw Error("The trip list response was incomplete. Try again.");
+  }
+  return {bookings: data.bookings as Booking[], hasMore: data.hasMore};
+}
 
 function BookingRecord({ booking, originalReference, onUpdate, onAccessLost }: { booking: Booking; originalReference?: string; onUpdate: () => void; onAccessLost: (status: 401 | 403) => void }) {
   const status = statusInfo(booking.status, booking.product, booking.service_kind);
@@ -173,7 +181,7 @@ function BookingRecord({ booking, originalReference, onUpdate, onAccessLost }: {
     setDetailsLoading(true); setDetailsError("");
     const request = new AbortController(); controller.current = request;
     try {
-      const response = await fetch(`/api/bookings/${booking.id}/details`, { cache: "no-store", signal: request.signal });
+      const response = await fetch(`/api/bookings/${booking.id}/details`, { cache: "no-store", signal: AbortSignal.any([request.signal, AbortSignal.timeout(20_000)]) });
       if (request.signal.aborted) return;
       if (response.status === 401 || response.status === 403) { onAccessLost(response.status); return; }
       const data = await response.json();
@@ -266,14 +274,14 @@ function PrivateBookingWorkspace({ admin, paused, travellerName, emailVerified, 
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(admin ? "/api/admin/overview" : "/api/bookings?page=1", { cache: "no-store", signal: controller.signal }).then(async response => {
+    fetch(admin ? "/api/admin/overview" : "/api/bookings?page=1", { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]) }).then(async response => {
       if (controller.signal.aborted || accessLost.current) return;
       if (response.status === 401 || response.status === 403) { loseAccess(response.status); return; }
       const data = await response.json();
       if (controller.signal.aborted || accessLost.current) return;
       if (!response.ok) { setAccessError(response.status === 401 || response.status === 403); throw Error(data.error || "Your bookings could not be loaded."); }
       if (admin) setMetrics(data);
-      else { setHasMore(Boolean(data.hasMore)); setBookings(data.bookings ?? []); }
+      else { const next=bookingPage(data); setHasMore(next.hasMore); setBookings(next.bookings); }
     }).catch(error => {
       if (!controller.signal.aborted && !accessLost.current) setError(error instanceof Error ? error.message : "Your bookings could not be loaded.");
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -288,18 +296,21 @@ function PrivateBookingWorkspace({ admin, paused, travellerName, emailVerified, 
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     async function refreshPending() {
+      const round = new AbortController();
+      const signal = AbortSignal.any([controller.signal, round.signal, AbortSignal.timeout(15_000)]);
       try {
         const pages = await Promise.all(Array.from({ length: page }, async (_, index) => {
-          const response = await fetch(`/api/bookings?page=${index + 1}`, { cache: "no-store", signal: controller.signal });
+          const response = await fetch(`/api/bookings?page=${index + 1}`, { cache: "no-store", signal });
           if (!controller.signal.aborted && (response.status === 401 || response.status === 403)) { loseAccess(response.status); controller.abort(); }
           const data = await response.json();
           if (!response.ok) throw Error(data.error || "Status updates are temporarily unavailable.");
-          return (data.bookings ?? []) as Booking[];
+          return bookingPage(data).bookings;
         }));
         if (!controller.signal.aborted && !accessLost.current) { setBookings(current => mergeBookings(current, pages.flat())); setSyncError(""); }
       } catch (error) {
         if (!controller.signal.aborted && !accessLost.current) setSyncError(error instanceof Error ? error.message : "Status updates are temporarily unavailable.");
       } finally {
+        round.abort();
         if (!controller.signal.aborted) timer = setTimeout(refreshPending, 5000);
       }
     }
@@ -318,11 +329,12 @@ function PrivateBookingWorkspace({ admin, paused, travellerName, emailVerified, 
     moreInFlight.current = true; setLoadingMore(true); setListError("");
     const controller = new AbortController(); moreController.current = controller;
     try {
-      const response = await fetch(`/api/bookings?page=${page + 1}`, { cache: "no-store", signal: controller.signal });
+      const response = await fetch(`/api/bookings?page=${page + 1}`, { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]) });
       if (!controller.signal.aborted && (response.status === 401 || response.status === 403)) { loseAccess(response.status); return; }
       const data = await response.json();
       if (!response.ok) throw Error(data.error || "Older trips could not be loaded.");
-      if (!controller.signal.aborted && !accessLost.current) { setBookings(current => mergeBookings(current, data.bookings ?? [])); setHasMore(Boolean(data.hasMore)); setPage(current => current + 1); }
+      const next=bookingPage(data);
+      if (!controller.signal.aborted && !accessLost.current) { setBookings(current => mergeBookings(current, next.bookings)); setHasMore(next.hasMore); setPage(current => current + 1); }
     } catch (error) {
       if (!controller.signal.aborted && !accessLost.current) setListError(error instanceof Error ? error.message : "Older trips could not be loaded.");
     } finally {

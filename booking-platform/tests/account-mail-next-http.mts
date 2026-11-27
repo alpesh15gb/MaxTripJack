@@ -30,7 +30,7 @@ const smtp=createServer(socket=>{
   }
  });
 });
-let next:ChildProcess|undefined;let logs="";const ids:string[]=[];const emails:string[]=[];
+let next:ChildProcess|undefined;let logs="";let stage="fixture startup";const ids:string[]=[];const emails:string[]=[];
 async function until(check:()=>boolean,timeout=35000){const deadline=Date.now()+timeout;while(!check()){if(Date.now()>deadline)throw Error("Fixture condition deadline exceeded");await new Promise(r=>setTimeout(r,50));}}
 try {
  smtp.listen(0,"127.0.0.1");await once(smtp,"listening");const smtpAddress=smtp.address();assert.ok(smtpAddress&&typeof smtpAddress!=="string");
@@ -39,11 +39,22 @@ try {
  next=spawn(process.execPath,["node_modules/next/dist/bin/next","start","--hostname","127.0.0.1","--port",String(address.port)],{env:{...process.env,BETTER_AUTH_URL:base,BETTER_AUTH_SECRET:randomBytes(32).toString("hex"),SMTP_HOST:"127.0.0.1",SMTP_PORT:String(smtpAddress.port),SMTP_SECURE:"false",SMTP_USER:"",SMTP_PASSWORD:"",MAIL_FROM:"fixture@example.test"},stdio:["ignore","pipe","pipe"]});
  next.stdout!.on("data",chunk=>{logs+=chunk;});next.stderr!.on("data",chunk=>{logs+=chunk;});
  await until(()=>logs.includes("Ready"));
+ // Measure the bounded mutation requests after Next and Better Auth's first use.
+ // These probes leave the SMTP fault and real database rate limits in place.
+ stage="service warm-up";
+ const ready=await fetch(base+"/api/health",{signal:AbortSignal.timeout(15_000)});
+ assert.equal(ready.status,200);
+ await ready.body?.cancel();
+ const session=await fetch(base+"/api/auth/get-session",{signal:AbortSignal.timeout(15_000)});
+ assert.equal(session.status,200);
+ await session.body?.cancel();
  async function call(endpoint:string,body:object,origin=base){const response=await fetch(`${base}/api/auth/${endpoint}`,{method:"POST",headers:{origin,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(5000)});return {status:response.status,body:await response.json()};}
  const password=randomBytes(24).toString("hex"),known=`lifecycle-known-${randomUUID()}@example.test`;emails.push(known);
  const signupBody={name:"Synthetic Lifecycle",password};
+ stage="initial registration";
  const initial=await call("sign-up/email",{...signupBody,email:known});assert.equal(initial.status,200);ids.push(initial.body.user.id);
  await until(()=>accepted===1&&sockets.size===0);
+ stage="origin validation";
  for(const endpoint of ["request-password-reset","send-verification-email","sign-up/email"]){
   for(const email of [known,`lifecycle-untrusted-${randomUUID()}@example.test`]){
    assert.equal((await call(endpoint,{...signupBody,email},"https://untrusted.example.test")).status,403);
@@ -52,6 +63,7 @@ try {
  // Preserve real DB-backed per-IP limits; independent scenarios wait their full window.
  await new Promise(r=>setTimeout(r,61_000));
  for(const scenario of ["success","reject","hold"]){
+  stage=`SMTP ${scenario}`;
   mode=scenario;const before=messages.length,priorClosed=closed,priorAccepted=accepted;
   for(const endpoint of ["request-password-reset","send-verification-email","sign-up/email"]){
    const unknown=`lifecycle-${randomUUID()}@example.test`;emails.push(unknown);
@@ -87,6 +99,9 @@ try {
   if(scenario!=="hold")await new Promise(r=>setTimeout(r,61_000));
  }
  console.log("PASS: real Next after lifecycle, PostgreSQL known/unknown response shapes, SMTP accept/reject/held timeout, origin guard, sanitized outcomes.");
+} catch(error) {
+ if(error instanceof DOMException&&error.name==="TimeoutError") throw Error(`Account mail HTTP fixture timed out during ${stage}.`);
+ throw error;
 } finally {
  for(const socket of sockets)socket.destroy();await new Promise<void>(resolve=>smtp.close(()=>resolve()));
  if(next&&next.exitCode===null){next.kill("SIGTERM");const timer=setTimeout(()=>next?.kill("SIGKILL"),5000);await once(next,"exit");clearTimeout(timer);}

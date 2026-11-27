@@ -114,7 +114,7 @@ Stop workers before synthetic tests; keep the local server running for authentic
 
 
 
-Create private .env.production. DATABASE_URL uses postgres:5432 inside Compose; BETTER_AUTH_URL is the HTTPS public domain. Set POSTGRES_PASSWORD for Compose interpolation.
+Create private `.env.production`. Use the restricted `maxtravel_app` role at `postgres:5432` for `DATABASE_URL` and the HTTPS public origin for `BETTER_AUTH_URL`. Compose uses `POSTGRES_PASSWORD` to bootstrap PostgreSQL and keeps that value out of the app and worker containers.
 
 
 
@@ -136,7 +136,9 @@ docker compose --env-file .env.production -f compose.production.yaml --profile c
 
 
 
-Adapt deploy/nginx.conf to the domain/certificate. App port 3108 binds loopback; Postgres is not published. /api/health reports readiness. deploy/backup.sh creates/verifies an archive; deploy/restore.sh explicitly replaces data and leaves services stopped. Back up encryption/auth/signing secrets separately. Restore drill and monitoring still need validation.
+Adapt `deploy/nginx.conf` to the domain and certificate. The app binds port 3108 to loopback. PostgreSQL stays on the Compose network. `/api/health` requires the current booking migration ledger and checks access to the booking and authentication schema.
+
+`deploy/backup.sh /absolute/backup-directory` publishes a database archive after reading its contents back. `deploy/restore.sh --replace-database /absolute/archive.dump` accepts a trusted archive, verifies it before stopping the app and workers, and restores its objects in one PostgreSQL transaction. Services stay stopped for verification after a restore attempt. For an exact recovery, rehearse into an empty database, verify application reads with the restricted role, and check the separate backups of authentication, encryption, and signing configuration.
 
 
 

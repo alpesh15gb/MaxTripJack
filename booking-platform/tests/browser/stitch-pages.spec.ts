@@ -2,6 +2,26 @@ import { readdirSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { syntheticSession, test as fixtureTest } from './fixtures';
 
+fixtureTest('home search controls have usable touch targets on a narrow screen', async ({page, isMobile})=>{
+  test.skip(!isMobile, 'Mobile layout');
+  await page.setViewportSize({width:320,height:844});
+  await page.goto('/');
+  const controls=page.locator([
+    '.home-product-tabs button:visible',
+    '.home-search-options label:visible',
+    '.home-search-options .stitch-multicity:visible',
+    '.home-search-options .home-advanced-link:visible',
+    '.home-swap:visible',
+    '.home-airports .airport-edit input:visible',
+    '.stitch-popular button:visible',
+  ].join(','));
+  await expect(controls.first()).toBeVisible();
+  const heights=await controls.evaluateAll(elements=>elements.map(element=>element.getBoundingClientRect().height));
+  expect(heights.length).toBeGreaterThanOrEqual(7);
+  expect(Math.min(...heights)).toBeGreaterThanOrEqual(44);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
+});
+
 for (const [label, service] of [['Bus enquiries','BUS'],['Become a partner','PARTNERSHIP']] as const) {
   fixtureTest(`${service.toLowerCase()} enquiry has a dedicated form and booking desk receipt`, async ({page,provider})=>{
     const reference='ME-111111111111';

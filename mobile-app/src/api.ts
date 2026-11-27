@@ -2,7 +2,27 @@ import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import { twoFactorClient } from "better-auth/client/plugins";
 import * as SecureStore from "expo-secure-store";
-export const API_URL=(process.env.EXPO_PUBLIC_API_URL||"http://127.0.0.1:3000").replace(/\/$/,"");
-if(!__DEV__&&!API_URL.startsWith("https://"))throw new Error("Release builds require an HTTPS API URL.");
-export const authClient=createAuthClient({baseURL:API_URL,plugins:[expoClient({scheme:"maxtravel",storagePrefix:"maxtravel",storage:SecureStore}),twoFactorClient()]});
-export async function api<T>(path:string,data?:unknown,method?:string,signal?:AbortSignal):Promise<T>{const cookie=await authClient.getCookie();const response=await fetch(API_URL+path,{method:method||(data===undefined?"GET":"POST"),headers:{"Content-Type":"application/json",Origin:new URL(API_URL).origin,...(cookie?{Cookie:cookie}:{})},credentials:"omit",body:data===undefined?undefined:JSON.stringify(data),signal});const result=await response.json();if(!response.ok)throw Error(result.error||"Unable to complete this request.");return result;}
+import { checkedApiOrigin, requestJson } from "./api-transport";
+
+export const API_URL = checkedApiOrigin(process.env.EXPO_PUBLIC_API_URL, __DEV__);
+export const authClient = createAuthClient({
+  baseURL: API_URL,
+  fetchOptions: { timeout: 45_000 },
+  plugins: [expoClient({ scheme: "maxtravel", storagePrefix: "maxtravel", storage: SecureStore, disableCache: true }), twoFactorClient()],
+});
+
+export async function api<T>(path: string, data?: unknown, method?: string, signal?: AbortSignal): Promise<T> {
+  if (!path.startsWith("/api/")) throw Error("Invalid API path.");
+  const cookie = await authClient.getCookie();
+  return requestJson<T>(API_URL + path, {
+    method: method || (data === undefined ? "GET" : "POST"),
+    headers: {
+      Accept: "application/json",
+      ...(data === undefined ? {} : { "Content-Type": "application/json" }),
+      Origin: API_URL,
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
+    credentials: "omit",
+    body: data === undefined ? undefined : JSON.stringify(data),
+  }, signal);
+}

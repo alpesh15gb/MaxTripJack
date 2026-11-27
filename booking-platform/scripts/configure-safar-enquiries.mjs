@@ -61,8 +61,9 @@ async function existingFile(path){
   if(typeof path!=='string'||!isAbsolute(path))fail('Both environment paths must be explicit absolute paths to existing files.');
   let stat,source,canonical;
   try{
-    stat=await fs.lstat(path);
-    if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||stat.size>1024*1024)throw Error();
+    // Preserve exact file identities even when an inode exceeds Number.MAX_SAFE_INTEGER.
+    stat=await fs.lstat(path,{bigint:true});
+    if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1n||stat.size>1024n*1024n)throw Error();
     canonical=join(await fs.realpath(dirname(path)),basename(path));
     source=await fs.readFile(path,'utf8');
   }catch{fail('An environment file is missing, unreadable or unsafe. No files or directories were created.');}
@@ -72,7 +73,7 @@ async function existingFile(path){
 async function privateWrite(path,source,stat){
   const handle=await fs.open(path,'wx',0o600);
   try{
-    if(process.platform!=='win32')await handle.chown(stat.uid,stat.gid);
+    if(process.platform!=='win32')await handle.chown(Number(stat.uid),Number(stat.gid));
     await handle.chmod(0o600);await handle.writeFile(source,'utf8');await handle.sync();
   }finally{await handle.close();}
 }
@@ -124,7 +125,7 @@ export async function configureSafarEnquiries({bookingEnvPath,safarEnvPath,url=D
       await privateWrite(file.backup,file.source,file.stat);
     }
     for(const file of files){
-      const current=await fs.lstat(file.path);
+      const current=await fs.lstat(file.path,{bigint:true});
       if(!current.isFile()||current.isSymbolicLink()||current.ino!==file.stat.ino||current.dev!==file.stat.dev||await fs.readFile(file.path,'utf8')!==file.source)throw Error('concurrent_edit');
     }
     // Receiver first: a crash between replacements only leaves an extra key;

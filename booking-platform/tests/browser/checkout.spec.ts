@@ -395,6 +395,23 @@ test('reload preserves an uncertain create marker and no-order-yet never unlocks
   await capture(page, testInfo, 'interrupted-checkout-no-order-yet');
 });
 
+test('only exact server proof of an expired quote without payment releases checkout recovery',async({page,provider})=>{
+  const key='maxtravel.pending-checkout.v1';
+  await page.addInitScript(({key,quoteId})=>sessionStorage.setItem(key,JSON.stringify({quoteId})),{key,quoteId});
+  const expired={found:false,canResume:false,checkoutResolved:true,status:'EXPIRED_WITHOUT_PAYMENT'};
+  provider.overrides['GET /api/payments/status']={body:{...expired,quoteId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'}};
+  await page.goto('/book');
+  const recovery=page.getByRole('region',{name:'Interrupted checkout',exact:true});
+  await expect(recovery).toContainText('Payment status could not be verified');
+  expect(await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)!),key)).toEqual({quoteId});
+  provider.overrides['GET /api/payments/status']={body:{...expired,quoteId}};
+  await recovery.getByRole('button',{name:'Check payment status again'}).click();
+  await expect(recovery).toHaveCount(0);
+  await expect(page.getByRole('status').filter({hasText:'The previous quote expired before a payment order was created'})).toBeVisible();
+  expect(await page.evaluate(key=>sessionStorage.getItem(key),key)).toBeNull();
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 for (const restored of [false,true]) test(`a stalled ${restored?'restored':'same-tab'} checkout status read releases recovery controls without a second order`, async ({ page, provider }) => {
   await openReviewedFlight(page);await showPaymentReview(page);await openSyntheticPayment(page);
   await page.evaluate('window.__syntheticGateway.dismiss()');

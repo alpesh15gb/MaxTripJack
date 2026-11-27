@@ -8,7 +8,7 @@ const result:PayGlocalVerifiedStatus={source:"SERVER_STATUS",merchantTxnId:"txn-
 // SQL-boundary model after row locking: proves decisions/deduplication, NOT real
 // PostgreSQL locking, rollback, migration compatibility or provider verification.
 function fixture(status="PAYMENT_PENDING", existing=true) {
- const row={order_id:id,merchant_txn_id:"txn-test",merchant_id:"mid-test",amount_minor:"10000",currency:"INR",gid:"gid-test",state:"PENDING",order_status:status,total_minor:"10000",provider:"PAYGLOCAL",redirect_url:null,status_url:null};
+ const row={order_id:id,merchant_txn_id:"txn-test",merchant_id:"mid-test",amount_minor:"10000",currency:"INR",gid:"gid-test" as string|null,state:"PENDING",order_status:status,total_minor:"10000",provider:"PAYGLOCAL",redirect_url:null,status_url:null};
  const payment={id:"payment-test",status:"CREATED",amount_minor:"10000",currency:"INR",gateway_payment_id:null as string|null};
  const writes:string[]=[]; let jobs=0,outbox=0;
  const query=async(sql:string,values:unknown[]=[])=>{
@@ -46,8 +46,14 @@ test("authorization/pending/unknown status does not trigger supplier fulfillment
  for(const status of ["AUTHORIZED","INPROGRESS","UNRECOGNIZED"]){const f=fixture();await recordPayGlocalVerifiedStatus(f.tx,id,{...result,status});assert.deepEqual(f.counts(),{jobs:0,outbox:0});assert.equal(f.payment.status,"CREATED");}
 });
 test("timeout stays unknown; a later bound success can capture once",async()=>{
- const f=fixture();await markPayGlocalUnknown(f.tx,id);assert.equal(f.row.state,"UNKNOWN");assert.equal(f.row.order_status,"PAYMENT_PENDING");
+ const f=fixture();f.row.state="STARTED";f.row.gid=null;
+ await markPayGlocalUnknown(f.tx,id);assert.equal(f.row.state,"UNKNOWN");assert.equal(f.row.order_status,"PAYMENT_PENDING");
+ f.row.gid=result.gid;
  await recordPayGlocalVerifiedStatus(f.tx,id,result);assert.deepEqual(f.counts(),{jobs:1,outbox:1});
+});
+test("late initiation failure preserves already linked hosted checkout evidence",async()=>{
+ const f=fixture();await markPayGlocalUnknown(f.tx,id);
+ assert.equal(f.row.state,"PENDING");assert.deepEqual(f.writes,[]);
 });
 test("late failure and timeout cannot reverse capture",async()=>{
  const f=fixture();await recordPayGlocalVerifiedStatus(f.tx,id,result);const n=f.writes.length;

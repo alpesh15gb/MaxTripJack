@@ -18,6 +18,29 @@ const recovery=(page:Page)=>page.getByRole('region',{name:'Interrupted payment r
 async function pay(page:Page,free=false){await page.getByLabel(/I accept the additional total/).check();await page.getByRole('button',{name:free?'Confirm request':'Confirm & pay'}).click();}
 const unconfirmed={status:'OUTCOME_UNCONFIRMED',canResume:false,checkoutResolved:false,message:'No payment order is visible yet. Do not start another payment.'};
 
+test('service payment recovery retires an expired quote after the server proves no order exists',async({page,provider})=>{
+ await prepare(page,provider);
+ provider.overrides['POST /api/payments/create']={status:503,body:{error:'Connection lost after sending create'}};
+ provider.overrides['GET /api/payments/status']={body:{found:false,quoteId,status:'EXPIRED_WITHOUT_PAYMENT',canResume:false,checkoutResolved:true}};
+ await pay(page);
+ await expect(page.getByText('The previous service quote expired before a payment order was created. You can review your service again.')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Confirm & pay'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Add seats, meals & baggage'})).toBeEnabled();
+ expect(await page.evaluate(key=>sessionStorage.getItem(key),markerKey)).toBeNull();
+ expect(provider.requests('/api/payments/create')).toHaveLength(1);
+});
+
+test('paid flight service offers an explicit retry when payment availability cannot be checked',async({page,provider})=>{
+ provider.overrides['GET /api/payments/config']={status:503,body:{error:'Synthetic configuration outage'}};
+ await prepare(page,provider);
+ await expect(page.getByText('Payment status could not be checked. Your original booking remains active.')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Confirm & pay'})).toBeDisabled();
+ provider.overrides['GET /api/payments/config']={body:{provider:'RAZORPAY',configured:true}};
+ await page.getByRole('button',{name:'Retry payment status'}).click();
+ await expect(page.getByRole('button',{name:'Confirm & pay'})).toBeEnabled();
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 test('lost service create stays locked through duplicate submission, refresh and Back without another create',async({page,provider},info)=>{
  await prepare(page,provider);
  provider.overrides['POST /api/payments/create']={status:503,body:{error:'Connection lost after sending create'}};

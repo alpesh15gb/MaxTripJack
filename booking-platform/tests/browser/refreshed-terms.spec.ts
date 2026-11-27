@@ -321,6 +321,11 @@ test('saved seat and meal near expiry refresh without form validation and then r
  await pay(page).click();
  await expect.poll(()=>page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(1);
  expect(provider.requests('/api/payments/create')[0].body).toMatchObject({quoteId:renewedId,acceptedTotalMinor:776450});
+ await page.evaluate('window.__syntheticGateway.dismiss()');
+ await page.clock.fastForward(45_000);
+ await form(page).getByRole('button',{name:'Resume secure checkout',exact:true}).click();
+ await expect.poll(()=>page.evaluate('window.__syntheticGateway?.opens.length ?? 0')).toBe(2);
+ expect(provider.requests('/api/payments/create')).toHaveLength(1);
 });
 
 test('flight extras can be discarded before a save while an unconfirmed save still blocks payment',async({page,provider})=>{

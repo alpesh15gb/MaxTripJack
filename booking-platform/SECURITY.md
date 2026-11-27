@@ -16,9 +16,13 @@ Containers run as a non-root user with read-only root filesystems, dropped capab
 
 ## Dependency findings and mitigation
 
-- Web production dependencies: `npm audit --omit=dev` reports no advisories at review time.
+On 27 November 2026, the web and mobile lockfile audits reported zero advisories, including development dependencies. Scoped minimatch updates cover the affected build-tool paths. See the [launch audit](docs/LAUNCH-AUDIT-2026-11-27.md) for the verification scope and remaining production checks.
+
+Earlier dependency-review results:
+
+- Web production dependencies: `npm audit --omit=dev` reported no advisories at review time.
 - Web development lint path: eslint-config-next → fast-glob → micromatch → braces. GHSA-vfj7-8cjw-p6xm affects nested glob parsing. Only trusted project glob patterns are processed; lint/build tools are absent from the runtime image. No compatible upstream fix was offered by npm audit; forcing its suggested Next 14 downgrade would break the installed Next 16 stack.
 - Native build path: Expo Metro → micromatch → braces has the same finding. Expo CLI/code-signing-certificates → node-forge has GHSA-86w9-cpqp-85rv. These are build/tooling paths rather than the app's booking API or SecureStore session handling. Do not expose Metro/Expo CLI publicly or process untrusted glob patterns/certificates in build jobs. Use isolated build workers and trusted signing inputs. Reassess when the upstream packages release fixes.
 - Native xcode → uuid advisory GHSA-w5hq-g745-h8pq was removed with a scoped uuid 11.1.1 override. TypeScript and bundle checks verify compatibility.
 
-Remaining findings are explicitly recorded, not suppressed or described as fixed. Re-run audits before release; any new runtime high/critical advisory blocks the production CI audit gate. External security review and real checkout/device checks remain testing work.
+Re-run audits before release. New high or critical runtime advisories block the production CI audit gate. External security review and real checkout and device checks remain open.

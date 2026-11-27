@@ -13,11 +13,13 @@ export default function CancellationProgress({ bookingId, refreshVersion = 0 }: 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/bookings/${bookingId}/cancellation-offer`, { cache: "no-store", signal: controller.signal }).then(async response => {
+    fetch(`/api/bookings/${bookingId}/cancellation-offer`, { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]) }).then(async response => {
       const data = await response.json();
       if (!response.ok) throw Error(data.error || "Cancellation updates could not be loaded.");
       if (controller.signal.aborted) return;
-      setOffers(data.requests ?? []); setConsent(null); setLoadError(""); setRecheckRequired(false);
+      const requests: unknown = data?.requests;
+      if (!Array.isArray(requests) || !requests.every(row => row && typeof row.id === "string" && typeof row.status === "string")) throw Error("The cancellation response was incomplete. Try again.");
+      setOffers(requests); setConsent(null); setLoadError(""); setRecheckRequired(false);
     }).catch(error => { if (!controller.signal.aborted) setLoadError(error instanceof Error ? error.message : "Cancellation updates could not be loaded."); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [bookingId, revision, refreshVersion]);
@@ -29,7 +31,7 @@ export default function CancellationProgress({ bookingId, refreshVersion = 0 }: 
     }
     inFlight.current = true; setBusy(true); setMessage("");
     try {
-      const response = await fetch(`/api/bookings/${bookingId}/cancellation-offer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ offerVersion: offer.offer_version }) });
+      const response = await fetch(`/api/bookings/${bookingId}/cancellation-offer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ offerVersion: offer.offer_version }), signal: AbortSignal.timeout(20_000) });
       const data = await response.json();
       if (!response.ok) throw Error(data.error || "Unable to accept offer.");
       if (!data || typeof data.message !== "string") throw Error("The acceptance response could not be confirmed.");

@@ -440,3 +440,41 @@ body .trip-home.stitch-home .home-public-intro { margin-bottom:0; }
  .stitch-home .stitch-office-card header small.stitch-wide-only { display:none; }
  .stitch-home .stitch-office-card header small.stitch-phone-only { display:block; margin:2px 0 0; text-transform:none; letter-spacing:.01em; }
 }
+
+@media (max-width: 700px), (pointer: coarse) {
+  body .trip-home.stitch-home :is(
+    .home-product-tabs button,
+    .home-search-options label,
+    .home-search-options .stitch-multicity,
+    .home-search-options .home-advanced-link,
+    .stitch-popular button,
+    .stitch-hubs button,
+    .stitch-hubs a,
+    .stitch-cabin-shortcuts button,
+    .stitch-office-actions a,
+    .stitch-package-list > summary,
+    .stitch-extra-guides > summary
+  ) {
+    min-height: 44px;
+  }
+
+  body .trip-home.stitch-home .home-search-options:has(fieldset) .home-advanced-link,
+  body .trip-home.stitch-home .home-swap {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  body .trip-home.stitch-home .home-search-input .airport-edit input:not([hidden]):not([type=hidden]) {
+    min-height: 44px;
+  }
+
+  .stitch-home :is(.stitch-package-list,.stitch-extra-guides) > summary {
+    align-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  body .trip-home.stitch-home .home-search-options fieldset {
+    min-width: 0;
+  }
+}

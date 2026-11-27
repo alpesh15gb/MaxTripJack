@@ -201,9 +201,19 @@ test('unavailable SecureStore fails closed and prevents any create request', asy
   await assert.rejects(readFailure.hydrate());
   assert.equal(readFailure.isBlocked(), true);
   assert.equal(await readFailure.start('quote'), false);
-  const writeFailure = createPaymentRecovery({ get: async () => null, set: async () => { throw Error('full'); }, remove: async () => {} }, 'account-a');
+
+  const storage = memoryStorage();
+  let writes = 0;
+  storage.set = async () => { writes += 1; throw Error('full'); };
+  const writeFailure = createPaymentRecovery(storage, 'account-a');
   await writeFailure.hydrate();
-  await assert.rejects(writeFailure.start('quote'));
+  await assert.rejects(writeFailure.start('quote'), /full/);
+  assert.equal(writeFailure.snapshot().quoteId, null);
+  assert.equal(writeFailure.isBlocked(), false);
+
+  storage.set = async (key, value) => { storage.rows.set(key, value); };
+  assert.equal(await writeFailure.start('quote'), true);
+  assert.equal(storage.rows.get('account-a'), 'quote');
   assert.equal(writeFailure.isBlocked(), true);
 });
 

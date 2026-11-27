@@ -12,9 +12,15 @@ function assets() {
   return compiled ??= build({
     stdin: { contents: `import {createRoot} from 'react-dom/client'; import Reports from './src/components/booking-reports'; import './src/app/operations/reports/reports.css'; createRoot(document.getElementById('root')).render(<Reports/>);`, resolveDir: process.cwd(), loader: "tsx" },
     outfile: resolve(".report-browser-fixture/client.js"), bundle: true, write: false, platform: "browser", format: "iife", jsx: "automatic", logLevel: "silent",
-    plugins: [{ name: "fixture-link", setup(plugin) {
-      plugin.onResolve({ filter: /^next\/link$/ }, () => ({ path: "link", namespace: "fixture" }));
-      plugin.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ contents: "import {createElement} from 'react';export default function Link(props){return createElement('a',props);}", loader: "js", resolveDir: process.cwd() }));
+    plugins: [{ name: "report-fixture-next-components", setup(plugin) {
+      plugin.onResolve({ filter: /^next\/(link|image)$/ }, args => ({ path: args.path, namespace: "report-fixture" }));
+      plugin.onLoad({ filter: /.*/, namespace: "report-fixture" }, args => ({
+        contents: args.path === "next/link"
+          ? "import {createElement} from 'react';export default function Link(props){return createElement('a',props);}"
+          : "import {createElement} from 'react';export default function Image({unoptimized,...props}){return createElement('img',props);}",
+        loader: "js",
+        resolveDir: process.cwd(),
+      }));
     } }],
   }).then(result => ({ script: result.outputFiles.find(file => file.path.endsWith(".js"))!.text, css: result.outputFiles.find(file => file.path.endsWith(".css"))!.text }));
 }

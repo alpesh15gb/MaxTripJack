@@ -32,7 +32,17 @@ export function partyIssues(search:PartySearch, guests:Guests):GuestIssue[] {
   } else {
     const rooms=search.rooms??[{adults:search.adults,children:search.childrenAges?.length??0,childAge:search.childrenAges??[]}];
     guests.travellers.forEach((t,i)=>{if((t.roomIndex??0)>=rooms.length||t.pt==='INFANT')add(`travellers.${i}.roomIndex`,'Guest room assignment is invalid.');});
-    rooms.forEach((room,i)=>{if(count('ADULT',i)!==room.adults||count('CHILD',i)!==room.children)add('travellers',`Guests must match the occupancy of room ${i+1}.`);});
+    const leadNames=new Set<string>();
+    rooms.forEach((room,i)=>{
+      if(count('ADULT',i)!==room.adults||count('CHILD',i)!==room.children)add('travellers',`Guests must match the occupancy of room ${i+1}.`);
+      // TripJack requires a distinct lead guest in each room.
+      const leadIndex=guests.travellers.findIndex(t=>t.pt==='ADULT'&&(t.roomIndex??0)===i);
+      if(leadIndex<0)return;
+      const {fN,lN}=guests.travellers[leadIndex];
+      const name=`${fN} ${lN}`.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
+      if(leadNames.has(name))add(`travellers.${leadIndex}.fN`,'Each room must have a different lead guest.');
+      leadNames.add(name);
+    });
   }
   const departure=search.product==='FLIGHT'?search.date:search.checkIn;
   const lastTravel=search.product==='FLIGHT'?(search.legs?.at(-1)?.date??search.returnDate??search.date):search.checkOut;

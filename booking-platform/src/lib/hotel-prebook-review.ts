@@ -6,7 +6,7 @@ import {supplierInstant} from './supplier-time';
 import {minor} from './providers/contracts';
 
 export class HotelPrebookReviewError extends Error {
- constructor(readonly code:'HOTEL_REFERENCE_MISSING'|'HOTEL_PRICE_CHANGED'|'HOTEL_CANCELLATION_CHANGED'|'HOTEL_COMPLIANCE_CHANGED') {
+ constructor(readonly code:'HOTEL_REFERENCE_MISSING'|'HOTEL_UNAVAILABLE'|'HOTEL_PRICE_CHANGED'|'HOTEL_ROOM_TERMS_CHANGED'|'HOTEL_CANCELLATION_CHANGED'|'HOTEL_COMPLIANCE_CHANGED') {
   super(code);this.name='HotelPrebookReviewError';
  }
 }
@@ -29,12 +29,28 @@ export function sameHotelPrebookCancellation(before:unknown,after:unknown,before
  return isDeepStrictEqual(old,{...next,penalties:nextRows.map((row,index)=>index===nextIndex?{...row,from:oldRows[oldIndex].from}:row)});
 }
 
+function hotelRoomTerms(review:Record<string,unknown>,option:Record<string,unknown>) {
+ const {optionId,optionType,roomInfo,mealBasis,inclusions,bookingNotes}=option;
+ const id=review.tjHotelId??review.hotelId;
+ return {
+  hotelId:typeof id==='number'?String(id):id,
+  optionId,optionType,mealBasis,bookingNotes,
+  roomInfo:Array.isArray(roomInfo)?roomInfo.map(raw=>{
+   const {id,name,adults,children}=hotelObject(raw);
+   return {id,name,adults,children};
+  }):roomInfo,
+  inclusions:Array.isArray(inclusions)&&inclusions.every(item=>typeof item==='string')?[...inclusions].sort():inclusions,
+ };
+}
+
 export function assertHotelPrebookReview(before:unknown,after:unknown,supplierMinor:number,beforeAt:number,afterAt:number):string {
- const old=hotelObject(hotelObject(before).option),fresh=hotelObject(after),next=hotelObject(fresh.option);
+ const previous=hotelObject(before),old=hotelObject(previous.option),fresh=hotelObject(after),next=hotelObject(fresh.option);
+ if(hotelObject(next.inventory).available===false)throw new HotelPrebookReviewError('HOTEL_UNAVAILABLE');
  if(typeof fresh.bookingId!=='string'||!fresh.bookingId.trim())throw new HotelPrebookReviewError('HOTEL_REFERENCE_MISSING');
  let price:number;
  try{price=minor(hotelObject(next.pricing).totalPrice);}catch{throw new HotelPrebookReviewError('HOTEL_PRICE_CHANGED');}
  if(!Number.isSafeInteger(supplierMinor)||price!==supplierMinor||!isDeepStrictEqual(hotelObject(old.pricing).currency,hotelObject(next.pricing).currency))throw new HotelPrebookReviewError('HOTEL_PRICE_CHANGED');
+ if(!isDeepStrictEqual(hotelRoomTerms(previous,old),hotelRoomTerms(fresh,next)))throw new HotelPrebookReviewError('HOTEL_ROOM_TERMS_CHANGED');
  if(!sameHotelPrebookCancellation(old.cancellation,next.cancellation,beforeAt,afterAt))throw new HotelPrebookReviewError('HOTEL_CANCELLATION_CHANGED');
  if(!isDeepStrictEqual(old.compliance,next.compliance))throw new HotelPrebookReviewError('HOTEL_COMPLIANCE_CHANGED');
  return fresh.bookingId;

@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {clearCheckoutMarker,readCheckoutMarkers,parseCheckoutRecoveryStatus,isResolvedCheckout,type CheckoutMarker,type CheckoutRecoveryStatus} from '@/lib/checkout-recovery';
+import {clearCheckoutMarker,readCheckoutMarkers,parseCheckoutRecoveryStatus,isResolvedCheckout,isExpiredCheckoutWithoutPayment,type CheckoutMarker,type CheckoutRecoveryStatus} from '@/lib/checkout-recovery';
 
 export default function useCheckoutRecovery(){
   const [checking,setChecking]=useState(true),[pending,setPending]=useState<CheckoutMarker|null>(null),[status,setStatus]=useState<CheckoutRecoveryStatus|null>(null),[message,setMessage]=useState('');
@@ -22,9 +22,14 @@ export default function useCheckoutRecovery(){
       if(response.status===404||response.status===401){setStatus(null);setMessage('We cannot verify the original checkout in this account. Sign in to the account that started it, then check its payment status. Do not start another payment for the same trip.');return;}
       if(!response.ok)throw Error(data.error||'We could not check your previous payment. Sign in and check My trips before paying again.');
       const verified=parseCheckoutRecoveryStatus(data);
-      if(!verified||(marker.bookingId&&verified.bookingId&&verified.bookingId!==marker.bookingId))throw Error('Payment status could not be verified. Check My trips or contact operations before paying again.');
+      if(!verified||(marker.bookingId&&verified.bookingId&&verified.bookingId!==marker.bookingId)||(verified.quoteId&&verified.quoteId!==marker.quoteId))throw Error('Payment status could not be verified. Check My trips or contact operations before paying again.');
+      const expired=isExpiredCheckoutWithoutPayment(verified,marker);
+      if(verified.status==='EXPIRED_WITHOUT_PAYMENT'&&!expired)throw Error('Payment status could not be verified. Check My trips or contact operations before paying again.');
+      if((expired||isResolvedCheckout(verified))&&!clearCheckoutMarker(marker,expired)){
+        throw Error('The previous checkout changed or could not be cleared. Check its status again before paying.');
+      }
       setStatus(verified);
-      if(isResolvedCheckout(verified)){clearCheckoutMarker(marker);readQueue();selected.current=null;setPending(null);setMessage('Your previous checkout has a confirmed payment status. Open My trips for booking details.');}
+      if(expired||isResolvedCheckout(verified)){readQueue();selected.current=null;setPending(null);setMessage(expired?'The previous quote expired before a payment order was created.':'Your previous checkout has a confirmed payment status. Open My trips for booking details.');}
       else setMessage(verified.message||'An earlier checkout needs attention. Check its status before creating another payment.');
     }catch(error){if(active.current&&request===generation.current)setMessage(error instanceof Error?error.message:'Check your previous payment in My trips.');}
     finally{if(active.current&&request===generation.current)setChecking(false);}
@@ -38,7 +43,8 @@ export default function useCheckoutRecovery(){
     return()=>{active.current=false;generation.current+=1;clearTimeout(timer);};
   },[readQueue,reconcile]);
   function clear(expected:Partial<CheckoutMarker>){
-    clearCheckoutMarker(expected);readQueue();
+    if(!clearCheckoutMarker(expected))return;
+    readQueue();
     const current=selected.current;
     if(current&&(expected.quoteId?current.quoteId!==expected.quoteId:current.bookingId!==expected.bookingId))return;
     generation.current+=1;selected.current=null;

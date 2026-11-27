@@ -12,6 +12,7 @@ test("customer/company isolation denies guessed booking IDs and cross-account ac
   assert.equal(canReadOrder("bob", "company-b", { user_id: "alice", company_id: "company-a" }), false);
   assert.equal(canReadOrder("alice", null, { user_id: "alice", company_id: "company-a" }), false);
   assert.equal(canReadOrder("alice", "company-a", { user_id: "alice", company_id: "company-a" }), true);
+  assert.equal(canReadOrder("bob", "company-a", { user_id: "alice", company_id: "company-a" }), false);
 });
 test("refund reservations cannot promise the same money twice", () => {
   assert.equal(refundableAmount(10000, 2000, 3000, 5000), 5000);

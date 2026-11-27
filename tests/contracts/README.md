@@ -4,7 +4,7 @@ These tests intentionally import both applications. Run from the repository root
 
 ```sh
 npm ci --prefix booking-platform
-booking-platform/node_modules/.bin/tsx --test tests/contracts/*.test.ts
+booking-platform/node_modules/.bin/tsx --tsconfig booking-platform/tsconfig.json --test tests/contracts/*.test.ts
 ```
 
 The `cross-app-contracts` job runs these checks on every push and pull request,

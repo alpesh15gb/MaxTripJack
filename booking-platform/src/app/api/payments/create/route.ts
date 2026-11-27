@@ -21,6 +21,7 @@ import { validateParty, validateGuestReview } from "@/lib/guest-validation";
 import { tripjack } from "@/lib/providers/tripjack";
 import { tripjackWalletCovers } from "@/lib/providers/tripjack-wallet";
 import { markGatewayIntentUnknown, persistGatewayOrder } from "@/lib/payment-intent";
+import { PAYMENT_RESUME_COLUMNS, PAYMENT_RESUME_TABLES, paymentResumeStatus, type PaymentResumeRecord } from "@/lib/payment-resume";
 import { FareValidationBlockedError } from "@/lib/fare-validation";
 import { compareCheckoutTrips, MAX_INTERRUPTED_CHECKOUTS, type CheckoutTripRecord } from "@/lib/checkout-trip-comparison";
 export async function POST(request:Request){try{
@@ -53,8 +54,11 @@ export async function POST(request:Request){try{
  if(!guests)throw new HttpError(400,"Traveller details are required.");
  if(input.billingData)guests={...guests,billingData:input.billingData};
  if(quote.service_kind!=="ANCILLARY")validateParty(search.criteria,guests);
- if(Number(quote.total_minor)===0){const freeExisting=await database().query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(freeExisting.rowCount)return json({bookingId:freeExisting.rows[0].id,free:true,amount:0,currency:"INR"});}
- const existingIntent=await database().query("SELECT o.id,o.guests_encrypted,g.provider FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.quote_id=$1",[quote.id]);
+ const ownership=[quote.id,actor.userId,actor.companyId];
+ const ownedOrder="o.quote_id=$1 AND o.user_id=$2 AND o.company_id IS NOT DISTINCT FROM $3::uuid";
+ const findFreeOrder=`SELECT o.id FROM orders o WHERE ${ownedOrder} AND o.total_minor=0`;
+ if(Number(quote.total_minor)===0){const freeExisting=await database().query(findFreeOrder,ownership);if(freeExisting.rowCount)return json({bookingId:freeExisting.rows[0].id,free:true,amount:0,currency:"INR"});}
+ const existingIntent=await database().query(`SELECT o.id,o.guests_encrypted,g.provider FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE ${ownedOrder}`,ownership);
  if(quote.service_kind&&serviceDisclosure(quote.review).blocked)return json({code:"SERVICE_TERMS_UNAVAILABLE",...(existingIntent.rowCount?{bookingId:existingIntent.rows[0].id}:{}),error:"Some supplier terms could not be safely displayed. Confirmation is unavailable. Check the linked booking in My trips or contact support; do not pay again."},409);
  validateGuestReview(guests,quote.review);
  const provider=Number(quote.total_minor)===0?"RAZORPAY":checkoutPaymentProvider(existingIntent.rows[0]?.provider);
@@ -79,12 +83,29 @@ export async function POST(request:Request){try{
  if(quote.selection.checkoutExtras&&!existingIntent.rowCount)await validateInitialExtras(quote,guests);
  if(!existingIntent.rowCount){const account=await tripjack(quote.product,"/ums/v1/user-detail",undefined,false,"GET");if(!tripjackWalletCovers(account,quote.supplier_minor))throw new HttpError(503,"Booking is temporarily unavailable. Please contact Max Travel before making payment.");assertFresh(quote.expires_at);}
  const intent=await transaction(async tx=>{
-  const currentQuote=await tx.query("SELECT * FROM supplier_quotes WHERE id=$1 FOR UPDATE",[quote.id]);if(Number(currentQuote.rows[0].total_minor)!==Number(quote.total_minor)||!isDeepStrictEqual(currentQuote.rows[0].selection,quote.selection))throw new HttpError(409,"Extras changed. Accept the updated total before paying.");
-  if(Number(quote.total_minor)===0){const freeExisting=await tx.query("SELECT id FROM orders WHERE quote_id=$1",[quote.id]);if(freeExisting.rowCount)return {id:freeExisting.rows[0].id,created:false,free:true,gateway_order_id:null};}
-  const existing=await tx.query("SELECT o.id,o.guests_encrypted,g.provider,g.gateway_order_id,g.state FROM orders o JOIN gateway_intents g ON g.order_id=o.id WHERE o.quote_id=$1",[quote.id]);if(existing.rowCount){if(currentQuote.rows[0].service_kind&&serviceDisclosure(currentQuote.rows[0].review).blocked)throw new HttpError(409,"Supplier terms are unavailable. Check this booking in My trips; do not pay again.");if(existing.rows[0].provider!==provider)throw new HttpError(409,"Existing payment provider cannot be changed.");if(!isDeepStrictEqual(unseal(existing.rows[0].guests_encrypted,existing.rows[0].id),guests))throw new HttpError(409,"Checkout already contains different traveller or contact details. Open My trips to review the original order; do not pay it for edited travellers.");return {...existing.rows[0],created:false};}
+  const currentQuote=await tx.query("SELECT * FROM supplier_quotes WHERE id=$1 AND user_id=$2 AND company_id IS NOT DISTINCT FROM $3::uuid FOR UPDATE",ownership);
+  const lockedQuote=currentQuote.rows[0];
+  if(!lockedQuote)throw new HttpError(404,"Record not found.");
+  assertFresh(lockedQuote.expires_at);
+  if(Number(lockedQuote.total_minor)!==Number(quote.total_minor)||!isDeepStrictEqual(lockedQuote.selection,quote.selection))throw new HttpError(409,"Extras changed. Accept the updated total before paying.");
+  if(Number(quote.total_minor)===0){const freeExisting=await tx.query(findFreeOrder,ownership);if(freeExisting.rowCount)return {id:freeExisting.rows[0].id,created:false,free:true,gateway_order_id:null};}
+  const existing=await tx.query<PaymentResumeRecord & {provider:string|null;guests_encrypted:string}>(
+   `SELECT ${PAYMENT_RESUME_COLUMNS},o.guests_encrypted ${PAYMENT_RESUME_TABLES} WHERE ${ownedOrder}`,ownership);
+  const prior=existing.rows[0];
+  if(prior){
+   if(lockedQuote.service_kind&&serviceDisclosure(lockedQuote.review).blocked)throw new HttpError(409,"Supplier terms are unavailable. Check this booking in My trips; do not pay again.");
+   if(prior.provider!==provider)throw new HttpError(409,"Existing payment provider cannot be changed.");
+   if(!isDeepStrictEqual(unseal(prior.guests_encrypted,prior.id),guests))throw new HttpError(409,"Checkout already contains different traveller or contact details. Open My trips to review the original order; do not pay it for edited travellers.");
+   if(provider==="RAZORPAY"&&!paymentResumeStatus(prior).canResume)throw new HttpError(409,"This checkout cannot be reopened safely. Check My trips for the original payment.");
+   return {...prior,created:false};
+  }
   if(currentQuote.rows[0].service_kind&&serviceDisclosure(currentQuote.rows[0].review).blocked)throw new HttpError(409,"Some supplier terms could not be safely displayed. Confirmation is unavailable; contact support to review the complete terms.");
   if(search.parent_order_id){const locked=await tx.query("SELECT status,service_kind FROM orders WHERE id=$1 FOR UPDATE",[search.parent_order_id]);if(locked.rows[0]?.status!=="TICKETED")throw new HttpError(409,"Original booking is no longer active.");const pending=await tx.query("SELECT id FROM orders WHERE parent_order_id=$1 AND status IN ('PAYMENT_PENDING','PAID','BOOKING_PENDING','MANUAL_REVIEW') UNION ALL SELECT id FROM cancellation_requests WHERE order_id=$1 AND status NOT IN ('CONFIRMED','REJECTED')",[search.parent_order_id]);if(pending.rowCount)throw new HttpError(409,"Another operation is pending. Complete it first.");if(quote.service_kind==="REISSUE"){const changed=await tx.query("SELECT id FROM orders WHERE parent_order_id=$1 AND service_kind='REISSUE' AND status='TICKETED'",[search.parent_order_id]);if(changed.rowCount||locked.rows[0].service_kind==="REISSUE")throw new HttpError(409,"This booking has already been reissued.");}}
   const promoSnapshot=await validateQuotePromo(tx,currentQuote.rows[0]);
+  // Use the database clock after lock waits. Status uses the same expiry boundary
+  // while holding the quote lock before declaring an absent order terminal.
+  const freshness=await tx.query<{fresh:boolean}>("SELECT expires_at>clock_timestamp() AS fresh FROM supplier_quotes WHERE id=$1",[quote.id]);
+  if(!freshness.rows[0]?.fresh)throw new HttpError(409,"This quote or search expired. Search and review again.");
   const id=randomUUID();await tx.query("INSERT INTO orders(id,reference,user_id,company_id,product,status,total_minor,supplier_minor,quote_id,guests_encrypted,policy_snapshot,itinerary_summary,parent_order_id,service_kind) VALUES($1,$2,$3,$4,$5,'PAYMENT_PENDING',$6,$7,$8,$9,$10,$11,$12,$13)",[id,`MT-${id.slice(0,8).toUpperCase()}`,actor.userId,actor.companyId,quote.product,quote.total_minor,quote.supplier_minor,quote.id,seal(guests,id),quote.product==="HOTEL"?quote.review.option?.cancellation??{}:{conditions:quote.review.conditions??{},fareRules:quote.review.fareRules??{}},{...search.criteria,...(quote.selection.checkoutExtras?{checkoutExtras:quote.selection.checkoutExtras.summary}:{})},search.parent_order_id??null,quote.service_kind??null]);
   if(promoSnapshot)await tx.query("UPDATE orders SET promo_snapshot=$2 WHERE id=$1",[id,promoSnapshot]);
   if(isGuestActor(actor))await tx.query("UPDATE orders SET guest_contact_hash=$2 WHERE id=$1",[id,guestContactHash(guests.email)]);

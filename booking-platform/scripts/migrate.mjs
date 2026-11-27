@@ -3,7 +3,8 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const bookingMigrations = ["001-booking-platform", "002-provider-integration", "003-booking-details", "004-operations", "005-cancellation-offers", "006-flight-amendments", "007-delivery", "008-catalogue", "009-security-operations", "010-cancellation-polling", "011-payment-method", "012-partial-cancellation", "013-flight-services", "014-crm-commands", "015-fare-validation", "016-payglocal", "017-payglocal-recovery", "018-payglocal-webhooks", "019-cancellation-reconciliation", "020-whatsapp-verification", "021-company-settings", "022-pricing-promos", "023-promo-discovery", "024-travel-enquiries", "025-safar-enquiry-destination", "026-hotel-catalogue", "027-flight-route-catalogue", "028-hotel-catalogue-priority", "029-hotel-catalogue-search", "030-flight-fare-calendar", "031-guest-checkout", "032-flight-fare-calendar-verified", "033-office-enquiries", "034-hotel-catalogue-photo-order"];
+import { bookingMigrations } from "./booking-migrations.mjs";
+export { bookingMigrations } from "./booking-migrations.mjs";
 
 /** @typedef {{query:(sql:string,values?:string[])=>Promise<{rowCount?:number|null}>,release:()=>void}} MigrationClient */
 /** @typedef {{connect:()=>Promise<MigrationClient>,end:()=>Promise<void>}} MigrationPool */

@@ -152,6 +152,7 @@ test('per-hotel SQL merge preserves another hotel and latest detail invalidates 
   await detail('owned-search','10001',actor);
   await assert.rejects(review('owned-search',{hid:'10001',optionId:'original-room-id'},actor),/Go back to stays/);
   assert.equal(state.reviewCalls.length,1,'A stale selected room must never silently become another room');
+  state.reviewOption=structuredClone(state.supplier.options[0]);
   await review('owned-search',{hid:'10001',optionId:'second-hotel-room'},actor);
   assert.equal(state.reviewCalls[1].reviewHash,'second-hotel-hash');
  }finally{cleanup();}

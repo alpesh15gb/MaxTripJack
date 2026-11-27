@@ -328,6 +328,36 @@ body .state-page.public-refresh .state-code { color: var(--public-link); font: 6
 body .state-page.public-refresh .state-actions :is(a, button) { color: var(--public-link); border-color: var(--public-gold); background: var(--public-paper-surface) var(--public-paper); }
 body .state-page.public-refresh .state-actions .state-primary { color: #fff; background: var(--public-link); border-color: var(--public-link); }
 body .state-page.public-refresh .state-photo { border: 1px solid var(--public-gold); border-radius: 12px; box-shadow: 0 15px 36px var(--public-shadow); }
+.global-error-document {
+  margin: 0;
+  background: #f7f9fc;
+  font: 1rem/1.6 system-ui, sans-serif;
+}
+.global-error-document .state-page.public-refresh {
+  --public-ink: #001736;
+  --public-link: #005bb3;
+  --public-muted: #42546c;
+  --public-gold: #9eb6d4;
+  --public-display: system-ui, sans-serif;
+  max-width: 45rem;
+  margin: 0 auto;
+  padding: clamp(32px, 12vh, 112px) 24px;
+}
+.global-error-document .state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.global-error-document .state-actions :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--public-gold);
+  border-radius: 8px;
+  font: inherit;
+}
 
 @media (min-width: 901px) {
   body .public-refresh.catalogue-main .catalogue-directory-hero {

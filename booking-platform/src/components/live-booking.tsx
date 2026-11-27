@@ -307,7 +307,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const [extrasResetNotice,setExtrasResetNotice]=useState(false);
   const [extrasRefreshBlockedQuote,setExtrasRefreshBlockedQuote]=useState<string|null>(null);
   const refreshedContinuation=useRef<{quoteId:string;validate:boolean}|null>(null);
-  const receivedReviewWindow=useRef<{quoteId:string;refreshAtSeconds:number}|null>(null);
+  const [receivedReviewWindow,setReceivedReviewWindow]=useState<{quoteId:string;refreshAtSeconds:number}|null>(null);
   const [gstEntered,setGstEntered]=useState(false),[emergencyEntered,setEmergencyEntered]=useState(false);
   const [reviewBase,setReviewBase]=useState(0),[now,setNow]=useState<number|null>(null);
   const [selection,setSelection]=useState<Selection|null>(null),[payment,setPayment]=useState<Payment|null>(null);
@@ -613,8 +613,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   // time for the prepayment fare check and gateway order before starting it.
   // Keep the buffer below one third of the actual supplier review window so
   // short-lived fares can still reach payment after a successful refresh.
-  const reviewWindow=receivedReviewWindow.current;
-  const extrasRefreshAt=reviewWindow&&reviewWindow.quoteId===quote?.quoteId?reviewWindow.refreshAtSeconds:0;
+  const extrasRefreshAt=!payment&&quote?.product==='FLIGHT'&&quote.savedFlightExtrasCount&&receivedReviewWindow?.quoteId===quote.quoteId?receivedReviewWindow.refreshAtSeconds:0;
   const extrasRefreshSoon=Boolean(!payment&&quote?.product==='FLIGHT'&&quote.savedFlightExtrasCount&&remaining!==null&&remaining<=extrasRefreshAt);
   const priceRefreshNeeded=expired||needsReview||extrasRefreshSoon;
   const refreshUnchanged=Boolean(previousReview&&quote&&refreshedReviewUnchanged(previousReview,quote));
@@ -979,7 +978,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     try{
       const value=await api<Quote>('/api/travel/review',{searchId:reviewSearchId,...nextSelection,...(previousQuoteId?{previousQuoteId}:{}),...(removeFlightExtras?{removeFlightExtras:true}:{})},AbortSignal.any([task.signal,deadline.signal]));
       if(current(task.id)){
-        receivedReviewWindow.current={quoteId:value.quoteId,refreshAtSeconds:Math.min(60,Math.floor(quoteRemaining(value.expiresAt,Date.now())/3))};
+        setReceivedReviewWindow({quoteId:value.quoteId,refreshAtSeconds:Math.min(60,Math.floor(quoteRemaining(value.expiresAt,new Date().getTime())/3))});
         refreshedContinuation.current=renew?{quoteId:value.quoteId,validate:validateAfterRefresh}:null;
         if(!renew)checkoutQuoteIds.current.clear();
         checkoutQuoteIds.current.add(value.quoteId);
@@ -1237,9 +1236,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(!quote||!checkoutConfigured||providerUnavailable||busy||busyRef.current||refreshedContinuation.current||paymentUncertain||recoveryBlocked)return;
     // An expired primary action only refreshes and revalidates. Paying always
     // requires a separate explicit click against the newly displayed total.
-    const reviewWindow=receivedReviewWindow.current;
-    const refreshAt=quote.product==='FLIGHT'&&quote.savedFlightExtrasCount&&reviewWindow&&reviewWindow.quoteId===quote.quoteId?reviewWindow.refreshAtSeconds:0;
-    if(quoteRemaining(quote.expiresAt,new Date().getTime())<=refreshAt||needsReview){
+    if(quoteRemaining(quote.expiresAt,new Date().getTime())<=extrasRefreshAt||needsReview){
       if(payment){setMessage('Your reviewed price has expired. Your original order is preserved; check My trips before making another payment.');return;}
       if(selection)await review(selection,true,true);
       return;

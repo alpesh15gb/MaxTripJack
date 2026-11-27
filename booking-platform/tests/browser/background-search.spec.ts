@@ -220,7 +220,7 @@ for (const product of ['FLIGHT', 'HOTEL'] as const) {
    await form.getByRole('button', { name: product === 'FLIGHT' ? 'Search flights' : 'Search stays', exact: true }).click();
    await expect.poll(() => observed.search.length).toBe(1);
    expect(observed.search[0]).toEqual(observed.warm[0]);
-   await expect(page.getByRole('status', { name: 'Search and booking activity' })).toContainText('Waiting for live supplier availability');
+   await expect(page.getByRole('status', { name: 'Search and booking activity' })).toContainText(product==='FLIGHT'?'Checking flight availability':'Checking hotel availability');
    await expectNoHorizontalOverflow(page);
    await capture(page, info, `${product.toLowerCase()}-search-adopts-pending-warm`);
    expect(observed.warm).toHaveLength(1);

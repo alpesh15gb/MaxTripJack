@@ -14,4 +14,20 @@ export function minor(value:unknown){if(typeof value!=="number"&&(typeof value!=
 // Regular fares are the supplier default; omit the unnecessary optional fare filter.
 export function flightSearch(input:Extract<Search,{product:"FLIGHT"}>){return {searchQuery:{cabinClass:input.cabin,paxInfo:{ADULT:input.adults,CHILD:input.children||0,INFANT:input.infants||0},routeInfos:(input.legs??[{from:input.from,to:input.to,date:input.date},...(input.returnDate?[{from:input.to,to:input.from,date:input.returnDate}]:[])]).map(leg=>({fromCityOrAirport:{code:leg.from},toCityOrAirport:{code:leg.to},travelDate:leg.date}))}};}
 export function hotelSearch(input:Extract<Search,{product:"HOTEL"}>,correlationId:string){return {checkIn:input.checkIn,checkOut:input.checkOut,rooms:input.rooms||[{adults:input.adults,...(input.childrenAges?.length?{children:input.childrenAges.length,childAge:input.childrenAges}:{})}],currency:"INR",nationality:input.nationality,hids:input.hotelIds.map(Number),correlationId,timeoutMs:13000};}
-export function bookingBody(product:"FLIGHT"|"HOTEL",bookingId:string,amountMinor:number,guests:Guests){const phone=bookingPhoneParts(guests.phone);if(!phone)throw Error("Invalid booking phone");const deliveryInfo=product==="FLIGHT"?{emails:[guests.email],contacts:[phone.international]}:{emails:[guests.email],contacts:[phone.national],code:[phone.code]};const strip=(t:Guests["travellers"][number])=>{const {roomIndex,...rest}=t;void roomIndex;return rest;};const rooms=Math.max(...guests.travellers.map(t=>t.roomIndex||0))+1;return {bookingId,paymentInfos:[{amount:amountMinor/100}],deliveryInfo,...(product==="FLIGHT"?{travellerInfo:guests.travellers.map(strip),...(guests.contactInfo?{contactInfo:guests.contactInfo}:{})}:{type:"HOTEL",roomTravellerInfo:Array.from({length:rooms},(_,i)=>({travellerInfo:guests.travellers.filter(t=>(t.roomIndex||0)===i).map(strip)}))}),...(guests.gstInfo?{gstInfo:guests.gstInfo}:{})};}
+export function bookingBody(product:"FLIGHT"|"HOTEL",bookingId:string,amountMinor:number,guests:Guests){
+ const phone=bookingPhoneParts(guests.phone);
+ if(!phone)throw Error("Invalid booking phone");
+ const strip=(t:Guests["travellers"][number])=>{const {roomIndex,...rest}=t;void roomIndex;return rest;};
+ const base={bookingId,paymentInfos:[{amount:amountMinor/100}],...(guests.gstInfo?{gstInfo:guests.gstInfo}:{})};
+ if(product==="FLIGHT"){
+  return {...base,deliveryInfo:{emails:[guests.email],contacts:[phone.international]},travellerInfo:guests.travellers.map(strip),...(guests.contactInfo?{contactInfo:guests.contactInfo}:{})};
+ }
+ const rooms=Math.max(...guests.travellers.map(t=>t.roomIndex??0))+1;
+ const roomTravellerInfo=Array.from({length:rooms},(_,i)=>{
+  const travellers=guests.travellers.filter(t=>(t.roomIndex??0)===i);
+  const adults=travellers.filter(t=>t.pt==="ADULT");
+  const children=travellers.filter(t=>t.pt!=="ADULT");
+  return {travellerInfo:[...adults,...children].map(strip)};
+ });
+ return {...base,type:"HOTEL",deliveryInfo:{emails:[guests.email],contacts:[phone.national],code:[phone.code]},roomTravellerInfo};
+}

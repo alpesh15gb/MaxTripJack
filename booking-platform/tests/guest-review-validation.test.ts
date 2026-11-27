@@ -49,13 +49,19 @@ test('passport expiry uses final return, final multi-city leg and hotel checkout
 });
 test('hotel child ages compare room multisets at check-in, not traveller order or other rooms',()=>{
  const hotel=searchSchema.parse({product:'HOTEL',hotelIds:['10001'],checkIn:'2027-06-15',checkOut:'2027-06-20',adults:1,nationality:'106',rooms:[{adults:1,children:2,childAge:[5,8]},{adults:1,children:1,childAge:[9]}]});
- const party:Guests={...guests,travellers:[{...adult,roomIndex:0},{...adult,pt:'CHILD',roomIndex:0,dob:'2019-06-15'},{...adult,pt:'CHILD',roomIndex:0,dob:'2022-06-15'},{...adult,roomIndex:1},{...adult,pt:'CHILD',roomIndex:1,dob:'2018-06-15'}]};
+ const party:Guests={...guests,travellers:[{...adult,roomIndex:0},{...adult,pt:'CHILD',roomIndex:0,dob:'2019-06-15'},{...adult,pt:'CHILD',roomIndex:0,dob:'2022-06-15'},{...adult,fN:'Dev',roomIndex:1},{...adult,pt:'CHILD',roomIndex:1,dob:'2018-06-15'}]};
  assert.deepEqual(guestDetailsIssues(party,hotel,{}),[]);
  const changed={...party,travellers:party.travellers.map((t,i)=>i===4?{...t,dob:'2019-06-15'}:t)};
  assert.deepEqual(paths(guestDetailsIssues(changed,hotel,{})),['travellers.4.dob']);
  const sibling={...party,travellers:party.travellers.map((t,i)=>i===2?{...t,dob:'2023-06-15'}:t)};
  assert.deepEqual(paths(guestDetailsIssues(sibling,hotel,{})),['travellers.2.dob']);
  assert.throws(()=>validateParty(hotel,changed),(error:unknown)=>error instanceof HttpError&&error.fields?.[0].path==='guests.travellers.4.dob');
+});
+test('hotel duplicate leads are rejected by the shared form and payment validators',()=>{
+ const hotel=searchSchema.parse({product:'HOTEL',hotelIds:['10001'],checkIn:'2027-06-15',checkOut:'2027-06-20',adults:1,nationality:'106',rooms:[{adults:1},{adults:1}]});
+ const party:Guests={...guests,travellers:[{...adult,roomIndex:0},{...adult,fN:'aARAV',lN:'EXAMPLE',ti:'Ms',roomIndex:1}]};
+ assert.deepEqual(paths(guestDetailsIssues(party,hotel,{})),['travellers.1.fN']);
+ assert.throws(()=>validateParty(hotel,party),(error:unknown)=>error instanceof HttpError&&error.fields?.[0].path==='guests.travellers.1.fN');
 });
 test('existing PAN, GST, name, email, phone and optional passport schemas are enforced without invented GST pattern',()=>{
  const invalid={...guests,email:'not-an-email',phone:'123',gstInfo:{gstNumber:'short',registeredName:''},travellers:[{...adult,fN:'  ',pan:'123',pNum:'abc'},...guests.travellers.slice(1)]};

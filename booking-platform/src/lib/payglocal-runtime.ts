@@ -13,6 +13,7 @@ import {payGlocalConfig} from './providers/payglocal-config';
 import {assertPayGlocalTravelContract} from './providers/payglocal-travel-contract';
 import {initiatePayGlocal,readPayGlocalStatus} from './providers/payglocal-wire';
 import {reservePayGlocalAttempt,persistPayGlocalInitiation,markPayGlocalUnknown,linkPayGlocalRecoveredStatus,recordPayGlocalVerifiedStatus} from './payglocal-payment';
+import {PAYMENT_RESUME_COLUMNS,PAYMENT_RESUME_TABLES,paymentResumeStatus,type PaymentResumeRecord} from './payment-resume';
 export function payGlocalPayload(attempt:PayGlocalAttempt,product:'FLIGHT'|'HOTEL',billingData:PayGlocalBillingData,travelData:PayGlocalTravelData,returnChannel:'WEB'|'APP'='WEB'){
  const config=payGlocalConfig(),callback=new URL('/api/payments/payglocal/return',config.origin);if(returnChannel==='APP')callback.searchParams.set('app','1');return buildPayGlocalCheckoutPayload({attempt,product,billingData,travelData,applicationOrigin:config.origin,merchantCallbackURL:callback.href});
 }
@@ -33,9 +34,11 @@ export async function createPayGlocalCheckout(bookingId:string,product:'FLIGHT'|
   try{const result=await initiatePayGlocal(payGlocalPayload(reserved.attempt,product,storedBilling,travelData,returnChannel),reserved.attempt,config);await transaction(tx=>persistPayGlocalInitiation(tx,bookingId,result));}
   catch(error){await transaction(tx=>markPayGlocalUnknown(tx,bookingId));throw error;}
  }
- const row=(await database().query("SELECT a.redirect_url,a.gid,a.state,o.status,o.total_minor,q.expires_at FROM payglocal_attempts a JOIN orders o ON o.id=a.order_id JOIN supplier_quotes q ON q.id=o.quote_id WHERE a.order_id=$1",[bookingId])).rows[0];
- if(!row?.redirect_url||row.state==='CAPTURED'||row.status!=='PAYMENT_PENDING'||new Date(row.expires_at).getTime()<=Date.now())throw new HttpError(409,'Payment requires a status check in My trips. Do not start another payment.');
- return {provider:'PAYGLOCAL' as const,bookingId,checkoutUrl:validatePayGlocalUrl(row.redirect_url,'redirect'),amount:Number(row.total_minor),currency:'INR' as const};
+ const row=(await database().query<PaymentResumeRecord & {state:string;redirect_url:string|null}>(
+  `SELECT ${PAYMENT_RESUME_COLUMNS},a.state,a.redirect_url ${PAYMENT_RESUME_TABLES}
+   JOIN payglocal_attempts a ON a.order_id=o.id AND a.gid=g.gateway_order_id WHERE o.id=$1 AND g.provider='PAYGLOCAL'`,[bookingId])).rows[0];
+ if(!row||row.state!=='PENDING'||!row.redirect_url||!paymentResumeStatus(row,Date.now(),'PAYGLOCAL').canResume)throw new HttpError(409,'Payment requires a status check in My trips. Do not start another payment.');
+ return {provider:'PAYGLOCAL' as const,bookingId,checkoutUrl:validatePayGlocalUrl(row.redirect_url,'redirect'),amount:Number(row.total_minor),currency:'INR' as const,quoteExpiresAt:row.quote_expires_at};
 }
 export async function synchronizePayGlocalPayment(bookingId:string){
  const config=payGlocalConfig(),lease=randomUUID();

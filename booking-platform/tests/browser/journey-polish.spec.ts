@@ -20,7 +20,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   await page.evaluate(()=>{const evidence={submitted:0,visible:0};Object.assign(window,{__feedbackTiming:evidence});document.addEventListener('submit',()=>{evidence.submitted=performance.now();let frames=0;const tick=()=>{const node=document.querySelector('#booking-pending [role=status]'),rect=node?.getBoundingClientRect();if(rect&&rect.height>0&&rect.top>=0&&rect.bottom<=innerHeight){evidence.visible=performance.now();}else if(++frames<600)requestAnimationFrame(tick);};requestAnimationFrame(tick);},{once:true,capture:true});});
   try{
    await page.getByRole('form',{name:'Search availability'}).getByRole('button',{name:product==='FLIGHT'?'Search flights':'Search stays',exact:true}).click();
-   const pending=page.locator('#booking-pending');await expect(pending).toContainText(product==='FLIGHT'?'BOM → DEL':'Goa');await expect(pending).toContainText('Waiting for live supplier availability');
+   const pending=page.locator('#booking-pending');await expect(pending).toContainText(product==='FLIGHT'?'BOM → DEL':'Goa');await expect(pending.getByRole('status',{name:'Search and booking activity'})).toContainText(product==='FLIGHT'?'Checking flight availability':'Checking hotel availability');
    await expect(pending.getByRole('heading',{level:1})).toHaveCSS('color','rgb(255, 255, 255)');
    await expect(page.getByRole('form',{name:'Search availability'})).toBeHidden();
    await expect(page.getByRole('list',{name:'Booking progress'})).toHaveCount(0);
@@ -28,13 +28,14 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
    await expect.poll(()=>page.evaluate(()=>((window as unknown as {__feedbackTiming:{visible:number}}).__feedbackTiming.visible))).toBeGreaterThan(0);
    const timing=await page.evaluate(()=>((window as unknown as {__feedbackTiming:{submitted:number;visible:number}}).__feedbackTiming));expect(timing.visible-timing.submitted).toBeGreaterThanOrEqual(0);expect(timing.visible-timing.submitted).toBeLessThan(1000);
    await info.attach('synthetic-submit-to-visible-feedback-ms',{body:JSON.stringify(timing),contentType:'application/json'});
-   const motion=await pending.locator('.stitch-activity-icon .stitch-symbol').evaluate(async node=>{
+   const motion=await pending.locator(product==='FLIGHT'?'.stitch-scene-plane':'.stitch-scene-hotel i').first().evaluate(async (node,property)=>{
     const animation=node.getAnimations()[0];if(!animation)throw new Error('Expected a running decorative search animation');
-    const initial={currentTime:Number(animation.currentTime),transform:getComputedStyle(node).transform,playState:animation.playState};
-    const observed=await new Promise<typeof initial>((resolve,reject)=>{let frames=0;const tick=()=>{const next={currentTime:Number(animation.currentTime),transform:getComputedStyle(node).transform,playState:animation.playState};if(next.currentTime-initial.currentTime>=16&&next.transform!==initial.transform)resolve(next);else if(++frames>=120)reject(new Error('Decorative animation did not advance across animation frames'));else requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+    const sample=()=>({currentTime:Number(animation.currentTime),value:getComputedStyle(node).getPropertyValue(property),playState:animation.playState});
+    const initial=sample();
+    const observed=await new Promise<typeof initial>((resolve,reject)=>{let frames=0;const tick=()=>{const next=sample();if(next.currentTime-initial.currentTime>=16&&next.value!==initial.value)resolve(next);else if(++frames>=120)reject(new Error('Decorative animation did not advance across animation frames'));else requestAnimationFrame(tick);};requestAnimationFrame(tick);});
     return {initial,observed};
-   });
-   expect(motion.initial.playState).toBe('running');expect(motion.observed.playState).toBe('running');expect(motion.observed.currentTime).toBeGreaterThan(motion.initial.currentTime);expect(motion.observed.transform).not.toBe(motion.initial.transform);
+   },product==='FLIGHT'?'transform':'opacity');
+   expect(motion.initial.playState).toBe('running');expect(motion.observed.playState).toBe('running');expect(motion.observed.currentTime).toBeGreaterThan(motion.initial.currentTime);expect(motion.observed.value).not.toBe(motion.initial.value);
    await info.attach(`${product.toLowerCase()}-animation-frame-evidence`,{body:JSON.stringify(motion),contentType:'application/json'});
    await shot(page,info,`${product.toLowerCase()}-animated-pending`,[pending.getByRole('heading'),pending.getByRole('button',{name:'Stop search & edit',exact:true})]);
    await pending.getByRole('button',{name:'Stop search & edit',exact:true}).click();await expect(pending).toHaveCount(0);await expect(page.locator('#booking-feedback')).toContainText('Search stopped on this page');
@@ -58,7 +59,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
  test('reduced motion and failed search keep honest feedback and a working retry',async({page,provider},info)=>{
   await page.emulateMedia({reducedMotion:'reduce'});let release!:()=>void;const held=new Promise<void>(resolve=>release=resolve);let calls=0;
   await page.route('**/api/travel/search',async route=>{calls++;if(calls===1){await held;await route.fulfill({status:503,json:{error:'Supplier availability could not be checked. Try again.'}});}else await route.fulfill({json:provider.search});});
-  try{await page.goto(flightQuery());await expect(page.locator('.stitch-activity-icon .stitch-symbol')).toHaveCSS('animation-name','none');await shot(page,info,'reduced-motion-search');}finally{release();}
+  try{await page.goto(flightQuery());await expect(page.locator('#booking-pending .stitch-scene-plane')).toHaveCSS('animation-name','none');await shot(page,info,'reduced-motion-search');}finally{release();}
   await expect(page.locator('#booking-feedback')).toContainText('Supplier availability could not be checked');await expect(page.locator('#booking-pending')).toHaveCount(0);
   await page.getByRole('button',{name:'Search flights',exact:true}).click();await expect(page.locator('#booking-results')).toBeVisible();expect(calls).toBe(2);
  });

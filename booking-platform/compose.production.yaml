@@ -1,6 +1,11 @@
 name: max-travel-booking
 x-runtime-security: &runtime-security
   read_only: true
+  # These inputs belong to PostgreSQL or an explicit one-off owner migration.
+  environment:
+    POSTGRES_PASSWORD: ""
+    MIGRATION_DATABASE_URL: ""
+    RUNTIME_DATABASE_PASSWORD: ""
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]
   stop_grace_period: 45s
@@ -14,6 +19,9 @@ x-runtime-security: &runtime-security
     options:
       max-size: 10m
       max-file: '3'
+x-postgres-ready: &postgres-ready
+  postgres:
+    condition: service_healthy
 services:
   app:
     <<: *runtime-security
@@ -31,54 +39,42 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    depends_on:
-      postgres:
-        condition: service_healthy
+    depends_on: *postgres-ready
   booking-worker:
     <<: *runtime-security
     image: max-travel-booking:local
     restart: unless-stopped
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/booking-worker.mjs]
-    depends_on:
-      postgres:
-        condition: service_healthy
+    depends_on: *postgres-ready
   payment-worker:
     <<: *runtime-security
     image: max-travel-booking:local
     restart: unless-stopped
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/payment-worker.mjs]
-    depends_on:
-      postgres:
-        condition: service_healthy
+    depends_on: *postgres-ready
   refund-worker:
     <<: *runtime-security
     image: max-travel-booking:local
     restart: unless-stopped
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/refund-worker.mjs]
-    depends_on:
-      postgres:
-        condition: service_healthy
+    depends_on: *postgres-ready
   maintenance-worker:
     <<: *runtime-security
     image: max-travel-booking:local
     restart: unless-stopped
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/maintenance-worker.mjs]
-    depends_on:
-      postgres:
-        condition: service_healthy
+    depends_on: *postgres-ready
   cancellation-worker:
     <<: *runtime-security
     image: max-travel-booking:local
     restart: unless-stopped
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/cancellation-worker.mjs]
-    depends_on:
-      postgres:
-        condition: service_healthy
+    depends_on: *postgres-ready
   notification-worker:
     <<: *runtime-security
     image: max-travel-booking:local
@@ -86,6 +82,7 @@ services:
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/notification-worker.mjs]
     profiles: [notifications]
+    depends_on: *postgres-ready
   crm-worker:
     <<: *runtime-security
     image: max-travel-booking:local
@@ -93,6 +90,7 @@ services:
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/crm-worker.mjs]
     profiles: [crm]
+    depends_on: *postgres-ready
   enquiry-worker:
     <<: *runtime-security
     image: max-travel-booking:local
@@ -100,6 +98,7 @@ services:
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/enquiry-worker.mjs]
     profiles: [enquiries]
+    depends_on: *postgres-ready
   catalogue-worker:
     <<: *runtime-security
     image: max-travel-booking:local
@@ -107,6 +106,7 @@ services:
     env_file: .env.production
     command: [node, --conditions=react-server, --import, ./scripts/standalone-server.mjs, dist/catalogue-worker.mjs]
     profiles: [catalogue]
+    depends_on: *postgres-ready
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped

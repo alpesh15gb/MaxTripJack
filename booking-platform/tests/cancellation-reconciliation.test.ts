@@ -5,6 +5,11 @@ const base={product:"HOTEL" as const,supplierStatus:"CANCELLATION_PENDING",attem
 test("hotel operations-pending status is checked daily without an attempt ceiling",()=>{for(const attempts of [1,5,1000])assert.equal(schedule({...base,attempts}).delaySeconds,86400);});
 test("unknown outcomes remain scheduled and transport failures escalate",()=>{assert.equal(schedule({...base,supplierStatus:null,attempts:4,error:"SUPPLIER_UNAVAILABLE"}).delaySeconds,30);const later=schedule({...base,supplierStatus:null,attempts:5,error:"SUPPLIER_UNAVAILABLE"});assert.equal(later.delaySeconds,86400);assert.equal(later.followUpRequired,true);});
 test("flight amendment recovery slows down and keeps checking",()=>{assert.equal(schedule({...base,product:"FLIGHT",attempts:99}).delaySeconds,3600);assert.equal(schedule({...base,product:"FLIGHT",error:"AMENDMENT_REFERENCE_UNAVAILABLE"}).followUpRequired,true);});
+test("flight requested amendments are polled every ten seconds before staff follow-up",()=>{
+ const requested={...base,product:"FLIGHT" as const,supplierStatus:"REQUESTED"};
+ assert.deepEqual(schedule({...requested,attempts:4}),{delaySeconds:10,followUpRequired:false});
+ assert.deepEqual(schedule({...requested,attempts:5}),{delaySeconds:3600,followUpRequired:true});
+});
 test("one day pending triggers staff follow-up even with successful status responses",()=>{assert.equal(schedule(base).followUpRequired,false);assert.equal(schedule({...base,now:new Date("2026-11-02T00:00:00Z")}).followUpRequired,true);});
 
 
