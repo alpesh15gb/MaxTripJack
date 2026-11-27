@@ -10,7 +10,7 @@ import type { Actor } from '../src/lib/supplier-flow';
 const actor: Actor = {userId:'synthetic-room-user',companyId:null};
 const rule: PricingRule = {markup_minor:100,markup_basis_points:100,service_fee_minor:50};
 const supplier = {reviewHash:'fresh-supplier-review',options:[{
- optionId:'original-room-id',inventory:{available:true},roomInfo:[{id:'supplier-room-type',name:'Deluxe'}],
+ optionId:'original-room-id',optionType:'PREPAID',inventory:{available:true},roomInfo:[{id:'supplier-room-type',name:'Deluxe'}],
  pricing:{currency:'INR',totalPrice:8000,mf:12,mft:2},mealBasis:'BREAKFAST',
  cancellation:{isRefundable:false,penalties:[{from:'2027-01-01T00:00:00+05:30',to:'2027-01-02T00:00:00+05:30',amount:2407.09}]},
  bookingNotes:'Mandatory property charge: see supplier terms.',
@@ -25,7 +25,8 @@ async function harness(content:ReturnType<typeof createHotelContentCache>){
  const state={content,supplier:structuredClone(supplier),rule,calls:0,owned:true,owner:actor,persistAllowed:true,
   results:{hotels:[{tjHotelId:'10001',name:'Test hotel',options:supplier.options}]} as Record<string,unknown>,
   reviewCalls:[] as Record<string,unknown>[],queries:[] as {sql:string;args:unknown[]}[],onDetail:null as null|(()=>void),
-  reviewOption:structuredClone(supplier.options[0]),expires:new Date(Date.now()+60_000).toISOString()};
+  reviewOption:structuredClone(supplier.options[0]),reviewHotelId:undefined as string|undefined,
+  reviewCorrelationId:undefined as string|undefined,expires:new Date(Date.now()+60_000).toISOString()};
  const key=`__room_first_test_${++serial}`;
  const globals=globalThis as unknown as Record<string,unknown>;globals[key]=state;
  const stateSource=`const state=globalThis[${JSON.stringify(key)}];`;
@@ -50,7 +51,9 @@ async function harness(content:ReturnType<typeof createHotelContentCache>){
    export const paths={HOTEL:{detail:'fixture-hotel-detail',review:'fixture-hotel-review'}};
    export async function tripjack(product,path,input){
     if(product!=='HOTEL'||!['10001','10002'].includes(input.hid)||input.correlationId!=='owned-correlation')throw Error('Unexpected provider request');
-    if(path==='fixture-hotel-review'){state.reviewCalls.push(input);return {bookingId:'synthetic-booking',option:structuredClone(state.reviewOption)};}
+    if(path==='fixture-hotel-review'){state.reviewCalls.push(input);return {bookingId:'synthetic-booking',option:structuredClone(state.reviewOption),
+     ...(state.reviewHotelId!==undefined?{hotelId:state.reviewHotelId}:{}),
+     ...(state.reviewCorrelationId!==undefined?{correlationId:state.reviewCorrelationId}:{})};}
     if(path!=='fixture-hotel-detail')throw Error('Unexpected provider path');
     state.calls++;state.onDetail?.();return structuredClone(state.supplier);
    }`,
@@ -155,6 +158,35 @@ test('per-hotel SQL merge preserves another hotel and latest detail invalidates 
   state.reviewOption=structuredClone(state.supplier.options[0]);
   await review('owned-search',{hid:'10001',optionId:'second-hotel-room'},actor);
   assert.equal(state.reviewCalls[1].reviewHash,'second-hotel-hash');
+ }finally{cleanup();}
+});
+
+test('hotel review accepts a fresh option token only for the same property, correlation and stable room',async()=>{
+ const {detail,review,state,cleanup}=await harness(createHotelContentCache(async()=>metadata));
+ const selection={hid:'10001',optionId:'original-room-id'};
+ try{
+  await detail('owned-search','10001',actor);
+  state.reviewHotelId='10001';
+  state.reviewCorrelationId='owned-correlation';
+  state.reviewOption.optionId='fresh-review-token';
+  state.reviewOption.pricing.totalPrice=8100;
+  const quote=await review('owned-search',selection,actor);
+  assert.ok(quote.quoteId,'Fresh token and revised price are presented before payment');
+  assert.equal(state.reviewCalls[0].optionId,selection.optionId,'The request still uses the pricing token');
+  assert.equal(state.reviewCalls[0].reviewHash,'fresh-supplier-review');
+  state.reviewOption.roomInfo=[{id:'other-room-type',name:'Deluxe'}];
+  await assert.rejects(review('owned-search',selection,actor),/different room or hotel/);
+  state.reviewOption.roomInfo=structuredClone(supplier.options[0].roomInfo!);
+  state.reviewCorrelationId='foreign-correlation';
+  await assert.rejects(review('owned-search',selection,actor),/different room or hotel/);
+  state.reviewCorrelationId='owned-correlation';
+  state.reviewHotelId=undefined;
+  await assert.rejects(review('owned-search',selection,actor),/different room or hotel/);
+  const stored=(state.results._maxtravelHotelReview as Record<string,{options:{roomIdentity?:string}[]}>)['10001'];
+  delete stored.options[0].roomIdentity;
+  state.reviewHotelId='10001';
+  await assert.rejects(review('owned-search',selection,actor),/different room or hotel/);
+  assert.equal(state.queries.filter(query=>query.sql.startsWith('INSERT INTO supplier_quotes')).length,1);
  }finally{cleanup();}
 });
 

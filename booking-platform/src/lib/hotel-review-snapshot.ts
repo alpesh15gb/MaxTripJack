@@ -1,4 +1,5 @@
 import 'server-only';
+import { hotelRoomIdentity } from './hotel-room-identity';
 import { HttpError } from './http';
 
 // TripJack Review requires the selected option and hash from the SAME pricing
@@ -15,7 +16,7 @@ type HotelReviewSnapshot = {
   version: 1;
   fetchedAt: number;
   reviewHash: string;
-  options: { optionId: string; available: boolean }[];
+  options: { optionId: string; available: boolean; roomIdentity: string | null }[];
 };
 const object = (value: unknown): Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const identifier = (value: unknown, max: number): value is string => typeof value === 'string' && value.length > 0 && value.length <= max && value.trim() === value && !/[\x00-\x1f\x7f]/.test(value);
@@ -41,18 +42,22 @@ export function createHotelReviewSnapshot(source: unknown, fetchedAt = Date.now(
       throw new HttpError(502, 'Room availability could not be verified. Refresh room options to try again.');
     }
     seen.add(option.optionId);
-    return { optionId: option.optionId, available: object(option.inventory).available !== false };
+    return { optionId: option.optionId, available: object(option.inventory).available !== false, roomIdentity: hotelRoomIdentity(option) };
   });
   return { version: 1, fetchedAt, reviewHash: data.reviewHash, options };
 }
 
-export function hotelReviewHash(results: unknown, hid: string, optionId: string, now = Date.now()): string {
+export function hotelReviewContext(results: unknown, hid: string, optionId: string, now = Date.now()) {
   const snapshot = object(object(object(results)[HOTEL_REVIEW_SNAPSHOT_KEY])[hid]);
   const options = snapshot.options;
   if (snapshot.version !== 1 || typeof snapshot.fetchedAt !== 'number' || !Number.isFinite(snapshot.fetchedAt) || snapshot.fetchedAt <= 0 || !Number.isFinite(now) || snapshot.fetchedAt > now || now - snapshot.fetchedAt >= HOTEL_REVIEW_SNAPSHOT_TTL_MS ||
-    !identifier(snapshot.reviewHash, MAX_REVIEW_HASH_LENGTH) || !Array.isArray(options) || options.length > MAX_OPTIONS ||
-    !options.some(raw => { const option = object(raw); return identifier(option.optionId, MAX_OPTION_ID_LENGTH) && option.optionId === optionId && option.available === true; })) {
+    !identifier(snapshot.reviewHash, MAX_REVIEW_HASH_LENGTH) || !Array.isArray(options) || options.length > MAX_OPTIONS) {
     throw new HttpError(409, 'Your room options changed or expired. Go back to stays and reopen this hotel to choose a room again.');
   }
-  return snapshot.reviewHash;
+  const selected = options.map(object).find(option => identifier(option.optionId, MAX_OPTION_ID_LENGTH) && option.optionId === optionId && option.available === true);
+  if (!selected) {
+    throw new HttpError(409, 'Your room options changed or expired. Go back to stays and reopen this hotel to choose a room again.');
+  }
+  const roomIdentity = typeof selected.roomIdentity === 'string' && /^[0-9a-f]{64}$/.test(selected.roomIdentity) ? selected.roomIdentity : null;
+  return { reviewHash: snapshot.reviewHash, roomIdentity };
 }

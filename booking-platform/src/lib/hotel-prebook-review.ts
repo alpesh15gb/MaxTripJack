@@ -1,5 +1,7 @@
 import {isDeepStrictEqual} from 'node:util';
+import {hotelListingId} from './hotel-listing-id';
 import {hotelObject} from './hotel-presentation';
+import {hotelRoomIdentity} from './hotel-room-identity';
 import {reviewedTerms} from './reviewed-terms';
 import {sameCurrentHotelTerms} from './review-term-changes';
 import {supplierInstant} from './supplier-time';
@@ -29,18 +31,33 @@ export function sameHotelPrebookCancellation(before:unknown,after:unknown,before
  return isDeepStrictEqual(old,{...next,penalties:nextRows.map((row,index)=>index===nextIndex?{...row,from:oldRows[oldIndex].from}:row)});
 }
 
-function hotelRoomTerms(review:Record<string,unknown>,option:Record<string,unknown>) {
- const {optionId,optionType,roomInfo,mealBasis,inclusions,bookingNotes}=option;
- const id=review.tjHotelId??review.hotelId;
+function hotelRoomTerms(option:Record<string,unknown>) {
+ const {optionType,roomInfo,mealBasis,inclusions,bookingNotes,commercial}=option;
  return {
-  hotelId:typeof id==='number'?String(id):id,
-  optionId,optionType,mealBasis,bookingNotes,
+  optionType,mealBasis,bookingNotes,commercial,
   roomInfo:Array.isArray(roomInfo)?roomInfo.map(raw=>{
    const {id,name,adults,children}=hotelObject(raw);
    return {id,name,adults,children};
   }):roomInfo,
   inclusions:Array.isArray(inclusions)&&inclusions.every(item=>typeof item==='string')?[...inclusions].sort():inclusions,
  };
+}
+
+function validOptionId(value:unknown):boolean {
+ return typeof value==='string'&&value.length>0&&value.length<=200&&value.trim()===value&&!/[\x00-\x1f\x7f]/.test(value);
+}
+
+function sameHotelSelection(previous:Record<string,unknown>,old:Record<string,unknown>,fresh:Record<string,unknown>,next:Record<string,unknown>):boolean {
+ const hotelId=hotelListingId(previous);
+ if(hotelId!==hotelListingId(fresh))return false;
+ // Legacy reviews may omit the property identifier. Malformed or conflicting IDs are never evidence of a match.
+ if(!hotelId&&[previous,fresh].some(review=>'hotelId' in review||'tjHotelId' in review))return false;
+ if(previous.correlationId!==fresh.correlationId)return false;
+ if(old.optionId===next.optionId)return true;
+ // UAT Review can issue a fresh option ID for the same selected rate.
+ if(!hotelId||typeof previous.correlationId!=='string'||!previous.correlationId.trim()||!validOptionId(old.optionId)||!validOptionId(next.optionId))return false;
+ const identity=hotelRoomIdentity(old);
+ return identity!==null&&identity===hotelRoomIdentity(next);
 }
 
 export function assertHotelPrebookReview(before:unknown,after:unknown,supplierMinor:number,beforeAt:number,afterAt:number):string {
@@ -50,7 +67,7 @@ export function assertHotelPrebookReview(before:unknown,after:unknown,supplierMi
  let price:number;
  try{price=minor(hotelObject(next.pricing).totalPrice);}catch{throw new HotelPrebookReviewError('HOTEL_PRICE_CHANGED');}
  if(!Number.isSafeInteger(supplierMinor)||price!==supplierMinor||!isDeepStrictEqual(hotelObject(old.pricing).currency,hotelObject(next.pricing).currency))throw new HotelPrebookReviewError('HOTEL_PRICE_CHANGED');
- if(!isDeepStrictEqual(hotelRoomTerms(previous,old),hotelRoomTerms(fresh,next)))throw new HotelPrebookReviewError('HOTEL_ROOM_TERMS_CHANGED');
+ if(!sameHotelSelection(previous,old,fresh,next)||!isDeepStrictEqual(hotelRoomTerms(old),hotelRoomTerms(next)))throw new HotelPrebookReviewError('HOTEL_ROOM_TERMS_CHANGED');
  if(!sameHotelPrebookCancellation(old.cancellation,next.cancellation,beforeAt,afterAt))throw new HotelPrebookReviewError('HOTEL_CANCELLATION_CHANGED');
  if(!isDeepStrictEqual(old.compliance,next.compliance))throw new HotelPrebookReviewError('HOTEL_COMPLIANCE_CHANGED');
  return fresh.bookingId;

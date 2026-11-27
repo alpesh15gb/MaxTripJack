@@ -18,7 +18,8 @@ import { observeSearchFare } from "./fare-calendar";
 import {bookingPriceBreakdown} from './booking-price-breakdown';
 import { exactAirportGroups } from "./flight-airport-scope";
 import { orderedFlightSelection } from "./flight-selection";
-import { createHotelReviewSnapshot,hotelReviewHash,SAVE_HOTEL_REVIEW_SNAPSHOT_SQL,HOTEL_REVIEW_SNAPSHOT_KEY } from "./hotel-review-snapshot";
+import { createHotelReviewSnapshot,hotelReviewContext,SAVE_HOTEL_REVIEW_SNAPSHOT_SQL,HOTEL_REVIEW_SNAPSHOT_KEY } from "./hotel-review-snapshot";
+import { hotelRoomIdentity } from './hotel-room-identity';
 import {searchWarmCache} from './search-warm-cache';
 import {validateSearchCriteria} from './search-validation';
 import {checkoutCatalogue,checkoutChoices,remapCheckoutChoices,selectCheckoutExtras} from "./checkout-extras-contract";
@@ -71,9 +72,17 @@ export async function customerHotelContent(searchId:string,actor:Actor){
  const propertyContentStatuses=Object.fromEntries(Object.entries(hotelContentForSearch.statuses(ids,search.criteria.hotelIds)).map(([id,status])=>[id,status==='pending'?'unavailable':status]));
  return {searchId,properties:Object.fromEntries(hotels.map(hotel=>[hotel.tjHotelId,mergeHotelPropertyDetails(properties[hotel.tjHotelId],hotel.property)])),propertyContentStatuses};
 }
-function assertHotelSelection(data:unknown,hid:string,optionId?:string){
- const hotel=hotelObject(data),selectedOption=hotelObject(hotel.option).optionId;
- if((('tjHotelId' in hotel||'hotelId' in hotel)&&hotelListingId(hotel)!==hid)||(optionId!==undefined&&selectedOption!==undefined&&selectedOption!==optionId)){
+function assertHotelSelection(data:unknown,hid:string,selected?:{optionId:string;correlationId:string;roomIdentity:string|null}){
+ const hotel=hotelObject(data),propertyId=hotelListingId(hotel),option=hotelObject(hotel.option);
+ const propertyMismatch=('tjHotelId' in hotel||'hotelId' in hotel)&&propertyId!==hid;
+ const correlationMismatch=selected&&hotel.correlationId!==undefined&&hotel.correlationId!==selected.correlationId;
+ const changedToken=selected&&option.optionId!==undefined&&option.optionId!==selected.optionId;
+ const reviewedRoom=selected?.roomIdentity?hotelRoomIdentity(option):null;
+ const roomMismatch=reviewedRoom!==null&&reviewedRoom!==selected?.roomIdentity;
+ const validToken=typeof option.optionId==='string'&&option.optionId.length>0&&option.optionId.length<=200&&
+  option.optionId.trim()===option.optionId&&!/[\x00-\x1f\x7f]/.test(option.optionId);
+ const verifiedRotation=changedToken&&validToken&&propertyId===hid&&hotel.correlationId===selected.correlationId&&reviewedRoom!==null;
+ if(propertyMismatch||correlationMismatch||roomMismatch||(changedToken&&!verifiedRotation)){
   throw new HttpError(502,"The supplier returned a different room or hotel. Refresh room options and try again.");
  }
 }
@@ -126,9 +135,9 @@ export async function reviewSupplier(searchId:string,selection:{priceIds?:string
  }else{
   if(!selection.hid||!selection.optionId)throw new HttpError(400,"Choose a hotel room option.");
   if(!search.criteria.hotelIds.includes(selection.hid))throw new HttpError(400,"Hotel not part of this search.");
-  const reviewHash=hotelReviewHash(search.results,selection.hid,selection.optionId);
+  const {reviewHash,roomIdentity}=hotelReviewContext(search.results,selection.hid,selection.optionId);
   chosen={hid:selection.hid,optionId:selection.optionId,reviewHash,correlationId:search.correlation_id};data=await tripjack("HOTEL",paths.HOTEL.review,chosen,false,"POST",signal);
-  assertHotelSelection(data,selection.hid,selection.optionId);
+  assertHotelSelection(data,selection.hid,{optionId:selection.optionId,correlationId:search.correlation_id,roomIdentity});
  }
  const product=search.product as Product;
  if(product==="HOTEL"&&data.option?.inventory?.available===false)throw new HttpError(409,"Room option unavailable. Search again to choose another room.");

@@ -14,6 +14,8 @@ Record each supplier reference, acknowledgement and final result against the cas
 
 Apex’s booking runtime passed account and wallet reads for both TripJack UAT products and Razorpay Test Mode authentication. The audited candidate was built with the expected revision label. [Isolated Apex UAT setup](deploy/TRIPJACK-UAT-APEX.md)
 
+The isolated Apex stack passed registration and email verification, domestic, international, return and multi-city flight search and fare review, and Razorpay test order creation and same-order retry without capture. Hotel v3 listing and pricing passed. The supplier trace showed a new option ID after each Review for the same property and room. The checkout and booking worker now require matching room and search evidence before accepting a rotated ID. Captured payment and supplier ticket, voucher and after-sales acceptance are still open.
+
 ## Update — 1 November 2026
 
 User-supplied diagnostics from the running VPS booking container confirm TripJack flight and hotel keys are configured. A direct UAT DEL–BOM search returned HTTP 200, success and 250 results; the hotel nationality lookup returned HTTP 200, success and 207 entries. Application-layer flight search then returned a search reference and 243 results. The app found India in its nationality list, mapped 100 Goa hotel IDs, and returned a hotel search reference with 31 available properties. These checks establish those search/catalogue paths, not fare review, booking, payment or after-sales acceptance. Razorpay key ID, secret and webhook secret were absent from that container at the time of the check.

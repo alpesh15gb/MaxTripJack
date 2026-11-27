@@ -55,26 +55,62 @@ test('post-payment guard preserves price, currency, compliance and supplier refe
  ] as const){const fresh=review('2026-11-16T10:56:00');change(fresh);assert.throws(()=>assertHotelPrebookReview(review(),fresh,1000000,beforeAt,afterAt),(e:unknown)=>e instanceof HotelPrebookReviewError&&e.code===code);}
 });
 
-test('post-payment review preserves the booked property, rooms, meal and rate terms',()=>{
- const accepted={
+function reviewedRate(){
+ return {
   ...review(),
-  tjHotelId:'12345',
+  hotelId:'12345',
+  correlationId:'same-correlation',
   option:{
    ...review().option,
    optionId:'option-1',optionType:'CRCM',inventory:{available:true},
    roomInfo:[{id:'room-1',name:'Deluxe',adults:2,children:0},{id:'room-2',name:'Suite',adults:1,children:1}],
    mealBasis:'Breakfast',inclusions:['Transfer','Wi-Fi'],bookingNotes:'Bring the original identification document.',
+   commercial:{type:'NET',commission:0},
   },
  };
+}
+
+test('post-payment review accepts rotated option ID for the same property, search and ordered rooms',()=>{
+ const accepted=reviewedRate(),fresh=structuredClone(accepted);
+ fresh.bookingId='new-booking-reference';
+ fresh.option.optionId='option-2';
+ fresh.option.inclusions.reverse();
+ fresh.option.cancellation=policy('2026-11-16T10:56:00');
+ assert.equal(assertHotelPrebookReview(accepted,fresh,1000000,beforeAt,afterAt),fresh.bookingId);
+ const {hotelId,...freshWithAlias}=fresh;
+ assert.equal(assertHotelPrebookReview(accepted,{...freshWithAlias,tjHotelId:Number(hotelId)},1000000,beforeAt,afterAt),fresh.bookingId);
+});
+
+test('post-payment review rejects rotation without matching valid property, correlation and room evidence',()=>{
+ const accepted=reviewedRate(), fresh={...structuredClone(accepted),bookingId:'new-booking-reference'};
+ fresh.option.optionId='option-2';
+ const assertBlocked=(before:unknown,after:unknown)=>{
+  assert.throws(()=>assertHotelPrebookReview(before,after,1000000,beforeAt,afterAt),(error:unknown)=>error instanceof HotelPrebookReviewError&&error.code==='HOTEL_ROOM_TERMS_CHANGED');
+ };
+ for(const after of [
+  {...fresh,hotelId:undefined},
+  {...fresh,tjHotelId:'12346'},
+  {...fresh,correlationId:'another-search'},
+  {...fresh,correlationId:undefined},
+  {...fresh,option:{...fresh.option,optionId:''}},
+  {...fresh,option:{...fresh.option,optionId:undefined}},
+ ])assertBlocked(accepted,after);
+ assertBlocked({...accepted,hotelId:undefined},{...fresh,hotelId:undefined});
+ assertBlocked({...accepted,correlationId:' '},{...fresh,correlationId:' '});
+ assertBlocked({...accepted,option:{...accepted.option,roomInfo:[]}},{...fresh,option:{...fresh.option,roomInfo:[]}});
+});
+
+test('a fresh option ID does not bypass changes to rooms, meal and rate terms',()=>{
+ const accepted=reviewedRate();
  const fresh=structuredClone(accepted);
  fresh.bookingId='new-booking-reference';
+ fresh.option.optionId='option-2';
  fresh.option.inclusions.reverse();
  const check=(updated:unknown)=>assertHotelPrebookReview(accepted,updated,1000000,beforeAt,afterAt);
  assert.equal(check(fresh),fresh.bookingId);
  assert.throws(()=>check({...fresh,option:{...fresh.option,inventory:{available:false}}}),(error:unknown)=>error instanceof HotelPrebookReviewError&&error.code==='HOTEL_UNAVAILABLE');
  const changes:Array<(value:typeof fresh)=>void>=[
-  value=>{value.tjHotelId='12346';},
-  value=>{value.option.optionId='option-2';},
+  value=>{value.hotelId='12346';},
   value=>{value.option.optionType='SRSM';},
   value=>{value.option.roomInfo.reverse();},
   value=>{value.option.roomInfo[0].name='Standard';},
@@ -83,6 +119,7 @@ test('post-payment review preserves the booked property, rooms, meal and rate te
   value=>{value.option.mealBasis='Room Only';},
   value=>{value.option.inclusions.pop();},
   value=>{value.option.bookingNotes='Deposit required at check-in.';},
+  value=>{value.option.commercial.commission=1;},
  ];
  for(const change of changes){
   const updated=structuredClone(fresh);
