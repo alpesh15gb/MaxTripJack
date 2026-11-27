@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {bookingSearchPrefill} from './booking-search-state';
-import {emptyHotelFilters,type HotelFilters} from './hotel-results';
+import {emptyHotelFilters,hotelTextFilterKeys,isHotelBoard,type HotelFilters} from './hotel-results';
 /** Tab-local presentation preferences only. Never store results, rates, travellers or tokens. */
 export type HotelBrowse={filters?:HotelFilters;sort?:string;scrollY?:number};
 const prefix='maxtravel:hotel-browse:v1:';
@@ -11,7 +11,9 @@ export function parseHotelBrowse(value:unknown):HotelBrowse {
  const raw=value as Record<string,unknown>,out:HotelBrowse={};
  if(raw.filters&&typeof raw.filters==='object'&&!Array.isArray(raw.filters)){
   const input=raw.filters as Record<string,unknown>,filters={...emptyHotelFilters};
-  for(const key of Object.keys(filters) as (keyof HotelFilters)[])if(typeof input[key]==='string'&&input[key].length<=150&&!/[\u0000-\u001f\u007f]/.test(input[key]))filters[key]=input[key];
+  for(const key of hotelTextFilterKeys)if(typeof input[key]==='string'&&input[key].length<=150&&!/[\u0000-\u001f\u007f]/.test(input[key]))filters[key]=input[key];
+  if(isHotelBoard(input.board))filters.board=input.board;
+  filters.freeCancellation=input.freeCancellation===true;
   out.filters=filters;
  }
  if(typeof raw.sort==='string'&&['price','price-desc','name','supplier'].includes(raw.sort))out.sort=raw.sort;

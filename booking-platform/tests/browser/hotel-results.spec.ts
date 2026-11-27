@@ -31,6 +31,47 @@ test('hotel search with no stays opens the existing search criteria from the emp
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/travel/hotel-detail')).toHaveLength(0);
 });
 
+test('hotel rate preferences require one matching rate and show its full stay price',async({page,provider})=>{
+ const now=Date.now();
+ const free={isRefundable:true,penalties:[{from:new Date(now-3600_000).toISOString(),to:new Date(now+3600_000).toISOString(),amount:0}]};
+ const rate=(optionId:string,name:string,totalPrice:number,mealBasis:string,cancellation?:unknown)=>({
+  optionId,roomInfo:[{name}],pricing:{totalPrice,currency:'INR'},mealBasis,cancellation,
+ });
+ const matching=rate('matching','Breakfast twin',6200,'Breakfast',free);
+ provider.search={searchId,results:{hotels:[
+  {...hotels[0],options:[rate('split-meal','Breakfast room',8000,'Breakfast'),rate('split-free','Room-only twin',9300,'Room Only',free)]},
+  {...hotels[1],options:[rate('cheap','Cheaper room',4000,'Room Only'),matching]},
+  hotels[2],
+ ]}};
+ provider.overrides['POST /api/travel/hotel-detail']={body:{options:[matching]}};
+ await page.goto('/book?'+new URLSearchParams({product:'HOTEL',hotelIds:'10001,10002,10003',city:'Goa',date:departure,end:returning,adults:'2',autoSearch:'1'}));
+ const cards=page.locator('.hotel-shopping-card');
+ await expect(cards).toHaveCount(3);
+ await filters(page,true);
+ await page.getByRole('combobox',{name:'Meal plan',exact:true}).selectOption('breakfast');
+ await expect(cards).toHaveCount(2);
+ await page.getByRole('checkbox',{name:'Free cancellation available now'}).check();
+ await expect(cards).toHaveCount(1);
+ await expect(cards.first()).toHaveAttribute('aria-label','Bay Stay');
+ await expect(cards.first()).toContainText('Breakfast twin');
+ await expect(cards.first()).toContainText('₹6,200');
+ await expect(cards.first()).not.toContainText('₹4,000');
+ await page.getByLabel('Maximum stay total (₹)',{exact:true}).fill('5000');
+ await expect(cards).toHaveCount(0);
+ await filters(page,false);
+ await page.getByRole('button',{name:'Remove budget filter'}).click();
+ await cards.first().getByRole('button',{name:'Choose room'}).click();
+ await expect(page.locator('#hotel-room-options-title')).toBeVisible();
+ await page.getByRole('button',{name:'Back to stays',exact:true}).click();
+ await expect(cards).toHaveCount(1);
+ await page.getByRole('button',{name:'Remove free cancellation filter'}).click();
+ await expect(cards).toHaveCount(2);
+ await page.getByRole('button',{name:'Remove meal plan filter'}).click();
+ await expect(cards).toHaveCount(3);
+ expect(provider.requests('/api/travel/search')).toHaveLength(1);
+ expect(provider.requests('/api/payments/create')).toHaveLength(0);
+});
+
 for(const width of [320,390])test(`${width}px hotel totals and room actions stay readable without splitting amounts`,async({page,provider},testInfo)=>{
  await page.setViewportSize({width,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});

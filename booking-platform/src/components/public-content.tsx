@@ -16,6 +16,14 @@ import type { ContentSection, PublicLink, PublicPage } from "@/lib/public-pages"
 import { editorialDiscoveryGraph, homeDiscoveryGraph, type Breadcrumb } from "@/lib/discovery-graph";
 import "./public-content.css";
 import "./public-refresh.css";
+import DiscoveryPhoto from "./discovery-photo";
+
+const publicHeroPhotos: Readonly<Partial<Record<string, string>>> = {
+  flights: "/travel/stitch/desktop-dubai.webp",
+  "domestic-flights": "/travel/stitch/desktop-goa.webp",
+  "international-flights": "/travel/stitch/desktop-paris.webp",
+  services: "/travel/stitch/desktop-bali.webp",
+};
 
 function Breadcrumbs({ items }: { items: readonly Breadcrumb[] }) {
   return <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol>{items.map((item, index) => <li key={item.href}>{index === items.length - 1 ? <span aria-current="page">{item.label}</span> : <Link href={item.href}>{item.label}</Link>}</li>)}</ol></nav>;
@@ -93,16 +101,18 @@ export async function PublicPageView({page, contactTopic}: {page: PublicPage; co
   const assisted = page.slug === "visa-guide" ? "visa" : page.slug === "travel-insurance-guide" ? "travel insurance" : null;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: page.slug === "flights" ? "Flights" : page.title.split(" | ")[0], href: path }];
   const schema = editorialDiscoveryGraph({ ...page, path }, breadcrumbs, { businessProfile, fullBusinessProfile: page.businessSchema });
+  const photo = publicHeroPhotos[page.slug];
   return <div className="public-site public-refresh">
     <TravelHeader active={page.slug === "flights" ? "flights" : undefined} />
-    <main id="main-content" className="public-main">
+    <main id="main-content" className="public-main revamp-discovery">
       <Breadcrumbs items={breadcrumbs} />
-      <header className="public-hero public-hero--editorial">
+      <header className={`public-hero public-hero--editorial ${photo ? "discovery-hero" : "discovery-detail-hero"}`}>
         <div className="public-hero-copy"><p className="public-eyebrow">{assisted ? 'Assisted enquiry' : page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{(page.slug === "contact" || assisted) && <a className="public-button" href="#contact-options">{assisted ? `Discuss your ${assisted} enquiry` : 'See contact options'}<TravelIcon name="arrow" size={18} /></a>}{page.cta && !assisted && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}
           {page.slug==="visa-guide"&&<MaxAiInlineAction label="Start a visa enquiry with Max AI" draft="I want to prepare a visa enquiry."/>}
           {page.slug==="contact"&&!contactTopic&&<MaxAiInlineAction label="Start a travel enquiry with Max AI"/>}</div>
-        <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />
+        {photo ? <DiscoveryPhoto src={photo} /> : <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />}
       </header>
+      {photo && <div className="discovery-contents"><SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} /></div>}
       {page.slug==='flights'&&<p className="public-inline-links"><Link href="/my-trips?lookup=flight">Already booked? Find your flight by PNR <span aria-hidden="true">→</span></Link></p>}
       <div className="public-layout"><article className="public-article">{contactTopic && <OfficeEnquiryForm key={contactTopic} service={contactTopic}/>}<PlanningNotice /><ContentSections sections={page.sections} />
         {page.showRoutes && <section className="public-section" aria-labelledby="route-guides-heading"><h2 id="route-guides-heading">Find your flight planning guide</h2><p><Link href="/flights/routes">Browse the flight route directory →</Link></p><RouteGuideCards /></section>}
@@ -118,8 +128,8 @@ export async function FlightGuideView({ guide }: { guide: FlightGuide }) {
   const path = `/flights/${guide.slug}`;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Flights", href: "/flights" }, { label: `${guide.origin.city} to ${guide.destination.city}`, href: path }];
   const related = flightGuides.filter(route => guide.relatedSlugs.includes(route.slug)).map(route => ({ label: `${route.origin.city} to ${route.destination.city} guide`, href: `/flights/${route.slug}` }));
-  return <div className="public-site public-refresh"><TravelHeader active="flights" /><main id="main-content" className="public-main">
-    <Breadcrumbs items={breadcrumbs} /><header className="public-hero public-hero--editorial">
+  return <div className="public-site public-refresh"><TravelHeader active="flights" /><main id="main-content" className="public-main revamp-discovery">
+    <Breadcrumbs items={breadcrumbs} /><header className="public-hero public-hero--editorial discovery-detail-hero">
       <div className="public-hero-copy"><p className="public-eyebrow">FLIGHT PLANNING GUIDE</p><h1>{guide.heading}</h1><p className="public-intro">{guide.intro}</p><Link className="public-button" href={flightGuideSearchHref(guide)}>Plan this route<TravelIcon name="arrow" size={18} /></Link><p className="public-cta-note">Prefills airports only. Choose your own dates. Does not select or reserve a flight.</p></div>
       <div className="public-route-pass" aria-label="Route at a glance"><div><span>Departure</span><strong>{guide.origin.code}</strong><p>{guide.origin.city}</p></div><TravelIcon name="plane" size={28}/><div><span>Arrival</span><strong>{guide.destination.code}</strong><p>{guide.destination.city}</p></div><a href="#airports-heading">Check your airports <span aria-hidden="true">↓</span></a></div>
     </header>

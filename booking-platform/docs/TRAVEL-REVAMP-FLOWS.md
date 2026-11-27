@@ -1,0 +1,17 @@
+# Public travel journeys
+
+Destina’s public site was used to study how travellers discover destinations, search, review details, and manage a trip. The Max Travel presentation uses its own navigation, editorial photography, typography, and component layouts.
+
+| Journey | Observed public reference | Max Travel entry and steps |
+| --- | --- | --- |
+| Home and discovery | Product search, recent searches, themed destinations and links to help. [Destina home](https://www.destinaholidays.com/) | `/` → flights or hotels → results. Filter destinations by trip theme, reopen or clear this browser session’s recent searches, or explore packages and support. |
+| Flights | Search, sort and filter, inspect a fare, view terms, then enter traveller details. [Observed flight results](https://www.destinaholidays.com/compare-flights?from=DEL&to=BOM&depart=2027-01-11&adult=1&child=0&infant=0&cabin=economy&flexible=false) | `/book?product=FLIGHT` → dates and passengers → filter by departure windows and connection airports → compare and select a fare → review total and rules → traveller details → payment and confirmation status. |
+| Hotels | Destination and stay dates, refine results, open a property, then compare real room rates and their cancellation and meal terms. [Observed hotel results](https://www.destinaholidays.com/search-hotels?location=BOM&zone=0&checkin=2027-01-11&checkout=2027-01-14&rooms=1&adult=1&child=0&age=0,0,0,0,0,0) | `/hotels` for the property directory or `/book?product=HOTEL` for date-based availability → filter by meal plan or current free cancellation → select a supplier rate → review and guest details → payment and confirmation status. When both filters are active, one available rate must meet both. |
+| Holiday planning | Destination and package discovery. [Destina home](https://www.destinaholidays.com/) | `/packages` → filter itineraries → open a package → enquire using the existing Max Travel form. |
+| Booking support | Booking lookup and a help centre organised by customer tasks. [Destina support](https://www.destinaholidays.com/support/) · [Destina FAQs](https://www.destinaholidays.com/faq) | `/my-trips` → find or sign in to manage the booking. `/customer-support` → booking, changes, payments or general enquiry. |
+
+The reference browser walk stopped at publicly visible fare review, room options, and the blank traveller form. Paid fare holds, bundled checkout, guest-score data, and supplier services beyond current Max Travel contracts need separate provider and product work.
+
+REA recorded a verification screen when opening the reference homepage and help page. Homepage Evidence ID `ev_7c6a9668b0873ac4be323076193918630d21fbfba2dec8b9ae9813c94481ed1a`. Public indexed pages and separately observed browser journeys supplied the functional evidence above. REA recorded the new Max Travel homepage’s navigation and trip-planner landmarks, then selected **City breaks** and observed the results narrow to Dubai and Paris. Filter Evidence ID `ev_a2aacf8e746f5e163eeb5436b3699544e1b79a9cdf73b017af11b3f2a3ddae2d`.
+
+The production build, scoped lint and all 939 unit tests passed. The 140-case browser matrix passed after rerunning the updated desktop colour assertion. The desktop and mobile rechecks confirmed that a recent hotel search remaps its destination and preserves the selected occupancy. Focused booking and discovery runs also covered hotel rate preferences and WebKit. Browser verification used synthetic supplier and payment responses.

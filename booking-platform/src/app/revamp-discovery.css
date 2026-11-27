@@ -1,0 +1,357 @@
+html body div.public-refresh:has(> .revamp-discovery) {
+  background: #faf7ef;
+}
+
+html body .revamp-discovery {
+  --discovery-pine: #0c3532;
+  --discovery-cream: #faf7ef;
+  --discovery-ink: #102b29;
+  --discovery-orange: #a94924;
+  --public-ink: var(--discovery-ink);
+  --public-slate: #24504a;
+  --public-gold: #f4bf91;
+  --public-gold-hover: #ffddbd;
+  --public-link: var(--discovery-orange);
+  --public-sand: #f0e9dc;
+  --public-paper: #fffdf8;
+  --public-on-dark: #edf3e8;
+  --public-muted: #52645e;
+  --public-line: #ddd9cd;
+  --public-soft: #f8f5eb;
+  --public-dark-line: #42635c;
+  --public-shadow: rgb(12 53 50 / 9%);
+  --public-hero-surface: linear-gradient(135deg, var(--discovery-pine), #16433c);
+  --public-gold-surface: linear-gradient(150deg, #ffddbd, #f4bf91);
+  --public-paper-surface: linear-gradient(150deg, #fffefa, #fffdf8);
+  --public-sand-surface: linear-gradient(150deg, var(--discovery-cream), var(--public-sand));
+  color: var(--discovery-ink);
+}
+
+html body .revamp-discovery :is(a, button, input, select, summary):focus-visible {
+  outline: 3px solid var(--discovery-orange);
+  outline-offset: 3px;
+}
+
+html body .revamp-discovery:is(.public-main, .package-main, .catalogue-main) > .discovery-hero:is(.public-hero, .package-heading, .catalogue-directory-hero) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .94fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 60px);
+  border-radius: 26px;
+  padding: clamp(20px, 3.2vw, 42px);
+  box-shadow: none;
+}
+
+.revamp-discovery .discovery-hero > :first-child {
+  min-width: 0;
+  padding: clamp(4px, 1.4vw, 18px);
+}
+
+html body .revamp-discovery :is(.discovery-hero, .discovery-detail-hero) h1 {
+  font-size: clamp(38px, 4.7vw, 66px);
+  line-height: 1.04;
+  overflow-wrap: anywhere;
+}
+
+html body .revamp-discovery .discovery-hero .discovery-hotel-copy > p {
+  max-width: 45ch;
+  color: var(--public-on-dark);
+  line-height: 1.7;
+}
+
+.revamp-discovery .discovery-photo {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1.6;
+  background: var(--public-slate);
+  border-radius: 16px;
+}
+
+.revamp-discovery .discovery-photo img {
+  object-fit: cover;
+}
+
+.revamp-discovery .discovery-hero-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 48px;
+  margin-top: 20px;
+  padding: 10px 16px;
+  border: 1px solid var(--public-gold);
+  border-radius: 8px;
+  color: var(--public-paper);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.revamp-discovery .discovery-hero-link:hover {
+  background: var(--public-gold);
+  color: var(--public-ink);
+}
+
+html body .revamp-discovery :is(.discovery-hero, .public-hero.discovery-detail-hero, .support-intro, .catalogue-availability) :is(a, button, input):focus-visible {
+  outline-color: var(--public-gold);
+}
+
+html body .revamp-discovery .public-hero .public-route-pass a:focus-visible {
+  outline-color: var(--public-link);
+}
+
+html body .revamp-discovery :is(.discovery-detail-hero, .catalogue-directory-hero):is(.public-hero, .support-intro, .catalogue-directory-hero) {
+  border-radius: 26px;
+  box-shadow: none;
+}
+
+.revamp-discovery .discovery-contents {
+  margin: 22px 0 0;
+}
+
+html body .revamp-discovery .discovery-contents .public-section-links {
+  max-width: none;
+  padding: 14px 22px;
+  border: 1px solid var(--public-line);
+  border-radius: 12px;
+  background: var(--public-paper);
+}
+
+.revamp-discovery .discovery-contents .public-section-links ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+html body .revamp-discovery .discovery-contents .public-section-links > p {
+  margin: 0;
+  color: var(--public-muted);
+  font-size: 12px;
+}
+
+html body .revamp-discovery .discovery-contents .public-section-links a {
+  min-height: 44px;
+}
+
+.discovery-hotel-tools {
+  display: grid;
+  grid-template-columns: minmax(220px, .85fr) minmax(0, 1.6fr);
+  gap: 20px;
+  margin: 28px 0 40px;
+}
+
+.discovery-hotel-tools.is-single {
+  grid-template-columns: minmax(0, 760px);
+}
+
+.discovery-hotel-tools > section {
+  min-width: 0;
+  padding: clamp(16px, 2.4vw, 28px);
+  border: 1px solid var(--public-line);
+  border-radius: 16px;
+  background: var(--public-paper);
+  scroll-margin-top: 110px;
+}
+
+.discovery-hotel-tools h2 {
+  margin: 0 0 6px;
+  color: var(--public-ink);
+  font: 650 27px/1.15 var(--public-display);
+  letter-spacing: -.025em;
+}
+
+.discovery-hotel-tools section > p {
+  margin: 0 0 18px;
+  color: var(--public-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+html body .revamp-discovery .discovery-hotel-tools :is(.catalogue-search, .catalogue-live-search) {
+  max-width: none;
+  margin: 0;
+}
+
+html body .revamp-discovery .discovery-hotel-tools .catalogue-live-search {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+html body .revamp-discovery .discovery-hotel-tools .hotel-destination {
+  grid-column: 1 / -1;
+}
+
+html body .revamp-discovery .discovery-hotel-tools .catalogue-live-search > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+html body .revamp-discovery .discovery-hotel-tools .catalogue-search > div {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+html body .revamp-discovery .discovery-hotel-tools :is(.catalogue-search, .catalogue-live-search) label {
+  color: var(--public-ink);
+}
+
+html body .revamp-discovery .discovery-hotel-tools :is(input:not([type=hidden]), select) {
+  width: 100%;
+  min-height: 48px;
+  border-color: var(--public-line);
+  background: var(--public-soft);
+  color: var(--public-ink);
+  color-scheme: light;
+}
+
+html body .revamp-discovery .discovery-hotel-tools .catalogue-search input::placeholder {
+  color: var(--public-muted);
+}
+
+html body .revamp-discovery .discovery-hotel-tools .catalogue-live-search-note a {
+  color: var(--public-link);
+}
+
+.revamp-discovery :is(.catalogue-category, .catalogue-card-category) {
+  color: var(--public-muted);
+}
+
+.revamp-discovery :is(.catalogue-category, .catalogue-card-category) > span {
+  color: var(--public-link);
+}
+
+html body .revamp-discovery.package-main--catalogue .package-discovery {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 14px 28px;
+}
+
+html body .revamp-discovery.package-main--catalogue .package-discovery:not(:has(.discovery-duration)) {
+  grid-template-columns: minmax(0, 620px);
+}
+
+.revamp-discovery .discovery-package-search {
+  display: grid;
+  gap: 9px;
+}
+
+.revamp-discovery .discovery-duration {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.revamp-discovery .discovery-duration legend {
+  margin-bottom: 9px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.revamp-discovery .discovery-duration > div,
+.revamp-discovery .discovery-support-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html body .revamp-discovery.package-main--catalogue .package-discovery .discovery-duration label,
+.revamp-discovery .discovery-support-topics a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--public-line);
+  border-radius: 100px;
+  background: var(--public-paper);
+  color: var(--public-ink);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+html body .revamp-discovery .package-discovery .discovery-duration input[type=radio] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  opacity: 0;
+}
+
+html body .revamp-discovery.package-main--catalogue .package-discovery .discovery-duration label:hover,
+.revamp-discovery .discovery-support-topics a:hover {
+  border-color: var(--discovery-pine);
+}
+
+html body .revamp-discovery.package-main--catalogue .package-discovery .discovery-duration label:has(input:checked) {
+  border-color: var(--discovery-pine);
+  background: var(--discovery-pine);
+  color: var(--public-paper);
+}
+
+html body .revamp-discovery .discovery-duration label:has(input:focus-visible) {
+  outline: 3px solid var(--discovery-orange);
+  outline-offset: 3px;
+}
+
+.revamp-discovery .package-discovery > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.revamp-discovery .discovery-support-topics {
+  margin: 0 0 26px;
+}
+
+.revamp-discovery :is(#support-payment, #support-answers-heading) {
+  scroll-margin-top: 110px;
+}
+
+@media (max-width: 900px) {
+  .discovery-hotel-tools {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  html body .revamp-discovery:is(.public-main, .package-main, .catalogue-main) > .discovery-hero:is(.public-hero, .package-heading, .catalogue-directory-hero) {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 18px;
+  }
+
+  html body .revamp-discovery :is(.discovery-hero, .discovery-detail-hero) h1 {
+    font-size: clamp(32px, 8.8vw, 46px);
+  }
+
+  .revamp-discovery .discovery-photo {
+    max-height: 245px;
+    aspect-ratio: 1.9;
+    border-radius: 12px;
+  }
+
+  html body .revamp-discovery.package-main--catalogue .package-discovery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 460px) {
+  html body .revamp-discovery .discovery-hotel-tools .catalogue-live-search {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html body .revamp-discovery .discovery-hotel-tools .catalogue-live-search > button,
+  html body .revamp-discovery .discovery-hotel-tools .catalogue-search > div > button {
+    justify-self: stretch;
+    width: 100%;
+  }
+}

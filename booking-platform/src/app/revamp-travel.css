@@ -1,0 +1,325 @@
+/* Max Travel's public shell and the homepage trip planner. */
+body.stitch-theme {
+  --atlas-pine: #0c3532;
+  --atlas-ink: #102b29;
+  --atlas-cream: #faf7ef;
+  --atlas-paper: #fffefa;
+  --atlas-orange: #a94924;
+  --atlas-line: #dedbd0;
+  --atlas-muted: #52635f;
+  --atlas-display: var(--font-travel-display, Georgia), serif;
+  --brand-midnight: var(--atlas-pine);
+  --brand-slate: #1b554c;
+  --brand-ink: var(--atlas-ink);
+  --brand-action: #236052;
+  --brand-muted: var(--atlas-muted);
+  --brand-line: var(--atlas-line);
+  --brand-ivory: var(--atlas-paper);
+  --brand-sand: #eee9dd;
+  --brand-tint: #f3f0e7;
+  --brand-page: var(--atlas-cream);
+  --brand-gold: #f0c888;
+  --brand-gold-ink: #713b20;
+  --brand-light-gold: #f6e8d0;
+  --brand-paper-sheen: linear-gradient(150deg, #fffefa, #f6f2e8);
+  --brand-night-sheen: linear-gradient(115deg, #0c3532, #1b554c);
+  --brand-sand-sheen: linear-gradient(125deg, #faf7ef, #eae8dc);
+  --brand-shadow: 0 8px 26px rgb(30 49 38 / .08);
+  color: var(--atlas-ink);
+}
+
+body.stitch-theme .concierge-testing {
+  color: #3a4e45;
+  background: #eae8dd;
+}
+
+body.stitch-theme .concierge-header {
+  color: var(--atlas-ink);
+  background: var(--atlas-paper);
+  box-shadow: 0 1px 0 var(--atlas-line);
+}
+
+body.stitch-theme .concierge-header :focus-visible,
+body.stitch-theme .travel-atlas-home :focus-visible {
+  outline-color: var(--atlas-orange);
+}
+
+body.stitch-theme .concierge-account-symbol {
+  color: white;
+  background: var(--atlas-pine);
+}
+
+body.stitch-theme .concierge-tools :is(.concierge-account, .concierge-hub) {
+  color: var(--atlas-ink);
+  background: #f2f0e6;
+}
+
+body.stitch-theme .concierge-tools :is(.concierge-tools-trips, .concierge-support) { color: var(--atlas-pine); }
+body.stitch-theme .concierge-tools .concierge-tools-trips > .stitch-symbol { color: #267160; }
+body.stitch-theme .concierge-tools .concierge-support { padding-inline: 8px; }
+body.stitch-theme .concierge-tools .concierge-support .stitch-symbol { color: #267160; }
+body.stitch-theme .concierge-hub :is(i, strong), body.stitch-theme .concierge-account-copy b { color: var(--atlas-pine); }
+body.stitch-theme .concierge-hub i { background: #e1eadc; }
+
+@media (min-width: 761px) {
+  body.stitch-theme .concierge-header .concierge-bar { min-height: 72px; max-width: 1392px; }
+  body.stitch-theme .concierge-header nav { background: transparent; padding: 0; gap: 3px; }
+  body.stitch-theme .concierge-header nav :is(a,button) { color: #4b605b; border-radius: 6px; }
+  body.stitch-theme .concierge-header nav [aria-current="page"] {
+    background: #e6ede3; color: var(--atlas-pine); box-shadow: inset 0 -2px #4e796a;
+  }
+}
+
+@media (max-width: 1140px) {
+  body.stitch-theme .concierge-tools .concierge-support { display: none; }
+}
+
+@media (max-width: 760px) {
+  body.stitch-theme .concierge-header.has-dock nav { background: var(--atlas-paper); border-color: var(--atlas-line); }
+  body.stitch-theme .concierge-header nav [aria-current="page"] { color: #236052; }
+}
+
+html body.stitch-theme .travel-footer.concierge-footer {
+  background: #143c37;
+  color: #e4eee4;
+  border-top: 0;
+}
+
+html body.stitch-theme .concierge-footer-grid :is(h2, p, a, span),
+html body.stitch-theme .concierge-footer .travel-footer-policies a,
+html body.stitch-theme .concierge-footer :is(.travel-footer-data-credit, .travel-footer-data-credit a) { color: #e4eee4; }
+html body.stitch-theme .concierge-footer .concierge-desktop-directory .concierge-brand-link,
+html body.stitch-theme .concierge-footer .concierge-mobile-directory .concierge-brand-link { background: #fffefa; padding: 9px 12px; border-radius: 6px; }
+html body.stitch-theme .concierge-footer-grid .concierge-footer-call { color: white; background: #20554b; padding: 10px 13px; }
+html body.stitch-theme .concierge-footer a:hover { color: #ffd9a0; }
+html body.stitch-theme .concierge-footer .concierge-footer-socials a { color: var(--atlas-pine); background: #e4ebdf; }
+html body.stitch-theme .concierge-footer .concierge-footer-socials a:hover { color: var(--atlas-pine); background: #fae9c8; }
+body.stitch-theme .concierge-footer .concierge-footer-base { color: #e4eee4; background: #0c2f2c; }
+body.stitch-theme .concierge-mobile-directory > summary { color: #fffefa; border-color: #568477; }
+
+body .trip-home.stitch-home.travel-atlas-home {
+  --s-width: 1272px;
+  --s-gutter: clamp(16px, 3.55vw, 48px);
+  --s-paper: var(--atlas-cream);
+  --s-low: #f4f1e8;
+  --s-muted: var(--atlas-muted);
+  background: var(--atlas-cream);
+}
+
+.travel-atlas-home .atlas-hero {
+  display: grid;
+  grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+  min-height: 345px;
+  margin-top: 24px;
+  overflow: hidden;
+  background: var(--atlas-pine);
+  border-radius: 18px 18px 3px 3px;
+  color: #fff9e9;
+}
+
+.atlas-hero-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(30px, 4vw, 54px);
+}
+
+.atlas-hero-copy .atlas-desk {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #f0ce9c;
+  font-size: .77rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.atlas-hero-copy h1 {
+  margin: 18px 0 12px;
+  color: #fff9ec;
+  font: 400 clamp(54px, 6vw, 100px)/.86 var(--atlas-display);
+  letter-spacing: -.045em;
+}
+
+.atlas-hero-copy h1 em { display: block; color: #f4cb90; font-weight: inherit; }
+.atlas-hero-copy p { margin: 4px 0 0; max-width: 34ch; color: #e4ece3; font: 500 clamp(14px, 1.35vw, 18px)/1.55 var(--s-body); }
+.atlas-hero-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 11px 18px; }
+.atlas-hero-actions :is(a,button) {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f9dbab;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: .26em;
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.atlas-hero-photo { position: relative; min-width: 0; min-height: 100%; margin: 0; }
+.atlas-hero-photo img { object-fit: cover; object-position: center 48%; }
+.atlas-hero-photo figcaption {
+  position: absolute;
+  right: 18px;
+  bottom: 19px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 7px;
+  color: var(--atlas-pine);
+  background: #fff9ed;
+}
+.atlas-hero-photo figcaption strong, .atlas-hero-photo figcaption small { display: block; line-height: 1.25; }
+.atlas-hero-photo figcaption small { margin-top: 3px; font-size: .73rem; color: var(--atlas-muted); }
+
+body .trip-home.travel-atlas-home .home-search-card {
+  margin: 0 auto;
+  padding: clamp(14px, 2vw, 26px);
+  border: 1px solid var(--atlas-line);
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  background: var(--atlas-paper);
+  box-shadow: 0 12px 35px rgb(21 47 39 / 8%);
+}
+
+body .trip-home.travel-atlas-home .home-product-tabs :is(a,button) {
+  border-radius: 6px;
+  color: var(--atlas-pine);
+}
+
+body .trip-home.travel-atlas-home .home-product-tabs :is(a,button):hover { background: #eeeade; }
+body .trip-home.travel-atlas-home .home-product-tabs button[aria-pressed="true"] { color: white; background: var(--atlas-pine); }
+@media (min-width: 701px) {
+  .travel-atlas-home .stitch-product-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .travel-atlas-home .stitch-assurance { margin: 0; font-size: .79rem; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+}
+body .trip-home.travel-atlas-home .home-search-options fieldset { border-radius: 8px; background: #efebe0; }
+body .trip-home.travel-atlas-home .home-search-options :is(label, .stitch-multicity) { border-radius: 5px; }
+body .trip-home.travel-atlas-home .home-search-options label:has(:checked) { color: var(--atlas-pine); }
+body .trip-home.travel-atlas-home .stitch-cabin-shortcuts button:is(:hover,[aria-pressed="true"]),
+body .trip-home.travel-atlas-home .home-airports>.home-search-input:last-child .stitch-airport-caption b { background: #e3ebe1; color: var(--atlas-pine); }
+body .trip-home.travel-atlas-home .stitch-add-return small { color: var(--brand-action); }
+body .trip-home.travel-atlas-home :is(.home-search-input, .stitch-add-return, .stitch-popular button) { border-radius: 7px; }
+body .trip-home.travel-atlas-home .home-search-submit {
+  min-height: 50px;
+  border-radius: 7px;
+  background: var(--atlas-orange);
+  color: white;
+  box-shadow: 0 4px 10px #79391624;
+}
+body .trip-home.travel-atlas-home .home-search-submit:hover { background: #893a1b; }
+
+body .trip-home.travel-atlas-home .home-confidence {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  margin: 28px auto 0;
+  padding: 20px 0;
+  column-gap: 22px;
+  border-block: 1px solid var(--atlas-line);
+  border-radius: 0;
+  background: transparent;
+}
+body .trip-home.travel-atlas-home .home-confidence > div { padding: 3px 12px; border: 0; text-align: left; }
+body .trip-home.travel-atlas-home .home-confidence > div i { background: #e8ede2; color: #2c6858; }
+
+.travel-atlas-home .atlas-recent { margin-top: 23px; }
+.atlas-recent header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.atlas-recent h2 { margin: 0; font-size: 1.05rem; color: var(--atlas-pine); }
+.atlas-recent header button { border: 0; padding: 4px 0; background: none; text-decoration: underline; color: #315950; cursor: pointer; font-size: .85rem; }
+.atlas-recent > div { display: flex; flex-wrap: wrap; gap: 9px; }
+.atlas-recent a {
+  display: inline-flex; gap: 9px; align-items: center; min-height: 44px;
+  border: 1px solid var(--atlas-line); border-radius: 7px; padding: 7px 13px;
+  background: var(--atlas-paper); color: var(--atlas-pine); text-decoration: none; font-size: .88rem; font-weight: 700;
+}
+
+.travel-atlas-home .stitch-section-title h2,
+.travel-atlas-home .stitch-package-intro h2 { font: 400 clamp(37px, 4.05vw, 61px)/.98 var(--atlas-display); letter-spacing: -.028em; }
+.travel-atlas-home .stitch-section-title p { margin-top: 8px; font-size: .95rem; }
+.travel-atlas-home .atlas-destination-filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 17px; }
+.atlas-destination-filters button {
+  padding: 7px 14px; min-height: 42px; font: 700 .85rem var(--s-body);
+  border-radius: 50px; border: 1px solid var(--atlas-line); background: var(--atlas-paper); color: var(--atlas-pine);
+  cursor: pointer;
+}
+.atlas-destination-filters button[aria-pressed="true"] { color: white; background: var(--atlas-pine); border-color: var(--atlas-pine); }
+
+.travel-atlas-home .stitch-destinations {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 14px;
+}
+.travel-atlas-home .stitch-destinations .stitch-getaway {
+  display: flex; flex-direction: column; gap: 0; grid-column: auto; min-width: 0; min-height: 0;
+  padding: 0; overflow: hidden; border: 1px solid var(--atlas-line);
+  background: var(--atlas-paper); color: var(--atlas-ink); border-radius: 9px; box-shadow: none;
+}
+.travel-atlas-home .stitch-getaway::after { content: none; }
+.travel-atlas-home .stitch-getaway .stitch-getaway-photo {
+  position: relative; z-index: 0; width: 100%; min-height: 146px; aspect-ratio: 4 / 3;
+}
+.travel-atlas-home .stitch-getaway:hover .stitch-getaway-photo { transform: none; }
+.travel-atlas-home .stitch-getaway > div { position: relative; width: 100%; padding: 15px 16px 42px; background: var(--atlas-paper); }
+.travel-atlas-home .stitch-getaway .stitch-getaway-tag {
+  display: block; padding: 0; background: none; color: #4d6258; font-size: .64rem; letter-spacing: .09em;
+}
+.travel-atlas-home .stitch-getaway h3 { margin: 4px 0 0; color: var(--atlas-ink); font: 400 clamp(26px, 2.65vw, 40px)/.98 var(--atlas-display); }
+.travel-atlas-home .stitch-getaway p { margin: 8px 0 0; color: var(--atlas-muted); font-size: .82rem; line-height: 1.4; }
+.atlas-destination-arrow { position: absolute; bottom: 13px; right: 14px; color: var(--atlas-pine); }
+.travel-atlas-home .stitch-getaway:hover { border-color: #548475; }
+.travel-atlas-home .stitch-hubs button { border-color: var(--atlas-line); background: var(--atlas-paper); color: var(--atlas-pine); }
+.travel-atlas-home .stitch-hubs button:is(:hover,[aria-pressed="true"]),
+.travel-atlas-home .stitch-hubs a { background: #e5ece0; color: var(--atlas-pine); }
+
+body .trip-home.travel-atlas-home .home-package-plans {
+  background: #1e5048; border-radius: 11px; padding: clamp(20px, 4vw, 48px);
+}
+.travel-atlas-home .stitch-package-intro a { background: #fae9c8; color: var(--atlas-pine); border-radius: 7px; }
+.travel-atlas-home .stitch-package-intro a + a { background: #fff2da1c; color: white; border: 1px solid #fae9c88f; }
+
+@media (max-width: 1040px) {
+  .travel-atlas-home .stitch-destinations { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+@media (max-width: 760px) {
+  .travel-atlas-home .atlas-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .74fr);
+    min-height: 0; margin-top: 13px; border-radius: 11px 11px 0 0;
+  }
+  .atlas-hero-copy { padding: 22px 16px; }
+  .atlas-hero-copy .atlas-desk { font-size: .56rem; letter-spacing: .055em; gap: 4px; }
+  .atlas-hero-copy h1 { font-size: clamp(40px, 7.4vw, 56px); margin: 10px 0 8px; }
+  .atlas-hero-copy p { font-size: .79rem; }
+  .atlas-hero-actions { margin-top: 10px; gap: 1px 9px; }
+  .atlas-hero-actions :is(a,button) { min-height: 30px; font-size: .7rem; }
+  .atlas-hero-photo img { object-position: 67% center; }
+  .atlas-hero-photo figcaption { bottom: 9px; right: 8px; padding: 5px 7px; gap: 4px; }
+  .atlas-hero-photo figcaption small { display: none; }
+  .atlas-hero-photo figcaption strong { font-size: .74rem; }
+  body .trip-home.travel-atlas-home .home-search-card { border-radius: 0 0 11px 11px; }
+  body .trip-home.travel-atlas-home .home-search-options label:has(:checked) { background: #e3ebe1; }
+  body .trip-home.travel-atlas-home .home-airports { background: #efeee3; }
+  body .trip-home.travel-atlas-home .home-confidence { grid-template-columns: minmax(0, 1fr); gap: 11px; padding-block: 14px; }
+  body .trip-home.travel-atlas-home .home-confidence > div { padding: 0 3px; }
+  .travel-atlas-home .stitch-destinations { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .travel-atlas-home .stitch-getaway .stitch-getaway-photo { min-height: 100px; }
+  .travel-atlas-home .stitch-getaway > div { padding: 12px 9px 35px; }
+  .travel-atlas-home .stitch-getaway .stitch-getaway-tag { font-size: .56rem; }
+  .travel-atlas-home .stitch-getaway h3 { font-size: 27px; }
+  .travel-atlas-home .stitch-getaway p { font-size: .72rem; }
+}
+
+@media (max-width: 350px) {
+  .travel-atlas-home .atlas-hero { grid-template-columns: minmax(0, 1fr); }
+  .atlas-hero-photo { min-height: 123px; }
+}

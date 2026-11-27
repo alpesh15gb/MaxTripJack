@@ -20,13 +20,13 @@ test('hotel browse projection drops private/unrecognized fields and rejects over
  assert.deepEqual(parseHotelBrowse({scrollY:-1}),{});
 });
 
-test('new location and amenity preferences survive room/back browsing while older saved filters remain valid',()=>{
+test('browse preferences survive room/back navigation while older saved filters remain valid',()=>{
  const b=browser();try{
-  const filters={...emptyHotelFilters,area:'Mira Road',amenities:'wifi,parking',budget:'9000'};
+  const filters={...emptyHotelFilters,area:'Mira Road',amenities:'wifi,parking',budget:'9000',board:'half-board' as const,freeCancellation:true};
   writeHotelBrowse(id,{filters,sort:'price',scrollY:200});
   assert.deepEqual(readHotelBrowse(id),{filters,sort:'price',scrollY:200});
   assert.deepEqual(parseHotelBrowse({filters:{name:'Legacy hotel',category:'3',type:'Hotel',budget:''}}).filters,{...emptyHotelFilters,name:'Legacy hotel',category:'3',type:'Hotel'});
-  assert.deepEqual(parseHotelBrowse({filters:{area:'x'.repeat(151),amenities:['wifi']}}).filters,emptyHotelFilters);
+  assert.deepEqual(parseHotelBrowse({filters:{area:'x'.repeat(151),amenities:['wifi'],board:'PRIVATE_UNRECOGNIZED_BOARD',freeCancellation:'true'}}).filters,emptyHotelFilters);
  }finally{b.cleanup();}
 });
 test('hotel browse storage is bounded, expires, leaves unrelated storage intact and saves no raw data',()=>{

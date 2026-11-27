@@ -4,9 +4,9 @@ test('the booking planner and destination cards keep searches accessible',async(
   await page.goto('/');
   await expect(page.getByRole('heading',{level:1})).toHaveText('Find your next escape.');
   const planner=page.getByRole('region',{name:'Plan your trip'});
-  await expect(planner).toHaveCSS('background-color','rgb(255, 255, 255)');
+  await expect(planner).toHaveCSS('background-color','rgb(255, 254, 250)');
   const submit=planner.getByRole('button',{name:'Search flights',exact:true});
-  await expect(submit).toHaveCSS('background-color','rgb(0, 23, 54)');
+  await expect(submit).toHaveCSS('background-color','rgb(169, 73, 36)');
   expect((await submit.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   if((page.viewportSize()?.width??1440)<=700)await page.getByText('Travel planning guides and directories',{exact:true}).click();
   const hubs=page.getByRole('group',{name:'Preview a destination'});
@@ -26,7 +26,7 @@ test('journey studio results and reviewed receipt share contrast and clear total
  const compact=(page.viewportSize()?.width??1440)<=700;
  const edit=compact?page.getByRole('button',{name:'Edit search',exact:true}):summary;
  await expect(edit).toBeVisible();
- if(!compact){await expect(summary).toHaveCSS('background-color','rgb(0, 23, 54)');await expect(summary.locator('.search-edit-label')).toHaveCSS('color','rgb(255, 255, 255)');}
+ if(!compact){await expect(summary).toHaveCSS('background-color','rgb(12, 53, 50)');await expect(summary.locator('.search-edit-label')).toHaveCSS('color','rgb(12, 53, 50)');}
  await edit.focus();await expect(edit).toBeFocused();await edit.click();
  await expect(page.getByRole('form',{name:'Search availability',exact:true})).toBeVisible();
  await summary.click();await expect(edit).toBeVisible();
@@ -44,7 +44,7 @@ test('destination photos and labels stay legible at desktop and phone widths',as
     await page.setViewportSize({width,height:width<700?844:1000});
     const card=page.getByRole('link',{name:'Explore stays in Goa'}),photo=card.locator('.stitch-getaway-photo');
     await expect(photo).toHaveCSS('background-image',new RegExp(width<=700?'mobile-goa':'desktop-goa'));
-    await expect(card.getByRole('heading',{name:'Goa'})).toHaveCSS('color','rgb(255, 255, 255)');
+    await expect(card.getByRole('heading',{name:'Goa'})).toHaveCSS('color','rgb(16, 43, 41)');
     const fits=await card.evaluate(node=>{
       const parent=node.getBoundingClientRect();
       return [...node.querySelectorAll('h3,p,.stitch-getaway-tag')].every(item=>{
@@ -55,4 +55,22 @@ test('destination photos and labels stay legible at desktop and phone widths',as
     await expectNoHorizontalOverflow(page);
     await testInfo.attach(`Destination card ${width}`,{body:await card.screenshot({animations:'disabled'}),contentType:'image/png'});
   }
+});
+
+test('destination themes and recent searches keep their normal navigation', async ({page, provider}) => {
+  await page.goto('/');
+  const themes = page.getByRole('group', {name: 'Filter hotel destinations'});
+  await themes.getByRole('button', {name: 'City breaks'}).click();
+  await expect(page.getByRole('link', {name: 'Explore stays in Goa'})).toHaveCount(0);
+  await expect(page.getByRole('link', {name: 'Explore stays in Paris'})).toBeVisible();
+  await themes.getByRole('button', {name: 'All destinations'}).click();
+  await expect(page.getByRole('link', {name: 'Explore stays in Goa'})).toBeVisible();
+  await page.getByRole('region', {name: 'Plan your trip'}).getByRole('button', {name: 'Search flights', exact: true}).click();
+  await expect(page).toHaveURL(/\/book\?.*(?:from=BOM|to=DEL)/);
+  await page.goto('/');
+  const recent = page.getByRole('region', {name: 'Recent searches'});
+  await expect(recent.getByRole('link', {name: 'BOM → DEL'})).toHaveAttribute('href', /autoSearch=1/);
+  await recent.getByRole('button', {name: 'Clear recent searches'}).click();
+  await expect(recent).toHaveCount(0);
+  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

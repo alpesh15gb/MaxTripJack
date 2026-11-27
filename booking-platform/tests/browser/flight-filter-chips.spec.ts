@@ -76,3 +76,35 @@ test('visible chips undo each filter and clear all without resetting sort or rep
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
   expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
+
+test('departure windows and connection airports combine within each facet and narrow results together',async({page,provider})=>{
+  function connection(id:string,hour:string,airport:{code:string;city:string}):Flight {
+    const item=option(id,hour,500000);
+    const first=item.sI[0];
+    item.sI=[{...first,aa:airport},{...first,da:airport,dt:`${departure}T${Number(hour)+3}:15:00`,at:`${departure}T${Number(hour)+4}:25:00`}];
+    return item;
+  }
+  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:[
+    option('direct','09',600000),
+    connection('amd-morning','07',{code:'AMD',city:'Ahmedabad'}),
+    connection('amd-afternoon','13',{code:'AMD',city:'Ahmedabad'}),
+    connection('hyd-evening','18',{code:'HYD',city:'Hyderabad'}),
+  ]}}}};
+  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
+  const cards=page.locator('.flight-shopping-list .live-flight-card');await expect(cards).toHaveCount(4);
+  await setFiltersOpen(page,true);
+  await chooseFlightFilter(page,'Departure time','MORNING');
+  await chooseFlightFilter(page,'Departure time','EVENING');
+  await expect(cards).toHaveCount(3);
+  await page.getByRole('button',{name:'Connect via Ahmedabad (AMD)',exact:true}).click();
+  await expect(cards).toHaveCount(1);
+  await page.getByRole('button',{name:'Connect via Hyderabad (HYD)',exact:true}).click();
+  await setFiltersOpen(page,false);
+  await expect(cards).toHaveCount(2);
+  const chips=page.getByRole('region',{name:'Active flight filters'});
+  await chips.getByRole('button',{name:'Remove departure time filter: Evening',exact:true}).click();
+  await expect(cards).toHaveCount(1);
+  await chips.getByRole('button',{name:'Clear all filters',exact:true}).click();
+  await expect(cards).toHaveCount(4);
+  expect(provider.requests('/api/travel/search')).toHaveLength(1);
+});

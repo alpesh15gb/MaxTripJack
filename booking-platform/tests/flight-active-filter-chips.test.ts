@@ -4,10 +4,10 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {FlightActiveFilterChips,type FlightFilterProps} from '../src/components/flight-results-controls';
 
-const empty:FlightFilterProps={group:'ONWARD',airline:'ALL',stops:'ALL',departure:'ALL',budget:'',disabled:false,onAirline:()=>{},onStops:()=>{},onDeparture:()=>{},onBudget:()=>{}};
+const empty:FlightFilterProps={group:'ONWARD',airline:'ALL',stops:'ALL',departureWindows:[],connections:[],budget:'',disabled:false,onAirline:()=>{},onStops:()=>{},onDeparture:()=>{},onConnections:()=>{},onBudget:()=>{}};
 test('filter chips do not advertise nonexistent filters or treat COMBO preferences as applied',()=>{
   assert.equal(renderToStaticMarkup(createElement(FlightActiveFilterChips,empty)),'');
-  const combo=renderToStaticMarkup(createElement(FlightActiveFilterChips,{...empty,group:'COMBO',stops:'0',departure:'MORNING'}));
+  const combo=renderToStaticMarkup(createElement(FlightActiveFilterChips,{...empty,group:'COMBO',stops:'0',departureWindows:['MORNING']}));
   assert.equal((combo.match(/Not applied to complete itineraries/g)??[]).length,2);
   assert.match(combo,/Remove stops preference/);assert.match(combo,/Remove departure time filter/);
 });

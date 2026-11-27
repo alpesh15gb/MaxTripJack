@@ -6,6 +6,7 @@ import {useCompanyProfile} from './company-profile-context';
 import {StitchSymbol} from './stitch-symbol';
 import {displayMoney} from '@/lib/display-money';
 import {estimatedFare,flightStops,type Flight} from '@/lib/booking-presentation';
+import {flightConnectionAirports,flightDepartureWindows,type FlightDepartureWindow} from '@/lib/flight-results';
 
 const mobileQuery = '(max-width: 1100px)';
 function subscribeViewport(callback: () => void) {
@@ -23,8 +24,10 @@ export type FlightFilterProps = {
   onAirline: (value: string) => void;
   stops: string;
   onStops: (value: string) => void;
-  departure: string;
-  onDeparture: (value: string) => void;
+  departureWindows: readonly FlightDepartureWindow[];
+  onDeparture: (value: FlightDepartureWindow[]) => void;
+  connections: readonly string[];
+  onConnections: (value: string[]) => void;
   budget: string;
   onBudget: (value: string) => void;
   disabled: boolean;
@@ -39,9 +42,19 @@ type Props = FlightFilterFieldsProps & {
   onSort: (sort: FlightSort) => void;
 };
 
-const departureLabels:Record<string,string> = {EARLY:'Before 06:00',MORNING:'Morning · 06:00–11:59',AFTERNOON:'Afternoon · 12:00–17:59',EVENING:'Evening · 18:00–23:59'};
+const departureOptions = {
+  EARLY:{title:'Early morning',icon:'wb_twilight',hours:'00–06',label:'Before 06:00'},
+  MORNING:{title:'Morning',icon:'wb_sunny',hours:'06–12',label:'Morning · 06:00–11:59'},
+  AFTERNOON:{title:'Afternoon',icon:'partly_cloudy_day',hours:'12–18',label:'Afternoon · 12:00–17:59'},
+  EVENING:{title:'Evening',icon:'nights_stay',hours:'18–00',label:'Evening · 18:00–23:59'},
+} satisfies Record<FlightDepartureWindow,{title:string;icon:string;hours:string;label:string}>;
+
+function toggleFilter<T>(current:readonly T[],value:T):T[] {
+  return current.includes(value)?current.filter(selected=>selected!==value):[...current,value];
+}
+
 function resetFlightFilters(props:FlightFilterProps) {
-  props.onStops('ALL');props.onAirline('ALL');props.onDeparture('ALL');props.onBudget('');
+  props.onStops('ALL');props.onAirline('ALL');props.onDeparture([]);props.onConnections([]);props.onBudget('');
 }
 
 /** Lives above the result cards, so phone users can undo filters without reopening the drawer. */
@@ -55,7 +68,8 @@ export function FlightActiveFilterChips(props: FlightFilterProps & {withNonstopT
     ...(props.airline!=='ALL'?[{key:'airline',label:`${props.airline} · any segment`,removeLabel:`Remove airline filter ${props.airline}`,remove:()=>props.onAirline('ALL'),inactive:false}]:[]),
     ...(carrier?[{key:'carrier-query',label:`${carrier} · every segment`,removeLabel:`Remove airline preference ${props.airlineQuery}`,remove:()=>props.onAirline(props.airline),inactive:false}]:[]),
     ...(props.stops!=='ALL'&&!nonstopShownInToolbar?[{key:'stops',label:props.stops==='0'?'Non-stop':`${props.stops} stop${props.stops==='1'?'':'s'}`,removeLabel:'Remove stops preference',remove:()=>props.onStops('ALL'),inactive:completeItinerary}]:[]),
-    ...(props.departure!=='ALL'?[{key:'departure',label:departureLabels[props.departure]??'Departure preference',removeLabel:'Remove departure time filter',remove:()=>props.onDeparture('ALL'),inactive:completeItinerary}]:[]),
+    ...flightDepartureWindows.filter(window=>props.departureWindows.includes(window)).map(window=>({key:window,label:departureOptions[window].label,removeLabel:props.departureWindows.length===1?'Remove departure time filter':`Remove departure time filter: ${departureOptions[window].title}`,remove:()=>props.onDeparture(toggleFilter(props.departureWindows,window)),inactive:completeItinerary})),
+    ...props.connections.map(code=>({key:`connection-${code}`,label:`Via ${code}`,removeLabel:`Remove connection airport ${code}`,remove:()=>props.onConnections(toggleFilter(props.connections,code)),inactive:completeItinerary})),
     ...(props.budget.trim()?[{key:'budget',label:budgetLabel,removeLabel:'Remove budget filter',remove:()=>props.onBudget(''),inactive:false}]:[]),
   ];
   if(!filters.length&&!nonstopShownInToolbar)return null;
@@ -87,9 +101,15 @@ function FlightFilterFields(props: FlightFilterFieldsProps & {flights?: readonly
 /** One-click facets shared by the desktop sidebar and the phone filter sheet. */
 function FlightFacets(props: FlightFilterFieldsProps & {flights?: readonly Flight[]}) {
   const stopPrices = new Map<string, number>(), airlinePrices = new Map<string, number>();
+  const connectionAirports = new Map<string,{label:string;fare:number}>();
   let lowest=Infinity, highest=0;
   for(const flight of props.flights ?? []){
     const fare=estimatedFare(flight);
+    for(const airport of flightConnectionAirports(flight,props.group)) {
+      const previous=connectionAirports.get(airport.code);
+      const location=airport.city||airport.name;
+      connectionAirports.set(airport.code,{label:location?`${location} (${airport.code})`:previous?.label??airport.code,fare:Math.min(previous?.fare??Infinity,fare)});
+    }
     if(!Number.isFinite(fare))continue;
     lowest=Math.min(lowest,fare);highest=Math.max(highest,fare);
     const stops=flightStops(flight,props.group);
@@ -108,7 +128,12 @@ function FlightFacets(props: FlightFilterFieldsProps & {flights?: readonly Fligh
         <section><div className="stitch-facet-heading"><h4>Stops</h4></div>
           {['Non-stop','1 stop','2 stops'].map((label,i)=>choice(String(i),label,props.stops,props.onStops,stopPrices.get(String(i))))}</section>
         <section><div className="stitch-facet-heading"><h4>Departure time</h4></div>
-          <div className="stitch-time-grid">{[['EARLY','wb_twilight','Early morning','00–06'],['MORNING','wb_sunny','Morning','06–12'],['AFTERNOON','partly_cloudy_day','Afternoon','12–18'],['EVENING','nights_stay','Evening','18–00']].map(([key,icon,title,hours])=><button key={key} type="button" aria-pressed={props.departure===key} disabled={props.disabled} onClick={()=>props.onDeparture(props.departure===key?'ALL':key)}><StitchSymbol name={icon} size={18}/><strong>{title}</strong><small>{hours}</small></button>)}</div></section>
+          <div className="stitch-time-grid" role="group" aria-label="Departure time (choose any)">{flightDepartureWindows.map(window=>{
+            const {icon,title,hours}=departureOptions[window];
+            return <button key={window} type="button" aria-pressed={props.departureWindows.includes(window)} disabled={props.disabled} onClick={()=>props.onDeparture(toggleFilter(props.departureWindows,window))}><StitchSymbol name={icon} size={18}/><strong>{title}</strong><small>{hours}</small></button>;
+          })}</div></section>
+        {connectionAirports.size>0&&<section><div className="stitch-facet-heading"><h4>Connection airports</h4></div>
+          <div role="group" aria-label="Connection airports (choose any)">{[...connectionAirports].sort(([,left],[,right])=>left.label.localeCompare(right.label)).map(([code,{label,fare}])=><button key={code} type="button" className="stitch-facet-option" disabled={props.disabled} aria-label={`Connect via ${label}`} aria-pressed={props.connections.includes(code)} onClick={()=>props.onConnections(toggleFilter(props.connections,code))}><span className="stitch-facet-tick" aria-hidden="true">{props.connections.includes(code)?'✓':''}</span><span>{label}</span><small>{Number.isFinite(fare)?displayMoney(fare):'—'}</small></button>)}</div></section>}
       </>}
       {props.group==='COMBO'&&<section><div className="stitch-facet-heading"><h4>Stops</h4></div><p className="flight-filter-note">Check stops for each flight in the complete itinerary.</p></section>}
       <section><div className="stitch-facet-heading"><h4>Airlines</h4></div>
@@ -155,7 +180,7 @@ export default function FlightResultsControls(props: Props) {
   const nonstopSelected = props.stops === '0';
   const nonstopUnavailable = props.nonstopCount === 0 && !nonstopSelected;
   const activeCount = Number(props.airline !== 'ALL') + Number(Boolean(props.airlineQuery?.trim())) + Number(props.group!=='COMBO'&&props.stops !== 'ALL') +
-    Number(props.group!=='COMBO'&&props.departure !== 'ALL') + Number(Boolean(props.budget.trim()));
+    (props.group==='COMBO'?0:props.departureWindows.length+props.connections.length) + Number(Boolean(props.budget.trim()));
 
   function close() {
     dialog.current?.close();

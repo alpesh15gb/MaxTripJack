@@ -6,6 +6,7 @@ test('published packages support discovery, honest prices and contact-only itine
  provider.overrides['GET /api/packages']={body:{packages:[photographed],truncated:false,unavailableCount:0}};
  provider.overrides['GET /api/packages/kerala-at-your-pace']={body:{package:photographed}};
  await page.goto('/packages');await expect(page.getByRole('heading',{name:'Kerala at your pace'})).toBeVisible();
+ await expect(page.getByRole('group',{name:'Trip length'})).toHaveCount(0);
  await expect(page.locator('.package-price')).toContainText('Starting estimate');await expect(page.locator('.package-price')).toContainText('₹15,000');await expect(page.locator('.package-price')).toContainText('per person');await expect(page.locator('.package-price')).toContainText('Check applicable taxes');
  await page.getByRole('searchbox').fill('No such place');await expect(page.getByRole('heading',{name:'No matching plans'})).toBeVisible();await page.getByRole('button',{name:'Clear search'}).click();await expect(page.getByRole('searchbox')).toBeFocused();
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'packages-discovery');
@@ -45,4 +46,35 @@ test('package duration copy uses singular and plural on cards, home and detail',
  await expect(cards.nth(2).locator('.package-card-photo>span')).toHaveText('4 days · 3 nights');
  await page.goto('/');await expect(page.locator('.home-package-grid>a').nth(0)).toContainText('Kerala, India · 1 day');await expect(page.locator('.home-package-grid>a').nth(0)).not.toContainText('1 days');await expect(page.locator('.home-package-grid>a').nth(1)).toContainText('Kerala, India · 2 days');
  await page.goto('/packages/kerala-at-your-pace');await expect(page.locator('.package-facts')).toContainText('2 days / 1 night');await expect(page.locator('.package-facts')).not.toContainText('1 nights');
+});
+
+test('package discovery combines trip length and destination and can reset both', async ({page, provider}) => {
+  provider.overrides['GET /api/packages'] = {body: {
+    packages: [
+      {...samplePackage, id: 'week-in-bali', slug: 'week-in-bali', title: 'A week in Bali', destination: 'Bali', durationDays: 7, durationNights: 6},
+      {...samplePackage, id: 'goa-weekend', slug: 'goa-weekend', title: 'Goa weekend', destination: 'Goa', durationDays: 3, durationNights: 2},
+    ],
+    truncated: false,
+    unavailableCount: 0,
+  }};
+
+  await page.goto('/packages');
+  const tripLength = page.getByRole('group', {name: 'Trip length'});
+  await expect(tripLength.getByRole('radio', {name: 'Any length'})).toBeChecked();
+  await tripLength.getByRole('radio', {name: 'Any length'}).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(tripLength.getByRole('radio', {name: 'Up to 4 days'})).toBeChecked();
+  await expect(page.getByRole('heading', {name: 'Goa weekend'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'A week in Bali'})).toHaveCount(0);
+
+  const search = page.getByRole('searchbox', {name: 'Where would you like to go?'});
+  await search.fill('bali');
+  await expect(page.getByRole('heading', {name: 'No matching plans'})).toBeVisible();
+  await page.getByRole('button', {name: 'Clear search and filters'}).click();
+  await expect(search).toBeFocused();
+  await expect(search).toHaveValue('');
+  await expect(tripLength.getByRole('radio', {name: 'Any length'})).toBeChecked();
+  await expect(page.getByRole('heading', {name: 'A week in Bali'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Goa weekend'})).toBeVisible();
+  await expectNoHorizontalOverflow(page);
 });

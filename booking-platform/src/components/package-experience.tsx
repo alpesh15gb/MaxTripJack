@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {packageDurationLabel} from '@/lib/package-duration';
+import DiscoveryPhoto from './discovery-photo';
 import {PackagePhoto} from './package-photo';
 import { useEffect, useState } from 'react';
 import { TravelFooter, TravelHeader, TravelIcon } from './travel-shell';
@@ -9,6 +10,13 @@ import { currentPackage, currentPackageSummary, packageEmailHref, packagePrice, 
 import './public-refresh.css';
 
 type Catalogue = {packages:TravelPackageSummary[];truncated:boolean;unavailableCount:number;planningOnly:boolean};
+const durationFilters = [
+  { id: 'any', label: 'Any length', matches: () => true },
+  { id: 'short', label: 'Up to 4 days', matches: (days: number) => days <= 4 },
+  { id: 'week', label: '5–7 days', matches: (days: number) => days >= 5 && days <= 7 },
+  { id: 'long', label: '8+ days', matches: (days: number) => days >= 8 },
+] as const;
+type DurationFilter = (typeof durationFilters)[number]['id'];
 function PackageMoney({item}: {item:TravelPackageSummary}) {
   return <div className="package-price"><strong>{item.priceAmount !== null && <small>Starting estimate </small>}{packagePrice(item)}</strong><span>{packagePriceBasis[item.priceBasis]}</span>{item.priceAmount !== null && <small>{item.taxesIncluded ? 'Taxes included' : 'Check applicable taxes'} · Valid through {item.priceValidUntil} UTC</small>}</div>;
 }
@@ -21,6 +29,7 @@ function PackageContent({slug,initialPackage,planningOnly=false}:PackageView) {
   const catalogue:Catalogue|null=initialPackage?{packages:[initialPackage],truncated:false,unavailableCount:0,planningOnly}:loadedCatalogue;
   const [error,setError] = useState(''); const [notFound,setNotFound] = useState(false); const [attempt,setAttempt] = useState(0);
   const [query,setQuery] = useState('');
+  const [duration, setDuration] = useState<DurationFilter>('any');
   useEffect(() => {
     if(initialPackage)return;
     const controller = new AbortController();
@@ -34,16 +43,47 @@ function PackageContent({slug,initialPackage,planningOnly=false}:PackageView) {
   }, [slug,attempt,initialPackage]);
   const retry = () => {setError('');setNotFound(false);setCatalogue(null);setAttempt(value => value+1);};
   const item = slug ? catalogue?.packages[0] as TravelPackage | undefined : undefined;
-  const visible = catalogue?.packages.filter(p => `${p.title} ${p.destination}`.toLowerCase().includes(query.trim().toLowerCase())) || [];
-  return <div className="travel-app public-refresh"><TravelHeader active="packages"/><main id="main-content" className={`package-main ${slug ? "package-main--detail" : "package-main--catalogue"}`}>
+  const search = query.trim().toLowerCase();
+  const durationFilter = durationFilters.find(filter => filter.id === duration) ?? durationFilters[0];
+  const filtered = Boolean(search) || duration !== 'any';
+  const packages = catalogue?.packages ?? [];
+  const availableDurations = durationFilters.filter(filter => filter.id === 'any' || packages.some(p => filter.matches(p.durationDays)));
+  const visible = packages.filter(p => durationFilter.matches(p.durationDays) && `${p.title} ${p.destination}`.toLowerCase().includes(search));
+  function clearFilters() {
+    setQuery('');
+    setDuration('any');
+    document.getElementById('package-query')?.focus();
+  }
+  return <div className="travel-app public-refresh"><TravelHeader active="packages"/><main id="main-content" className={`package-main revamp-discovery ${slug ? "package-main--detail" : "package-main--catalogue"}`}>
     <nav className="package-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span>{slug ? <><Link href="/packages">Holiday packages</Link>{item && <><span aria-hidden="true">/</span><span aria-current="page">{item.title}</span></>}</> : <span aria-current="page">Holiday packages</span>}</nav>
-    <header className="package-heading"><div className="package-heading-copy"><span className="package-eyebrow">A journey, thoughtfully planned</span><h1>{item?.title || (slug ? 'Your next journey' : 'Holiday packages')}</h1><p>{item?.summary || 'Explore plans from the Max Travel team. Review what’s included, then speak with us about dates and a personalised quote.'}</p></div>{!slug && <div className="package-planning-note"><TravelIcon name="globe" size={30}/><h2>Make it your journey</h2><p>Choose a destination, review the itinerary, then discuss your dates with our team.</p><Link href="/contact">Plan with MaxTravel <TravelIcon name="arrow" size={18}/></Link></div>}</header>
+    <header className={`package-heading ${slug ? 'discovery-detail-hero' : 'discovery-hero'}`}>
+      <div className="package-heading-copy">
+        <span className="package-eyebrow">{item?.destination || 'Trip planning'}</span>
+        <h1>{item?.title || (slug ? 'Your next journey' : 'Holiday packages')}</h1>
+        <p>{item?.summary || 'Explore plans from the Max Travel team. Review what’s included, then speak with us about dates and a personalised quote.'}</p>
+        {!slug && <Link className="discovery-hero-link" href="/contact">Plan with MaxTravel <TravelIcon name="arrow" size={18}/></Link>}
+      </div>
+      {!slug && <DiscoveryPhoto src="/travel/stitch/desktop-bali.webp" />}
+    </header>
     <div className="package-disclosure"><TravelIcon name="shield"/><p><strong>Enquiry only — not instant booking.</strong> Availability and the final quote must be confirmed by our team. Sending an enquiry does not reserve a trip or take a payment.</p></div>
     {error ? <section className="package-state" role="alert"><h2>{notFound ? 'Package unavailable' : 'We couldn’t load packages'}</h2><p>{error}</p>{!notFound && <button onClick={retry}>Try again</button>}{slug&&<Link href="/packages">Browse packages</Link>}<Link href="/contact">Plan a trip with our team</Link><Link href="/customer-support">Contact support</Link></section> : !catalogue ? <section className="package-state" role="status"><h2>Loading travel plans…</h2><p>Checking the latest published details.</p></section> : item ? <PackageDetail item={item} planningOnly={catalogue.planningOnly}/> : <>
       {catalogue.planningOnly && <p className="package-warning">Browse sample itineraries, or ask our team to plan a trip around your dates.</p>}
       {(catalogue.truncated || catalogue.unavailableCount > 0) && <p className="package-warning" role="status">Some package details are currently unavailable or outside this list. Contact our team for more options.</p>}
-      <section className="package-discovery" aria-label="Find a package"><label htmlFor="package-query">Where would you like to go?</label><input id="package-query" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search destination or package name"/><p aria-live="polite">{visible.length} of {catalogue.packages.length} {catalogue.planningOnly?'trip ideas':'published plans'}</p></section>
-      {!visible.length ? <section className="package-state"><h2>{query ? 'No matching plans' : catalogue.unavailableCount || catalogue.truncated ? 'Plans are temporarily unavailable' : 'New journeys are on the way'}</h2><p>{query ? 'Try another destination or clear your search.' : 'Tell our team where you’d like to travel. We can discuss a plan with you.'}</p>{query && <button onClick={() => {setQuery('');document.getElementById('package-query')?.focus();}}>Clear search</button>}<Link href="/contact">Talk to Max Travel</Link></section> : <div className="package-grid">{visible.map(p => <article className="package-card" key={p.id}><div className="package-card-photo"><PackagePhoto url={p.coverImageUrl} alt={p.coverImageAlt || p.title}/><span>{packageDurationLabel(p.durationDays,'day')} · {packageDurationLabel(p.durationNights,'night')}</span></div><div className="package-card-body"><span className="package-eyebrow">{p.destination}</span><h2><Link href={`/packages/${p.slug}`}>{p.title}</Link></h2><p>{p.summary}</p><span className={`package-status ${p.availability === 'UNAVAILABLE' ? 'is-unavailable' : ''}`}>{p.availability === 'UNAVAILABLE' ? 'Currently unavailable' : p.availability === 'SEASONAL' ? 'Seasonal · confirm dates' : catalogue.planningOnly ? 'Sample itinerary' : 'Dates & availability on request'}</span><PackageMoney item={p}/><Link className="package-button" href={`/packages/${p.slug}`}>View itinerary & details <span aria-hidden="true">→</span></Link></div></article>)}</div>}
+      {packages.length > 0 && <section className="package-discovery" aria-label="Find a package">
+        <div className="discovery-package-search">
+          <label htmlFor="package-query">Where would you like to go?</label>
+          <input id="package-query" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Destination or package"/>
+        </div>
+        {availableDurations.length > 2 && <fieldset className="discovery-duration">
+          <legend>Trip length</legend>
+          <div>{availableDurations.map(filter => <label key={filter.id}>
+            <input type="radio" name="trip-length" value={filter.id} checked={duration === filter.id} onChange={() => setDuration(filter.id)} />
+            {filter.label}
+          </label>)}</div>
+        </fieldset>}
+        <p aria-live="polite">{visible.length} of {packages.length} {catalogue.planningOnly ? 'trip ideas' : 'published plans'}</p>
+      </section>}
+      {!visible.length ? <section className="package-state"><h2>{filtered ? 'No matching plans' : catalogue.unavailableCount || catalogue.truncated ? 'Plans are temporarily unavailable' : 'New journeys are on the way'}</h2><p>{filtered ? 'Try another destination or trip length.' : 'Tell our team where you’d like to travel. We can discuss a plan with you.'}</p>{filtered && <button type="button" onClick={clearFilters}>Clear search and filters</button>}<Link href="/contact">Talk to Max Travel</Link></section> : <div className="package-grid">{visible.map(p => <article className="package-card" key={p.id}><div className="package-card-photo"><PackagePhoto url={p.coverImageUrl} alt={p.coverImageAlt || p.title}/><span>{packageDurationLabel(p.durationDays,'day')} · {packageDurationLabel(p.durationNights,'night')}</span></div><div className="package-card-body"><span className="package-eyebrow">{p.destination}</span><h2><Link href={`/packages/${p.slug}`}>{p.title}</Link></h2><p>{p.summary}</p><span className={`package-status ${p.availability === 'UNAVAILABLE' ? 'is-unavailable' : ''}`}>{p.availability === 'UNAVAILABLE' ? 'Currently unavailable' : p.availability === 'SEASONAL' ? 'Seasonal · confirm dates' : catalogue.planningOnly ? 'Sample itinerary' : 'Dates & availability on request'}</span><PackageMoney item={p}/><Link className="package-button" href={`/packages/${p.slug}`}>View itinerary & details <span aria-hidden="true">→</span></Link></div></article>)}</div>}
     </>}
   </main><TravelFooter/></div>;
 }

@@ -4,9 +4,12 @@ test('account sign-in and registration share an accessible responsive workspace'
   provider.session = null;
   await page.goto('/account');
   await expect(page.getByRole('main')).toHaveCount(1);
+  const accountHeading=page.getByRole('heading',{level:1,name:'Your MaxTravel account',exact:true});
+  await expect(accountHeading).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign in', exact: true }).last()).toBeVisible();
   await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create account', exact: true }).first().click();
+  await expect(accountHeading).toBeVisible();
   await expect(page.getByLabel('Your name', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('minlength', '12');
   await expectNoHorizontalOverflow(page);

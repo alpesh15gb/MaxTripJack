@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useId,useMemo,useRef,useState} from 'react';
 import {readHotelBrowse,writeHotelBrowse,hotelJourneyUrl} from '@/lib/hotel-journey-state';
-import {emptyHotelFilters,filterHotelResults,hotelAmenities,hotelAmenityOptions,selectedHotelAmenities,knownHotelTotal,stayNights,type HotelAmenityId,type HotelResult,type HotelStayContext} from '@/lib/hotel-results';
+import {emptyHotelFilters,filterHotelResults,hasHotelRateFilters,hotelAmenities,hotelAmenityOptions,hotelBoardLabels,hotelRateFacets,hotelTextFilterKeys,isHotelBoard,knownHotelTotal,lowestMatchingHotelRate,nextHotelCancellationChange,selectedHotelAmenities,stayNights,type HotelAmenityId,type HotelResult,type HotelStayContext} from '@/lib/hotel-results';
 import {travelDateLabel} from '@/lib/travel-date';
 import HotelPropertyMedia,{type HotelMetadataStatus} from './hotel-property-media';
 import {money} from './booking-flight-card';
@@ -24,6 +24,7 @@ export function hotelComparisonAmenities(values?:string[]){
 export default function HotelResults<T extends HotelResult & {options?:AvailableHotelOption[]}>({hotels,context,destination,busy,checkingHotelId,onChoose,searchId,metadataStatus='ready',hasMore=false,loadingMore=false,loadMoreError,onLoadMore,onEditSearch,active=true}:{destination?:string;active?:boolean;hasMore?:boolean;loadingMore?:boolean;loadMoreError?:string;onLoadMore?:()=>void;onEditSearch?:()=>void;hotels:T[];context:HotelStayContext|null;metadataStatus?:HotelMetadataStatus;busy:boolean;checkingHotelId?:string;searchId:string;onChoose:(hotel:T,trigger:HTMLElement,section?:'overview'|'rooms')=>void}){
  const company=useCompanyProfile();
  const [filters,setFilters]=useState(()=>readHotelBrowse(searchId).filters??{...emptyHotelFilters}),[sort,setSort]=useState(()=>readHotelBrowse(searchId).sort??'price'),[expanded,setExpanded]=useState(false);
+ const [now,setNow]=useState(()=>Date.now());
  const drawer=useRef<HTMLDialogElement>(null),filterTrigger=useRef<HTMLButtonElement>(null);
  const filterHelpId=useId();
  useEffect(()=>{if(!active&&drawer.current?.open)drawer.current.close();},[active]);
@@ -37,17 +38,35 @@ export default function HotelResults<T extends HotelResult & {options?:Available
   desktop.addEventListener('change',closeOnDesktop);
   return()=>{document.body.style.overflow=previousOverflow;desktop.removeEventListener('change',closeOnDesktop);if(dialog.open)dialog.close();};
  },[expanded,active]);
+ useEffect(()=>{
+  if(!active)return;
+  let timer:number;
+  const updateClock=()=>{
+   window.clearTimeout(timer);
+   const current=Date.now();
+   setNow(current);
+   const next=nextHotelCancellationChange(hotels,current);
+   if(next!==null)timer=window.setTimeout(updateClock,Math.min(next-current,2_147_483_647));
+  };
+  timer=window.setTimeout(updateClock,0);
+  window.addEventListener('focus',updateClock);
+  return()=>{window.clearTimeout(timer);window.removeEventListener('focus',updateClock);};
+ },[active,hotels]);
  useEffect(()=>{writeHotelBrowse(searchId,{filters,sort});},[searchId,filters,sort]);
- const shown=filterHotelResults(hotels,filters,sort),nights=stayNights(context);
+ const shown=filterHotelResults(hotels,filters,sort,now),nights=stayNights(context);
  const categories=[...new Set(hotels.flatMap(h=>h.property?.starRating?[h.property.starRating]:[]))].sort((a,b)=>b-a);
  const types=[...new Set(hotels.flatMap(h=>h.property?.propertyType?[h.property.propertyType]:[]))].sort();
- const activeFilters=Object.entries(filters).filter(([key,value])=>key!=='amenities'&&value.trim());
+ const activeFilters=hotelTextFilterKeys.filter(key=>key!=='amenities'&&filters[key].trim());
  const selectedAmenities=selectedHotelAmenities(filters.amenities);
  const amenities=useMemo(()=>hotelAmenityOptions(hotels,filters.amenities),[hotels,filters.amenities]);
- const activeFilterCount=activeFilters.length+selectedAmenities.length;
+ const activeRateFilters=hasHotelRateFilters(filters);
+ const rateFacets=useMemo(()=>hotelRateFacets(hotels,now),[hotels,now]);
+ const boards=Object.keys(hotelBoardLabels).filter(isHotelBoard).filter(board=>rateFacets.boards.has(board)||board===filters.board);
+ const refundable=rateFacets.freeCancellation||filters.freeCancellation;
+ const activeFilterCount=activeFilters.length+selectedAmenities.length+Number(Boolean(filters.board))+Number(filters.freeCancellation);
  const hasLocations=hotels.some(hotel=>hotel.property?.city?.trim()||hotel.property?.address?.trim());
  const stayLabel=context?`${nights?`${nights} night${nights===1?'':'s'} · `:''}${context.rooms} room${context.rooms===1?'':'s'} · ${context.guests} guest${context.guests===1?'':'s'}`:'All selected rooms and guests';
- const update=(key:keyof typeof filters,value:string)=>setFilters(current=>({...current,[key]:value}));
+ const update=<K extends keyof typeof filters>(key:K,value:(typeof filters)[K])=>setFilters(current=>({...current,[key]:value}));
  const toggleAmenity=(id:HotelAmenityId)=>setFilters(current=>{const selected=selectedHotelAmenities(current.amenities);return {...current,amenities:(selected.includes(id)?selected.filter(item=>item!==id):[...selected,id]).join(',')};});
  const focusResults=()=>requestAnimationFrame(()=>document.getElementById('hotel-results-title')?.focus({preventScroll:true}));
  const filterFields=()=><>
@@ -56,6 +75,9 @@ export default function HotelResults<T extends HotelResult & {options?:Available
    <label>Property name<input type="search" value={filters.name} onChange={e=>update('name',e.target.value)} placeholder="Find a property"/></label>
    <label>Area or address<input type="search" maxLength={150} value={filters.area} onChange={e=>update('area',e.target.value)} placeholder="Search a location" aria-describedby={`${filterHelpId}-location`} disabled={!hasLocations&&!filters.area}/></label>
    <small id={`${filterHelpId}-location`}>{hasLocations?'Search the city or address shown on these stays. Properties without a matching location are excluded.':metadataStatus==='loading'?'Location details are still loading.':'Location details have not been supplied for these stays yet.'}</small>
+   {boards.length>0&&<label>Meal plan<select value={filters.board} onChange={event=>update('board',isHotelBoard(event.target.value)?event.target.value:'')} aria-describedby={`${filterHelpId}-rates`}><option value="">Any meal plan</option>{boards.map(board=><option key={board} value={board}>{hotelBoardLabels[board]}</option>)}</select></label>}
+   {refundable&&<fieldset className="hotel-practical-amenities"><legend>Cancellation</legend><label className="hotel-amenity-filter-option"><input type="checkbox" checked={filters.freeCancellation} onChange={event=>update('freeCancellation',event.target.checked)} aria-describedby={`${filterHelpId}-rates`}/><span>Free cancellation available now</span></label></fieldset>}
+   {(boards.length>0||refundable)&&<small id={`${filterHelpId}-rates`}>Filters require one room rate with the selected terms. We recheck the terms at review.</small>}
    <fieldset className="hotel-practical-amenities"><legend>Practical amenities</legend>{amenities.length?<>{amenities.map(item=><label key={item.id} className="hotel-amenity-filter-option"><input type="checkbox" aria-label={item.label} checked={selectedAmenities.includes(item.id)} onChange={()=>toggleAmenity(item.id)}/><span>{item.label}</span><span className="hotel-filter-option-count" aria-label={`${item.count} loaded stays`}>{item.count}</span></label>)}<small>Counts cover loaded stays. Select several to require all of them; stays without these details will not appear. Charges and availability can vary.</small></>:<p className="hotel-filter-unavailable">{metadataStatus==='loading'?'Adding supplied amenities…':'No matching practical amenities have been supplied for these stays yet.'}</p>}</fieldset>
    <label>Maximum stay total (₹)<input type="number" min="0" step="1" inputMode="numeric" value={filters.budget} onChange={e=>update('budget',e.target.value)} placeholder="No limit"/></label>
    <small>Estimated total for all selected rooms. Unpriced stays are excluded when a limit is set.</small>
@@ -89,12 +111,22 @@ export default function HotelResults<T extends HotelResult & {options?:Available
    {amenities.length>0&&<div className="stay-quick-amenities" role="group" aria-label="Quick amenity filters">
     {amenities.slice(0,4).map(item=><button type="button" key={item.id} aria-pressed={selectedAmenities.includes(item.id)} onClick={()=>toggleAmenity(item.id)}>{item.label}</button>)}
    </div>}
-   {activeFilterCount>0&&<div className="hotel-active-filters" aria-label="Active hotel filters">{activeFilters.map(([key,value])=><button className="hotel-filter-chip" key={key} type="button" aria-label={`Remove ${key} filter`} onClick={()=>{update(key as keyof typeof filters,'');focusResults();}}>{key==='budget'?`Up to ₹${value} / stay`:key==='category'?`${value} stars`:key==='area'?`Area: ${value}`:value}<span aria-hidden="true"> ×</span></button>)}{amenities.filter(item=>selectedAmenities.includes(item.id)).map(item=><button className="hotel-filter-chip" key={item.id} type="button" aria-label={`Remove ${item.label} filter`} onClick={()=>{toggleAmenity(item.id);focusResults();}}>{item.label}<span aria-hidden="true"> ×</span></button>)}</div>}
+   {activeFilterCount>0&&<div className="hotel-active-filters" aria-label="Active hotel filters">
+    {activeFilters.map(key=>{
+     const value=filters[key];
+     return <button className="hotel-filter-chip" key={key} type="button" aria-label={`Remove ${key} filter`} onClick={()=>{update(key,'');focusResults();}}>{key==='budget'?`Up to ₹${value} / stay`:key==='category'?`${value} stars`:key==='area'?`Area: ${value}`:value}<span aria-hidden="true"> ×</span></button>;
+    })}
+    {filters.board&&<button className="hotel-filter-chip" type="button" aria-label="Remove meal plan filter" onClick={()=>{update('board','');focusResults();}}>{hotelBoardLabels[filters.board]}<span aria-hidden="true"> ×</span></button>}
+    {filters.freeCancellation&&<button className="hotel-filter-chip" type="button" aria-label="Remove free cancellation filter" onClick={()=>{update('freeCancellation',false);focusResults();}}>Free cancellation available now<span aria-hidden="true"> ×</span></button>}
+    {amenities.filter(item=>selectedAmenities.includes(item.id)).map(item=><button className="hotel-filter-chip" key={item.id} type="button" aria-label={`Remove ${item.label} filter`} onClick={()=>{toggleAmenity(item.id);focusResults();}}>{item.label}<span aria-hidden="true"> ×</span></button>)}
+   </div>}
    <div className="booking-hotel-list">{shown.map(hotel=>{
     const contentState=hotel.propertyContentStatus==='resolved'?'ready':hotel.propertyContentStatus==='unavailable'?'unavailable':hotel.propertyContentStatus==='pending'?'loading':metadataStatus;
-    const total=knownHotelTotal(hotel),amenities=hotelComparisonAmenities(hotel.property?.amenities);
+    const matchingRate=activeRateFilters?lowestMatchingHotelRate(hotel.options,filters,now):null;
+    const total=activeRateFilters?matchingRate?.totalMinor??null:knownHotelTotal(hotel);
+    const amenities=hotelComparisonAmenities(hotel.property?.amenities);
     const amenityList=amenities.length>0&&<ul className="hotel-amenity-list" aria-label="Property amenities">{amenities.slice(0,3).map(item=><li key={item.toLocaleLowerCase()}><span aria-hidden="true" className="stitch-symbol hotel-amenity-icon" data-icon={/pool/i.test(item)?'pool':/breakfast|restaurant/i.test(item)?'restaurant':'check_circle'}/>{item}</li>)}</ul>;
-    const room=hotel.options?.find(option=>total!==null&&Math.round(option.pricing.totalPrice*100)===total);
+    const room=activeRateFilters?matchingRate?.rate:hotel.options?.find(option=>total!==null&&Math.round(option.pricing.totalPrice*100)===total);
     const propertyHref=hotelJourneyUrl(hotel.originSearchId??searchId,hotel.tjHotelId);
     return <article className="white-card booking-record booking-hotel-card hotel-shopping-card" key={hotel.tjHotelId} aria-label={hotel.name}>
      <div className="hotel-card-photo">
@@ -114,9 +146,9 @@ export default function HotelResults<T extends HotelResult & {options?:Available
      </div>
      <div className={`hotel-result-action${room?' has-room-preview':''}`}>
       {room&&<div className="hotel-picked-room">
-        <span className="hotel-room-kicker"><StitchSymbol name="hotel_class" size={15}/>Lowest priced room option</span>
+        <span className="hotel-room-kicker"><StitchSymbol name="hotel_class" size={15}/>{activeRateFilters?'Lowest matching room option':'Lowest priced room option'}</span>
         <strong>{hotelRoomLabel(room)}</strong>
-        {room.mealBasis&&<small><StitchSymbol name="restaurant" size={15}/>{roomMealLabel(room)}</small>}
+        {(filters.board||room.mealBasis)&&<small><StitchSymbol name="restaurant" size={15}/>{filters.board?hotelBoardLabels[filters.board]:roomMealLabel(room)}</small>}
       </div>}
       <div className="hotel-stay-price">
        {total!==null?<><span>Estimated stay total</span><strong><span className="hotel-price-from">From </span>{money(total)}</strong></>:<strong className="hotel-price-unknown">Price available with rooms</strong>}
@@ -132,6 +164,7 @@ export default function HotelResults<T extends HotelResult & {options?:Available
     <h3>{hotels.length?'No stays match your filters':'No stays found'}</h3>
     <p>{hotels.length?'Try a different location or name, remove an amenity, or adjust your category and stay budget.':hasMore?'Try new dates or check more stays in this destination.':'Try a different destination or date range.'}</p>
     {hotels.length>0&&(filters.area||selectedAmenities.length>0)&&<p>Some stays may not list the location or amenities you selected.</p>}
+    {hotels.length>0&&activeRateFilters&&<p>Try another meal plan or clear free cancellation to see more stays.</p>}
     {!hotels.length&&onEditSearch&&<button className="primary" type="button" disabled={busy} onClick={onEditSearch}>Edit stay search</button>}
     {activeFilterCount>0&&<button className="secondary" type="button" onClick={()=>{setFilters({...emptyHotelFilters});focusResults();}}>Clear hotel filters</button>}
    </div>}

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import HotelResults,{hotelComparisonAmenities} from '../src/components/hotel-results';
-import {hotelContentUnavailable,emptyHotelFilters,filterHotelResults,hotelAmenities,hotelAmenityOptions,hotelAreaMatches,hotelPracticalAmenities,selectedHotelAmenities,knownHotelTotal,stayNights,type HotelResult} from '../src/lib/hotel-results';
+import {hotelContentUnavailable,emptyHotelFilters,filterHotelResults,hotelAmenities,hotelAmenityOptions,hotelAreaMatches,hotelPracticalAmenities,hotelRateFacets,lowestMatchingHotelRate,nextHotelCancellationChange,selectedHotelAmenities,knownHotelTotal,stayNights,type HotelResult} from '../src/lib/hotel-results';
 const hotels:HotelResult[]=[{tjHotelId:'1',name:'Palm House',customerEstimateMinor:800000,property:{starRating:4,propertyType:'Hotel',amenities:[]}},{tjHotelId:'2',name:'Bay Stay',customerEstimateMinor:400000,property:{starRating:3,propertyType:'Resort',amenities:[]}},{tjHotelId:'3',name:'Unpriced stay',property:{amenities:[]}}];
 test('compact hotel amenities preserve supplied wording, practical facts and three distinct positive items',()=>{
  const supplied=['Lobby',' Wi-Fi ','wifi','Parking','No swimming pool','Restaurant','Gym'];
@@ -35,6 +35,31 @@ test('hotel sort keeps unknown prices last and never changes supplier input orde
  assert.deepEqual(filterHotelResults(hotels,emptyHotelFilters,'supplier').map(h=>h.tjHotelId),['1','2','3']);
  assert.deepEqual(hotels.map(h=>h.tjHotelId),['1','2','3']);
  assert.equal(knownHotelTotal({...hotels[0],customerEstimateMinor:NaN}),null);
+});
+
+test('meal plan, free cancellation and budget must match the same priced rate',()=>{
+ const now=Date.parse('2027-01-01T12:00:00+05:30');
+ const free={isRefundable:true,penalties:[{from:'2027-01-01T00:00:00+05:30',to:'2027-01-02T00:00:00+05:30',amount:0}]};
+ const rate=(optionId:string,totalPrice:number,mealBasis?:string,cancellation?:unknown)=>({optionId,mealBasis,cancellation,pricing:{totalPrice}});
+ const listings:HotelResult[]=[
+  {tjHotelId:'1',name:'Split terms',customerEstimateMinor:100000,options:[rate('a',1000,'Breakfast'),rate('b',2000,'Room Only',free)]},
+  {tjHotelId:'2',name:'Matching plan',customerEstimateMinor:50000,options:[rate('c',500,'BO'),rate('d',4500,'Breakfast',free)]},
+  {tjHotelId:'3',name:'Lower matching plan',customerEstimateMinor:300000,options:[rate('e',3000,'BB',free)]},
+  {tjHotelId:'4',name:'Mixed meals',options:[{...rate('f',2000,'Breakfast',free),optionType:'SRCM'}]},
+  {tjHotelId:'5',name:'Unverified terms',options:[rate('g',500,'Breakfast available',{isRefundable:true}),rate('',500,'Breakfast',free),rate('bad-price',NaN,'Breakfast',free)]},
+  {tjHotelId:'6',name:'Legacy listing',customerEstimateMinor:200000,property:{amenities:['Breakfast included','Free cancellation']}},
+  {tjHotelId:'7',name:'Exact half board',options:[rate('h',6500,'Half Board')]},
+ ];
+ const filters={...emptyHotelFilters,board:'breakfast' as const,freeCancellation:true};
+ assert.deepEqual(filterHotelResults(listings,filters,'price',now).map(hotel=>hotel.tjHotelId),['3','2']);
+ assert.deepEqual(filterHotelResults(listings,{...filters,budget:'4000'},'price',now).map(hotel=>hotel.tjHotelId),['3']);
+ assert.equal(lowestMatchingHotelRate(listings[1].options,filters,now)?.rate.optionId,'d');
+ assert.equal(filterHotelResults(listings,filters,'price',Date.parse(free.penalties[0].to)).length,0);
+ assert.equal(nextHotelCancellationChange(listings,now),Date.parse(free.penalties[0].to));
+ assert.equal(nextHotelCancellationChange(listings,Date.parse(free.penalties[0].to)),null);
+ assert.deepEqual(hotelRateFacets(listings,now),{boards:new Set(['breakfast','room-only','half-board']),freeCancellation:true});
+ assert.deepEqual(filterHotelResults(listings,{...emptyHotelFilters,board:'half-board'},'price',now).map(hotel=>hotel.tjHotelId),['7']);
+ assert.equal(filterHotelResults(listings,emptyHotelFilters,'supplier',now).includes(listings[5]),true);
 });
 
 const localHotels:HotelResult[]=[
@@ -84,6 +109,27 @@ test('saved location and amenity filters render individual removal chips and use
   assert.match(html,/Filters \(3\)/);assert.match(html,/aria-label="Remove area filter"/);assert.match(html,/aria-label="Remove Wi-Fi filter"/);assert.match(html,/aria-label="Remove Restaurant filter"/);
   assert.match(html,/No stays match your filters/);assert.match(html,/Some stays may not list the location or amenities/);assert.match(html,/Clear hotel filters/);
   assert.match(html,/type="checkbox" aria-label="Wi-Fi" checked/);
+ }finally{if(before)Object.defineProperty(globalThis,'sessionStorage',before);else Reflect.deleteProperty(globalThis,'sessionStorage');}
+});
+test('saved rate preferences render the price and actual option that match both terms',()=>{
+ const key='maxtravel:hotel-browse:v1:11111111-1111-4111-8111-111111111111';
+ const before=Object.getOwnPropertyDescriptor(globalThis,'sessionStorage');
+ const saved=JSON.stringify({version:1,savedAt:Date.now(),value:{filters:{board:'breakfast',freeCancellation:true}}});
+ const cancellation={penalties:[{from:new Date(Date.now()-60_000).toISOString(),to:new Date(Date.now()+60_000).toISOString(),amount:0}]};
+ const listing={...hotels[0],customerEstimateMinor:100000,options:[
+  {optionId:'unmatched',mealBasis:'Room only',roomInfo:[{name:'Cheaper room'}],pricing:{totalPrice:1000}},
+  {optionId:'matched',mealBasis:'Breakfast',roomInfo:[{name:'Matching room'}],cancellation,pricing:{totalPrice:2400}},
+ ]};
+ Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{length:1,key:()=>key,getItem:(name:string)=>name===key?saved:null,removeItem:()=>{}}});
+ try{
+  const html=renderToStaticMarkup(createElement(HotelResults,{searchId:key.split(':').at(-1)!,hotels:[listing],context:null,busy:false,onChoose:()=>{}}));
+  assert.match(html,/Filters \(2\)/);
+  assert.match(html,/Remove meal plan filter/);
+  assert.match(html,/Remove free cancellation filter/);
+  assert.match(html,/Lowest matching room option/);
+  assert.match(html,/Matching room/);
+  assert.match(html,/₹2,400/);
+  assert.doesNotMatch(html,/Cheaper room|₹1,000/);
  }finally{if(before)Object.defineProperty(globalThis,'sessionStorage',before);else Reflect.deleteProperty(globalThis,'sessionStorage');}
 });
 test('stay context derives nights from submitted calendar dates without per-night assumptions',()=>{

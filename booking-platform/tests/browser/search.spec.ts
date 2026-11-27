@@ -56,6 +56,14 @@ test('homepage hotel selection preserves selected destination and one-room adult
     product: 'HOTEL', hotelIds: ['10001', '10002'], adults: 3, checkIn: departure, checkOut: returning,
     rooms: [{ adults: 3, children: 0, childAge: [] }], nationality: '106',
   });
+  await page.goto('/');
+  const recentStay = page.getByRole('region', { name: 'Recent searches' }).getByRole('link', { name: 'Goa, India', exact: true });
+  await expect(recentStay).toHaveAttribute('href', /destinationCursor=0%3A0/);
+  await expect(recentStay).not.toHaveAttribute('href', /hotelIds/);
+  await recentStay.click();
+  await expect(page.getByRole('heading', {name: 'Synthetic Goa Beach Stay', exact: true})).toBeVisible();
+  expect(provider.requests('/api/travel/search')).toHaveLength(2);
+  expect(provider.requests('/api/travel/search')[1].body).toMatchObject({ product: 'HOTEL', adults: 3, hotelIds: ['10001', '10002'] });
 });
 
 test('hotel search sends separate adults and child ages for every room', async ({ page, provider }, testInfo) => {

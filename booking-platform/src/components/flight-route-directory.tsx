@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import DiscoveryPhoto from './discovery-photo';
 import {notFound} from 'next/navigation';
 import {TravelHeader,TravelFooter,TravelIcon} from './travel-shell';
 import {flightGuides} from '@/lib/flight-guides';
@@ -28,10 +29,18 @@ export default async function FlightRouteDirectory({page=1,query=''}:{page?:numb
     {'@context':'https://schema.org','@type':'BreadcrumbList','@id':`${pageUrl}#breadcrumb`,itemListElement:[{name:'Home',path:'/'},{name:'Flights',path:'/flights'},{name:'Flight routes',path:'/flights/routes'}].map((item,index)=>({'@type':'ListItem',position:index+1,name:item.name,item:canonicalUrl(item.path)}))},
     ...(listed.length?[{'@context':'https://schema.org','@type':'ItemList','@id':`${pageUrl}#routes`,numberOfItems:listed.length,itemListElement:listed.map((item,index)=>({'@type':'ListItem',position:(page-1)*FLIGHT_DIRECTORY_PAGE_SIZE+index+1,name:item.name,url:canonicalUrl(item.path)}))}]:[]),
   ];
-  return <div className="public-site route-directory public-refresh"><TravelHeader active="flights"/><main id="main-content" className="public-main">
+  return <div className="public-site route-directory public-refresh"><TravelHeader active="flights"/><main id="main-content" className="public-main revamp-discovery">
     <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol><li><Link href="/">Home</Link></li><li><Link href="/flights">Flights</Link></li><li aria-current="page">Route directory{page>1?` · Page ${page}`:''}</li></ol></nav>
-    <header className="public-hero public-hero--editorial"><div className="public-hero-copy"><p className="public-eyebrow">FROM YOUR CITY TO YOUR NEXT CHAPTER</p><h1>Explore flight routes{page>1?` · Page ${page}`:''}</h1><p className="public-intro">Find the right airports, plan the onward journey and compare fares for your own dates. Start with a city or airport code.</p><Link className="public-button" href="/book?product=FLIGHT">Search flights <TravelIcon name="arrow" size={18}/></Link></div></header>
-    <form className="route-directory-search" method="get" action="/flights/routes"><label>City or airport code<input type="search" name="q" defaultValue={q} maxLength={80} placeholder="Lucknow, Hyderabad, LKO…"/></label><button type="submit">Find a route</button>{q&&<Link href="/flights/routes">Clear search</Link>}</form>
+    <header className="public-hero public-hero--editorial discovery-hero">
+      <div className="public-hero-copy">
+        <p className="public-eyebrow">Flight planning</p>
+        <h1>Explore flight routes{page > 1 ? ` · Page ${page}` : ''}</h1>
+        <p className="public-intro">Find the right airports, plan the onward journey and compare fares for your own dates.</p>
+        <Link className="public-button" href="/book?product=FLIGHT">Search flights <TravelIcon name="arrow" size={18}/></Link>
+      </div>
+      <DiscoveryPhoto src="/travel/stitch/desktop-dubai.webp" />
+    </header>
+    <form className="route-directory-search" method="get" action="/flights/routes" role="search" aria-label="Flight route directory"><label>City or airport code<input type="search" name="q" defaultValue={q} maxLength={80} placeholder="Lucknow, Hyderabad, LKO…"/></label><button type="submit">Find a route</button>{q && <Link href="/flights/routes">Clear search</Link>}</form>
     {!available&&<p className="route-catalogue-notice" role="status">The extended route directory is temporarily unavailable. You can still use the planning guides below or search your dates.</p>}
     {guides.length>0&&<section aria-label="Airport and route planning guides"><h2>Airport and route planning guides</h2><div className="public-route-grid">{guides.map(guide=><Link className="public-route-card" href={`/flights/${guide.slug}`} key={guide.slug}><span className="public-route-codes">{guide.origin.code}<TravelIcon name="arrow" size={16}/>{guide.destination.code}</span><h3>{guide.origin.city} to {guide.destination.city}</h3><p>{guide.description}</p><span className="public-route-action">Plan this journey →</span></Link>)}</div></section>}
     {catalogue.routes.length>0&&<section aria-label="More flight routes"><h2>More routes to explore</h2><div className="public-route-grid">{catalogue.routes.map(route=><Link className="public-route-card" href={flightRoutePath(route)} key={route.slug}><span className="public-route-codes">{route.from}<TravelIcon name="arrow" size={16}/>{route.to}</span><h3>{routeAirport(route.from)!.city} to {routeAirport(route.to)!.city}</h3><p>Airport details, local time zones and a checklist for comparing your flight options.</p><span className="public-route-action">Plan this journey →</span></Link>)}</div></section>}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { HomePackages } from "./home-packages";
 import "@/app/home-packages.css";
 import { useCompanyProfile } from "./company-profile-context";
@@ -20,6 +21,7 @@ import "@/app/search-pickers.css";
 import { TravelFooter, TravelHeader, TravelIcon } from "@/components/travel-shell";
 import {StitchSymbol} from "./stitch-symbol";
 import {HomeDisclosure} from "./home-disclosure";
+import HomeRecentSearches, { rememberHomeSearch } from "./home-recent-searches";
 
 type Product = "FLIGHT" | "HOTEL";
 type SearchDraft = {
@@ -31,12 +33,13 @@ type SearchDraft = {
   cabin: string;
 };
 const destinations = [
-  { name: "Goa", slug: "goa", airports: "GOI/GOX", detail: "Beach days, coastal cafés and heritage quarters", theme: "Coastal escape" },
-  { name: "The Maldives", slug: "maldives", airports: "MLE", detail: "Turquoise lagoons and overwater villas", theme: "Island stays" },
-  { name: "Dubai", slug: "dubai", airports: "DXB", detail: "Skyline panoramas and desert sunsets", theme: "City breaks" },
-  { name: "Bali", slug: "bali", airports: "DPS", detail: "Lakeside temples and island jungle stays", theme: "Island discovery" },
-  { name: "Paris", slug: "paris", airports: "CDG", detail: "Boulevard cafés and distinctive boutique hotels", theme: "European escapes" },
+  { name: "Goa", slug: "goa", airports: "GOI/GOX", detail: "Beach days, coastal cafés and heritage quarters", theme: "Coast & islands", location: "India" },
+  { name: "The Maldives", slug: "maldives", airports: "MLE", detail: "Turquoise lagoons and overwater villas", theme: "Coast & islands", location: "Indian Ocean" },
+  { name: "Dubai", slug: "dubai", airports: "DXB", detail: "Skyline panoramas and desert sunsets", theme: "City breaks", location: "United Arab Emirates" },
+  { name: "Bali", slug: "bali", airports: "DPS", detail: "Lakeside temples and island jungle stays", theme: "Coast & islands", location: "Indonesia" },
+  { name: "Paris", slug: "paris", airports: "CDG", detail: "Boulevard cafés and distinctive boutique hotels", theme: "City breaks", location: "France" },
 ];
+const destinationThemes = ['All destinations', 'Coast & islands', 'City breaks'] as const;
 const hubs = [destinations[4], destinations[1], destinations[0], destinations[2], destinations[3]];
 const cities: Record<string,string> = { HYD:"Hyderabad", DEL:"New Delhi", BOM:"Mumbai", GOI:"Goa", DXB:"Dubai", BLR:"Bengaluru" };
 const popularPairs = [["HYD","DEL"], ["DEL","BOM"], ["BOM","GOI"], ["HYD","DXB"], ["DEL","BLR"], ["BLR","HYD"]];
@@ -67,6 +70,7 @@ export default function HomeSearch({ children, offers, guides, assistantEnabled 
   const form = useRef<HTMLFormElement>(null);
   const company = useCompanyProfile();
   const [featured, setFeatured] = useState<typeof destinations[number] | null>(null);
+  const [theme, setTheme] = useState<typeof destinationThemes[number]>(destinationThemes[0]);
   const [product, setProduct] = useState<Product>("FLIGHT");
   const [airports, setAirports] = useState({ from: "Mumbai (BOM)", to: "New Delhi (DEL)" });
   const [airportRevision, setAirportRevision] = useState(0);
@@ -203,6 +207,7 @@ export default function HomeSearch({ children, offers, guides, assistantEnabled 
     // Exact criteria stay in JS memory across the client navigation. An incomplete
     // destination batch simply uses the normal /book mapping/search path.
     try{backgroundSearch.warmOnSubmit(currentSearchInput(data));}catch{backgroundSearch.pause();}
+    rememberHomeSearch(params, product === "FLIGHT" ? `${from} → ${to}` : String(data.get("city") || "Hotel search"));
     startNavigation(() => router.push(`/book?${params}`));
   }
 
@@ -218,23 +223,23 @@ export default function HomeSearch({ children, offers, guides, assistantEnabled 
     {hubs.map(hub => <button key={hub.slug} type="button" aria-label={hub.name} aria-pressed={featured === hub} onClick={() => setFeatured(hub)}>{hub.name} <span>({hub.airports})</span></button>)}
     {featured && <Link href={`/book?${featuredStay}`}>Find stays in {featured.name.replace(/^The /,"the ")} <TravelIcon name="arrow" size={14}/></Link>}
   </div>;
-  return <div className="trip-home stitch-home">
+  return <div className="trip-home stitch-home travel-atlas-home">
     <TravelHeader active={product === "FLIGHT" ? "flights" : "hotels"} onProductChange={openSearch} />
     <main id="main-content">
-      <section className="stitch-home-hero" aria-labelledby="home-title">
-        <svg aria-hidden="true" focusable="false" className="stitch-flight-paths" viewBox="0 0 1440 600" fill="none">
-          <path d="M-100 480C200 400 450 180 800 240C1150 300 1300 120 1600 80" stroke="currentColor" strokeDasharray="8 8" strokeWidth="2"/>
-          <path d="M100 580C360 480 620 310 940 340C1260 370 1420 220 1680 180" stroke="currentColor" strokeDasharray="6 6" strokeWidth="1.5"/>
-          <g fill="currentColor"><circle cx="800" cy="240" r="5"/><circle cx="940" cy="340" r="4"/><circle cx="450" cy="380" r="4"/><circle cx="1200" cy="190" r="6"/></g>
-        </svg>
-        <div className="stitch-home-wrap">
-          <div className="stitch-office-line"><span><i aria-hidden="true"/> {company.address.addressLocality} office · {company.hours.opens} – {company.hours.closes} IST</span>{company.gstNumber && <span>GST registered · {company.gstNumber}</span>}<a href={company.phoneHref}>Concierge hotline <b>{company.phone}</b></a>
-            {assistantEnabled&&<button type="button" className="stitch-home-ai-trigger" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" onClick={event=>event.currentTarget.dispatchEvent(new Event('maxtravel:open-assistant',{bubbles:true}))}>Ask Max AI</button>}
-          </div>
+      <section className="atlas-hero stitch-home-wrap" aria-labelledby="home-title">
+        <div className="atlas-hero-copy">
+          <Link href="/office" className="atlas-desk"><TravelIcon name="pin" size={15}/>{company.address.addressLocality} travel desk</Link>
           <h1 id="home-title">Find your <em>next escape.</em></h1>
-          <p>Flights, distinctive stays and <span className="stitch-wide-only">curated boutique </span>holidays from Goa to Paris.<span className="stitch-wide-only"> Compare live availability and review the full price with our Secunderabad concierge team.</span></p>
-          <div className="stitch-hubs-desktop">{hubLinks}</div>
+          <p>Compare flights and stays, or plan a tailor-made holiday with our travel team.</p>
+          <div className="atlas-hero-actions">
+            <Link href="#discover">Explore destinations <TravelIcon name="arrow" size={16}/></Link>
+            {assistantEnabled&&<button type="button" aria-label="Open Max AI travel assistant" aria-haspopup="dialog" onClick={event=>event.currentTarget.dispatchEvent(new Event('maxtravel:open-assistant',{bubbles:true}))}>Ask Max AI</button>}
+          </div>
         </div>
+        <figure className="atlas-hero-photo">
+          <Image src="/travel/stitch/desktop-goa.webp" alt="Palm-lined coastline in Goa" fill preload sizes="(max-width: 690px) 100vw, 56vw" />
+          <figcaption><TravelIcon name="pin" size={15}/><span><strong>Goa</strong><small>India’s west coast</small></span></figcaption>
+        </figure>
       </section>
 
       <section id="trip-search" className="home-search-card" aria-label="Plan your trip" tabIndex={-1}>
@@ -246,7 +251,7 @@ export default function HomeSearch({ children, offers, guides, assistantEnabled 
             <Link href="/visa-guide"><StitchSymbol name="assignment_turned_in"/>Visas</Link>
             <Link href="/travel-insurance-guide"><StitchSymbol name="verified_user"/>Travel insurance</Link>
           </div>
-          <Link className="stitch-assurance" href="/pricing-transparency">Book with assurance <b>Pricing transparency</b></Link>
+          <Link className="stitch-assurance" href="/pricing-transparency">Pricing transparency <TravelIcon name="arrow" size={14}/></Link>
         </div>
         <form ref={form} className="home-search-form" aria-describedby={notice ? "home-search-error" : undefined} onChange={clearCorrectableNotice} onSubmit={submit}>
           <div className="home-search-options">{product === "FLIGHT" ? <fieldset><legend className="visually-hidden">Journey type</legend><label><input type="radio" name="journey" checked={!roundTrip} onChange={() => {setOpenReturnOnMount(false);setRoundTrip(false);}} />One way</label><label><input type="radio" name="journey" checked={roundTrip} onChange={() => {setOpenReturnOnMount(false);setRoundTrip(true);}} />Round trip</label><button className="stitch-multicity" type="button" onClick={() => advancedSearch(true)}>Multi-city</button></fieldset> : <span className="home-stay-note"><TravelIcon name="hotel" size={16} />One room · Indian nationality</span>}{product === "FLIGHT" && <div className="stitch-cabin-shortcuts" role="group" aria-label="Quick cabin selection"><span>Cabin class</span>{cabinChoices.map(([value,label])=><button type="button" key={value} aria-pressed={cabin === value} onClick={()=>updateDraft({cabin:value})}>{label}</button>)}</div>}<button type="button" className="home-advanced-link" onClick={() => advancedSearch()} aria-label={product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}><span>{product === "FLIGHT" ? "More search options" : "More rooms, children or another nationality"}</span><StitchSymbol name="tune" size={16}/></button></div>
@@ -267,18 +272,23 @@ export default function HomeSearch({ children, offers, guides, assistantEnabled 
         </form>
       </section>
 
+      <HomeRecentSearches />
       <section className="home-confidence" aria-label="Plan with confidence"><div><i><StitchSymbol name="receipt_long" size={23}/></i><span><strong>Clear before checkout</strong><small>Review the total and supplier rules<span className="stitch-wide-only"> before making a payment.</span></small></span></div><div><i><StitchSymbol name="luggage" size={23}/></i><span><strong>Details that matter</strong><small>Fares, baggage &amp; cancellation rules<span className="stitch-wide-only"> for the option you choose.</span></small></span></div><div><i><StitchSymbol name="folder_shared" size={23}/></i><span><strong>Your trip in 1 place</strong><small>Updates and documents in My trips<span className="stitch-wide-only">, from payment status to booking confirmation.</span></small></span></div></section>
 
       {offers}
       <section id="discover" className="stitch-discover stitch-home-wrap" aria-labelledby="discover-heading">
         <div className="stitch-section-title"><div><h2 id="discover-heading">Explore hotel destinations</h2><p>Compare stays and check live availability.</p></div><Link href="/hotels">Browse hotels<TravelIcon name="arrow" size={15}/></Link></div>
-        <div className="stitch-destinations">{destinations.map(place=>{
+        <div className="atlas-destination-filters" role="group" aria-label="Filter hotel destinations">
+          {destinationThemes.map(item => <button key={item} type="button" onClick={() => setTheme(item)} aria-pressed={theme === item}>{item}</button>)}
+        </div>
+        <div className="stitch-destinations">{destinations.filter(place => theme === destinationThemes[0] || place.theme === theme).map(place=>{
           const city = place.name.replace(/^The /,"");
           const search = new URLSearchParams({ product:"HOTEL",city,date:drafts.HOTEL.date,end:drafts.HOTEL.end,adults:String(drafts.HOTEL.adults) });
           return <Link className={`stitch-getaway stitch-getaway-${place.slug}`} key={place.slug} href={`/book?${search}`} aria-label={`Explore stays in ${place.name}`}>
-            <span className="stitch-getaway-photo" aria-hidden="true"/><span className="stitch-getaway-tag">{place.theme}</span><div><h3>{place.name}</h3><p>{place.detail}</p></div>
+            <span className="stitch-getaway-photo" aria-hidden="true"/><div><span className="stitch-getaway-tag">{place.location}</span><h3>{place.name}</h3><p>{place.detail}</p></div><span className="atlas-destination-arrow" aria-hidden="true"><TravelIcon name="arrow" size={18}/></span>
           </Link>;
         })}</div>
+        <div className="stitch-hubs-desktop">{hubLinks}</div>
       </section>
 
       <HomePackages />

@@ -1,0 +1,378 @@
+/* Keep the journey palette local to the booking and customer workspaces. */
+.revamp-journey {
+  --journey-pine: #0c3532;
+  --journey-cream: #faf7ef;
+  --journey-ivory: #fffdf8;
+  --journey-ink: #102b29;
+  --journey-muted: #4e645e;
+  --journey-action: #a94924;
+  --journey-action-hover: #873719;
+  --journey-sage: #e6efe7;
+  --journey-line: #d7ded3;
+  --journey-warm: #f2ebdc;
+  --journey-shadow: 0 10px 26px rgb(16 43 41 / 7%);
+  --journey-display: var(--font-travel-display), Georgia, serif;
+  --brand-midnight: var(--journey-pine);
+  --brand-action: var(--journey-action);
+  --brand-ink: var(--journey-ink);
+  --brand-slate: #254a44;
+  --brand-muted: var(--journey-muted);
+  --brand-ivory: var(--journey-ivory);
+  --brand-sand: var(--journey-sage);
+  --brand-line: var(--journey-line);
+  --brand-gold: #dab890;
+  --brand-gold-ink: var(--journey-action-hover);
+  --brand-paper-sheen: none;
+  --brand-night-sheen: none;
+  --brand-gold-sheen: none;
+  color: var(--journey-ink);
+}
+body.stitch-theme:has(main.revamp-journey) { background: #faf7ef; }
+body.stitch-theme .booking-workflow.journey-flow.revamp-booking { background: transparent; }
+body.stitch-theme .revamp-journey :is(a,button,summary,input,textarea,select):focus-visible {
+  outline: 2px solid var(--journey-action);
+  outline-offset: 3px;
+}
+body.stitch-theme .revamp-journey .primary:not(:disabled) {
+  background: var(--journey-action);
+  border-color: var(--journey-action);
+  color: #fff;
+  box-shadow: none;
+}
+body.stitch-theme .revamp-journey .primary:not(:disabled):hover { background: var(--journey-action-hover); }
+body.stitch-theme .revamp-journey .secondary:not(:disabled) {
+  background-color: var(--journey-ivory);
+  border-color: var(--journey-line);
+  color: var(--journey-pine);
+}
+
+/* Search and route context */
+.revamp-booking-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0 0 12px;
+  color: var(--journey-muted);
+  font-size: .84rem;
+}
+.revamp-booking-breadcrumb .back { margin: 0; color: var(--journey-pine); text-underline-offset: 4px; }
+.revamp-booking-breadcrumb [aria-current] { color: var(--journey-ink); font-weight: 700; }
+.revamp-booking.is-searching > .revamp-booking-breadcrumb { display: none; }
+body.stitch-theme .revamp-booking.booking-shopping:not(.has-journey, .is-searching) .booking-intro {
+  margin-block: 0 14px;
+  padding: clamp(20px, 4vw, 48px);
+  border: 0;
+  border-radius: 22px;
+  background: linear-gradient(110deg, var(--journey-pine), #1b5146);
+  color: var(--journey-ivory);
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-booking.booking-shopping:not(.has-journey, .is-searching) .booking-intro h1 {
+  margin: 0;
+  color: var(--journey-ivory);
+  font: 400 clamp(34px, 6vw, 58px)/1 var(--journey-display);
+  letter-spacing: -.01em;
+}
+body.stitch-theme .revamp-booking .booking-intro .booking-heading-icon {
+  color: inherit;
+  background: rgb(255 253 248 / 13%);
+  border: 1px solid rgb(255 253 248 / 26%);
+}
+body.stitch-theme .revamp-booking.booking-shopping:not(.has-journey, .is-searching) .booking-intro p {
+  color: #e3eee4;
+  margin-block: 8px 0;
+}
+.revamp-booking .booking-intro .booking-test-badge {
+  color: var(--journey-pine);
+  background: var(--journey-warm);
+  border-color: transparent;
+}
+body.stitch-theme .revamp-booking .booking-progress li { color: var(--journey-muted); border-color: var(--journey-line); }
+body.stitch-theme .revamp-booking .booking-progress li.is-current { color: var(--journey-pine); font-weight: 750; }
+body.stitch-theme .revamp-booking .booking-progress li > span {
+  color: var(--journey-pine);
+  background: var(--journey-sage);
+  border-color: var(--journey-line);
+}
+body.stitch-theme .revamp-booking .booking-progress .is-current > span { color: #fff; background: var(--journey-pine); border-color: var(--journey-pine); }
+body.stitch-theme .revamp-booking .booking-progress .is-complete > span { color: var(--journey-pine); background: var(--journey-sage); }
+body.stitch-theme .revamp-booking .booking-product-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px;
+  background: var(--journey-sage);
+  border-radius: 13px;
+  border: 1px solid var(--journey-line);
+}
+body.stitch-theme .revamp-booking .booking-product-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--journey-pine);
+  border-radius: 9px;
+}
+body.stitch-theme .revamp-booking .booking-product-tabs button[aria-pressed=true] { background: var(--journey-pine); color: #fff; }
+body.stitch-theme .revamp-booking .booking-search-panel:has(summary:not(.booking-criteria-strip)),
+body.stitch-theme .revamp-booking .booking-summary.is-planning {
+  border-color: var(--journey-line);
+  background: var(--journey-ivory);
+  border-radius: 19px;
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-booking #booking-search .live-search {
+  border-color: var(--journey-line);
+  background: var(--journey-ivory);
+}
+body.stitch-theme .revamp-booking #booking-search :is(input:not([type=radio], [type=checkbox]),select),
+body.stitch-theme .revamp-booking #booking-review :is(input:not([type=radio], [type=checkbox]), select) {
+  border-color: #b4c3b8;
+  background-color: #fff;
+  color: var(--journey-ink);
+}
+body.stitch-theme .revamp-booking :is(input[type=radio],input[type=checkbox]) { accent-color: var(--journey-pine); }
+body.stitch-theme .revamp-booking .booking-summary.is-planning h2 { color: var(--journey-pine); font-family: var(--journey-display); font-size: 28px; }
+body.stitch-theme .revamp-booking .booking-availability-notice { color: var(--journey-ink); border-color: #d7bda0; background: #f7ebda; }
+body.stitch-theme .revamp-booking .booking-availability-notice .inline-link { color: var(--journey-action-hover); }
+
+/* Results preserve the same filters, committed criteria and prices. */
+body.stitch-theme .revamp-booking.results-only :is(#booking-search,#booking-results,#booking-rooms) {
+  --brand-midnight: var(--journey-pine);
+  --brand-action: var(--journey-action);
+  --brand-ink: var(--journey-ink);
+  --brand-muted: var(--journey-muted);
+  --brand-ivory: var(--journey-ivory);
+  --brand-tint: var(--journey-cream);
+  --brand-line: var(--journey-line);
+  --brand-sand: var(--journey-sage);
+  --brand-gold: #dab890;
+  --shopping-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-booking.results-only #booking-search .booking-criteria-strip {
+  background: var(--journey-pine);
+  color: #fff;
+  border-radius: 14px;
+  border-color: var(--journey-pine);
+  clip-path: none;
+  box-shadow: var(--journey-shadow);
+  padding-inline: clamp(14px, 2vw, 24px);
+}
+body.stitch-theme .revamp-booking #booking-search .booking-criteria-strip .booking-criteria-field small { color: #d3e6d8; }
+body.stitch-theme .revamp-booking #booking-search .booking-criteria-strip .booking-criteria-field :is(strong,em) { color: var(--journey-ivory); }
+body.stitch-theme .revamp-booking #booking-search .booking-criteria-strip .search-edit-label { background: var(--journey-ivory); color: var(--journey-pine); }
+body.stitch-theme .revamp-booking #booking-results :is(.booking-results-toolbar,.flight-shopping-controls,.hotel-filter-sidebar,.flight-date-timeline,.empty-results) {
+  border: 1px solid var(--journey-line);
+  background: var(--journey-ivory);
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-booking #booking-results .booking-results-heading h2 {
+  color: var(--journey-pine);
+  font: 400 clamp(22px, 3vw, 32px)/1.1 var(--journey-display);
+  overflow-wrap: anywhere;
+}
+body.stitch-theme .revamp-booking #booking-results :is(.flight-sort-card-metrics strong,.hotel-filter-heading h3,.flight-filter-intro strong,.hotel-result-title h3 a) { color: var(--journey-pine); }
+body.stitch-theme .revamp-booking #booking-results :is(.flight-sort-card[aria-pressed=true],.flight-filter-quick button[aria-pressed=true],.stay-quick-amenities button[aria-pressed=true]) {
+  color: var(--journey-pine);
+  background: var(--journey-sage);
+  border-color: #a5baab;
+}
+body.stitch-theme .revamp-booking #booking-results :is(.flight-date-day,.flight-result-details,.flight-result-shortcuts,.flight-desk-link) {
+  background-color: var(--journey-cream);
+}
+body.stitch-theme .revamp-booking #booking-results .flight-date-day[aria-current=date] { background: var(--journey-pine); border-color: var(--journey-pine); }
+body.stitch-theme .revamp-booking #booking-results :is(.flight-date-arrows button,.airline-monogram,.hotel-filter-chip) {
+  color: var(--journey-pine);
+  background: var(--journey-sage);
+  border-color: var(--journey-line);
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-time-grid button {
+  color: var(--journey-pine);
+  background: var(--journey-cream);
+  border: 1px solid var(--journey-line);
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-time-grid button[aria-pressed=true] {
+  color: #fff;
+  background: var(--journey-pine);
+  border-color: var(--journey-pine);
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-time-grid .stitch-symbol { color: inherit; }
+body.stitch-theme .revamp-booking #booking-results :is(.stitch-facets-header button,.stitch-more-airlines > summary) { color: var(--journey-action-hover); }
+body.stitch-theme .revamp-booking #booking-results .stitch-facet-option[aria-pressed=true] .stitch-facet-tick {
+  border-color: var(--journey-pine);
+  background: var(--journey-pine);
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-facet-budget input[type=range] { accent-color: var(--journey-pine); }
+body.stitch-theme .revamp-booking #booking-results :is(.flight-shopping-list .live-flight-card,.hotel-shopping-card,.fare-option) {
+  background: var(--journey-ivory);
+  border-color: var(--journey-line);
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-booking #booking-results :is(.flight-route-line > div > strong,.flight-price-amount,.airline-identity strong,.hotel-stay-price strong) { color: var(--journey-pine); }
+body.stitch-theme .revamp-booking #booking-results :is(.flight-route-line > div:not(.flight-route-track) > span,.flight-route-track small,.flight-segment-details > summary,.flight-headline-facts svg) {
+  color: var(--journey-pine);
+}
+body.stitch-theme .revamp-booking #booking-results .choose-fare-label { background: var(--journey-action); color: #fff; }
+body.stitch-theme .revamp-booking #booking-results :is(.fare-comparison-trigger:hover,.fare-comparison > summary:hover) .choose-fare-label { background: var(--journey-action-hover); }
+body.stitch-theme .revamp-booking #booking-results .fare-option.is-lowest-fare { border-color: #84a594; }
+body.stitch-theme .revamp-booking :is(#booking-rooms,#booking-review) :is(.stay-detail-heading,.stay-rate-preview,.stay-room-group,.selected-itinerary,.booking-contact,.checkout-methods) {
+  border-color: var(--journey-line);
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-booking #booking-rooms :is(.stay-detail-heading,.stay-room-group,.stay-rate-preview) { background: var(--journey-ivory); }
+.revamp-booking .stitch-search-route { --stitch-route-surface: linear-gradient(105deg, var(--journey-pine), #1b5146); }
+
+/* Review and payment retain the responsive receipt and sticky pay action. */
+body.stitch-theme .revamp-journey :is(#booking-review,.booking-status-page.stitch-voucher),
+body.stitch-theme .revamp-journey.stitch-voucher {
+  --review-navy: var(--journey-pine);
+  --review-blue: var(--journey-action-hover);
+  --review-text: var(--journey-ink);
+  --review-muted: var(--journey-muted);
+  --review-line: var(--journey-line);
+  --review-shadow: var(--journey-shadow);
+  --stitch-outline: var(--journey-line);
+  --stitch-light-surface: var(--journey-sage);
+}
+body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-expiry {
+  background: var(--journey-sage);
+  border-color: var(--journey-line);
+  color: var(--journey-pine);
+}
+body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-expiry.is-expired {
+  background: #fbecdf;
+  color: #783510;
+  border-color: #e9c6a9;
+}
+body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-expiry :is(strong,p,small) { color: inherit; }
+body.stitch-theme .revamp-booking #booking-review :is(.stitch-itinerary,.booking-review-column,.review-guests,.booking-contact) {
+  border-color: var(--journey-line);
+  background: var(--journey-ivory);
+}
+body.stitch-theme .revamp-booking #booking-review .booking-review-column { border-top: 3px solid var(--journey-pine); border-radius: 17px; }
+body.stitch-theme .revamp-booking #booking-review .booking-summary-lines .booking-total { background: var(--journey-warm); color: var(--journey-pine); }
+body.stitch-theme .revamp-booking #booking-review .checkout-submit-action.mobile-booking-action { border-color: var(--journey-line); background: var(--journey-ivory); }
+body.stitch-theme .revamp-booking #booking-review .checkout-submit-action .booking-continue:not(:disabled) { background: var(--journey-action); box-shadow: none; }
+body.stitch-theme .revamp-booking #booking-review .checkout-submit-action .booking-continue:not(:disabled):hover { background: var(--journey-action-hover); }
+body.stitch-theme .revamp-booking #booking-review .checkout-methods label:has(input:checked) { border-color: var(--journey-pine); background: var(--journey-sage); }
+body.stitch-theme .revamp-booking #booking-review :is(.review-payable,.checkout-promo) { border-color: var(--journey-line); background: var(--journey-cream); }
+body.stitch-theme .revamp-booking #booking-review .booking-concierge { background: var(--journey-pine); }
+body.stitch-theme .revamp-booking #booking-review .booking-concierge .secondary:focus-visible { outline-color: var(--journey-ivory); }
+
+/* Private workspace and booking look-up. */
+body.stitch-theme .revamp-account :is(.account-card,.account-workspace-discover,.traveller-profile-list .white-card,.booking-account-next) {
+  background: var(--journey-ivory);
+  border-color: var(--journey-line);
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-account .account-workspace-sidebar .account-experience-nav a[aria-current=page] {
+  color: #fff;
+  background: var(--journey-pine);
+  box-shadow: inset 3px 0 0 #d8a986;
+}
+body.stitch-theme .revamp-account :is(.account-shell,.reset-experience,.traveller-experience) h1 {
+  color: var(--journey-pine);
+  font: 400 clamp(34px, 5vw, 52px)/1.08 var(--journey-display);
+  letter-spacing: -.02em;
+}
+body.stitch-theme .revamp-account .account-benefits::before { background: linear-gradient(155deg, rgb(12 53 50 / 78%), var(--journey-pine) 76%); }
+body.stitch-theme .revamp-account .account-benefits :is(.account-benefits-icon,li>svg),
+body.stitch-theme .revamp-account .account-benefits > a { color: #f3d4b6; }
+body.stitch-theme .revamp-account .account-card .account-tabs { background: var(--journey-sage); border-color: var(--journey-line); }
+body.stitch-theme .revamp-account .account-card .account-tabs button[aria-pressed=true] { color: #fff; background: var(--journey-pine); }
+body .page-shell.revamp-journey.revamp-trips {
+  --hub-navy: var(--journey-pine);
+  --hub-ink: var(--journey-ink);
+  --hub-blue: var(--journey-action-hover);
+  --hub-muted: var(--journey-muted);
+  --hub-paper: var(--journey-sage);
+  --hub-border: var(--journey-line);
+  --hub-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-trips .revamp-trip-access {
+  max-width: 720px;
+  margin-inline: auto;
+  padding: clamp(20px, 5vw, 42px);
+  background: var(--journey-ivory);
+  border: 1px solid var(--journey-line);
+  border-top: 4px solid var(--journey-pine);
+  border-radius: 20px;
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-trips .revamp-trip-access h1 { font: 400 clamp(30px, 5vw, 49px)/1.12 var(--journey-display); color: var(--journey-pine); }
+body.stitch-theme .revamp-trips.concierge-trips .trips-content > .page-heading {
+  background: var(--journey-pine);
+  color: var(--journey-ivory);
+  border-color: var(--journey-pine);
+}
+body.stitch-theme .revamp-trips .page-heading :is(h1,p,.stitch-symbol),body.stitch-theme .revamp-trips .hub-metrics small { color: #f6f4eb; }
+body.stitch-theme .revamp-trips .page-heading h1 {
+  font: 400 clamp(26px, 4.5vw, 46px)/1.08 var(--journey-display);
+  letter-spacing: -.01em;
+}
+body.stitch-theme .revamp-trips .page-heading .hub-avatar { background: var(--journey-sage); color: var(--journey-pine); }
+body.stitch-theme .revamp-trips .hub-metrics div { background: rgb(255 255 255 / 12%); color: #fff; }
+body.stitch-theme .revamp-trips :is(.hub-browser,.trip-record,.trips-checklist,.booking-pnr-lookup) {
+  background: var(--journey-ivory);
+  border-color: var(--journey-line);
+}
+body.stitch-theme .revamp-trips .booking-pnr-lookup summary { color: var(--journey-pine); }
+body.stitch-theme .revamp-trips :is(.hub-booking-heading,.hub-reference) { background: var(--journey-sage); }
+body.stitch-theme .revamp-trips .hub-product-icon { background: var(--journey-warm); color: var(--journey-action-hover); }
+body.stitch-theme .revamp-trips .trips-support-card { background: var(--journey-ivory); border-color: var(--journey-line); }
+body.stitch-theme .revamp-trip-status :is(.booking-status-card,.booking-status-header,.voucher-reference) { background: var(--journey-ivory); border-color: var(--journey-line); }
+body.stitch-theme .revamp-trip-status .booking-status-itinerary { background: var(--journey-sage); }
+body.stitch-theme .revamp-trip-status :is(.booking-status-header,.booking-status-access) h1 {
+  color: var(--journey-pine);
+  font: 400 clamp(28px, 5vw, 45px)/1.08 var(--journey-display);
+}
+
+@media (min-width: 701px) {
+  body.stitch-theme .revamp-booking.results-only:not(.is-searching) > .booking-progress {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+    overflow: visible;
+    margin: 0 0 12px;
+  }
+  body.stitch-theme .revamp-booking #booking-review .checkout-stages { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+}
+@media (max-width: 1100px) {
+  body.stitch-theme .revamp-booking #booking-results :is(.shopping-filter-actions .flight-filter-trigger,.hotel-sort-filter .hotel-filter-toggle) {
+    background: var(--journey-pine);
+    color: #fff;
+  }
+  body.stitch-theme .revamp-booking #booking-results :is(.flight-dock-sort,.hotel-sort-filter :is(label,.hotel-map-action)) {
+    background: var(--journey-sage);
+    color: var(--journey-pine);
+  }
+}
+@media (max-width: 700px) {
+  .revamp-booking:is(.results-only,.checkout-active) > .revamp-booking-breadcrumb { display: none; }
+  body.stitch-theme .revamp-booking.booking-shopping:not(.has-journey, .is-searching) .booking-intro { padding: 18px; border-radius: 16px; }
+  body.stitch-theme .revamp-booking .booking-intro .booking-heading-icon { display: none; }
+  body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-expiry { border-radius: 0; }
+  body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-progress {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
+  }
+  body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-progress li {
+    display: flex;
+    flex-direction: column;
+    white-space: normal;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+  body.stitch-theme .revamp-booking #booking-review .booking-review-column { border-top-width: 1px; }
+  body.stitch-theme .revamp-trips .page-heading h1 { font-size: clamp(23px, 6vw, 32px); }
+}
+@media (max-width: 360px) {
+  body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-progress li { gap: 4px; }
+}

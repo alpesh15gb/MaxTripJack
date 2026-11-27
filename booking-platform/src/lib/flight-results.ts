@@ -16,11 +16,24 @@ export function arrivalDayLabel(departure:string,arrival:string):string|null{
  const offset=(end-start)/86400000;if(!offset)return null;
  return `${offset>0?'+':''}${offset} calendar day${Math.abs(offset)===1?'':'s'}`;
 }
-export function matchesFlightRefinements(flight:Flight,group:string,departureWindow:string,budget:string):boolean{
+export const flightDepartureWindows = ['EARLY','MORNING','AFTERNOON','EVENING'] as const;
+export type FlightDepartureWindow = typeof flightDepartureWindows[number];
+
+export function matchesFlightRefinements(flight:Flight,group:string,departure:string|readonly FlightDepartureWindow[],budget:string):boolean{
  if(budget.trim()){const limit=Number(budget),price=estimatedFare(flight);if(!Number.isFinite(limit)||limit<0||!Number.isFinite(price)||price>limit*100)return false;}
- if(group==='COMBO'||departureWindow==='ALL')return true;
+ const windows=typeof departure==='string'?(departure==='ALL'?[]:[departure]):departure;
+ if(group==='COMBO'||!windows.length)return true;
  const time=flight.sI[0]?.dt.slice(11,16);if(!time||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))return false;
- const hour=Number(time.slice(0,2));return departureWindow==='EARLY'?hour<6:departureWindow==='MORNING'?hour>=6&&hour<12:departureWindow==='AFTERNOON'?hour>=12&&hour<18:departureWindow==='EVENING'?hour>=18:false;
+ const window=flightDepartureWindows[Math.floor(Number(time.slice(0,2))/6)];
+ return windows.some(selected=>selected===window);
+}
+
+export function flightConnectionAirports(flight:Flight,group:string):Flight['sI'][number]['aa'][] {
+ if(group==='COMBO')return [];
+ return flight.sI.slice(0,-1).flatMap((segment,index)=>{
+  const next=flight.sI[index+1];
+  return /^[A-Z]{3}$/.test(segment.aa.code)&&segment.aa.code===next.da.code&&Boolean(segment.isRs)===Boolean(next.isRs)?[segment.aa]:[];
+ });
 }
 
 /** Combine identical segment payloads, retaining every distinct supplier fare. */

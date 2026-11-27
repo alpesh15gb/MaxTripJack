@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {groupIdenticalFlights,arrivalDayLabel,matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops} from '../src/lib/flight-results';
+import {groupIdenticalFlights,arrivalDayLabel,matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops,flightConnectionAirports} from '../src/lib/flight-results';
 import type {Flight} from '../src/lib/booking-presentation';
 const flight:Flight={sI:[{dt:'2026-11-04T23:25:00',at:'2026-11-05T01:50:00',fD:{aI:{name:'Example'},fN:'1'},da:{code:'DEL'},aa:{code:'NMI'}}],totalPriceList:[{id:'fare',fareIdentifier:'STANDARD',customerEstimateMinor:1200000,fD:{}}]};
 test('AI carrier preference matches all outbound, return and COMBO segments; COMBO has no invented stop count',()=>{
@@ -27,6 +27,22 @@ test('flight departure and budget filters use known group totals without new pri
  assert.equal(matchesFlightRefinements({...flight,totalPriceList:[]},'ONWARD','ALL','12000'),false);
  assert.equal(matchesFlightRefinements({...flight,sI:[{...flight.sI[0],dt:'unknown'}]},'ONWARD','MORNING',''),false);
  assert.equal(matchesFlightRefinements(flight,'ONWARD','ALL','not a price'),false);
+});
+test('departure windows use local times with OR between windows and AND with the budget',()=>{
+ const departing=(time:string):Flight=>({...flight,sI:[{...flight.sI[0],dt:`2026-11-04T${time}:00+05:30`}]});
+ for(const time of ['06:00','11:59','18:00','23:59'])assert.equal(matchesFlightRefinements(departing(time),'ONWARD',['MORNING','EVENING'],'12000'),true);
+ for(const time of ['05:59','12:00','17:59','24:00'])assert.equal(matchesFlightRefinements(departing(time),'ONWARD',['MORNING','EVENING'],'12000'),false);
+ assert.equal(matchesFlightRefinements(departing('18:00'),'ONWARD',['MORNING','EVENING'],'11999'),false);
+ assert.equal(matchesFlightRefinements(departing('12:00'),'ONWARD',[],'12000'),true);
+});
+test('connection airports come only from contiguous segments within a flight group',()=>{
+ const first={...flight.sI[0],aa:{code:'BOM',city:'Mumbai'}};
+ const next={...flight.sI[0],da:{code:'BOM'},aa:{code:'NMI'}};
+ assert.deepEqual(flightConnectionAirports({...flight,sI:[first,next]},'ONWARD'),[first.aa]);
+ assert.deepEqual(flightConnectionAirports({...flight,sI:[first,next]},'COMBO'),[]);
+ assert.deepEqual(flightConnectionAirports({...flight,sI:[first,{...next,isRs:true}]},'RETURN'),[]);
+ assert.deepEqual(flightConnectionAirports({...flight,sI:[first,{...next,da:{code:'AMD'}}]},'ONWARD'),[]);
+ assert.deepEqual(flightConnectionAirports(flight,'ONWARD'),[]);
 });
 test('invalid estimates cannot make an unpriced or over-budget flight pass a budget filter',()=>{
  for (const customerEstimateMinor of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
