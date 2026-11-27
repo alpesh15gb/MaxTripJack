@@ -14,7 +14,9 @@ Record each supplier reference, acknowledgement and final result against the cas
 
 Apex’s booking runtime passed account and wallet reads for both TripJack UAT products and Razorpay Test Mode authentication. The audited candidate was built with the expected revision label. [Isolated Apex UAT setup](deploy/TRIPJACK-UAT-APEX.md)
 
-The isolated Apex stack passed registration and email verification, domestic, international, return and multi-city flight search and fare review, and Razorpay test order creation and same-order retry without capture. Hotel v3 listing and pricing passed. The supplier trace showed a new option ID after each Review for the same property and room. The checkout and booking worker now require matching room and search evidence before accepting a rotated ID. Captured payment and supplier ticket, voucher and after-sales acceptance are still open.
+The isolated Apex stack passed registration, email verification and email-code sign-in, plus domestic, international, return and multi-city flight search and review. A supplier trace showed a new hotel option ID after each Review for the same property and room. Version `3d8a10e` accepts the rotated ID only with matching room and search evidence. Hotel v3 listing, pricing and consecutive reviews then passed against the supplier.
+
+Flight and hotel both created an unpaid Razorpay Test Mode order and returned the same order on retry. An altered total and a missing hotel PAN were rejected before checkout. The application and three workers ran the audited candidate on an isolated database. All 935 unit tests passed after the hotel fix. Capture, TripJack ticket or voucher issuance, and supplier after-sales acceptance remain open. Use a TripJack-approved case with a valid traveller name and a contact you control for tests that submit a supplier booking. [TripJack flight certification](https://tripjack.com/page/api-doc#fl-uat)
 
 ## Update — 1 November 2026
 
