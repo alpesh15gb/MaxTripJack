@@ -152,7 +152,7 @@ if (local.health.status !== "ready" || local.authChannels.email !== true ||
     Object.values(tripjack).some(account => account.success !== true || !account.walletBalanceFinite)) {
   process.exitCode = 1;
 }
-'
+' </dev/null
 
 "${compose[@]}" up -d --no-deps --wait --wait-timeout 90 booking-worker cancellation-worker refund-worker
 for attempt in {1..10}; do

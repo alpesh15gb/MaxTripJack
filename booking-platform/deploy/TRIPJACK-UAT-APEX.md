@@ -6,19 +6,19 @@ Use the audited booking image `max-travel-booking:uat-0deb36a` after TripJack co
 (
   set -euo pipefail
   git fetch origin codex/launch-readiness
-  git show "${helper_revision:?Set the reviewed helper revision}:booking-platform/deploy/start-tripjack-uat.sh" |
-    bash -s -- "${app:-max-travel-booking-app-1}"
+  setup=$(mktemp)
+  trap 'rm -f -- "$setup"' EXIT
+  git show "${helper_revision:?Set the reviewed helper revision}:booking-platform/deploy/start-tripjack-uat.sh" >"$setup"
+  bash "$setup" "${app:-max-travel-booking-app-1}"
 )
 ```
 
 The script verifies the candidate revision and creates the `max-travel-uat-0deb36a` project with a dedicated PostgreSQL volume, app, Mailpit, and booking, cancellation and refund workers. It copies only the two supplier keys and the Razorpay test key and secret from the existing app. The credentials and new database and session secrets are stored under `/root/max-travel-uat-0deb36a`. Keep those files private. Booking workers start after the isolated checkout preflight succeeds. Retry the same command to reuse the private configuration and database.
 
-From the workstation, open an SSH tunnel using the existing Apex login. Keep the SSH session open during testing.
+Open a new terminal on the workstation. Run the SSH tunnel command at the local prompt, before signing into Apex in that terminal. Keep that terminal open during testing.
 
 ```bash
-ssh -N -o ExitOnForwardFailure=yes \
-  -L 127.0.0.1:43108:127.0.0.1:43108 \
-  -L 127.0.0.1:48025:127.0.0.1:48025 root@APEX_HOST
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:43108:127.0.0.1:43108 -L 127.0.0.1:48025:127.0.0.1:48025 root@APEX_HOST
 ```
 
 Open `http://127.0.0.1:43108/account` in a fresh browser profile and register `traveller-uat@example.test`. Retrieve its verification link from Mailpit at `http://127.0.0.1:48025`, preferably in a separate browser profile. The verification link uses the same `127.0.0.1:43108` origin. Use TripJack-approved traveller details and scenarios for supplier submissions. [Mailpit Docker configuration](https://mailpit.axllent.org/docs/install/docker/)
