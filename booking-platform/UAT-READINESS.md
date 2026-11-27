@@ -12,6 +12,8 @@ TripJack UAT booking and after-sales acceptance is open. Confirm the stable publ
 
 Record each supplier reference, acknowledgement and final result against the case that produced it. Confirm ticket or voucher status before after-sales, verify each passenger and segment for partial changes and ancillaries, and reconcile the replacement and original tickets for reissue. Keep raw supplier evidence in the approved private evidence channel. Hotel certification also lists hold and confirm and five-room scenarios, which need a scope decision with TripJack for this instant-booking, four-room application. [TripJack Hotel v3 certification cases](https://tripjack.com/page/api-doc)
 
+Apex’s booking runtime passed account and wallet reads for both TripJack UAT products and Razorpay Test Mode authentication. The audited candidate was built with the expected revision label. [Isolated Apex UAT setup](deploy/TRIPJACK-UAT-APEX.md)
+
 ## Update — 1 November 2026
 
 User-supplied diagnostics from the running VPS booking container confirm TripJack flight and hotel keys are configured. A direct UAT DEL–BOM search returned HTTP 200, success and 250 results; the hotel nationality lookup returned HTTP 200, success and 207 entries. Application-layer flight search then returned a search reference and 243 results. The app found India in its nationality list, mapped 100 Goa hotel IDs, and returned a hotel search reference with 31 available properties. These checks establish those search/catalogue paths, not fare review, booking, payment or after-sales acceptance. Razorpay key ID, secret and webhook secret were absent from that container at the time of the check.
