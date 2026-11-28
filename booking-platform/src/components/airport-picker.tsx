@@ -11,8 +11,8 @@ const defaultAirportCities: Record<string,string> = { BOM: "Mumbai", DEL: "New D
 
 type Airport = {code:string; name:string; city:string; country:string};
 
-export default function AirportPicker({name, label, caption = label, initialCode, showSelectedCode = false, hideHint = false, inlineCity = false, onCodeChange}: {
-  name:string; label:string; caption?:string; initialCode:string; showSelectedCode?:boolean; hideHint?:boolean; inlineCity?:boolean; onCodeChange?:(code:string) => void;
+export default function AirportPicker({name, label, caption = label, initialCode, showSelectedCode = false, hideHint = false, inlineCity = false, onCodeChange, onPicked}: {
+  name:string; label:string; caption?:string; initialCode:string; showSelectedCode?:boolean; hideHint?:boolean; inlineCity?:boolean; onCodeChange?:(code:string) => void; onPicked?:() => void;
 }) {
   const id = useId();
   const ready = useClientReady();
@@ -38,7 +38,12 @@ export default function AirportPicker({name, label, caption = label, initialCode
   }, [term]);
 
   const field = <input aria-label={label} data-airport-query={name} disabled={!ready} required list={id} value={query}
-    onChange={event => setQuery(event.target.value)} placeholder="City or airport" autoComplete="off"
+    onChange={event => {
+      const value = event.target.value;
+      setQuery(value);
+      // A suggestion was chosen: let the form move to its next field.
+      if (onPicked && rows.some(row => value === `${row.city || row.name} (${row.code})`)) setTimeout(onPicked, 0);
+    }} placeholder="City or airport" autoComplete="off"
     title="Enter a 3-letter airport code or choose a city suggestion" pattern="[A-Za-z]{3}|.*\([A-Z]{3}\).*"/>;
 
   return <div><label className={showSelectedCode ? "stitch-airport-label" : undefined}>

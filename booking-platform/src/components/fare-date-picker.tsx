@@ -19,9 +19,10 @@ function nextMonth(start:string,count=1){const d=new Date(at(start));d.setUTCMon
 
 /** Date field with an inline two-month calendar. Prices are indicative "from"
  * fares per adult; the hidden input keeps native form submission unchanged. */
-export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper,iconOnly=false,openOnMount=false,startAtMinimum=false,compact=false}:{
+export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper,iconOnly=false,openOnMount=false,startAtMinimum=false,compact=false,openSignal=0}:{
  name?:string;label:string;value:string;min:string;max?:string;onChange:(value:string)=>void;iconOnly?:boolean;
  fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;openOnMount?:boolean;startAtMinimum?:boolean;compact?:boolean;
+ /** Increment to open the calendar (auto-advance from the previous field). */ openSignal?:number;
 }){
  const id=useId(),root=useRef<HTMLDivElement>(null),grid=useRef<HTMLDivElement>(null);
  const firstMonth=monthStart(startAtMinimum?min:value||min);
@@ -29,6 +30,8 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares,
  const [open,setOpen]=useState(openOnMount);
  const [view,setView]=useState(firstMonth);
  const [focus,setFocus]=useState(firstFocus);
+ const [seenSignal,setSeenSignal]=useState(openSignal);
+ if(openSignal!==seenSignal){setSeenSignal(openSignal);if(openSignal>0){setView(firstMonth);setFocus(firstFocus);setOpen(true);}}
  const hasFares=Boolean(fares&&Object.keys(fares).length);
  const close=useCallback(()=>setOpen(false),[]);
  useEffect(()=>{if(open)grid.current?.querySelector<HTMLButtonElement>(`[data-date="${focus}"]`)?.focus();},[open,focus,view]);

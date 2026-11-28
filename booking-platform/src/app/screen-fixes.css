@@ -11,3 +11,33 @@
   html body .private-trips-masthead .page-heading > :last-child { grid-column: 1 / -1; justify-content: flex-start; }
   html body .private-trips-masthead .hub-identity h1 { overflow-wrap: normal; word-break: normal; hyphens: manual; font-size: 26px; line-height: 1.15; }
 }
+
+/* Connection-time limit chips in the flight filter panel. */
+.flight-connection-limits { display: flex; flex-wrap: wrap; gap: 6px; }
+.flight-connection-limits button { min-height: 36px; padding: 6px 12px; border: 1px solid #c7d3e0; border-radius: 999px; background: #fff; color: #102a6b; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.flight-connection-limits button[aria-pressed=true] { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+@media (max-width: 1100px) { .flight-connection-limits button { min-height: 44px; } }
+
+/* Layover cautions on flight cards. */
+.flight-layover-warning { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 2px 8px; border-radius: 999px; background: #fff4e5; color: #8a4b00; font-size: 12px; font-weight: 600; }
+
+/* Cheaper nearby day note above flight results. */
+.flight-cheaper-day { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0; padding: 10px 14px; border: 1px solid #c9daf8; border-radius: 12px; background: #eef4ff; color: #102a6b; font-size: 14px; }
+.flight-cheaper-day > svg { color: #1d4ed8; flex: none; }
+.flight-cheaper-day > span { flex: 1 1 260px; }
+.flight-cheaper-day .inline-link { min-height: 40px; padding: 6px 12px; border: 1px solid #1d4ed8; border-radius: 999px; background: #fff; color: #1d4ed8; font-weight: 700; cursor: pointer; }
+/* Hold timer under checkout progress. */
+.checkout-hold-banner { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; background: #eef4ff; color: #102a6b; font-size: 13px; }
+.checkout-hold-banner strong { font-variant-numeric: tabular-nums; }
+.checkout-hold-banner > svg { color: #1d4ed8; flex: none; }
+
+/* Five sort tiles (Best, Cheapest, Shortest, Earliest departure, More sorts). */
+html body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-result-shortcuts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 900px) {
+  html body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-result-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Phones: the original 2x2 grid; Best is offered in the More sorts menu. */
+  html body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-result-shortcuts > .flight-sort-card[aria-label="Best"] { display: none; }
+}
+
+/* Phones: keep the results count on one line beside the Filters button. */
+@media (max-width: 600px) { .flight-visible-lowest { display: none; } }

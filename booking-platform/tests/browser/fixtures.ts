@@ -278,8 +278,9 @@ export async function chooseFlightFilter(page: Page, field: 'Stops'|'Airline (an
 
 /** Choose a day in the homepage fare calendar (label: Departure, Return, Check-in, Check-out). */
 export async function pickHomeDate(scope: Locator, label: string, date: string) {
-  await scope.getByRole('button', { name: new RegExp('^' + label + '\\b') }).click();
   const calendar = scope.getByRole('dialog', { name: `Choose ${label.toLowerCase()}` });
+  // The form auto-advances: the next calendar may already be open.
+  if (!(await calendar.isVisible())) await scope.getByRole('button', { name: new RegExp('^' + label + '\\b') }).click();
   for (let step = 0; step < 14 && !(await calendar.locator(`[data-date="${date}"]`).count()); step++) await calendar.getByRole('button', { name: 'Next month' }).click();
   await calendar.locator(`[data-date="${date}"]`).click();
   await expect(calendar).toHaveCount(0);
@@ -287,6 +288,8 @@ export async function pickHomeDate(scope: Locator, label: string, date: string) 
 
 /** Set the homepage "Travellers & class" (or hotel "Guests") panel. */
 export async function setHomeTravellers(scope: Locator, party: { adults?: number; children?: number; infants?: number; cabin?: string }) {
+  // A calendar may have auto-opened after the last date pick; close it first.
+  if (await scope.page().locator('dialog.search-picker-dialog[open]').count()) await scope.page().keyboard.press('Escape');
   await scope.locator('.travellers-trigger').click();
   const panel = scope.locator('.travellers-panel');
   const set = async (label: string, target: number | undefined) => {

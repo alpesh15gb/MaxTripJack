@@ -34,6 +34,6 @@ body.stitch-theme:has(main.revamp-journey) { background: #f5f7fb; }
    Every other button, link, tab and label uses blue. */
 body.stitch-theme { --brand-gold-ink: #1d4ed8; }
 body.stitch-theme .revamp-journey { --brand-gold-ink: #1d4ed8; }
-body.stitch-theme .revamp-journey:not(:has(.booking-workflow)) { --journey-action: #1d4ed8; --journey-action-hover: #1e40af; }
+body.stitch-theme .revamp-journey:not(.booking-workflow):not(:has(.booking-workflow)) { --journey-action: #1d4ed8; --journey-action-hover: #1e40af; }
 /* Destinations, contact and other discovery pages are outside the booking flow. */
 html body .revamp-discovery { --discovery-orange: #1d4ed8; --public-link: #1d4ed8; }

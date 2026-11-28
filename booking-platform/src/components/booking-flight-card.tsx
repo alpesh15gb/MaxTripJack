@@ -8,7 +8,7 @@ import { displayMoney } from '@/lib/display-money';
 import { comparableFareEstimate, haveComparableCurrency, orderFareOffers } from '@/lib/fare-display';
 import { airportDecisionLabel, baggageDecisionLabel, fareDecisionDetails, fareDecisionLabel, lowestComparableFare } from '@/lib/flight-decision';
 import { connectionLabel, segmentDurationLabel } from '@/lib/flight-duration';
-import { arrivalDayLabel, flightConnectionAirports } from '@/lib/flight-results';
+import { arrivalDayLabel, flightConnectionAirports, flightLayovers } from '@/lib/flight-results';
 import { travelDateLabel, travelDateTimeLabel, travelTimeLabel } from '@/lib/travel-date';
 import {flightSeatCount} from '@/lib/flight-seat-inventory';
 
@@ -167,6 +167,14 @@ export default function BookingFlightCard({
   const combo = group === 'COMBO';
   const groupName = groupLabel(group);
   const stops = flightStops(flight, group);
+  // Visible cautions for long (6h+) and overnight connections within one journey.
+  const layoverWarnings = group === 'COMBO' ? [] : flightLayovers(flight).flatMap(layover => {
+    if (!layover || layover.airportChange) return [];
+    const hours = Math.floor(layover.minutes / 60), rest = layover.minutes % 60;
+    const length = `${hours}h${rest ? ` ${rest}m` : ''}`;
+    if (layover.overnight) return [`Overnight layover in ${layover.airport} · ${length}`];
+    return layover.minutes >= 360 ? [`Long layover in ${layover.airport} · ${length}`] : [];
+  });
   const minutes = journeyMinutes(flight, group);
   const airlines = new Set(flight.sI.map(segment => segment.fD.aI.name).filter(Boolean));
   const airlineName = first?.fD.aI.name || 'Airline';
@@ -333,6 +341,7 @@ export default function BookingFlightCard({
             {connectionAirports.map((airport, index) => <span className="flight-stop-code" key={index}>{airport.code}</span>)}
           </div>}
           {connections.map((label, index) => <small className={readOnly || label.startsWith('Transfer between') ? 'flight-connection-note' : 'sr-only'} key={index}>{label}</small>)}
+          {!readOnly && layoverWarnings.map(warning => <small className="flight-layover-warning" key={warning}><TravelIcon name="clock" size={12}/>{warning}</small>)}
         </div>
         <div>
           <strong>{readOnly ? travelTimeLabel(last?.at) : resultClock(last?.at)}{!readOnly && dayOffset && <sup className="flight-arrival-offset" title={dayChange??undefined}><span aria-hidden="true">{dayOffset}</span><span className="sr-only"> {dayChange}</span></sup>}</strong>

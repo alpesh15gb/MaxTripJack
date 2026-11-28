@@ -129,7 +129,7 @@ test('airline facets count itineraries, combine carriers and limit the results w
   const cards=page.locator('.flight-shopping-list .live-flight-card');
   await expect(cards).toHaveCount(4);
   const summary=page.locator('.flight-filter-action-row');
-  await expect(summary.getByRole('status')).toHaveText('Showing 1–4 of 4 flights');
+  await expect(summary.getByRole('status')).toHaveText(/^Showing 1–4 of 4 flights( · lowest ₹[\d,]+)?$/);
   await expect(page.locator('.flight-dock-sort')).toHaveCount(0);
   if(mobile){
     const trigger=summary.getByRole('button',{name:'Filters',exact:true});

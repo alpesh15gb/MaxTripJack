@@ -37,12 +37,18 @@ export default function FlightResultShortcuts({ flights, group, isCompatible, so
   }, [open]);
 
   if (!group || !flights.length) return null;
-  const { lowest, fastest, earliest } = flightResultShortcuts(flights, group, isCompatible);
+  const { best, lowest, fastest, earliest } = flightResultShortcuts(flights, group, isCompatible);
   const canSortArrival = group !== 'COMBO' && flights.some(flight => flight.totalPriceList.some(isCompatible) && flightArrivalKey(flight));
-  const unavailable = {price:false, duration:!fastest, departure:!earliest, arrival:!canSortArrival};
+  const unavailable = {best:!best, price:false, duration:!fastest, departure:!earliest, arrival:!canSortArrival};
   const currentLabel = flightSortChoices.find(([sort]) => sort === sortBy)?.[1];
 
   const cards = [
+    {
+      sort: 'best',
+      label: 'Best',
+      value: price(best?.priceMinor),
+      detail: best?.durationMinutes != null ? `${durationLabel(best.durationMinutes)}. Balances price, journey time and stops.` : 'Balances price, journey time and stops.',
+    },
     {
       sort: 'price',
       label: 'Cheapest',
@@ -99,7 +105,7 @@ export default function FlightResultShortcuts({ flights, group, isCompatible, so
       >
         <span className="flight-sort-card-label">{label}</span>
         <span className="flight-sort-card-value">
-          {value}{sort === 'price' && lowest?.priceMinor != null && <> <small>INR</small></>}
+          {value}{(sort === 'price' ? lowest : sort === 'best' ? best : null)?.priceMinor != null && <> <small>INR</small></>}
         </span>
         <span className="sr-only" id={description}>{value}{detail && `. ${detail}`}</span>
       </button>;

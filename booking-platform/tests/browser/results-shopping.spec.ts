@@ -40,7 +40,8 @@ test('flight comparison shows coherent estimates and keeps sorting independent f
  const cards=page.locator('.live-flight-card');
  await expect(cards).toHaveCount(3);
  await expect(choices).toHaveCount(1);
- await expect(choices.getByRole('button')).toHaveCount(4);
+ // Phones show four tiles; Best is offered in the More sorts menu there.
+ await expect(choices.getByRole('button')).toHaveCount(info.project.name==='mobile-390'?4:5);
  const cheapest=choices.getByRole('button',{name:'Cheapest',exact:true});
  const fastest=choices.getByRole('button',{name:'Shortest',exact:true});
  const earliest=choices.getByRole('button',{name:'Earliest departure',exact:true});

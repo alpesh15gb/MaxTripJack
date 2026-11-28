@@ -7,7 +7,7 @@ import {TravelIcon} from './travel-icon';
 import {displayMoney} from '@/lib/display-money';
 import {estimatedFare,flightStops,type Flight} from '@/lib/booking-presentation';
 import {flightAlliance, flightAlliances, type FlightAlliance} from '@/lib/flight-alliances';
-import {flightConnectionAirports,flightDepartureWindows,type FlightDepartureWindow} from '@/lib/flight-results';
+import {flightConnectionAirports,flightDepartureWindows,flightHasCheckedBag,flightLayovers,type FlightDepartureWindow} from '@/lib/flight-results';
 
 const mobileQuery = '(max-width: 1100px)';
 function subscribeViewport(callback: () => void) {
@@ -29,6 +29,12 @@ export type FlightFilterProps = {
   onStops: (value: string) => void;
   departureWindows: readonly FlightDepartureWindow[];
   onDeparture: (value: FlightDepartureWindow[]) => void;
+  arrivalWindows?: readonly FlightDepartureWindow[];
+  onArrival?: (value: FlightDepartureWindow[]) => void;
+  bagOnly?: boolean;
+  onBagOnly?: (value: boolean) => void;
+  maxConnection?: string;
+  onMaxConnection?: (value: string) => void;
   connections: readonly string[];
   onConnections: (value: string[]) => void;
   budget: string;
@@ -57,11 +63,12 @@ function toggleFilter<T>(current:readonly T[],value:T):T[] {
 
 function resetFlightFilters(props:FlightFilterProps) {
   props.onStops('ALL');props.onAirlines([]);props.onAlliances([]);props.onDeparture([]);props.onConnections([]);props.onBudget('');
+  props.onArrival?.([]);props.onBagOnly?.(false);props.onMaxConnection?.('');
 }
 
 function countFlightFilters(props: FlightFilterProps) {
-  const legFilters = props.group === 'COMBO' ? 0 : Number(props.stops !== 'ALL') + props.departureWindows.length + props.connections.length;
-  return props.airlineFilters.length + props.allianceFilters.length + Number(Boolean(props.airlineQuery?.trim())) + legFilters + Number(Boolean(props.budget.trim()));
+  const legFilters = props.group === 'COMBO' ? 0 : Number(props.stops !== 'ALL') + props.departureWindows.length + props.connections.length + (props.arrivalWindows?.length ?? 0) + Number(Boolean(props.maxConnection));
+  return Number(Boolean(props.bagOnly)) + props.airlineFilters.length + props.allianceFilters.length + Number(Boolean(props.airlineQuery?.trim())) + legFilters + Number(Boolean(props.budget.trim()));
 }
 
 /** Lives above the result cards, so phone users can undo filters without reopening the drawer. */
@@ -80,6 +87,9 @@ export function FlightActiveFilterChips(props: FlightFilterProps & {withNonstopT
     ...(props.stops!=='ALL'&&!nonstopShownInToolbar?[{key:'stops',label:props.stops==='0'?'Non-stop':`${props.stops} stop${props.stops==='1'?'':'s'}`,removeLabel:'Remove stops preference',remove:()=>props.onStops('ALL'),inactive:completeItinerary}]:[]),
     ...flightDepartureWindows.filter(window=>props.departureWindows.includes(window)).map(window=>({key:window,label:departureOptions[window].label,removeLabel:props.departureWindows.length===1?'Remove departure time filter':`Remove departure time filter: ${departureOptions[window].title}`,remove:()=>props.onDeparture(toggleFilter(props.departureWindows,window)),inactive:completeItinerary})),
     ...props.connections.map(code=>({key:`connection-${code}`,label:`Via ${code}`,removeLabel:`Remove connection airport ${code}`,remove:()=>props.onConnections(toggleFilter(props.connections,code)),inactive:completeItinerary})),
+    ...flightDepartureWindows.filter(window=>props.arrivalWindows?.includes(window)).map(window=>({key:`arrive-${window}`,label:`Arrive ${departureOptions[window].label.toLowerCase()}`,removeLabel:`Remove arrival time filter: ${departureOptions[window].label}`,remove:()=>props.onArrival?.(toggleFilter(props.arrivalWindows??[],window)),inactive:completeItinerary})),
+    ...(props.maxConnection?[{key:'max-connection',label:`Layovers up to ${props.maxConnection}h`,removeLabel:'Remove connection time filter',remove:()=>props.onMaxConnection?.(''),inactive:completeItinerary}]:[]),
+    ...(props.bagOnly?[{key:'bag',label:'Checked bag included',removeLabel:'Remove checked bag filter',remove:()=>props.onBagOnly?.(false),inactive:false}]:[]),
     ...(props.budget.trim()?[{key:'budget',label:budgetLabel,removeLabel:'Remove budget filter',remove:()=>props.onBudget(''),inactive:false}]:[]),
   ];
   if(!filters.length&&!nonstopShownInToolbar)return null;
@@ -142,8 +152,10 @@ function FlightFacets(props: FlightFilterFieldsProps & {flights?: readonly Fligh
   const carriers = new Map<string, {count: number; fare: number}>();
   const allianceCounts = new Map<FlightAlliance, number>();
   const connectionAirports = new Map<string, string>();
-  let lowest=Infinity, highest=0;
+  let lowest=Infinity, highest=0, bagFlights=0, connectingFlights=0;
   for(const flight of props.flights ?? []){
+    if(flightHasCheckedBag(flight))bagFlights++;
+    if(flightLayovers(flight).length)connectingFlights++;
     const fare=estimatedFare(flight);
     const alliance=flightAlliance(flight);
     if(alliance)allianceCounts.set(alliance,(allianceCounts.get(alliance)??0)+1);
@@ -189,11 +201,21 @@ function FlightFacets(props: FlightFilterFieldsProps & {flights?: readonly Fligh
             const {icon,title,hours}=departureOptions[window];
             return <button key={window} type="button" aria-pressed={props.departureWindows.includes(window)} disabled={props.disabled} onClick={()=>props.onDeparture(toggleFilter(props.departureWindows,window))}><StitchSymbol name={icon} size={18}/><strong>{title}</strong><small>{hours}</small></button>;
           })}</div></section>
+        {props.onArrival&&<section><div className="stitch-facet-heading"><h4>Arrival time</h4></div>
+          <div className="stitch-time-grid" role="group" aria-label="Arrival time (choose any)">{flightDepartureWindows.map(window=>{
+            const {icon,title,hours}=departureOptions[window];
+            return <button key={window} type="button" aria-label={`Arrive ${title.toLowerCase()} ${hours}`} aria-pressed={Boolean(props.arrivalWindows?.includes(window))} disabled={props.disabled} onClick={()=>props.onArrival?.(toggleFilter(props.arrivalWindows??[],window))}><StitchSymbol name={icon} size={18}/><strong>{title}</strong><small>{hours}</small></button>;
+          })}</div></section>}
+        {props.onMaxConnection&&connectingFlights>0&&<section><div className="stitch-facet-heading"><h4>Connection time</h4></div>
+          <div className="flight-connection-limits" role="group" aria-label="Longest layover">{[['','Any'],['2','Up to 2h'],['4','Up to 4h'],['6','Up to 6h']].map(([value,label])=>
+            <button key={value||'any'} type="button" aria-pressed={(props.maxConnection??'')===value} disabled={props.disabled} onClick={()=>props.onMaxConnection?.(value)}>{label}</button>)}</div></section>}
         {connectionAirports.size>0&&<section><div className="stitch-facet-heading"><h4>Layover airports</h4></div>
           <div role="group" aria-label="Connection airports (choose any)">{[...connectionAirports].map(([code,label])=>
             <FlightFacetOption key={code} label={label} accessibleName={`Connect via ${label}`} checked={props.connections.includes(code)} disabled={props.disabled}
               onToggle={()=>props.onConnections(toggleFilter(props.connections,code))} onOnly={()=>props.onConnections([code])}/>)}</div></section>}
       </>}
+      {props.onBagOnly&&bagFlights>0&&<section><div className="stitch-facet-heading"><h4>Baggage</h4></div>
+        <FlightFacetOption label="Checked bag included" accessibleName="Only flights with a checked bag included" checked={Boolean(props.bagOnly)} disabled={props.disabled} count={bagFlights} onToggle={()=>props.onBagOnly?.(!props.bagOnly)}/></section>}
       {props.group==='COMBO'&&<section><div className="stitch-facet-heading"><h4>Stops</h4></div><p className="flight-filter-note">Check stops for each flight in the complete itinerary.</p></section>}
       {allianceCounts.size>0&&<section>
         <div className="stitch-facet-heading"><h4>Alliances</h4></div>

@@ -4,7 +4,7 @@ import type {Flight} from '../../src/lib/booking-presentation';
 import type {Locator,Page} from '@playwright/test';
 
 async function expectUnclippedSortCards(sorting:Locator, columns:number) {
- const cards=await sorting.locator('.flight-sort-card').evaluateAll(elements=>elements.map(card=>{
+ const cards=await sorting.locator('.flight-sort-card:visible').evaluateAll(elements=>elements.map(card=>{
   const box=card.getBoundingClientRect();
   const overflowing=[...card.querySelectorAll('.flight-sort-card-label,.flight-sort-card-value')].some(text=>{
    const range=document.createRange();
@@ -13,9 +13,9 @@ async function expectUnclippedSortCards(sorting:Locator, columns:number) {
   });
   return {top:box.top,height:box.height,overflowing};
  }));
- expect(cards).toHaveLength(4);
+ expect(cards).toHaveLength(columns===2?4:5);
  expect(cards.every(card=>!card.overflowing)).toBe(true);
- expect(new Set(cards.map(card=>card.top)).size).toBe(4/columns);
+ expect(new Set(cards.map(card=>card.top)).size).toBe(columns===2?2:1);
  for(let index=0;index<cards.length;index+=columns){
   expect(cards.slice(index,index+columns)).toEqual(Array(columns).fill(cards[index]));
  }
@@ -82,7 +82,7 @@ test('flight shopping preserves local dates, airport identity and party fare con
   expect(bounds.left).toBeGreaterThanOrEqual(0);expect(bounds.right).toBeLessThanOrEqual(bounds.viewport);
   expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.left-1);expect(bounds.textRight).toBeLessThanOrEqual(bounds.right+1);
  }
- await expect(page.locator('.flight-visible-count')).toHaveText('Showing 1–3 of 3 flights');
+ await expect(page.locator('.flight-visible-count')).toHaveText(/^Showing 1–3 of 3 flights( · lowest ₹[\d,]+)?$/);
  const shot=await page.screenshot({path:testInfo.outputPath(`flight-shopping-viewport-${testInfo.project.name}-synthetic.png`),fullPage:false,animations:'disabled'});await testInfo.attach('flight-shopping viewport',{body:shot,contentType:'image/png'});
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'flight-shopping-loaded');
  await filters(page,true);
@@ -167,7 +167,7 @@ test('flight sort cards align and the menu reorders loaded options', async ({pag
  await expect(names).toHaveText(['Price fixture', 'Duration fixture', 'Departure fixture', 'Unknown fixture']);
  const sorting = page.getByRole('group', {name: 'Sort flights', exact: true});
  await expect(sorting).toHaveCount(1);
- await expect(sorting.locator('.flight-sort-card-value')).toHaveText(['₹3,000 INR','1h 0m','Leave first',/^Cheapest\s*$/]);
+ await expect(sorting.locator('.flight-sort-card-value')).toHaveText([/^₹[\d,]+ INR$/,'₹3,000 INR','1h 0m','Leave first',/^Cheapest\s*$/]);
  await page.evaluate(() => document.fonts.ready);
  if(testInfo.project.name==='mobile-390'){
   for(const width of [320,360,390,430,374]){
@@ -175,7 +175,7 @@ test('flight sort cards align and the menu reorders loaded options', async ({pag
    await expectUnclippedSortCards(sorting,2);
    await expectNoHorizontalOverflow(page);
   }
- }else await expectUnclippedSortCards(sorting,4);
+ }else await expectUnclippedSortCards(sorting,5);
  await sorting.screenshot({path:testInfo.outputPath(`sort-cards-${testInfo.project.name}.png`),animations:'disabled'});
  const more = sorting.getByRole('button',{name:'More sorts',exact:true});
  const menu = sorting.getByRole('menu',{name:'Flight sort options'});
@@ -189,16 +189,24 @@ test('flight sort cards align and the menu reorders loaded options', async ({pag
   {label: 'Earliest departure', order: ['Departure fixture', 'Price fixture', 'Duration fixture', 'Unknown fixture']},
   {label: 'Cheapest', order: ['Price fixture', 'Duration fixture', 'Departure fixture', 'Unknown fixture']},
  ]) {
-  await sorting.getByRole('button', {name: sort.label, exact: true}).click();
-  await expect(sorting.getByRole('button', {pressed: true})).toHaveCount(1);
-  await expect(sorting.getByRole('button', {pressed: true})).toHaveAccessibleName(sort.label);
+  const tile = sorting.getByRole('button', {name: sort.label, exact: true});
+  if (await tile.isVisible()) {
+   await tile.click();
+   await expect(sorting.getByRole('button', {pressed: true})).toHaveCount(1);
+   await expect(sorting.getByRole('button', {pressed: true})).toHaveAccessibleName(sort.label);
+  } else {
+   // Phones keep Earliest departure in the More sorts menu.
+   await more.click();
+   await menu.getByRole('menuitemradio', {name: sort.label, exact: true}).click();
+   await expect(more).toContainText(sort.label);
+  }
   await expect(names).toHaveText(sort.order);
  }
  await more.press('ArrowDown');
  const active = menu.getByRole('menuitemradio',{name:'Cheapest',exact:true});
  await expect(active).toBeFocused();
  await expect(active).toHaveAttribute('aria-checked','true');
- await expect(menu.getByRole('menuitemradio')).toHaveText(['Cheapest','Shortest','Earliest departure','Earliest arrival']);
+ await expect(menu.getByRole('menuitemradio')).toHaveText(['Best','Cheapest','Shortest','Earliest departure','Earliest arrival']);
  await expect(menu).toBeInViewport({ratio:1});
  await page.keyboard.press('Escape');
  await expect(more).toBeFocused();
@@ -211,7 +219,7 @@ test('flight sort cards align and the menu reorders loaded options', async ({pag
  await expect(more).toBeFocused();
  await expect(menu).toBeHidden();
  await expect(names).toHaveText(['Departure fixture', 'Duration fixture', 'Price fixture', 'Unknown fixture']);
- await expectUnclippedSortCards(sorting,testInfo.project.name==='mobile-390'?2:4);
+ await expectUnclippedSortCards(sorting,testInfo.project.name==='mobile-390'?2:5);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
  expect(provider.requests('/api/travel/review')).toHaveLength(0);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);

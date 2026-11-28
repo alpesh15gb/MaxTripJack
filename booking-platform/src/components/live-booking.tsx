@@ -56,7 +56,7 @@ import BookingActivity from './booking-activity';
 import BookingDateInput from './booking-date-input';
 import {normalizeBookingDate,travelDateLabel,travelDateTimeLabel} from '@/lib/travel-date';
 import SelectedJourneyReceipt from './selected-journey-receipt';
-import {matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops,groupIdenticalFlights,flightConnectionAirports,type FlightDepartureWindow} from '@/lib/flight-results';
+import {matchesArrivalWindows,matchesMaxConnection,flightHasCheckedBag,matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops,groupIdenticalFlights,flightConnectionAirports,type FlightDepartureWindow} from '@/lib/flight-results';
 import {flightAlliance,type FlightAlliance} from '@/lib/flight-alliances';
 import {hotelContentUnavailable,type HotelStayContext} from '@/lib/hotel-results';
 import AirportPicker from './airport-picker';
@@ -78,9 +78,10 @@ import {bookingCallingCodes, bookingPhoneParts} from '@/lib/booking-phone';
 import BookingConcierge from './booking-concierge';
 import {CheckoutPartySummary} from './checkout-party-summary';
 import BookingFlightCard,{money} from './booking-flight-card';
+import {displayMoney} from '@/lib/display-money';
 import FlightResultShortcuts,{FlightResultColumns} from './flight-result-shortcuts';
 import FlightResultsControls, {FlightDesktopFilters, FlightDeskLink} from './flight-results-controls';
-import {flightArrivalKey,flightDepartureKey,type FlightSort} from '@/lib/flight-result-shortcuts';
+import {bestFlightScore,flightArrivalKey,flightDepartureKey,type FlightSort} from '@/lib/flight-result-shortcuts';
 import {TravelHeader,TravelFooter,TravelIcon} from './travel-shell';
 import {authClient} from '@/lib/auth-client';
 import useCheckoutRecovery from './use-checkout-recovery';
@@ -329,6 +330,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   }
   const [selectedFares,setSelectedFares]=useState<Record<string,string>>({}),[activeGroup,setActiveGroup]=useState('');
   const [departureWindows,setDepartureWindows]=useState<FlightDepartureWindow[]>([]),[flightBudget,setFlightBudget]=useState('');
+  const [arrivalWindows,setArrivalWindows]=useState<FlightDepartureWindow[]>([]),[bagOnly,setBagOnly]=useState(false),[maxConnection,setMaxConnection]=useState('');
   const [connections,setConnections]=useState<string[]>([]);
   const [sortBy,setSortBy]=useState('price'),[stopFilter,setStopFilter]=useState('ALL');
   const [priceAlertOpener,setPriceAlertOpener]=useState<{searchId:string;scope:string;button:HTMLButtonElement}|null>(null);
@@ -390,7 +392,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         if(flightViewFingerprint(currentRoutePrefill())!==view||busyRef.current)return;
         flightViewRoute.current=view;
         setStopFilter(currentRoute.flightStops??'ALL');setSortBy(currentRoute.flightSort??'price');setAirlineQuery(currentRoute.flightAirlineQuery??'');
-        setAirlineFilters([]);setAllianceFilters([]);setPreferredAirline('');setDepartureWindows([]);setConnections([]);setFlightBudget('');
+        setAirlineFilters([]);setAllianceFilters([]);setPreferredAirline('');setDepartureWindows([]);setArrivalWindows([]);setBagOnly(false);setMaxConnection('');setConnections([]);setFlightBudget('');
         setSubmittedSearch(current=>{const next={...current};for(const key of ['flightStops','flightSort','flightAirlineQuery']){delete next[key];if(currentRoute[key])next[key]=currentRoute[key];}return next;});
       },0);
       return()=>clearTimeout(timer);
@@ -708,6 +710,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const activeAirlineQuery=preferredAirline||airlineQuery;
   const flightsWithOtherFilters=groupFlights
     .filter(flight=>matchesFlightRefinements(comparableFlight(flight),shownGroup,departureWindows,flightBudget))
+    .filter(flight=>matchesArrivalWindows(flight,shownGroup,arrivalWindows)&&matchesMaxConnection(flight,shownGroup,maxConnection)&&(!bagOnly||flightHasCheckedBag(flight,compatibleFare)))
     .filter(flight=>!connections.length||shownGroup==='COMBO'||flightConnectionAirports(flight,shownGroup).some(airport=>connections.includes(airport.code)))
     .filter(flight=>matchesFlightAirlineQuery(flight,activeAirlineQuery))
     .filter(flight=>{
@@ -723,6 +726,10 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   if(sortBy==='duration'&&hasSortMetrics(flight=>journeyMinutes(flight,shownGroup)))effectiveSort='duration';
   if(sortBy==='departure'&&hasSortMetrics(flightDepartureKey))effectiveSort='departure';
   if(sortBy==='arrival'&&shownGroup!=='COMBO'&&hasSortMetrics(flightArrivalKey))effectiveSort='arrival';
+  if(sortBy==='best'&&hasSortMetrics(flight=>Number.isFinite(estimatedFare(comparableFlight(flight)))?estimatedFare(comparableFlight(flight)):null))effectiveSort='best';
+  const priceOf=(flight:Flight)=>{const fare=estimatedFare(comparableFlight(flight));return Number.isFinite(fare)?fare:null;};
+  const lowestVisiblePrice=filteredFlights.reduce<number|null>((low,flight)=>{const fare=flight.totalPriceList.some(compatibleFare)?priceOf(flight):null;return fare!==null&&(low===null||fare<low)?fare:low;},null);
+  const shortestVisible=filteredFlights.reduce((low,flight)=>Math.min(low,journeyMinutes(flight,shownGroup)??Infinity),Infinity);
   const compareTime=(left:Flight,right:Flight,key:(flight:Flight)=>string|null)=>{
     const a=key(left),b=key(right);
     if(a===null)return b===null?0:1;
@@ -735,9 +742,10 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(effectiveSort==='departure')return compareTime(a,b,flightDepartureKey);
     if(effectiveSort==='arrival')return compareTime(a,b,flightArrivalKey);
     if(effectiveSort==='duration')return (journeyMinutes(a,shownGroup)??Number.MAX_SAFE_INTEGER)-(journeyMinutes(b,shownGroup)??Number.MAX_SAFE_INTEGER);
+    if(effectiveSort==='best')return bestFlightScore(priceOf(a),journeyMinutes(a,shownGroup),a.sI.length-1,lowestVisiblePrice??Infinity,shortestVisible)-bestFlightScore(priceOf(b),journeyMinutes(b,shownGroup),b.sI.length-1,lowestVisiblePrice??Infinity,shortestVisible);
     return estimatedFare(comparableFlight(a))-estimatedFare(comparableFlight(b));
   });
-  const FLIGHT_PAGE=30,flightListKey=`${results?.searchId}|${shownGroup}|${effectiveSort}|${stopFilter}|${JSON.stringify(airlineFilters)}|${activeAirlineQuery}|${allianceFilters.join(',')}|${departureWindows.join(',')}|${connections.join(',')}|${flightBudget}`;
+  const FLIGHT_PAGE=30,flightListKey=`${results?.searchId}|${shownGroup}|${effectiveSort}|${stopFilter}|${JSON.stringify(airlineFilters)}|${activeAirlineQuery}|${allianceFilters.join(',')}|${departureWindows.join(',')}|${arrivalWindows.join(',')}|${bagOnly}|${maxConnection}|${connections.join(',')}|${flightBudget}`;
   const [flightLimit,setFlightLimit]=useState({key:'',count:FLIGHT_PAGE});
   const flightShown=flightLimit.key===flightListKey?flightLimit.count:FLIGHT_PAGE;
   const visibleFlightRows=flightRows.filter((flight,index)=>index<flightShown||flight.totalPriceList.some(fare=>fare.id===selectedFares[shownGroup]));
@@ -782,6 +790,19 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     start:timeline[0]?.date??'',days:timeline.length,anchor:submittedSearch.date,
     enabled:product==='FLIGHT'&&hasFullSearchResults&&!checkoutStarted&&showTimelineFares,
   });
+  // A meaningfully cheaper day in the visible strip (both values are per-adult calendar fares).
+  const cheaperDay=(()=>{
+    if(product!=='FLIGHT'||!showTimelineFares)return null;
+    const current=timelineCalendar.days[submittedSearch.date];if(!current)return null;
+    let found:{date:string;minor:number;saving:number;criteria:Record<string,string>}|null=null;
+    for(const day of timeline){
+      if(day.date===submittedSearch.date||!day.search)continue;
+      const fare=timelineCalendar.days[day.date];if(!fare)continue;
+      const saving=current.minor-fare.minor;
+      if(saving>=30000&&saving>=current.minor*0.05&&(!found||fare.minor<found.minor))found={date:day.date,minor:fare.minor,saving,criteria:day.search.criteria};
+    }
+    return found;
+  })();
   const nextFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,1,today),[submittedSearch,today]);
   const previousFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,-1,today),[submittedSearch,today]);
   const prepareSearch=backgroundSearch.prepare;
@@ -832,9 +853,10 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     group:shownGroup,airlines,airlineFilters,airlineQuery:activeAirlineQuery,onAirlines:changeFlightCarriers,
     allianceFilters,onAlliances:setAllianceFilters,
     stops:stopFilter,onStops:changeFlightStops,departureWindows,onDeparture:setDepartureWindows,connections,onConnections:setConnections,
+    arrivalWindows,onArrival:setArrivalWindows,bagOnly,onBagOnly:setBagOnly,maxConnection,onMaxConnection:setMaxConnection,
     budget:flightBudget,onBudget:setFlightBudget,count:flightRows.length,nonstopCount,disabled:busy,
   };
-  function resetFlightGroupRefinements(){setStopFilter(submittedSearch.flightStops??'ALL');setAirlineFilters([]);setAllianceFilters([]);setAirlineQuery(submittedSearch.flightAirlineQuery??'');setDepartureWindows([]);setConnections([]);setFlightBudget('');}
+  function resetFlightGroupRefinements(){setStopFilter(submittedSearch.flightStops??'ALL');setAirlineFilters([]);setAllianceFilters([]);setAirlineQuery(submittedSearch.flightAirlineQuery??'');setDepartureWindows([]);setArrivalWindows([]);setBagOnly(false);setMaxConnection('');setConnections([]);setFlightBudget('');}
   function changeFlightGroup(group:string){
     if(busyRef.current)return;
     if(group===shownGroup){
@@ -1047,7 +1069,7 @@ const top=pending.getBoundingClientRect().top+window.scrollY;window.scrollTo({to
       setQuote(null);setRooms(null);setRoomView(false);setSelection(null);setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
       const data=await api<Results>('/api/travel/search',input,task.signal,takeBackgroundSearchHeaders(input));
       if(current(task.id)){
-        setSelectedFares({});setSortBy('price');setStopFilter('ALL');setAirlineFilters([]);setAllianceFilters([]);setAirlineQuery('');setDepartureWindows([]);setConnections([]);setFlightBudget('');
+        setSelectedFares({});setSortBy('price');setStopFilter('ALL');setAirlineFilters([]);setAllianceFilters([]);setAirlineQuery('');setDepartureWindows([]);setArrivalWindows([]);setBagOnly(false);setMaxConnection('');setConnections([]);setFlightBudget('');
         // Commit only successful submitted criteria, never an unsubmitted edit or checkout fields.
         const criteria:Record<string,string>=flightCriteria??{product,city:String(fields.get('city')??''),hotelIds:String(fields.get('hotelIds')??''),date,end,adults:String(hotelOccupancy[0].adults),rooms:JSON.stringify(hotelOccupancy),nationality:String(fields.get('nationality')),regionId:String(fields.get('regionId')??''),destinationCursor:String(fields.get('destinationCursor')??'')};
         if(product==='HOTEL')setHotelNextCursor(criteria.destinationCursor);
@@ -1642,6 +1664,7 @@ const top=pending.getBoundingClientRect().top+window.scrollY;window.scrollTo({to
         {product==='FLIGHT'?<div className="flight-results-breadcrumb-row">
           <nav className="revamp-booking-breadcrumb" aria-label="Booking breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><Link href="/flights">Flights</Link><span aria-hidden="true">/</span><span aria-current="page">{submittedLegs?.length?'Multi-city':`${originCity||submittedSearch.from} to ${arrivalCity||submittedSearch.to}`}</span></nav>
           {timeline.length>0&&<details className="flight-nearby-comparison" ref={restoreDateComparison}><summary>Compare nearby dates</summary><FlightDateTimeline days={timeline} selectedDate={submittedSearch.date} returnDate={submittedSearch.returnDate} pendingDate={switchingDate} disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)} showFares={showTimelineFares} fares={timelineCalendar.days} pendingFares={timelineCalendar.pending}/></details>}
+          {cheaperDay&&<p className="flight-cheaper-day" role="note"><TravelIcon name="bell" size={15}/><span>Fares from <strong>{displayMoney(cheaperDay.minor)}</strong> per adult on {travelDateLabel(cheaperDay.date)}, about {displayMoney(cheaperDay.saving)} less than your date.</span><button type="button" className="inline-link" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>void search(null,cheaperDay.criteria)}>Search {travelDateLabel(cheaperDay.date)}</button></p>}
           {!checkoutStarted&&<MaxAiInlineAction ariaLabel="Open Max AI travel assistant"/>}
         </div>:<nav className="revamp-booking-breadcrumb" aria-label="Booking breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><Link href="/hotels">Hotels</Link><span aria-hidden="true">/</span><span aria-current="page">{submittedSearch.city||'Hotel results'}</span></nav>}
         {switchingDate&&<div id="booking-pending" className="flight-date-progress"><div role="status" aria-label="Search and booking activity"><span className="booking-spinner" aria-hidden="true"/><strong>Checking flights for {travelDateLabel(switchingDate)}…</strong></div><button className="secondary" type="button" onClick={stopAvailabilitySearch}>Stop search</button></div>}
@@ -1663,7 +1686,7 @@ const top=pending.getBoundingClientRect().top+window.scrollY;window.scrollTo({to
               <p id="flight-sort-fare-scope">Estimated fares for all travellers</p>
             </div>}
             {!checkoutStarted&&<FlightResultsControls {...flightFilterProps} flights={groupFlights.map(comparableFlight)} summary={flightRows.length>0&&<div className="flight-results-count-and-alert">
-              <p className="flight-visible-count" role="status">Showing <strong>1–{visibleFlightRows.length}</strong> of {flightRows.length} {flightRows.length===1?'flight':'flights'}</p>
+              <p className="flight-visible-count" role="status">Showing <strong>1–{visibleFlightRows.length}</strong> of {flightRows.length} {flightRows.length===1?'flight':'flights'}{lowestVisiblePrice!==null&&<span className="flight-visible-lowest"> · lowest <strong>{displayMoney(lowestVisiblePrice)}</strong></span>}</p>
               {priceAlert&&visibleFlightRows.length<3&&<FlightPriceAlertButton compact disabled={busy} onClick={openPriceAlert}/>}
             </div>}/>}
           </div></div>
@@ -1678,7 +1701,7 @@ const top=pending.getBoundingClientRect().top+window.scrollY;window.scrollTo({to
           {!flightRows.length&&<div className="empty-results">
             <h3>{groupFlights.length?'No flights match these filters':'No flights found for these airports'}</h3>
             <p>{groupFlights.length?'Clear the filters to see all flights for this search.':'Try a different date, route or cabin. Your search details are kept.'}</p>
-            {groupFlights.length?<button className="secondary" type="button" disabled={busy} onClick={()=>{changeFlightStops('ALL');changeFlightCarriers([]);setAllianceFilters([]);setDepartureWindows([]);setConnections([]);setFlightBudget('');requestAnimationFrame(focusFlightResults);}}>Reset filters</button>:<button className="primary" type="button" disabled={busy} onClick={editFlightSearch}>Edit flight search</button>}
+            {groupFlights.length?<button className="secondary" type="button" disabled={busy} onClick={()=>{changeFlightStops('ALL');changeFlightCarriers([]);setAllianceFilters([]);setDepartureWindows([]);setArrivalWindows([]);setBagOnly(false);setMaxConnection('');setConnections([]);setFlightBudget('');requestAnimationFrame(focusFlightResults);}}>Reset filters</button>:<button className="primary" type="button" disabled={busy} onClick={editFlightSearch}>Edit flight search</button>}
           </div>}
           </div></div>
         </>}
@@ -1698,6 +1721,7 @@ const top=pending.getBoundingClientRect().top+window.scrollY;window.scrollTo({to
 
         <header className="booking-checkout-hero">
           <ol className="booking-checkout-progress" aria-label="Booking progress">{checkoutSteps.map((label,index)=><li key={label} aria-current={index===Number(enteringTravellers)?'step':undefined}><span aria-hidden="true">{enteringTravellers&&index===0?'✓':index+1}</span>{label}</li>)}</ol>
+          {remaining!==null&&remaining>0&&!payment&&!priceRefreshNeeded&&<p className="checkout-hold-banner" role="timer" aria-live="off"><TravelIcon name="clock" size={14}/><span><strong>{Math.floor(remaining/60)}:{String(remaining%60).padStart(2,'0')}</strong> left to book at this reviewed price. Nothing is reserved until payment.</span></p>}
           <h1 id="checkout-stage-title" tabIndex={-1}>{enteringTravellers?(quote.product==='HOTEL'?'Who’s staying?':'Who’s travelling?'):'Review your trip'}</h1>
           <p>{enteringTravellers?'Enter the details required to complete your booking.':'Check the itinerary, price and booking conditions before continuing.'}</p>
           <div className="booking-checkout-context-row">

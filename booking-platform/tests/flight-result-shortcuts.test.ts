@@ -30,6 +30,7 @@ test('each sort preview comes from the compatible itinerary it puts first', () =
   direct.sI[0].at = '2026-11-24T07:15:00+05:30';
   const options = flightResultShortcuts([incompatible, connecting, direct, flight('fast', 115, 775000)], 'RETURN', fare => fare.id !== 'incompatible');
   assert.deepEqual(options, {
+    best: { priceMinor: 695000, durationMinutes: 135, departureLabel: '05:00' },
     lowest: { priceMinor: 688000, durationMinutes: 315, departureLabel: '06:15' },
     fastest: { priceMinor: 775000, durationMinutes: 115, departureLabel: '06:15' },
     earliest: { priceMinor: 695000, durationMinutes: 135, departureLabel: '05:00' },
@@ -41,11 +42,13 @@ test('sort previews keep unknown metrics and foreign fares distinct from availab
   unknown.sI[0].dt = 'unknown';
   const foreign = flight('fast-unpriced', 120, 80000, 'USD');
   assert.deepEqual(flightResultShortcuts([unknown, foreign], 'ONWARD'), {
+    best: { priceMinor: 500000, durationMinutes: null, departureLabel: null },
     lowest: { priceMinor: 500000, durationMinutes: null, departureLabel: null },
     fastest: { priceMinor: null, durationMinutes: 120, departureLabel: '06:15' },
     earliest: { priceMinor: null, durationMinutes: 120, departureLabel: '06:15' },
   });
   assert.deepEqual(flightResultShortcuts([foreign], 'COMBO'), {
+    best: null,
     lowest: null,
     fastest: null,
     earliest: { priceMinor: null, durationMinutes: null, departureLabel: '06:15' },
