@@ -361,6 +361,17 @@ class SafetyTests(unittest.TestCase):
         self.assertIn("SHARED_SECRET", str(caught.exception))
         self.assertNotIn("private-value", str(caught.exception))
 
+    def test_booking_owner_password_interpolation_ignores_only_empty_runtime_placeholders(self):
+        postgres = self.runtime("postgres", {"POSTGRES_PASSWORD": "synthetic-owner"})
+        app = self.runtime("app", {"POSTGRES_PASSWORD": ""})
+        result = update.compose_interpolation_environment({"POSTGRES_PASSWORD"}, [postgres, app], "max-travel-booking", {})
+        self.assertEqual(result["POSTGRES_PASSWORD"], "synthetic-owner")
+        self.assertEqual(update.environment(app["Config"]["Env"])["POSTGRES_PASSWORD"], "")
+        app["Config"]["Env"] = ["POSTGRES_PASSWORD=unexpected-private"]
+        with self.assertRaises(update.StopUpdate) as caught:
+            update.compose_interpolation_environment({"POSTGRES_PASSWORD"}, [postgres, app], "max-travel-booking", {})
+        self.assertNotIn("unexpected-private", str(caught.exception))
+
     def test_compose_rejects_another_project_and_ignores_oneoff_credentials(self):
         with self.assertRaises(update.StopUpdate):
             update.compose_interpolation_environment({"POSTGRES_PASSWORD"}, [self.runtime("postgres", {"POSTGRES_PASSWORD": "other-secret"}, "unrelated-project")], "max-travel-booking", {})

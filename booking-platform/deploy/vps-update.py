@@ -135,6 +135,10 @@ def compose_interpolation_environment(names, containers, project, host_environme
             continue
         current = environment(container["Config"].get("Env"))
         for name in names:
+            if (project == "max-travel-booking" and name == "POSTGRES_PASSWORD"
+                    and labels.get("com.docker.compose.service") != "postgres" and current.get(name) == ""):
+                # The runtime Compose file explicitly clears owner credentials.
+                continue
             if name in current:
                 candidates[name].add(current[name])
     result = dict(host_environment)
