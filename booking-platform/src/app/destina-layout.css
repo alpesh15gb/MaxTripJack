@@ -27,29 +27,29 @@
 .travel-navigation details > summary, .travel-navigation-account { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 12px; font-size: 16px; white-space: nowrap; text-decoration: none; }
 .travel-navigation details[open] > summary { color: var(--brand-action); }
 .travel-navigation details[open] > summary .stitch-symbol:last-child { transform: rotate(180deg); }
-.travel-navigation .travel-navigation-account { border: 1px solid #547c6f; border-radius: 30px; padding-inline: 18px; color: var(--brand-action); font-size: 14px; font-weight: 650; }
-.india-flag { flex: none; width: 22px; aspect-ratio: 3 / 2; border: 1px solid #102b2922; border-radius: 2px; background: radial-gradient(circle at center, #1a357e 0 13%, transparent 14%), linear-gradient(#f39a44 0 33%, white 33% 67%, #308649 67%); }
-.travel-navigation-menu { position: absolute; top: calc(100% + 12px); left: 0; z-index: 1; width: max-content; min-width: 240px; max-width: min(340px, 92vw); max-height: min(70vh, 620px); overflow: auto; display: grid; padding: 8px; border: 1px solid var(--nav-line); border-radius: 12px; background: white; box-shadow: 0 14px 30px #102b2926; }
+.travel-navigation .travel-navigation-account { border: 1px solid #54617c; border-radius: 30px; padding-inline: 18px; color: var(--brand-action); font-size: 14px; font-weight: 650; }
+.india-flag { flex: none; width: 22px; aspect-ratio: 3 / 2; border: 1px solid #10192b22; border-radius: 2px; background: radial-gradient(circle at center, #1a357e 0 13%, transparent 14%), linear-gradient(#f39a44 0 33%, white 33% 67%, #304d86 67%); }
+.travel-navigation-menu { position: absolute; top: calc(100% + 12px); left: 0; z-index: 1; width: max-content; min-width: 240px; max-width: min(340px, 92vw); max-height: min(70vh, 620px); overflow: auto; display: grid; padding: 8px; border: 1px solid var(--nav-line); border-radius: 12px; background: white; box-shadow: 0 14px 30px #10192b26; }
 .travel-navigation-tools .travel-navigation-menu { left: auto; right: 0; }
 .travel-navigation-menu :is(a, button) { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 44px; padding: 9px 12px; border: 0; border-radius: 6px; background: transparent; text-align: left; text-decoration: none; white-space: normal; overflow-wrap: anywhere; }
-.travel-navigation-menu :is(a, button):hover, .travel-navigation-trigger:hover, .travel-navigation-account:hover { background: #edf2ec; }
+.travel-navigation-menu :is(a, button):hover, .travel-navigation-trigger:hover, .travel-navigation-account:hover { background: #eceef2; }
 .travel-navigation-menu :is(p, small) { color: var(--atlas-muted); }
 .travel-navigation-menu p { margin: 6px 10px; font-size: 14px; }
 .travel-navigation-menu small { font-size: 11px; }
 .travel-navigation-context { display: none; }
 .travel-navigation-drawer { position: fixed; inset: 0 auto 0 0; width: min(360px, 88vw); height: 100%; max-width: none; max-height: none; margin: 0; padding: 18px; border: 0; background: white; color: var(--nav-ink); }
-.travel-navigation-drawer::backdrop { background: #122e2a77; }
+.travel-navigation-drawer::backdrop { background: #121b2e77; }
 .travel-navigation-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .travel-navigation-drawer-head button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; background: transparent; }
 .travel-navigation-drawer nav { display: grid; }
 .travel-navigation-drawer nav :is(a, button) { min-height: 44px; display: flex; align-items: center; gap: 10px; border: 0; border-bottom: 1px solid var(--nav-line); background: transparent; padding: 8px 5px; text-decoration: none; text-align: left; }
-.travel-navigation .travel-navigation-testing { margin: 8px 0 0; padding: 8px 12px; border-radius: 7px; background: #edf2ec; color: var(--atlas-ink); font-size: 13px; }
+.travel-navigation .travel-navigation-testing { margin: 8px 0 0; padding: 8px 12px; border-radius: 7px; background: #eceef2; color: var(--atlas-ink); font-size: 13px; }
 
 body .trip-home.stitch-home.destina-home {
   --s-width: 1172px;
   --s-gutter: 28px;
   --s-paper: white;
-  --s-low: #edf2ed;
+  --s-low: #edeff2;
   --planner-line: #d5dcd5;
   display: grid;
   grid-template-columns: 67px minmax(0, 1fr);
@@ -58,24 +58,24 @@ body .trip-home.stitch-home.destina-home {
 .destina-home > :is(.travel-navigation, .destina-footer) { grid-column: 1 / -1; }
 .destina-home > main { min-width: 0; }
 .home-service-rail { position: sticky; top: 0; align-self: start; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; margin: 0; padding: 12px 8px; border-right: 1px solid #e7e9e4; min-height: min(100vh, 500px); align-content: start; }
-.home-service-rail :is(a, button) { display: grid; place-items: center; border: 0; min-height: 32px; border-radius: 7px; background: white; color: #344a44; cursor: pointer; }
-.home-service-rail :is(a, button):is(:hover, [aria-current]) { background: #e5eee5; color: var(--brand-action); }
+.home-service-rail :is(a, button) { display: grid; place-items: center; border: 0; min-height: 32px; border-radius: 7px; background: white; color: #343b4a; cursor: pointer; }
+.home-service-rail :is(a, button):is(:hover, [aria-current]) { background: #e5e8ee; color: var(--brand-action); }
 .home-service-rail hr { margin: 8px 0; border: 0; border-top: 1px solid #e7e9e4; }
 .destina-home-hero { position: relative; isolation: isolate; height: 262px; overflow: hidden; background: var(--atlas-pine); color: white; text-align: center; }
 .destina-home-hero img { z-index: -2; object-fit: cover; object-position: center 33%; }
-.destina-home-hero::before { content: ""; position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg, #0a212d82, #102c29a3 74%, #1b493ee3); }
+.destina-home-hero::before { content: ""; position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg, #0a162d82, #10192ca3 74%, #1b2a49e3); }
 .destina-home-hero::after { content: ""; position: absolute; left: -25%; bottom: -92px; width: 150%; height: 126px; border-radius: 50%; background: white; }
 .destina-home-heading { position: relative; z-index: 1; padding: 57px 16px 0; }
-.destina-home-heading h1 { margin: 0; color: white; font: 800 40px/1.16 var(--s-display); letter-spacing: -.052em; text-shadow: 0 2px 8px #102b2988; }
+.destina-home-heading h1 { margin: 0; color: white; font: 800 40px/1.16 var(--s-display); letter-spacing: -.052em; text-shadow: 0 2px 8px #10192b88; }
 .destina-home-heading ul { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px 22px; margin: 12px 0 0; padding: 0; list-style: none; }
 .destina-home-heading li { display: flex; align-items: center; gap: 6px; font-weight: 650; font-size: 14px; }
 
-body .trip-home.destina-home .home-search-card { z-index: 6; margin-top: -52px; padding: 0 27px 17px; border: 1px solid #eaede7; border-radius: 17px; background: white; box-shadow: 0 17px 46px #152c2830; }
+body .trip-home.destina-home .home-search-card { z-index: 6; margin-top: -52px; padding: 0 27px 17px; border: 1px solid #e7e9ed; border-radius: 17px; background: white; box-shadow: 0 17px 46px #151d2c30; }
 body .trip-home.destina-home .home-search-card:has(.search-picker-dialog[open]) { z-index: 24; }
 .destina-home .stitch-product-nav { display: block; padding: 0; border-color: #e3e7e1; }
 .destina-home #trip-search .home-product-tabs { justify-content: center; gap: 27px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .destina-home #trip-search .home-product-tabs button { position: relative; display: flex; flex-direction: column; gap: 7px; min-height: 89px; padding: 12px 14px; border-radius: 0; color: var(--atlas-ink); background: transparent; box-shadow: none; font: 700 14px/1.2 var(--s-body); }
-.destina-home .home-product-tabs :is(.stitch-symbol, svg) { color: #3c7966; }
+.destina-home .home-product-tabs :is(.stitch-symbol, svg) { color: #3c5079; }
 .destina-home #trip-search .home-product-tabs button > svg { width: 29px; height: 29px; flex: none; }
 .destina-home #trip-search .home-product-tabs button:is(:hover, [aria-pressed="true"]) { background: transparent; color: var(--brand-action); box-shadow: none; }
 .destina-home .home-product-tabs button[aria-pressed="true"]::after { content: ""; position: absolute; inset: auto 0 0; height: 2px; background: var(--brand-action); }
@@ -84,17 +84,17 @@ body .trip-home.destina-home .home-search-card:has(.search-picker-dialog[open]) 
 .destina-home #trip-search .home-search-options :is(label, .stitch-multicity), .destina-home .destina-cabin { position: relative; min-height: 32px; margin: 0; padding: 4px 14px; border: 1px solid var(--planner-line); border-radius: 30px; background: white; color: var(--atlas-ink); font: 700 13px/1.25 var(--s-body); }
 .destina-home .home-search-options label > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .destina-home .home-search-options label:focus-within { outline: 2px solid var(--atlas-orange); outline-offset: 2px; }
-.destina-home #trip-search .home-search-options label:has(:checked) { border-color: #719182; background: #e6efe6; color: var(--atlas-pine); box-shadow: none; }
+.destina-home #trip-search .home-search-options label:has(:checked) { border-color: #717c91; background: #e6e9ef; color: var(--atlas-pine); box-shadow: none; }
 .destina-home .destina-cabin { min-width: 168px; cursor: pointer; }
 .destina-home #trip-search .home-search-fields { display: grid; grid-template-columns: minmax(0, 2.7fr) minmax(0, 1fr) minmax(0, 1.03fr) 123px; align-items: stretch; gap: 0; min-height: 64px; padding: 0; border: 1px solid var(--planner-line); border-radius: 11px; background: white; }
 .destina-home #trip-search .home-search-fields.is-return { grid-template-columns: minmax(0, 2.55fr) minmax(0, 1.1fr) minmax(0, 1.04fr) 123px; }
 .destina-home #trip-search .home-search-fields.is-hotel { grid-template-columns: minmax(0, 2.19fr) minmax(0, 1.43fr) minmax(0, 1.03fr) 123px; margin-top: 16px; }
 .destina-home #trip-search .home-airports { grid-column: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; padding: 0; background: transparent; border: 0; border-radius: 0; }
 .destina-search-dates { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-width: 0; }
-.destina-home #trip-search .home-search-fields .home-search-input { display: flex; position: relative; justify-content: center; min-height: 62px; min-width: 0; padding: 5px 12px 5px 39px; border: 0; border-right: 1px solid #e5e9e2; border-radius: 0; background: transparent; box-shadow: none; }
-.destina-home #trip-search .home-search-fields .home-search-input:focus-within { background: #f0f5ef; }
+.destina-home #trip-search .home-search-fields .home-search-input { display: flex; position: relative; justify-content: center; min-height: 62px; min-width: 0; padding: 5px 12px 5px 39px; border: 0; border-right: 1px solid #e2e4e9; border-radius: 0; background: transparent; box-shadow: none; }
+.destina-home #trip-search .home-search-fields .home-search-input:focus-within { background: #eff1f5; }
 .destina-home #trip-search .home-search-fields .home-airports .home-search-input:last-child { padding-left: 49px; }
-.destina-home .home-search-input > svg, .destina-home .stitch-picker-caption .stitch-symbol { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); margin: 0; color: #4d6158; }
+.destina-home .home-search-input > svg, .destina-home .stitch-picker-caption .stitch-symbol { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); margin: 0; color: #4d5461; }
 .destina-home .home-airports .home-search-input:last-child > svg { left: 24px; }
 .destina-home #trip-search .destina-search-dates .home-search-input + .home-search-input { padding-left: 10px; }
 .destina-home .destina-search-dates .home-search-input + .home-search-input .stitch-picker-caption .stitch-symbol { display: none; }
@@ -119,7 +119,7 @@ body .trip-home.destina-home .home-search-card:has(.search-picker-dialog[open]) 
 .destina-home #trip-search .travellers-panel .travellers-cabins legend { margin-bottom: 4px; }
 .destina-home #trip-search .travellers-panel .travellers-cabins label { min-height: 33px; padding-block: 3px; }
 .destina-home #trip-search .travellers-panel > p, .destina-home #trip-search .travellers-panel .travellers-done { margin-top: 6px; }
-.destina-home #trip-search .home-swap { width: 44px; height: 44px; min-width: 0; min-height: 0; isolation: isolate; color: #477862; border: 0; background: transparent; box-shadow: none; }
+.destina-home #trip-search .home-swap { width: 44px; height: 44px; min-width: 0; min-height: 0; isolation: isolate; color: #475778; border: 0; background: transparent; box-shadow: none; }
 .destina-home #trip-search .home-swap::before { content: ""; position: absolute; inset: 8px; z-index: -1; border: 1px solid var(--planner-line); border-radius: 50%; background: white; }
 .destina-home #trip-search .home-search-submit { display: flex; justify-content: center; align-items: center; grid-column: auto; place-self: stretch; gap: 7px; min-height: 52px; min-width: 0; width: auto; margin: 5px; padding: 5px; border: 0; border-radius: 8px; box-shadow: none; background: var(--atlas-orange); color: white; font: 800 15px/1.25 var(--s-body); }
 .destina-home #trip-search .home-search-submit :is(svg, .stitch-symbol) { display: inline-flex; }
@@ -151,7 +151,7 @@ body .trip-home.destina-home .home-confidence strong { font: 650 14px/1.35 var(-
 .destina-home .stitch-destinations .stitch-getaway { display: flex; position: relative; justify-content: end; width: 100%; min-height: 0; aspect-ratio: 1.28; padding: 0; border: 0; border-radius: 12px; color: white; background: var(--atlas-pine); }
 .destina-home .stitch-destinations .stitch-getaway:first-child { grid-column: auto; }
 .destina-home .stitch-getaway .stitch-getaway-photo { position: absolute; inset: 0; min-height: 0; }
-.destina-home .stitch-getaway::after { content: ""; background: linear-gradient(180deg, transparent 20%, #072b279e 78%, #0c3532dc); }
+.destina-home .stitch-getaway::after { content: ""; background: linear-gradient(180deg, transparent 20%, #07132b9e 78%, #0c1a35dc); }
 .destina-home .stitch-getaway > div { padding: 14px; background: transparent; }
 .destina-home .stitch-getaway :is(h3, p) { color: white; font-family: var(--s-body); }
 .destina-home .stitch-getaway h3 { font-size: 18px; font-weight: 800; }
@@ -167,7 +167,7 @@ body .trip-home.destina-home .home-confidence strong { font: 650 14px/1.35 var(-
 .destina-home-perks a > div { display: grid; gap: 5px; padding: 15px 17px 18px; }
 .destina-home-perks h3 { margin: 0; font: 800 16px/1.3 var(--s-body); }
 .destina-home-perks p { margin: 0; color: var(--atlas-muted); font-size: 13px; line-height: 1.5; }
-.destina-home-help { padding: 35px 0; background: #e9efe8; }
+.destina-home-help { padding: 35px 0; background: #e8eaef; }
 .destina-home-help > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 22px; }
 .destina-home-help h2 { margin: 0; font: 800 28px/1.2 var(--s-display); }
 .destina-home-help p { margin: 10px 0 18px; }
@@ -176,9 +176,9 @@ body .trip-home.destina-home .home-confidence strong { font: 650 14px/1.35 var(-
 .destina-help-actions a { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 5px 13px; color: var(--brand-action); text-decoration: none; font-weight: 750; }
 .destina-help-actions a:first-child { background: var(--brand-action); color: white; border-radius: 24px; }
 
-html body .travel-footer.destina-footer { display: block; margin: 0; padding: 0; border-top: 1px solid #dce4da; background: #e9efe8; color: var(--atlas-ink); font: 500 13px/1.5 var(--font-stitch-body, Arial), sans-serif; }
+html body .travel-footer.destina-footer { display: block; margin: 0; padding: 0; border-top: 1px solid #dadde4; background: #e8eaef; color: var(--atlas-ink); font: 500 13px/1.5 var(--font-stitch-body, Arial), sans-serif; }
 .destina-footer-inner { width: min(1296px, calc(100% - 48px)); margin-inline: auto; }
-.destina-footer-brand, .destina-footer-directory, .destina-footer-base { padding: 26px 0; border-bottom: 1px solid #dce4da; }
+.destina-footer-brand, .destina-footer-directory, .destina-footer-base { padding: 26px 0; border-bottom: 1px solid #dadde4; }
 .destina-footer-brand { display: flex; align-items: center; gap: 20px; }
 .destina-footer-brand img { width: 110px; }
 .destina-footer-brand p { max-width: 385px; margin: 0 auto 0 0; }
@@ -216,7 +216,7 @@ html body .destina-footer .travel-footer-data-credit { margin: 0; color: inherit
   .travel-navigation-brand img { width: min(116px, 35vw); }
   .travel-navigation-products, .travel-navigation-help { display: none; }
   .travel-navigation-tools { justify-self: end; gap: 5px; }
-  .travel-navigation .travel-navigation-account, .travel-navigation .travel-navigation-currency summary { display: grid; place-items: center; width: 35px; min-height: 35px; padding: 0; border: 1px solid #e4e8e1; border-radius: 50%; background: white; }
+  .travel-navigation .travel-navigation-account, .travel-navigation .travel-navigation-currency summary { display: grid; place-items: center; width: 35px; min-height: 35px; padding: 0; border: 1px solid #e1e3e8; border-radius: 50%; background: white; }
   .travel-navigation-account > span:not(.stitch-symbol), .travel-navigation-currency summary > :not(:first-child) { display: none; }
   .travel-navigation-context { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 3px 2px; border-top: 1px solid var(--nav-line); }
   .travel-navigation-context > div { flex: 1 1 0; min-width: 0; }
@@ -280,39 +280,39 @@ html body .destina-footer .travel-footer-data-credit { margin: 0; color: inherit
 .destina-home-deals { padding-block: 26px 6px; }
 .destina-deal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
 .destina-deal-grid a { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--atlas-line, #dedbd0); border-radius: 12px; background: #fff; color: inherit; text-decoration: none; transition: border-color .15s ease, box-shadow .15s ease; }
-.destina-deal-grid a:hover { border-color: var(--brand-action, #236052); box-shadow: 0 6px 18px rgb(16 43 41 / 8%); }
+.destina-deal-grid a:hover { border-color: var(--brand-action, #233760); box-shadow: 0 6px 18px rgb(16 25 43 / 8%); }
 .destina-deal-route { display: flex; align-items: center; gap: 6px; font-size: 15px; }
-.destina-deal-route .stitch-symbol { color: var(--brand-action, #236052); }
-.destina-deal-meta { color: var(--atlas-muted, #52635f); font-size: 13px; }
-.destina-deal-price { font-size: 18px; font-weight: 800; color: var(--atlas-ink, #102b29); font-variant-numeric: tabular-nums; }
-.destina-deal-price small { font-size: 12px; font-weight: 500; color: var(--atlas-muted, #52635f); }
-.destina-deal-note { margin: 10px 0 0; color: var(--atlas-muted, #52635f); font-size: 12px; }
+.destina-deal-route .stitch-symbol { color: var(--brand-action, #233760); }
+.destina-deal-meta { color: var(--atlas-muted, #525863); font-size: 13px; }
+.destina-deal-price { font-size: 18px; font-weight: 800; color: var(--atlas-ink, #10192b); font-variant-numeric: tabular-nums; }
+.destina-deal-price small { font-size: 12px; font-weight: 500; color: var(--atlas-muted, #525863); }
+.destina-deal-note { margin: 10px 0 0; color: var(--atlas-muted, #525863); font-size: 12px; }
 
 .destina-home-why { padding-block: 34px 10px; text-align: center; }
 .destina-home-why h2 { margin: 0 0 20px; font: 800 26px/1.2 var(--s-display, inherit); }
 .destina-home-why ul { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
 .destina-home-why li { display: grid; justify-items: center; gap: 8px; padding: 6px 10px; }
-.destina-home-why i { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--brand-tint, #f3f0e7); color: var(--brand-action, #236052); }
+.destina-home-why i { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--brand-tint, #f3f0e7); color: var(--brand-action, #233760); }
 .destina-home-why strong { font-size: 15px; }
-.destina-home-why p { margin: 0; color: var(--atlas-muted, #52635f); font-size: 13.5px; line-height: 1.55; }
+.destina-home-why p { margin: 0; color: var(--atlas-muted, #525863); font-size: 13.5px; line-height: 1.55; }
 
 .destina-home-faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 28px; padding-block: 34px 10px; }
 .destina-home-faq h2 { margin: 0; font: 800 26px/1.2 var(--s-display, inherit); }
-.destina-home-faq > div:first-child p { margin: 10px 0 16px; color: var(--atlas-muted, #52635f); }
-.destina-faq-link { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 16px; border: 1px solid var(--brand-action, #236052); border-radius: 999px; color: var(--brand-action, #236052); font-weight: 700; text-decoration: none; }
+.destina-home-faq > div:first-child p { margin: 10px 0 16px; color: var(--atlas-muted, #525863); }
+.destina-faq-link { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 16px; border: 1px solid var(--brand-action, #233760); border-radius: 999px; color: var(--brand-action, #233760); font-weight: 700; text-decoration: none; }
 .destina-faq-list details { border-bottom: 1px solid var(--atlas-line, #dedbd0); }
 .destina-faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 12px 0; font-weight: 700; cursor: pointer; list-style: none; }
 .destina-faq-list summary::-webkit-details-marker { display: none; }
-.destina-faq-list summary .stitch-symbol { transition: transform .2s ease; color: var(--atlas-muted, #52635f); }
+.destina-faq-list summary .stitch-symbol { transition: transform .2s ease; color: var(--atlas-muted, #525863); }
 .destina-faq-list details[open] summary .stitch-symbol { transform: rotate(180deg); }
-.destina-faq-list details p { margin: 0 0 8px; color: var(--atlas-muted, #52635f); line-height: 1.6; }
-.destina-faq-list details a { display: inline-block; margin-bottom: 14px; color: var(--brand-action, #236052); font-weight: 650; }
+.destina-faq-list details p { margin: 0 0 8px; color: var(--atlas-muted, #525863); line-height: 1.6; }
+.destina-faq-list details a { display: inline-block; margin-bottom: 14px; color: var(--brand-action, #233760); font-weight: 650; }
 
 .destina-home-about { margin-block: 34px 30px; padding: 26px 28px; border-radius: 16px; background: var(--brand-tint, #f3f0e7); }
 .destina-home-about h2 { margin: 0 0 16px; font: 800 22px/1.25 var(--s-display, inherit); }
 .destina-home-about > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
 .destina-home-about h3 { margin: 0 0 6px; font-size: 15px; }
-.destina-home-about p { margin: 0; color: var(--atlas-muted, #52635f); font-size: 13.5px; line-height: 1.6; }
+.destina-home-about p { margin: 0; color: var(--atlas-muted, #525863); font-size: 13.5px; line-height: 1.6; }
 
 @media (max-width: 900px) {
   .destina-deal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

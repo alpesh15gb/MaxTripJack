@@ -1,6 +1,6 @@
 .help-page {
-  color: var(--brand-ink, #102b29);
-  background: var(--brand-page, #faf7ef);
+  color: var(--brand-ink, #10192b);
+  background: var(--brand-page, #f5f7fb);
   padding-bottom: 72px;
 }
 
@@ -12,8 +12,8 @@
 .help-hero {
   position: relative;
   padding: 58px 0 106px;
-  color: #fffdf8;
-  background: linear-gradient(112deg, #0c3532, #28665a);
+  color: #ffffff;
+  background: linear-gradient(112deg, #102a6b, #283d66);
 }
 
 .help-hero--centered {
@@ -46,7 +46,7 @@
   flex-wrap: wrap;
   gap: 9px;
   margin-bottom: 14px;
-  color: #e0eee7;
+  color: #e0e5ee;
   font-size: 13px;
 }
 
@@ -66,7 +66,7 @@
 
 .help-hero p {
   margin: 0;
-  color: #e0eee7;
+  color: #e0e5ee;
   font-size: clamp(15px, 1.5vw, 18px);
   line-height: 1.55;
 }
@@ -83,7 +83,7 @@
   padding: 0 16px;
   border: 1px solid var(--brand-line, #dedbd0);
   border-radius: 100px;
-  color: var(--brand-ink, #102b29);
+  color: var(--brand-ink, #10192b);
   background: #fff;
   text-align: left;
   z-index: 3;
@@ -101,7 +101,7 @@
   font-size: 16px;
 }
 
-.help-search button { display: grid; place-items: center; min-width: 44px; min-height: 44px; color: #547164; }
+.help-search button { display: grid; place-items: center; min-width: 44px; min-height: 44px; color: #545e71; }
 .help-search input:focus-visible { outline: none; }
 .help-search:focus-within { outline: 3px solid #f5cb9c; outline-offset: 3px; }
 
@@ -113,11 +113,11 @@
   border: 1px solid #dedbd0;
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 12px 32px #102b2933;
+  box-shadow: 0 12px 32px #10192b33;
 }
 
 .help-search-results ul { margin: 0; padding: 6px; list-style: none; }
-.help-search-results a, .help-search-results p { display: block; padding: 13px 16px; color: #102b29; font-size: 14px; }
+.help-search-results a, .help-search-results p { display: block; padding: 13px 16px; color: #10192b; font-size: 14px; }
 .help-search-results a:hover { background: #f1f3ec; }
 
 .help-body { display: grid; gap: 32px; }
@@ -128,7 +128,7 @@
   border: 1px solid var(--brand-line, #dedbd0);
   border-radius: 20px;
   background: #fff;
-  box-shadow: 0 8px 26px #0c35320b;
+  box-shadow: 0 8px 26px #0c1a350b;
 }
 
 .help-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
@@ -144,14 +144,14 @@
   height: 54px;
   margin-bottom: 15px;
   border-radius: 16px;
-  background: #e7eee5;
-  color: #28665a;
+  background: #e5e8ee;
+  color: #283d66;
 }
 
 .help-card h2,
 .help-contact h2 {
   margin: 0 0 7px;
-  color: #102b29;
+  color: #10192b;
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -.018em;
@@ -160,7 +160,7 @@
 
 .help-card p, .help-contact small {
   margin: 0 0 16px;
-  color: #52635f;
+  color: #525863;
   font-size: 14px;
   line-height: 1.65;
 }
@@ -174,9 +174,9 @@
   justify-content: center;
   min-height: 42px;
   padding: 8px 16px;
-  border: 1px solid #a94924;
+  border: 1px solid #1d4ed8;
   border-radius: 999px;
-  background: #a94924;
+  background: #1d4ed8;
   color: #fff;
   font-size: 14px;
   font-weight: 750;
@@ -185,7 +185,7 @@
   text-decoration: none;
 }
 
-.help-button:hover, .help-page .support-compact-lookup button.primary:hover { background: #923b1b; }
+.help-button:hover, .help-page .support-compact-lookup button.primary:hover { background: #1e40af; }
 
 .help-card-secondary {
   display: flex;
@@ -194,7 +194,7 @@
   gap: 6px;
   min-height: 38px;
   margin-top: 4px;
-  color: #a94924;
+  color: #1d4ed8;
   font-size: 13px;
   text-align: center;
 }
@@ -206,22 +206,22 @@
   gap: 4px 8px;
   border-top: 1px solid var(--brand-line, #dedbd0);
   padding: 10px 0;
-  color: #52635f;
+  color: #525863;
   font-size: 13px;
 }
 
-.help-card-contact a { color: #102b29; font-weight: 750; overflow-wrap: anywhere; }
+.help-card-contact a { color: #10192b; font-weight: 750; overflow-wrap: anywhere; }
 
 .support-compact-lookup form, .help-request-form form { display: grid; gap: 10px; }
 .support-compact-lookup p:empty { display: none; }
 .support-compact-lookup p:not(:empty) { margin: 8px 0 0; }
-.support-compact-lookup a { color: #a94924; text-decoration: underline; }
+.support-compact-lookup a { color: #1d4ed8; text-decoration: underline; }
 
 .support-compact-lookup label, .help-request-form label {
   display: grid;
   gap: 6px;
   min-width: 0;
-  color: #102b29;
+  color: #10192b;
   font-size: 13px;
   font-weight: 700;
 }
@@ -234,8 +234,8 @@
   border: 1px solid var(--brand-line, #dedbd0);
   border-radius: 10px;
   padding: 8px 12px;
-  color: #102b29;
-  background: #fffdf8;
+  color: #10192b;
+  background: #ffffff;
   font: inherit;
   font-weight: 400;
 }
@@ -255,12 +255,12 @@
   border: 1px solid var(--brand-line, #dedbd0);
   border-radius: 999px;
   background: #fff;
-  color: #102b29;
+  color: #10192b;
   font-weight: 650;
   font-size: 13px;
 }
 
-.help-quick-links svg, .help-browse a > svg { color: #28665a; }
+.help-quick-links svg, .help-browse a > svg { color: #283d66; }
 
 .help-panel-heading {
   display: flex;
@@ -279,7 +279,7 @@
 
 .help-panel-heading p, .help-browse p, .help-faq-topics p {
   margin: 0;
-  color: #52635f;
+  color: #525863;
   line-height: 1.5;
 }
 
@@ -287,12 +287,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #a94924;
+  color: #1d4ed8;
   font-weight: 650;
 }
 
 .help-questions details { border-top: 1px solid var(--brand-line, #dedbd0); scroll-margin-top: 28px; }
-.help-questions details > div { padding: 0 32px 20px; color: #52635f; line-height: 1.7; }
+.help-questions details > div { padding: 0 32px 20px; color: #525863; line-height: 1.7; }
 .help-questions details > div > p { margin-bottom: 10px; }
 .help-answer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
 .help-answer-actions a { min-height: 44px; }
@@ -311,7 +311,7 @@
 }
 
 .help-questions summary::-webkit-details-marker { display: none; }
-.help-questions summary svg { rotate: 90deg; color: #52635f; }
+.help-questions summary svg { rotate: 90deg; color: #525863; }
 .help-questions details[open] summary svg { rotate: -90deg; }
 .help-empty { padding: 0 32px 24px; }
 
@@ -328,7 +328,7 @@
 .help-faq-topics { padding: 8px; }
 .help-faq-topics nav { display: grid; gap: 3px; }
 .help-faq-topics nav a { display: block; padding: 13px 17px; border-radius: 12px; }
-.help-faq-topics nav a[aria-current], .help-faq-topics nav a:hover { background: #e7eee5; color: #0c3532; }
+.help-faq-topics nav a[aria-current], .help-faq-topics nav a:hover { background: #e5e8ee; color: #102a6b; }
 .help-faq-topics nav a[aria-current] { font-weight: 750; }
 .help-faq-escalation { display: grid; gap: 8px; margin: 16px 8px 8px; padding: 16px 0 0; border-top: 1px solid var(--brand-line, #dedbd0); }
 .help-faq-topics-mobile, .help-faq-escalation-mobile { display: none; }
@@ -338,19 +338,19 @@
 .help-request-form form[hidden] { display: none; }
 .help-request-form :is(input, select, textarea) { font-size: 16px; }
 .help-request-form textarea { resize: vertical; }
-.help-request-form form > p, .help-draft p { margin: 0; color: #52635f; font-size: 13px; }
+.help-request-form form > p, .help-draft p { margin: 0; color: #525863; font-size: 13px; }
 .help-request-form form > button { justify-self: start; }
-.help-draft { display: grid; justify-items: start; gap: 10px; padding: 16px; border-radius: 10px; background: #e7eee5; }
+.help-draft { display: grid; justify-items: start; gap: 10px; padding: 16px; border-radius: 10px; background: #e5e8ee; }
 .help-draft details { width: 100%; }
 .help-draft summary { min-height: 44px; padding-block: 10px; cursor: pointer; font-weight: 650; }
 .help-draft label + label { margin-top: 9px; }
 .help-contact-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--brand-line, #dedbd0); overflow-wrap: anywhere; }
 .help-contact-row .help-icon { width: 40px; height: 40px; margin: 0; border-radius: 100px; }
 .help-contact-row > div { min-width: 0; }
-.help-contact-row > div > span { display: block; color: #52635f; font-size: 12px; }
-.help-contact-row a { display: inline-block; margin-top: 4px; color: #102b29; font-size: 14px; font-weight: 750; }
+.help-contact-row > div > span { display: block; color: #525863; font-size: 12px; }
+.help-contact-row a { display: inline-block; margin-top: 4px; color: #10192b; font-size: 14px; font-weight: 750; }
 .help-contact-links { display: grid; gap: 8px; margin-top: 18px; }
-.help-contact-links a { padding: 12px 16px; border-radius: 10px; background: #e7eee5; font-weight: 650; }
+.help-contact-links a { padding: 12px 16px; border-radius: 10px; background: #e5e8ee; font-weight: 650; }
 .help-contact > small { display: block; margin: 15px 0 0; font-size: 12px; }
 
 .help-contact--channels {
@@ -366,7 +366,7 @@
   border-radius: 12px;
 }
 
-.help-page :is(a, button, summary, input, textarea, select):focus-visible { outline: 3px solid #a94924; outline-offset: 3px; }
+.help-page :is(a, button, summary, input, textarea, select):focus-visible { outline: 3px solid #1d4ed8; outline-offset: 3px; }
 .help-hero :is(a, button, input):focus-visible { outline-color: #f5cb9c; }
 .help-hero .help-search input:focus-visible { outline: 0; }
 
@@ -393,7 +393,7 @@
   .help-faq-topics-mobile { display: block; }
   .help-faq-topics-mobile summary { min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; }
   .help-faq-topics-mobile summary::-webkit-details-marker { display: none; }
-  .help-faq-topics-mobile summary span { margin-inline-start: auto; text-align: end; color: #315f55; font-weight: 700; }
+  .help-faq-topics-mobile summary span { margin-inline-start: auto; text-align: end; color: #31405f; font-weight: 700; }
   .help-faq-topics-mobile summary svg { rotate: 90deg; flex-shrink: 0; }
   .help-faq-topics-mobile[open] summary svg { rotate: -90deg; }
   .help-faq-escalation-mobile { display: grid; justify-items: start; gap: 8px; padding: 18px; }

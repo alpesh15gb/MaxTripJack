@@ -482,7 +482,7 @@ body .account-experience .account-workspace-content .primary:hover:not(:disabled
   align-items: center;
   gap: 12px;
   margin: 0;
-  color: #52635f;
+  color: #525863;
   font-size: 13px;
 }
 
@@ -497,7 +497,7 @@ body .account-experience .account-workspace-content .primary:hover:not(:disabled
   justify-self: start;
   min-height: 37px;
   padding: 3px 0;
-  color: #a94924;
+  color: #1d4ed8;
   font-size: 13px;
   font-weight: 750;
   text-align: left;
@@ -514,5 +514,5 @@ body .account-experience .account-workspace-content .primary:hover:not(:disabled
   border-top: 1px solid #ddd9cd;
 }
 
-.account-signin-drawer .account-drawer-registration p { margin: 0; color: #52635f; font-size: 14px; }
+.account-signin-drawer .account-drawer-registration p { margin: 0; color: #525863; font-size: 14px; }
 .account-signin-drawer .account-drawer-registration button { border-radius: 999px; }

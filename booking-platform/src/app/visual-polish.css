@@ -16,9 +16,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Branded not-found and error pages. */
 .state-page{max-width:760px;margin:0 auto;padding:64px 24px 96px;text-align:center}
-.state-page .state-code{display:block;font-size:clamp(72px,16vw,128px);line-height:1;font-weight:700;letter-spacing:-.06em;color:#d9e4df;margin-bottom:8px}
+.state-page .state-code{display:block;font-size:clamp(72px,16vw,128px);line-height:1;font-weight:700;letter-spacing:-.06em;color:#d9dde4;margin-bottom:8px}
 .state-page h1{font-size:clamp(28px,5vw,42px);line-height:1.15;letter-spacing:-.03em;color:#142d40;margin:8px 0 14px}
-.state-page p{font-size:17px;line-height:1.65;color:#536860;max-width:520px;margin:0 auto 28px}
+.state-page p{font-size:17px;line-height:1.65;color:#535a68;max-width:520px;margin:0 auto 28px}
 .state-page .state-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 .state-page .state-actions a,.state-page .state-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;border:1px solid #2458a6;color:#2458a6;background:white;cursor:pointer}
 .state-page .state-actions .state-primary{background:#2458a6;color:white}
@@ -34,9 +34,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.studio-hero-photo>img,.home-search-submit{transition:none}.studio-hero-photo:hover>img{transform:none}}
 
 /* Destination cards use optimised, lazy-loaded images instead of eager CSS backgrounds. */
-.trip-home .home-destination{position:relative;isolation:isolate;overflow:hidden;background-color:#78a8b1}
+.trip-home .home-destination{position:relative;isolation:isolate;overflow:hidden;background-color:#788bb1}
 .trip-home .home-destination-photo{object-fit:cover;z-index:-2}
-.trip-home .home-destination-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(8,26,37,.88),transparent 75%)}
+.trip-home .home-destination-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(8,18,37,.88),transparent 75%)}
 
 .flight-load-more{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0 8px}
 .flight-load-more p{margin:0}
@@ -63,7 +63,7 @@ html,body{overflow-x:clip}
   --brand-amber: var(--brand-gold);
   --brand-gold-sheen: linear-gradient(112deg, #edd6a3, #d8b775 55%, #c39d61);
   --brand-night-sheen: linear-gradient(117deg, #101c2c 16%, #253b52 69%, #17283b);
-  --brand-paper-sheen: linear-gradient(145deg, #fffefa 16%, #f2eadc);
+  --brand-paper-sheen: linear-gradient(145deg, #ffffff 16%, #f2eadc);
   --brand-sand-sheen: linear-gradient(125deg, #fffbf0 8%, #eadbc0);
   --brand-page-sheen: radial-gradient(ellipse 78% 34rem at 92% 0%, #eadbc2 0%, transparent 100%),
     linear-gradient(155deg, #faf9f6 18%, #f6f0e6 100%);

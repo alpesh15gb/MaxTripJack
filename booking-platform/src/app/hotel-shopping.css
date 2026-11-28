@@ -236,4 +236,4 @@ body .booking-workflow.journey-flow .stay-rate-comparison .stay-room-rate-action
   border-radius: 7px; color: #344f6e; background: #e5edf8; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere;
 }
 .stay-rate-cancellation svg { flex-shrink: 0; }
-body .booking-workflow.journey-flow .stay-rate-comparison .stay-room-rate-action .stay-rate-cancellation[data-free=true] { color: #195644; background: #e6f3ed; }
+body .booking-workflow.journey-flow .stay-rate-comparison .stay-room-rate-action .stay-rate-cancellation[data-free=true] { color: #192d56; background: #e6eaf3; }

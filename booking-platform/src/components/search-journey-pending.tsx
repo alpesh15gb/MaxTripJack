@@ -16,9 +16,11 @@ export default function SearchJourneyPending({ product, context, onStop }: {
   onStop: () => void;
 }) {
   const [takingLonger, setTakingLonger] = useState(false);
+  const [step, setStep] = useState(0);
   useEffect(() => {
     const timer = window.setTimeout(() => setTakingLonger(true), 6000);
-    return () => window.clearTimeout(timer);
+    const ticker = window.setInterval(() => setStep(value => value + 1), 2200);
+    return () => { window.clearTimeout(timer); window.clearInterval(ticker); };
   }, []);
 
   const flight = product === 'FLIGHT';
@@ -29,6 +31,11 @@ export default function SearchJourneyPending({ product, context, onStop }: {
       : 'Availability is taking longer to check. You can wait or edit your search.'
     : mapping ? 'We’ll check rates for your dates once we find matching properties.'
       : flight ? 'Checking seats and fares for your trip.' : 'Checking room rates for your dates and guests.';
+
+  const hints = flight
+    ? ['Contacting airlines for your route…', 'Comparing fares and baggage…', 'Checking seat availability…', 'Sorting the best options…']
+    : ['Finding properties for your dates…', 'Comparing room rates…', 'Checking meal plans and cancellation terms…', 'Sorting the best options…'];
+  const hint = hints[step % hints.length];
 
   return (
     <section id="booking-pending" className="stitch-search-pending" aria-label="Search in progress">
@@ -65,24 +72,32 @@ export default function SearchJourneyPending({ product, context, onStop }: {
         <div className="stitch-search-copy" role="status" aria-label="Search and booking activity">
           <strong>{title}</strong>
           <p>{detail}</p>
+          <div className="stitch-search-progress" aria-hidden="true"><span/></div>
+          {!takingLonger && <p className="stitch-search-hint" aria-hidden="true">{hint}</p>}
         </div>
       </div>
       <div className="stitch-pending-layout" aria-hidden="true">
         <div className="stitch-pending-filters">
-          <span className="stitch-pending-line"/>
-          <span className="stitch-pending-line"/>
-          <span className="stitch-pending-line"/>
-          <span className="stitch-pending-line"/>
+          {[0, 1, 2].map(group => <div className="stitch-pending-filter-group" key={group}>
+            <span className="stitch-pending-line"/>
+            <span className="stitch-pending-line"/>
+            <span className="stitch-pending-line"/>
+          </div>)}
         </div>
         <div className="stitch-pending-results" data-product={product.toLowerCase()}>
-          {[1, 2].map(row => (
+          {flight && <div className="stitch-pending-sorts">{[0, 1, 2, 3].map(tile => <span key={tile}/>)}</div>}
+          {[1, 2, 3, 4, 5].map(row => (
             <div className="stitch-pending-result" key={row}>
               <span className="stitch-pending-thumb"/>
               <div className="stitch-pending-result-copy">
                 <span className="stitch-pending-line"/>
+                {flight ? <span className="stitch-pending-route"><i/><b/><i/></span> : <span className="stitch-pending-line"/>}
                 <span className="stitch-pending-line"/>
               </div>
-              <span className="stitch-pending-action"/>
+              <div className="stitch-pending-price">
+                <span className="stitch-pending-line"/>
+                <span className="stitch-pending-action"/>
+              </div>
             </div>
           ))}
         </div>

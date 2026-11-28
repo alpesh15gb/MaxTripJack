@@ -1,4 +1,4 @@
-.booking-lookup-email > small { display: block; margin-top: 5px; color: #52635f; font-size: 11px; font-weight: 400; line-height: 1.45; }
+.booking-lookup-email > small { display: block; margin-top: 5px; color: #525863; font-size: 11px; font-weight: 400; line-height: 1.45; }
 
 .booking-lookup-verification {
   position: fixed;
@@ -10,11 +10,11 @@
   margin: 0;
   padding: 0;
   border: 0;
-  color: #102b29;
-  background: #fffdf8;
+  color: #10192b;
+  background: #ffffff;
 }
 
-.booking-lookup-verification::backdrop { background: #102b298a; backdrop-filter: blur(3px); }
+.booking-lookup-verification::backdrop { background: #10192b8a; backdrop-filter: blur(3px); }
 body:has(.booking-lookup-verification[open]) { overflow: hidden; }
 
 .booking-lookup-verification > header {
@@ -24,7 +24,7 @@ body:has(.booking-lookup-verification[open]) { overflow: hidden; }
   gap: 12px;
   padding: 18px 22px;
   color: #fff;
-  background: linear-gradient(110deg, #0c3532, #28665a);
+  background: linear-gradient(110deg, #102a6b, #283d66);
 }
 
 .booking-lookup-verification > header h2 { margin: 0; color: inherit; font-size: 19px; }
@@ -32,4 +32,4 @@ body:has(.booking-lookup-verification[open]) { overflow: hidden; }
 .booking-lookup-verification > .checkout-verification { margin: 0; padding: 22px; border: 0; border-radius: 0; background: transparent; }
 .booking-lookup-verification .checkout-verification-heading h3 { margin-bottom: 5px; font-size: 18px; }
 .booking-lookup-verification .checkout-verification-form { margin-block: 16px; }
-.booking-lookup-verification .checkout-verification-note { color: #52635f; font-size: 13px; line-height: 1.5; }
+.booking-lookup-verification .checkout-verification-note { color: #525863; font-size: 13px; line-height: 1.5; }

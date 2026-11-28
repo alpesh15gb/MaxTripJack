@@ -38,6 +38,8 @@ import "./destina-flight-results.css";
 import "./destina-flight-card.css";
 import "./flight-price-alerts.css";
 import "./destina-flight-review.css";
+import "./brand-blue.css";
+import "./screen-fixes.css";
 
 const bookingDisplay = Plus_Jakarta_Sans({ variable: "--font-stitch-display", subsets: ["latin"], display: "swap" });
 const bookingBody = DM_Sans({ variable: "--font-stitch-body", subsets: ["latin"], display: "swap" });

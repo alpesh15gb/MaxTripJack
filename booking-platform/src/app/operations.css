@@ -2,4 +2,4 @@
 
 .operations-sidebar .operations-visibility-link{color:var(--brand-sand);font-size:12px;line-height:1.7;text-underline-offset:4px}
 
-.ops-price-preview{grid-column:1/-1;background:#eff6f4;border:1px solid #bcd8d1;border-radius:12px;padding:16px}.ops-price-preview p{font-weight:700}.ops-price-preview small{display:block;line-height:1.6}
+.ops-price-preview{grid-column:1/-1;background:#eff1f6;border:1px solid #bcc5d8;border-radius:12px;padding:16px}.ops-price-preview p{font-weight:700}.ops-price-preview small{display:block;line-height:1.6}

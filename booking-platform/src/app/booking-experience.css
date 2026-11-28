@@ -1,5 +1,5 @@
 /* Scoped booking experience: does not restyle the marketing or account surfaces. */
-.booking-workflow { --booking-ink:#142d40; --booking-muted:#5b6d7d; --booking-blue:#2455e7; --booking-teal:#087f8c; color:var(--booking-ink); font-size:15px; padding-top:28px; }
+.booking-workflow { --booking-ink:#142d40; --booking-muted:#5b6d7d; --booking-blue:#2455e7; --booking-teal:#0b3589; color:var(--booking-ink); font-size:15px; padding-top:28px; }
 .booking-workflow .muted { color:var(--booking-muted); font-size:14px; line-height:1.65; }
 .booking-workflow .back { display:inline-flex; align-items:center; min-height:44px; color:var(--booking-muted); font-size:14px; }
 .booking-workflow .booking-intro { padding:24px 0 28px; align-items:center; gap:24px; }
@@ -12,7 +12,7 @@
 .booking-workflow .booking-progress li span { width:30px; height:30px; background:#f0f3f7; color:#627184; }
 .booking-workflow .booking-progress .is-current { color:var(--booking-blue); }
 .booking-workflow .booking-progress .is-current span { background:var(--booking-blue); color:#fff; box-shadow:0 0 0 5px #2455e710; }
-.booking-workflow .booking-progress .is-complete span { background:#e5f5f1; color:var(--booking-teal); }
+.booking-workflow .booking-progress .is-complete span { background:#e5eaf5; color:var(--booking-teal); }
 .booking-workflow .booking-layout { grid-template-columns:minmax(0,1fr) 310px; gap:28px; align-items:start; }
 .booking-workflow .booking-main { min-width:0; }
 .booking-workflow .white-card { border:1px solid #e1e7ed; border-radius:20px; box-shadow:0 6px 24px #142d4005; }
@@ -23,7 +23,7 @@
 .booking-workflow .primary { background:var(--booking-blue); color:#fff; border-radius:12px; font-size:14px; font-weight:700; padding:13px 21px; box-shadow:0 4px 10px #2455e712; }
 .booking-workflow .primary:hover:not(:disabled) { background:#1c45c5; }
 .booking-workflow .secondary { background:white; color:var(--booking-ink); border:1px solid #dce4eb; border-radius:12px; font-size:14px; }
-.booking-workflow :is(button,input,select,summary,a):focus-visible { outline:3px solid #087f8c; outline-offset:3px; }
+.booking-workflow :is(button,input,select,summary,a):focus-visible { outline:3px solid #0b3589; outline-offset:3px; }
 .booking-workflow .booking-search-panel { border:1px solid #e0e7ed; background:white; border-radius:20px; overflow:visible; margin:0 0 24px; box-shadow:0 8px 30px #142d4005; }
 .booking-workflow .booking-search-panel>summary { padding:20px 24px; color:var(--booking-ink); font-size:17px; font-weight:700; min-height:64px; }
 .search-panel-icon { color:var(--booking-blue); font-size:24px; margin-right:10px; }
@@ -86,17 +86,17 @@
 .booking-guide li>span { font-size:12px; color:var(--booking-teal); font-weight:750; padding-top:2px; }
 .booking-guide strong { font-size:14px; }
 .booking-workflow .booking-guide p { font-size:13px; margin:4px 0 0; }
-.booking-workflow .booking-trust-note { font-size:13px; color:#486772; line-height:1.9; }
+.booking-workflow .booking-trust-note { font-size:13px; color:#485672; line-height:1.9; }
 .booking-workflow .booking-total { border-top:1px dashed #cdd8e2; padding-top:18px; color:var(--booking-ink); }
 .booking-workflow .booking-total dd { color:var(--booking-blue); font-size:25px; letter-spacing:-.7px; }
 .booking-workflow .results-heading h2 { font-size:28px; color:var(--booking-ink); letter-spacing:-.7px; margin-top:8px; }
-.booking-workflow .results-count { white-space:nowrap; border-radius:99px; background:#e8f3f1; color:var(--booking-teal); padding:8px 12px; font-size:12px; }
+.booking-workflow .results-count { white-space:nowrap; border-radius:99px; background:#e8ecf3; color:var(--booking-teal); padding:8px 12px; font-size:12px; }
 .booking-workflow .results-toolbar { background:white; padding:16px; border-radius:16px; gap:16px; }
 .booking-workflow .results-toolbar label { flex:1; min-width:0; font-size:13px; }
 .booking-workflow .results-toolbar select { margin-top:2px; }
 .booking-workflow .live-flight-card { padding:0; margin-bottom:16px; overflow:hidden; }
 .booking-workflow .live-flight-card.is-selected { border-color:var(--booking-blue); box-shadow:0 0 0 2px #2455e710; }
-.booking-workflow .flight-result-top { padding:16px 22px; border-bottom:1px solid #f0f3f5; }
+.booking-workflow .flight-result-top { padding:16px 22px; border-bottom:1px solid #f0f2f5; }
 .booking-workflow .airline-identity strong { font-size:15px; }
 .booking-workflow .airline-identity small,.booking-workflow .flight-route-line small { font-size:12px; color:#5b6d7d; }
 .booking-workflow .flight-cabin { font-size:12px; background:#f2f5fa; }
@@ -110,9 +110,9 @@
 .booking-workflow .fare-option-action strong { font-size:20px; }
 .booking-workflow .fare-features { font-size:13px; line-height:1.8; }
 .booking-workflow .booking-hotel-card { display:grid; grid-template-columns:110px minmax(0,1fr); gap:20px; align-items:center; padding:20px; }
-.hotel-result-art { position:relative; display:grid; place-items:center; height:120px; border-radius:16px; overflow:hidden; color:#087f8c; background:linear-gradient(135deg,#e6f4f1,#edf2fc); }
+.hotel-result-art { position:relative; display:grid; place-items:center; height:120px; border-radius:16px; overflow:hidden; color:#0b3589; background:linear-gradient(135deg,#e6ebf4,#edf2fc); }
 .hotel-result-art>span { font-size:64px; font-weight:300; z-index:1; }
-.hotel-result-art i { position:absolute; width:80px; height:80px; border:1px solid #087f8c18; border-radius:50%; bottom:-30px; right:-20px; }
+.hotel-result-art i { position:absolute; width:80px; height:80px; border:1px solid #0b358918; border-radius:50%; bottom:-30px; right:-20px; }
 .hotel-result-art i:nth-child(3) { width:110px; height:110px; }
 .hotel-result-art i:nth-child(4) { width:140px; height:140px; }
 .booking-workflow .hotel-result-content h3 { font-size:21px; line-height:1.3; margin:8px 0; color:var(--booking-ink); }
@@ -123,7 +123,7 @@
 .booking-workflow .booking-review { padding:28px; }
 .booking-workflow .booking-review .page-heading h2 { font-size:30px; letter-spacing:-.8px; }
 .booking-workflow .booking-review details>summary { font-size:14px; min-height:44px; padding:12px 0; color:var(--booking-ink); }
-.booking-workflow .booking-expiry { background:#edf7f5; border:1px solid #cde8df; border-radius:14px; padding:17px; }
+.booking-workflow .booking-expiry { background:#edf0f7; border:1px solid #cdd6e8; border-radius:14px; padding:17px; }
 .booking-workflow .booking-expiry p { font-size:13px; line-height:1.6; }
 .booking-workflow .booking-expiry.is-expired { background:#fff7eb; border-color:#ecd7b5; }
 .booking-workflow .traveller-card { border:1px solid #dfe6ed; border-radius:16px; padding:20px; background:#fcfdff; margin-top:24px; }
@@ -183,7 +183,7 @@
 
 .hotel-property-thumb figure,.hotel-property-gallery figure { margin:0; min-width:0; }
 .hotel-property-thumb img { display:block; width:100%; height:120px; object-fit:cover; border-radius:14px; }
-.hotel-photo-unavailable { display:grid; place-items:center; min-height:100px; border-radius:14px; padding:10px; background:#edf2f5; color:#596879; text-align:center; font-size:.75rem; }
+.hotel-photo-unavailable { display:grid; place-items:center; min-height:100px; border-radius:14px; padding:10px; background:#edf0f5; color:#596879; text-align:center; font-size:.75rem; }
 .hotel-property-gallery { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:12px; margin:1rem 0; }
 .hotel-property-gallery img { width:100%; height:180px; object-fit:cover; border-radius:12px; }
 .hotel-property-gallery figcaption { font-size:.75rem; color:#596879; padding:5px; }
@@ -258,17 +258,17 @@
 .hotel-active-filters { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
 .hotel-filter-chip { min-height:44px; padding:8px 12px; border:1px solid #cddded; border-radius:24px; background:#eaf2fc; color:#214975; font-size:13px; overflow-wrap:anywhere; }
 .booking-workflow .hotel-shopping-card { grid-template-columns:minmax(170px,23%) minmax(0,1fr) 190px; gap:0; padding:0; overflow:hidden; align-items:stretch; border:1px solid #dce5ec; border-radius:18px; box-shadow:0 4px 14px #173a5c08; }
-.hotel-card-photo { min-width:0; background:#edf2f5; }
+.hotel-card-photo { min-width:0; background:#edf0f5; }
 .hotel-card-photo :is(.hotel-property-thumb,figure) { height:100%; }
 .hotel-card-photo .hotel-property-thumb img { height:100%; min-height:240px; border-radius:0; }
 .hotel-card-photo .hotel-photo-unavailable { height:100%; min-height:240px; border-radius:0; padding:20px; font-size:13px; }
 .hotel-shopping-card .hotel-result-content { padding:20px; min-width:0; }
-.hotel-property-kind { text-transform:uppercase; font-size:10px; letter-spacing:1.3px; font-weight:700; color:#457263; margin-bottom:8px; }
+.hotel-property-kind { text-transform:uppercase; font-size:10px; letter-spacing:1.3px; font-weight:700; color:#455472; margin-bottom:8px; }
 .booking-workflow .hotel-shopping-card h3 { margin:0 0 8px; font-size:20px; line-height:1.3; letter-spacing:-.35px; overflow-wrap:anywhere; }
 .hotel-shopping-card .hotel-property-category { color:#79561e; font-size:12px; margin:0 0 10px; }
 .hotel-shopping-card .hotel-property-address { font-size:13px; line-height:1.55; color:#526a7d; margin:0 0 14px; overflow-wrap:anywhere; }
 .hotel-amenity-list { display:flex; flex-wrap:wrap; list-style:none; padding:0; margin:0; gap:6px; }
-.hotel-amenity-list li { padding:5px 8px; background:#f0f5f8; border-radius:6px; font-size:12px; color:#3d5a6f; overflow-wrap:anywhere; }
+.hotel-amenity-list li { padding:5px 8px; background:#f0f3f8; border-radius:6px; font-size:12px; color:#3d5a6f; overflow-wrap:anywhere; }
 .hotel-shopping-card .hotel-room-note { font-size:12px; line-height:1.55; color:#627485; margin:14px 0 0; }
 .hotel-shopping-card .hotel-result-action { grid-column:auto; display:flex; flex-direction:column; align-items:stretch; justify-content:space-between; gap:18px; border-top:0; border-left:1px solid #e6edf3; padding:22px 16px; background:#fbfcfe; }
 .hotel-stay-price { display:grid; gap:8px; }
@@ -323,7 +323,7 @@
 .flight-shopping-controls label { display:grid; gap:7px; }
 .booking-workflow.has-journey .flight-shopping-controls :is(select,input) { width:100%; min-width:0; min-height:44px; padding:10px; font-size:14px; background:#f9fbfd; }
 .flight-filter-intro { padding-top:16px; border-top:1px solid #e0e8ef; }
-.flight-filter-intro strong { font-size:14px; color:#183c50; }
+.flight-filter-intro strong { font-size:14px; color:#182b50; }
 .flight-filter-intro p,.flight-filter-note { color:#5b7081; font-size:12px; line-height:1.6; margin:7px 0 0; overflow-wrap:anywhere; }
 .flight-shopping-controls .secondary { min-height:44px; }
 .flight-shopping-list { min-width:0; }
@@ -335,7 +335,7 @@
 .flight-shopping-list .airline-identity { min-width:0; }
 .flight-shopping-list .airline-identity strong { font-size:16px; line-height:1.4; overflow-wrap:anywhere; }
 .flight-shopping-list .airline-identity small { font-size:12px; line-height:1.5; }
-.flight-shopping-list .airline-monogram { width:40px; height:40px; flex-shrink:0; font-size:14px; background:#eaf2f7; color:#234d65; border:1px solid #d7e5ef; }
+.flight-shopping-list .airline-monogram { width:40px; height:40px; flex-shrink:0; font-size:14px; background:#eaeef7; color:#233965; border:1px solid #d7dfef; }
 .flight-shopping-list .flight-cabin { font-size:11px; white-space:nowrap; }
 .booking-workflow .flight-shopping-list .flight-route-line { grid-column:1; padding:16px 20px 20px; display:grid; grid-template-columns:minmax(0,1fr) minmax(95px,1.15fr) minmax(0,1fr); gap:12px; align-items:start; }
 .flight-shopping-list .flight-route-line>div { min-width:0; }
@@ -344,15 +344,15 @@
 .flight-shopping-list .flight-route-line small { font-size:12px; line-height:1.5; }
 .flight-shopping-list .flight-route-track { padding-top:5px; text-align:center; }
 .flight-shopping-list .flight-route-track>span { display:block; height:16px; font-size:0; position:relative; margin:10px 0; }
-.flight-shopping-list .flight-route-track>span::before { content:''; position:absolute; top:8px; left:6px; right:6px; height:1px; background:#9db7c5; }
-.flight-shopping-list .flight-route-track>span::after { content:'✈'; font-size:16px; color:#527d92; position:relative; background:white; padding:0 5px; }
+.flight-shopping-list .flight-route-track>span::before { content:''; position:absolute; top:8px; left:6px; right:6px; height:1px; background:#9daac5; }
+.flight-shopping-list .flight-route-track>span::after { content:'✈'; font-size:16px; color:#526792; position:relative; background:white; padding:0 5px; }
 .flight-day-change { display:inline-block!important; font-size:11px!important; font-weight:600; background:#fff2da; color:#745416!important; border-radius:5px; padding:3px 5px; margin-top:5px; }
 .booking-workflow .flight-shopping-list .flight-segment-details { grid-column:1; margin:0; padding:0 20px 12px; border-top:0; }
-.flight-shopping-list .flight-segment-details>summary { min-height:44px; padding:12px 0; color:#245c80; font-size:13px; }
+.flight-shopping-list .flight-segment-details>summary { min-height:44px; padding:12px 0; color:#244380; font-size:13px; }
 .flight-shopping-list .flight-segment { font-size:14px; line-height:1.6; }
 .booking-workflow .flight-shopping-list .fare-comparison { grid-column:2; grid-row:1/4; border-top:0; border-left:1px solid #e4ecf2; background:#f8fbfe; }
 .booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) { height:100%; min-height:0; padding:20px 16px; display:flex; flex-direction:column-reverse; align-items:stretch; justify-content:center; gap:22px; background:transparent; }
-.booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) strong { font-size:24px; line-height:1.3; color:#163b51; letter-spacing:-.5px; }
+.booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) strong { font-size:24px; line-height:1.3; color:#162a51; letter-spacing:-.5px; }
 .booking-workflow .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger) small { font-size:12px; line-height:1.5; letter-spacing:0; }
 .flight-shopping-list .fare-comparison>:is(summary, .fare-comparison-trigger)>span { display:block; min-height:44px; border:1px solid #b5cfe6; border-radius:10px; padding:11px; color:#2455e7; font-weight:700; font-size:14px; background:#fff; }
 .booking-workflow .flight-shopping-list .fare-comparison[open] { grid-column:1/-1; grid-row:auto; border-left:0; border-top:1px solid #e4ecf2; }
@@ -404,7 +404,7 @@
   font-size:14px; line-height:1.45; letter-spacing:0;
 }
 .booking-workflow .fare-comparison-guidance {
-  margin:0; padding:12px; border:1px solid #dce5eb; border-radius:8px;
+  margin:0; padding:12px; border:1px solid #dce1eb; border-radius:8px;
   background:#f5f7fa; color:#42596b; font-size:14px; line-height:1.5;
 }
 .booking-workflow .fare-option-action strong { font-variant-numeric:tabular-nums; }
@@ -432,20 +432,20 @@
 
 /* Booking pages share a clear workspace, with distinct search and checkout layouts. */
 body .booking-workflow.journey-flow {
-  --booking-ink: #102b31;
-  --booking-muted: #526963;
-  --booking-blue: #006756;
-  --booking-teal: #006756;
+  --booking-ink: #101b31;
+  --booking-muted: #525a69;
+  --booking-blue: #08255f;
+  --booking-teal: #08255f;
   max-width: 1320px;
   padding-inline: 32px;
 }
 body .booking-workflow.journey-flow .booking-intro {
   margin: 4px 0 20px;
   padding: 24px 0;
-  border-bottom: 1px solid #dce7e1;
+  border-bottom: 1px solid #dce0e7;
 }
 .booking-heading-copy { display: flex; align-items: center; gap: 20px; min-width: 0; }
-.booking-heading-icon { display: grid; place-items: center; flex: 0 0 58px; height: 58px; background: #e1efe7; color: #006756; border-radius: 18px; }
+.booking-heading-icon { display: grid; place-items: center; flex: 0 0 58px; height: 58px; background: #e1e6ef; color: #08255f; border-radius: 18px; }
 body .booking-workflow.journey-flow .booking-intro h1 { margin: 0 0 10px; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.12; letter-spacing: -.045em; }
 body .booking-workflow.journey-flow.has-journey .booking-intro h1 { margin-bottom: 0; font-size: clamp(28px, 3vw, 38px); }
 body .booking-workflow.journey-flow .booking-intro p { margin: 0; max-width: 650px; }
@@ -463,71 +463,71 @@ body .booking-workflow.journey-flow .booking-progress {
 body .booking-workflow.journey-flow .booking-progress:has(li:last-child:nth-child(2)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 body .booking-workflow.journey-flow .booking-progress li {
   padding: 12px 8px;
-  border-bottom: 3px solid #dce7e1;
-  color: #536963;
+  border-bottom: 3px solid #dce0e7;
+  color: #535a69;
   justify-content: flex-start;
 }
 body .booking-workflow.journey-flow .booking-progress li::after { display: none; }
-body .booking-workflow.journey-flow .booking-progress li.is-current { border-color: #006756; color: #006756; }
-body .booking-workflow.journey-flow .booking-progress li.is-complete { border-color: #79a793; }
-body .booking-workflow.journey-flow .booking-progress li span { box-shadow: none; width: 26px; height: 26px; background: #e5eee8; }
-body .booking-workflow.journey-flow .booking-progress li.is-current span { background: #006756; color: white; }
-body .booking-workflow.journey-flow .booking-product-tabs { background: #e6eee8; border-radius: 999px; padding: 5px; }
+body .booking-workflow.journey-flow .booking-progress li.is-current { border-color: #08255f; color: #08255f; }
+body .booking-workflow.journey-flow .booking-progress li.is-complete { border-color: #7988a7; }
+body .booking-workflow.journey-flow .booking-progress li span { box-shadow: none; width: 26px; height: 26px; background: #e5e8ee; }
+body .booking-workflow.journey-flow .booking-progress li.is-current span { background: #08255f; color: white; }
+body .booking-workflow.journey-flow .booking-product-tabs { background: #e6e9ee; border-radius: 999px; padding: 5px; }
 body .booking-workflow.journey-flow .booking-product-tabs button { border-radius: 999px; }
-body .booking-workflow.journey-flow .booking-search-panel { border-color: #dce7e1; border-radius: 20px; }
+body .booking-workflow.journey-flow .booking-search-panel { border-color: #dce0e7; border-radius: 20px; }
 body .booking-workflow.journey-flow:not(.has-journey) .booking-search-panel > summary { padding: 26px 28px 12px; font-size: 23px; letter-spacing: -.025em; }
 body .booking-workflow.journey-flow .booking-search-panel .live-search { padding: 8px 28px 28px; }
 body .booking-workflow.journey-flow:not(.has-journey) .booking-layout { grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr); gap: 32px; }
 body .booking-workflow.journey-flow .booking-summary.is-planning { padding: 0 24px 24px; overflow: hidden; position: static; }
-.booking-planning-photo { position: relative; height: 230px; margin-inline: -24px; margin-bottom: 24px; background: #102b31; }
+.booking-planning-photo { position: relative; height: 230px; margin-inline: -24px; margin-bottom: 24px; background: #101b31; }
 .booking-planning-photo img { object-fit: cover; }
-.booking-planning-photo > span { position: absolute; bottom: 14px; left: 16px; padding: 7px 10px; border-radius: 999px; background: #102b31e6; color: white; font-size: 12px; }
+.booking-planning-photo > span { position: absolute; bottom: 14px; left: 16px; padding: 7px 10px; border-radius: 999px; background: #101b31e6; color: white; font-size: 12px; }
 body .booking-workflow.journey-flow .booking-summary h2 { font-size: 25px; }
 body .booking-workflow.journey-flow .booking-guide { gap: 18px; }
 body .booking-workflow.journey-flow .booking-guide li { align-items: flex-start; }
-body .booking-workflow.journey-flow .booking-guide svg { color: #006756; margin-top: 2px; }
+body .booking-workflow.journey-flow .booking-guide svg { color: #08255f; margin-top: 2px; }
 body .booking-workflow.journey-flow .booking-guide p { margin: 5px 0 0; font-size: 13px; }
 
 /* Results use an uncluttered comparison area and a fixed-width filter rail. */
 body .booking-workflow.journey-flow .results-heading,
 body .booking-workflow.journey-flow .hotel-shopping-toolbar {
   background: white;
-  border: 1px solid #dce7e1;
+  border: 1px solid #dce0e7;
   border-radius: 18px;
   padding: 24px;
   margin-bottom: 24px;
 }
 body .booking-workflow.journey-flow .results-heading h2,
 body .booking-workflow.journey-flow .hotel-shopping-toolbar h2 { font-size: 25px; letter-spacing: -.035em; }
-body .booking-workflow.journey-flow .results-count { background: #e8f4ee; color: #245b4c; border-radius: 999px; padding: 10px 14px; font-size: 13px; }
+body .booking-workflow.journey-flow .results-count { background: #e8ecf4; color: #24365b; border-radius: 999px; padding: 10px 14px; font-size: 13px; }
 body .booking-workflow.journey-flow .flight-shopping-controls,
-body .booking-workflow.journey-flow .hotel-search-filters { background: #fff; border-color: #dce7e1; border-radius: 18px; box-shadow: none; }
-body .booking-workflow.journey-flow .live-flight-card { border-radius: 18px; border-color: #dce7e1; box-shadow: 0 6px 24px #102b3106; }
-body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { background: #f1f6f2; border-left: 1px dashed #bdcfc5; border-radius: 0 17px 17px 0; }
+body .booking-workflow.journey-flow .hotel-search-filters { background: #fff; border-color: #dce0e7; border-radius: 18px; box-shadow: none; }
+body .booking-workflow.journey-flow .live-flight-card { border-radius: 18px; border-color: #dce0e7; box-shadow: 0 6px 24px #101b3106; }
+body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { background: #f1f3f6; border-left: 1px dashed #bdc3cf; border-radius: 0 17px 17px 0; }
 body .booking-workflow.journey-flow .hotel-shopping-card { padding: 0; overflow: hidden; }
 body .booking-workflow.journey-flow .hotel-shopping-card .hotel-card-photo { border-radius: 0; min-height: 260px; }
 body .booking-workflow.journey-flow .hotel-result-content { padding-block: 24px; }
 body .booking-workflow.journey-flow .hotel-result-content h3 { font-size: 23px; letter-spacing: -.035em; }
-body .booking-workflow.journey-flow .hotel-result-action { padding: 24px; background: #f1f6f2; border-left: 1px dashed #bdcfc5; }
-body .booking-workflow.journey-flow .hotel-amenity-list li { background: #edf5ef; border-radius: 6px; }
+body .booking-workflow.journey-flow .hotel-result-action { padding: 24px; background: #f1f3f6; border-left: 1px dashed #bdc3cf; }
+body .booking-workflow.journey-flow .hotel-amenity-list li { background: #edf0f5; border-radius: 6px; }
 
 /* The review form uses separate cards for names, contact and the final payment. */
-body .booking-workflow.journey-flow .booking-review { padding: 28px; background: #fff; border-color: #dce7e1; }
-body .booking-workflow.journey-flow .booking-review > .page-heading { padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid #dce7e1; align-items: flex-start; }
+body .booking-workflow.journey-flow .booking-review { padding: 28px; background: #fff; border-color: #dce0e7; }
+body .booking-workflow.journey-flow .booking-review > .page-heading { padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid #dce0e7; align-items: flex-start; }
 body .booking-workflow.journey-flow .booking-review > .page-heading h2 { font-size: clamp(26px, 3vw, 34px); letter-spacing: -.04em; }
-body .booking-workflow.journey-flow .traveller-card { padding: 24px; margin-top: 26px; border: 1px solid #dce7e1; border-radius: 16px; background: #f7faf7; }
-body .booking-workflow.journey-flow .traveller-card legend { padding: 0 9px; font-size: 17px; font-weight: 700; color: #102b31; }
-body .booking-workflow.journey-flow .booking-contact { padding: 24px; margin: 28px 0; border: 1px solid #dce7e1; border-radius: 16px; background: #f7faf7; }
+body .booking-workflow.journey-flow .traveller-card { padding: 24px; margin-top: 26px; border: 1px solid #dce0e7; border-radius: 16px; background: #f7f8fa; }
+body .booking-workflow.journey-flow .traveller-card legend { padding: 0 9px; font-size: 17px; font-weight: 700; color: #101b31; }
+body .booking-workflow.journey-flow .booking-contact { padding: 24px; margin: 28px 0; border: 1px solid #dce0e7; border-radius: 16px; background: #f7f8fa; }
 body .booking-workflow.journey-flow .booking-contact h3 { font-size: 21px; letter-spacing: -.02em; }
-body .booking-workflow.journey-flow .booking-summary:not(.is-planning) { border-top: 5px solid #006756; background: white; }
-body .booking-workflow.journey-flow .booking-total { padding: 20px 0; border-block: 1px solid #dce7e1; margin-top: 20px; }
-body .booking-workflow.journey-flow .booking-total dd { font-size: 27px; font-weight: 750; color: #006756; }
-body .booking-workflow.journey-flow .booking-payment-heading { display: flex; gap: 16px; align-items: center; padding: 24px; margin: -1px -1px 24px; border-radius: 16px; background: #102b31; color: white; }
+body .booking-workflow.journey-flow .booking-summary:not(.is-planning) { border-top: 5px solid #08255f; background: white; }
+body .booking-workflow.journey-flow .booking-total { padding: 20px 0; border-block: 1px solid #dce0e7; margin-top: 20px; }
+body .booking-workflow.journey-flow .booking-total dd { font-size: 27px; font-weight: 750; color: #08255f; }
+body .booking-workflow.journey-flow .booking-payment-heading { display: flex; gap: 16px; align-items: center; padding: 24px; margin: -1px -1px 24px; border-radius: 16px; background: #101b31; color: white; }
 body .booking-workflow.journey-flow .booking-payment-heading h3 { margin: 0 0 7px; color: white; font-size: 23px; }
-body .booking-workflow.journey-flow .booking-payment-heading p { margin: 0; color: #d8e9e2; font-size: 14px; line-height: 1.6; }
-body .booking-workflow.journey-flow .booking-payment-total { font-size: clamp(32px, 4vw, 44px); letter-spacing: -.045em; color: #006756; }
+body .booking-workflow.journey-flow .booking-payment-heading p { margin: 0; color: #d8dee9; font-size: 14px; line-height: 1.6; }
+body .booking-workflow.journey-flow .booking-payment-total { font-size: clamp(32px, 4vw, 44px); letter-spacing: -.045em; color: #08255f; }
 body .booking-workflow.journey-flow .booking-continue { width: 100%; margin-top: 24px; min-height: 54px; font-size: 16px; }
-body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: #005345; }
+body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: #061e4d; }
 
 @media (max-width: 1000px) {
   body .booking-workflow.journey-flow { padding-inline: 24px; }
@@ -536,7 +536,7 @@ body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: 
 @media (max-width: 900px) {
   body .booking-workflow.journey-flow:not(.has-journey) .booking-layout { grid-template-columns: minmax(0, 1fr); }
   body .booking-workflow.journey-flow .booking-summary.is-planning { display: none; }
-  body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { border-left: 0; border-top: 1px dashed #bdcfc5; border-radius: 0 0 17px 17px; }
+  body .booking-workflow.journey-flow .flight-shopping-list .fare-comparison:not([open]) > :is(summary, .fare-comparison-trigger) { border-left: 0; border-top: 1px dashed #bdc3cf; border-radius: 0 0 17px 17px; }
 }
 @media (max-width: 600px) {
   body .booking-workflow.journey-flow { width: 100%; padding-inline: 16px; }
@@ -555,7 +555,7 @@ body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: 
   body .booking-workflow.journey-flow .results-count { padding: 8px 11px; font-size: 12px; }
   body .booking-workflow.journey-flow .hotel-shopping-card .hotel-card-photo { min-height: 200px; }
   body .booking-workflow.journey-flow .hotel-result-content { padding: 18px; }
-  body .booking-workflow.journey-flow .hotel-result-action { padding: 18px; border-left: 0; border-top: 1px dashed #bdcfc5; }
+  body .booking-workflow.journey-flow .hotel-result-action { padding: 18px; border-left: 0; border-top: 1px dashed #bdc3cf; }
   body .booking-workflow.journey-flow .booking-review { padding: 18px; }
   body .booking-workflow.journey-flow .booking-review > .page-heading { gap: 14px; }
   body .booking-workflow.journey-flow .traveller-card,
@@ -563,8 +563,8 @@ body .booking-workflow.journey-flow .primary:hover:not(:disabled) { background: 
   body .booking-workflow.journey-flow .booking-payment-heading { padding: 20px; }
 }
 
-body .booking-workflow.journey-flow .choose-fare-label { background: #006756; }
-body .booking-workflow.journey-flow .fare-comparison > :is(summary, .fare-comparison-trigger):hover .choose-fare-label { background: #005345; }
+body .booking-workflow.journey-flow .choose-fare-label { background: #08255f; }
+body .booking-workflow.journey-flow .fare-comparison > :is(summary, .fare-comparison-trigger):hover .choose-fare-label { background: #061e4d; }
 
 @media (min-width: 1051px) {
   body .booking-workflow.journey-flow .hotel-shopping-card { grid-template-columns: minmax(170px, 23%) minmax(0, 1fr) 220px; }
@@ -610,29 +610,29 @@ body .booking-workflow.journey-flow .hotel-shopping-card .primary { padding-inli
 
 /* The final review keeps one total and the current action close on small screens. */
 .booking-workflow .document-field-hint { display:block; margin-top:8px; color:#5b6d7d; font-size:12px; font-weight:400; line-height:1.5; }
-.booking-workflow .required-documents { margin-top:20px; padding:16px; border:1px solid #dce7e1; border-radius:12px; background:#f8faf9; }
+.booking-workflow .required-documents { margin-top:20px; padding:16px; border:1px solid #dce0e7; border-radius:12px; background:#f8f9fa; }
 .booking-workflow .required-documents h4 { margin:0 0 12px; font-size:14px; }
-.booking-workflow .refreshed-terms { margin:20px 0; padding:20px; border:1px solid #dce7e1; border-left:4px solid #6b8e80; border-radius:14px; background:#f6f9f7; }
+.booking-workflow .refreshed-terms { margin:20px 0; padding:20px; border:1px solid #dce0e7; border-left:4px solid #6b778e; border-radius:14px; background:#f6f7f9; }
 .booking-workflow .refreshed-terms--changed { border-color:#e7d8b7; border-left-color:#b78226; background:#fffbf3; }
 .booking-workflow .refreshed-terms h3 { margin:0 0 10px; font-size:19px; letter-spacing:-.02em; }
 .booking-workflow .refreshed-terms > p { margin:8px 0; font-size:14px; line-height:1.65; }
 .booking-workflow .refreshed-terms .policy-row dd p + p { margin-top:12px; }
-.booking-workflow .refreshed-terms > details { margin:14px 0 0; padding-top:12px; border-top:1px solid #dce7e1; }
+.booking-workflow .refreshed-terms > details { margin:14px 0 0; padding-top:12px; border-top:1px solid #dce0e7; }
 .booking-workflow .refreshed-terms > details > summary { font-size:13px; line-height:1.5; }
 .booking-workflow .flight-policy-routes { display:grid; gap:16px; }
-.booking-workflow .flight-policy-route { min-width:0; overflow-wrap:anywhere; border:1px solid #dce5e2; border-radius:14px; overflow:hidden; background:#fff; }
-.booking-workflow .flight-policy-route h5 { margin:0; padding:14px 18px; color:#165746; background:#f0f6f3; font-size:16px; letter-spacing:.02em; }
-.booking-workflow .flight-policy-category { margin:0; padding:16px 18px; border-top:1px solid #e5ece8; }
+.booking-workflow .flight-policy-route { min-width:0; overflow-wrap:anywhere; border:1px solid #dcdfe5; border-radius:14px; overflow:hidden; background:#fff; }
+.booking-workflow .flight-policy-route h5 { margin:0; padding:14px 18px; color:#162c57; background:#f0f2f6; font-size:16px; letter-spacing:.02em; }
+.booking-workflow .flight-policy-category { margin:0; padding:16px 18px; border-top:1px solid #e5e7ec; }
 .booking-workflow .flight-policy-category h6 { margin:0 0 14px; font-size:15px; }
 .booking-workflow .flight-policy-category > summary { font-size:14px; font-weight:650; }
 .booking-workflow .flight-policy-bands { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
 .booking-workflow details.flight-policy-category[open] > .flight-policy-bands { margin-top:16px; }
-.booking-workflow .flight-policy-band { margin:0; padding:14px; border:1px solid #e4ebe7; border-radius:10px; background:#fafcfb; }
-.booking-workflow .flight-policy-window { margin:0 0 6px; font-size:14px; font-weight:700; color:#173e35; }
-.booking-workflow .flight-policy-description { margin:6px 0; white-space:pre-wrap; font-size:13px; line-height:1.65; color:#52675e; }
+.booking-workflow .flight-policy-band { margin:0; padding:14px; border:1px solid #e4e6eb; border-radius:10px; background:#fafbfc; }
+.booking-workflow .flight-policy-window { margin:0 0 6px; font-size:14px; font-weight:700; color:#17243e; }
+.booking-workflow .flight-policy-description { margin:6px 0; white-space:pre-wrap; font-size:13px; line-height:1.65; color:#525967; }
 .booking-workflow .flight-policy-fees { display:flex; flex-wrap:wrap; gap:12px 24px; margin:12px 0 0; }
 .booking-workflow .flight-policy-fees > div { display:grid; gap:4px; }
-.booking-workflow .flight-policy-fees dt { color:#65766f; font-size:12px; }
+.booking-workflow .flight-policy-fees dt { color:#656b76; font-size:12px; }
 .booking-workflow .flight-policy-fees dd { margin:0; font-size:15px; font-weight:650; }
 .booking-workflow .flight-policy-breakdown { margin-top:12px; }
 .booking-workflow .flight-policy-breakdown > summary { font-size:12px; }
@@ -653,11 +653,11 @@ body .booking-workflow.journey-flow .hotel-shopping-card .primary { padding-inli
 .saved-selection-recovery > div { margin: 18px 0; }
 .saved-selection-recovery h3 { margin-bottom: 6px; }
 
-.booking-workflow .checkout-optional-extras { border:1px solid #dce7e1; border-radius:12px; padding:16px; margin:20px 0; }
+.booking-workflow .checkout-optional-extras { border:1px solid #dce0e7; border-radius:12px; padding:16px; margin:20px 0; }
 .booking-workflow .checkout-optional-extras > summary { cursor:pointer; font-weight:650; }
-.booking-workflow .checkout-optional-extras > summary small { display:block; padding-top:6px; color:#52675e; font-size:12px; font-weight:400; }
+.booking-workflow .checkout-optional-extras > summary small { display:block; padding-top:6px; color:#525967; font-size:12px; font-weight:400; }
 .booking-workflow .checkout-optional-extras .checkout-extras { margin-bottom:0; }
-body .booking-workflow.journey-flow .booking-expiry:not(.is-expired) { background:transparent; border:0; border-bottom:1px solid #dce7e1; border-radius:0; padding:10px 0; color:#52675e; }
+body .booking-workflow.journey-flow .booking-expiry:not(.is-expired) { background:transparent; border:0; border-bottom:1px solid #dce0e7; border-radius:0; padding:10px 0; color:#525967; }
 body .booking-workflow.journey-flow .booking-expiry:not(.is-expired) .secondary { min-height:40px; padding:8px 12px; font-size:12px; }
 @media (max-width:700px) {
   body .booking-workflow.journey-flow .booking-progress { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }

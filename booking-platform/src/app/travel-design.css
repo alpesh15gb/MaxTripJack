@@ -6,7 +6,7 @@
   --line: #e2e8ed;
   --travel-surface: #f6f8fa;
   --travel-lemon: #e8f08a;
-  --travel-navy: #142b3b;
+  --travel-navy: #14213b;
 }
 body { background: #fff; color: var(--ink); font-family: var(--font-geist-sans), Arial, sans-serif; padding-bottom: 0; }
 button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
@@ -22,7 +22,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .live-booking .page-heading, .trips-workspace .page-heading { margin-bottom: 26px; }
 .live-booking h1, .trips-workspace h1 { font-size: 35px; font-weight: 550; letter-spacing: -1.3px; line-height: 1.2; }
 .live-booking .eyebrow, .trips-workspace .eyebrow { color: #708392; font-size: 9px; letter-spacing: 1.5px; }
-.live-booking .white-card, .trips-workspace .white-card { border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 5px 20px #1b344205; }
+.live-booking .white-card, .trips-workspace .white-card { border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 5px 20px #1b284205; }
 .live-booking .white-card h2 { font-weight: 550; letter-spacing: -.5px; }
 .live-booking .account-tabs { display: inline-flex; gap: 5px; padding: 5px; background: #f0f3f6; border: 0; border-radius: 10px; }
 .live-booking .account-tabs button { border-radius: 7px; padding: 10px 20px; font-size: 13px; font-weight: 600; }
@@ -56,7 +56,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .live-booking .live-search .form-row { gap: 17px; }
 .live-booking .live-search .muted { font-size: 12px; line-height: 1.7; }
 .live-booking .results-toolbar { background: white; border-color: var(--line); border-radius: 11px; }
-.live-booking .live-flight-card { padding: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 5px 20px #1b344205; }
+.live-booking .live-flight-card { padding: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 5px 20px #1b284205; }
 .live-booking .airline-monogram { background: #eff3ff; color: var(--blue); border-radius: 9px; }
 .live-booking .flight-route-line strong { color: var(--ink); font-size: 29px; font-weight: 600; }
 .live-booking .flight-route-track span { color: #8ba2ba; }
@@ -109,16 +109,16 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .trips-filter-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 23px; }
 .trips-filter-row > span { font-size: 10px; color: #627383; }
 .trips-filters { display: flex; gap: 5px; padding: 5px; border-radius: 9px; background: #f1f4f7; }
-.trips-filters button { border-radius: 6px; min-height: 36px; padding: 8px 15px; color: #70818d; font-size: 11px; font-weight: 550; }
+.trips-filters button { border-radius: 6px; min-height: 36px; padding: 8px 15px; color: #707a8d; font-size: 11px; font-weight: 550; }
 .trips-filters [aria-pressed="true"] { background: white; color: var(--blue); box-shadow: 0 2px 5px #142d4010; font-weight: 650; }
 .trips-list { display: grid; gap: 21px; }
 .trips-workspace .trip-record { padding: 0; overflow: hidden; }
 .trip-record-top { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 17px 25px; background: #fcfdfe; border-bottom: 1px solid #edf0f3; }
-.trip-record-type { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: #648093; }
+.trip-record-type { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: #647493; }
 .trip-record-type > svg { color: var(--blue); }
 .trip-status { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; padding: 6px 9px; border-radius: 5px; white-space: nowrap; }
 .trip-status > i { height: 4px; width: 4px; border-radius: 50%; background: currentColor; }
-.trip-status.is-confirmed { color: #39785b; background: #ebf5ee; }
+.trip-status.is-confirmed { color: #394e78; background: #ebeef5; }
 .trip-status.is-pending { color: #97701f; background: #fff5d7; }
 .trip-status.is-attention { color: #b15143; background: #fff0eb; }
 .trip-status.is-neutral { color: #6e7c88; background: #eef1f4; }
@@ -134,7 +134,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .trip-record-total > span { display: block; font-size: 9px; color: #627383; margin-top: 5px; }
 .trip-status-note { display: flex; gap: 9px; align-items: start; font-size: 11px; line-height: 1.8; padding: 12px 15px; margin: 0 25px; color: #687f90; background: #f5f8fb; border-radius: 8px; }
 .trip-status-note svg { margin-top: 1px; }
-.trip-status-note.is-confirmed { color: #507460; background: #f2f7f3; }
+.trip-status-note.is-confirmed { color: #505c74; background: #f2f4f7; }
 .trip-status-note.is-pending { color: #90722e; background: #fffbef; }
 .trip-status-note.is-attention { color: #9b6154; background: #fff6f3; }
 .trip-linked-note { font-size: 10px; color: #627383; line-height: 1.7; padding: 0 25px; margin: 14px 0 0; overflow-wrap: anywhere; }
@@ -259,8 +259,8 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .live-booking .results-toolbar label { font-size: 12px; }
 .live-booking .results-toolbar select { min-height: 44px; }
 .booking-progress li { font-size: 13px; }
-.booking-progress li.is-complete { color: #48765e; }
-.booking-progress li.is-complete > span:first-child { background: #e7f2e9; color: #48765e; }
+.booking-progress li.is-complete { color: #485776; }
+.booking-progress li.is-complete > span:first-child { background: #e7ebf2; color: #485776; }
 .booking-summary > h2 { margin: 15px 0 20px; line-height: 1.4; font-size: 21px; font-weight: 500; }
 .booking-summary > h3 { font-size: 16px; padding-top: 17px; border-top: 1px solid var(--line); margin: 0 0 8px; }
 .booking-summary > p { color: #627383; font-size: 13px; line-height: 1.8; }
@@ -273,7 +273,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .booking-summary .inline-link { font-size: 12px; line-height: 1.6; }
 .booking-trust-note { display: grid; gap: 10px; list-style: none; padding: 16px; font-size: 12px; margin: 22px 0 13px; }
 .booking-trust-note li { display: flex; align-items: center; gap: 8px; }
-.booking-trust-note li:before { content: "✓"; color: #648a72; font-size: 11px; }
+.booking-trust-note li:before { content: "✓"; color: #64718a; font-size: 11px; }
 .booking-summary .booking-environment-note { font-size: 10px; line-height: 1.7; margin: 16px 0; color: #627383; }
 .booking-skeleton { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; padding: 25px; text-align: center; color: #536f85; }
 .booking-skeleton > strong { font-size: 15px; }
@@ -342,7 +342,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .booking-hotel-card h3 { font-size: 21px; font-weight: 550; letter-spacing: -.4px; margin: 8px 0 10px; }
 .booking-hotel-card .muted { font-size: 13px; line-height: 1.7; margin: 0; }
 .booking-hotel-card > .primary { margin-left: auto; flex-shrink: 0; font-size: 12px; }
-.hotel-result-icon { display: grid; place-items: center; width: 57px; height: 66px; border-radius: 12px; background: #edf3f7; color: #7794a8; font-size: 30px; flex-shrink: 0; }
+.hotel-result-icon { display: grid; place-items: center; width: 57px; height: 66px; border-radius: 12px; background: #edf0f7; color: #7787a8; font-size: 30px; flex-shrink: 0; }
 .booking-rooms h2 { margin: 10px 0 24px; }
 .booking-rooms h3 { font-size: 14px; font-weight: 650; margin-bottom: 12px; }
 .booking-rooms .live-fare { align-items: start; }
@@ -433,4 +433,4 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #7c9cff; outline-off
 .live-booking .booking-recovery h2 { font-size:clamp(17px, 2vw, 22px); margin:0; }
 .live-booking .booking-recovery:has(details:not([open])) { padding-block:5px; margin-bottom:12px; }
 .live-booking .booking-recovery :is(summary,button,a) { scroll-margin-block:var(--booking-header-offset, 96px) 24px; }
-.live-booking .booking-recovery .secondary { background: #fffefa; border-color: #e6ddc2; }
+.live-booking .booking-recovery .secondary { background: #ffffff; border-color: #e6ddc2; }

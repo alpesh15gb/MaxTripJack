@@ -31,7 +31,7 @@ body.stitch-theme {
   --studio-teal: var(--brand-action);
   --travel-navy: var(--brand-ink);
   --travel-display: var(--font-stitch-display), sans-serif;
-  color: #191c1e;
+  color: #191b1e;
   background: var(--brand-page);
   font-family: var(--font-stitch-body), sans-serif;
 }
@@ -54,7 +54,7 @@ html:has(.concierge-header) { scroll-padding-top: 84px; }
 .concierge-header nav [aria-current="page"] { color: #fff; background: #0d2c54; border-radius: 12px; box-shadow: 0 1px 2px #00173614; }
 .concierge-header nav .stitch-symbol, .concierge-header nav .concierge-phone-only, .concierge-header nav .concierge-nav-trips, .concierge-action-mobile, .concierge-mobile-back, .concierge-menu-button, .concierge-page-name { display: none; }
 .concierge-tools { gap: clamp(8px,1.15vw,20px); margin-left: auto; }
-.concierge-tools a { flex: none; border-radius: 12px; min-height: 44px; gap: 8px; color: #191c1e; font: 600 12px/16px var(--font-stitch-body),sans-serif; }
+.concierge-tools a { flex: none; border-radius: 12px; min-height: 44px; gap: 8px; color: #191b1e; font: 600 12px/16px var(--font-stitch-body),sans-serif; }
 .concierge-hub, .concierge-account { background: #f2f4f7; padding: 6px 11px; }
 .concierge-currency { flex: none; color: #536172; font: 500 11px/16px var(--font-stitch-body),sans-serif; white-space: nowrap; }
 .concierge-tools .concierge-tools-trips[aria-current=page] { color: #005bb3; font-weight: 750; }
@@ -126,7 +126,7 @@ body:has(.concierge-header) .booking-workflow.results-only { padding-top: 0; }
   .concierge-header nav [aria-current="page"] { background: transparent; color: #005bb3; box-shadow: none; font-weight: 750; }
   .concierge-header.contextual-header :is(.concierge-brand-link,.concierge-account) { display: none; }
   .concierge-header.has-menu .concierge-menu-button,.concierge-mobile-back,.concierge-tools .concierge-action-mobile { display: grid; place-items: center; min-width: 44px; height: 44px; background: transparent; border: none; border-radius: 50%; color: #005bb3; }
-  .concierge-header .concierge-mobile-back { margin-left: -8px; color: #191c1e; }
+  .concierge-header .concierge-mobile-back { margin-left: -8px; color: #191b1e; }
   .concierge-page-name { display: block; min-width: 0; text-overflow: ellipsis; overflow: hidden; }
   .concierge-context-brand { display: flex; width: fit-content; margin-bottom: 2px; }
   .concierge-page-name strong,.concierge-page-name small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -6,7 +6,7 @@
 .journey-flow .flight-shopping-list:has(.is-choosing-fare)>.live-flight-card:not(.is-choosing-fare){display:none}
 .journey-flow .flight-shopping-list .is-choosing-fare .fare-choice-heading h3{scroll-margin-top:16px;outline-offset:4px}
 .journey-flow .fare-choice-heading h3:focus-visible{outline:3px solid #2455e7;border-radius:4px}
-.booking-workflow .fare-comparison-options > .fare-shared-terms{font-size:14px;line-height:1.5;color:#52616a;margin:0 0 4px;max-width:82ch}
+.booking-workflow .fare-comparison-options > .fare-shared-terms{font-size:14px;line-height:1.5;color:#525a6a;margin:0 0 4px;max-width:82ch}
 .journey-flow .fare-comparison-options>.fare-comparison-guidance{margin:0;padding:0;background:none;font-size:13px}
 .journey-flow .room-back{margin-bottom:8px}
 .journey-flow .room-workspace-heading{grid-template-columns:minmax(0,1fr) 112px;gap:16px;padding:16px}
@@ -36,10 +36,10 @@
 .journey-flow .selected-journey-recap ul{list-style:none;padding:0;margin:0;display:grid;gap:10px}
 .journey-flow .selected-journey-recap li{display:grid;gap:3px;font-size:14px;line-height:1.5}
 .journey-flow .selected-journey-recap p{font-size:14px;line-height:1.5;margin:4px 0}
-.journey-flow .selected-journey-recap li>span{color:#52616a}
+.journey-flow .selected-journey-recap li>span{color:#525a6a}
 .journey-flow .selected-reviewed-total{display:grid;gap:4px;text-align:right;font-size:14px}
 .journey-flow .selected-reviewed-total>strong{font-size:23px;color:#142d40;font-variant-numeric:tabular-nums}
-.journey-flow .selected-reviewed-total>small{font-size:14px;line-height:1.4;color:#52616a}
+.journey-flow .selected-reviewed-total>small{font-size:14px;line-height:1.4;color:#525a6a}
 .journey-flow .selected-source-details>summary,.journey-flow .review-conditions>summary{min-height:44px;display:flex;align-items:center;font-size:14px;color:#153ec2;cursor:pointer;list-style:none}
 .journey-flow .selected-source-details>summary:before,.journey-flow .review-conditions>summary:before{content:'＋';margin-right:8px;font-size:18px}
 .journey-flow .selected-source-details[open]>summary:before,.journey-flow .review-conditions[open]>summary:before{content:'−'}
@@ -93,10 +93,10 @@
 .journey-flow .room-option-info,.journey-flow .room-option-action,.journey-flow .room-option-details{min-width:0;overflow-wrap:anywhere}
 .journey-flow .room-option-card.is-selected{border-color:#5c82e6;box-shadow:inset 3px 0 #2455e7}
 .journey-flow .room-selection-label{display:inline-block;margin:0 0 8px;color:#153ec2;font-size:13px;font-weight:650}
-.journey-flow .room-workspace-heading .room-stay-dates{font-size:14px;line-height:1.5;margin:4px 0 0;color:#52616a}
-.journey-flow .flight-total-duration{font-weight:600;color:#304d61}
+.journey-flow .room-workspace-heading .room-stay-dates{font-size:14px;line-height:1.5;margin:4px 0 0;color:#525a6a}
+.journey-flow .flight-total-duration{font-weight:600;color:#304061}
 .journey-flow .booking-selection-status{padding:10px 12px;margin:8px 0 0!important;background:#edf5ff;border:1px solid #c4d7ef;border-radius:8px;color:#23538c;font-size:14px!important;line-height:1.5!important;text-align:left;overflow-wrap:anywhere}
-.journey-flow .hotel-cancellation-policy .policy-charge-heading{font-size:14px;line-height:1.5;color:#304d61}
+.journey-flow .hotel-cancellation-policy .policy-charge-heading{font-size:14px;line-height:1.5;color:#304061}
 .journey-flow .hotel-cancellation-policy .policy-row p{margin:4px 0 0}
 @media(min-width:601px){
  .journey-flow .room-option-card:not(:has(>.room-option-details[open])){grid-template-rows:auto 1fr;column-gap:18px;row-gap:10px}

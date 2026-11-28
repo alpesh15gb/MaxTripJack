@@ -384,3 +384,39 @@ body.stitch-theme :is(#booking-review,#booking-rooms) .stay-booking-notes {
 @media (prefers-reduced-motion: reduce) {
   .stitch-search-scene :is(.stitch-scene-plane, .stitch-scene-cloud, .stitch-scene-hotel i) { animation: none; }
 }
+
+/* Fuller loading state: progress bar, rotating hint, results-shaped skeletons. */
+.stitch-search-progress { position: relative; height: 4px; margin-top: 12px; overflow: hidden; border-radius: 999px; background: #e3e9f4; max-width: 420px; }
+.stitch-search-progress span { position: absolute; inset: 0 auto 0 0; width: 38%; border-radius: inherit; background: linear-gradient(90deg, #1d4ed8, #60a5fa); animation: stitch-search-progress 1.6s ease-in-out infinite; }
+@keyframes stitch-search-progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(270%); } }
+.stitch-search-hint { margin: 8px 0 0; color: #1e40af; font-size: 13px; font-weight: 600; }
+.stitch-pending-line, .stitch-pending-thumb, .stitch-pending-action, .stitch-pending-sorts span, .stitch-pending-route :is(i, b) {
+  background: linear-gradient(100deg, #dfe6f1 20%, #eef2f8 45%, #dfe6f1 70%) 0 0 / 200% 100%;
+  animation: stitch-search-sheen 2.2s ease-in-out infinite;
+}
+.stitch-pending-filters { gap: 18px; }
+.stitch-pending-filter-group { display: grid; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid #edf1f7; }
+.stitch-pending-filter-group:last-child { border-bottom: 0; padding-bottom: 0; }
+.stitch-pending-filter-group .stitch-pending-line:first-child { width: 45%; height: 14px; }
+.stitch-pending-filter-group .stitch-pending-line:nth-child(2) { width: 82%; }
+.stitch-pending-filter-group .stitch-pending-line:nth-child(3) { width: 64%; }
+.stitch-pending-sorts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.stitch-pending-sorts span { display: block; height: 64px; border-radius: 12px; }
+.stitch-pending-result-copy { width: min(92%, 520px); }
+.stitch-pending-result-copy .stitch-pending-line:first-child { width: 38%; }
+.stitch-pending-route { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; align-items: center; gap: 12px; }
+.stitch-pending-route i { display: block; height: 22px; border-radius: 6px; }
+.stitch-pending-route b { display: block; height: 3px; border-radius: 2px; }
+.stitch-pending-price { display: grid; justify-items: end; gap: 10px; min-width: clamp(84px, 14vw, 150px); }
+.stitch-pending-price .stitch-pending-line { width: 70%; height: 18px; }
+.stitch-pending-results[data-product=hotel] .stitch-pending-result { min-height: 128px; }
+@media (max-width: 760px) {
+  .stitch-pending-sorts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stitch-pending-sorts span { height: 52px; }
+  .stitch-pending-route { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; }
+  .stitch-pending-price { min-width: 72px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stitch-search-progress span { animation: none; width: 100%; opacity: .5; }
+  .stitch-pending-sorts span, .stitch-pending-route :is(i, b) { animation: none; }
+}

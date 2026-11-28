@@ -1,0 +1,39 @@
+/* Max Travel blue palette (loaded last). Replaces the earlier pine/cream
+   tokens: royal blue actions, deep blue surfaces, cool white backgrounds.
+   Orange stays the call-to-action colour for Search and Select & continue. */
+body.stitch-theme {
+  --atlas-pine: #102a6b;
+  --atlas-cream: #f5f7fb;
+  --atlas-paper: #ffffff;
+  --atlas-line: #dbe1ea;
+  --brand-midnight: #102a6b;
+  --brand-slate: #1e40af;
+  --brand-action: #1d4ed8;
+  --brand-sand: #e8edf6;
+  --brand-tint: #eef2fa;
+  --brand-page: #f5f7fb;
+  --brand-paper-sheen: linear-gradient(150deg, #ffffff, #f2f5fb);
+  --brand-night-sheen: linear-gradient(115deg, #102a6b, #1d4ed8);
+  --brand-sand-sheen: linear-gradient(125deg, #f5f7fb, #e6ecf6);
+}
+body.stitch-theme .revamp-journey {
+  --journey-pine: #102a6b;
+  --journey-cream: #f5f7fb;
+  --journey-ivory: #ffffff;
+  --journey-sage: #e8edf6;
+  --journey-line: #d5dce8;
+  --journey-warm: #eef2f8;
+  --brand-midnight: #102a6b;
+  --brand-slate: #1e40af;
+  --brand-sand: #e8edf6;
+}
+body.stitch-theme:has(main.revamp-journey) { background: #f5f7fb; }
+
+/* Orange is reserved for booking actions inside the flight/hotel booking flow
+   (Search, View itinerary, Choose room, Continue, Select & continue, Pay).
+   Every other button, link, tab and label uses blue. */
+body.stitch-theme { --brand-gold-ink: #1d4ed8; }
+body.stitch-theme .revamp-journey { --brand-gold-ink: #1d4ed8; }
+body.stitch-theme .revamp-journey:not(:has(.booking-workflow)) { --journey-action: #1d4ed8; --journey-action-hover: #1e40af; }
+/* Destinations, contact and other discovery pages are outside the booking flow. */
+html body .revamp-discovery { --discovery-orange: #1d4ed8; --public-link: #1d4ed8; }

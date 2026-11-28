@@ -82,7 +82,7 @@ for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
     expect(expectedStatuses).toContain(response?.status());
     const body = page.locator('body');
     await expect(body).toHaveClass(/\bstitch-theme\b/);
-    await expect(body).toHaveCSS('background-color', 'rgb(250, 247, 239)');
+    await expect(body).toHaveCSS('background-color', 'rgb(245, 247, 251)');
     await expect(page.getByRole('main').getByRole('heading', {level: 1}).first()).toBeVisible();
     const logo = page.locator('.maxtravel-logo:visible').first();
     await expect(logo).toHaveAttribute('src', /maxtravel-logo\.jpg/);

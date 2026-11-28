@@ -1,25 +1,25 @@
-.destination-directory { background: #eef2eb; color: var(--brand-ink, #102b29); }
+.destination-directory { background: #ebedf2; color: var(--brand-ink, #10192b); }
 .destination-directory-width { width: min(1200px, calc(100% - 40px)); margin-inline: auto; }
-.destination-directory-hero { padding: 32px 0 44px; background: #113c34; color: #fff; }
+.destination-directory-hero { padding: 32px 0 44px; background: #111f3c; color: #fff; }
 .destination-directory-hero nav { font-size: 14px; }
 .destination-directory-hero nav a { color: #fff; text-decoration: underline; text-underline-offset: .2em; }
 .destination-directory-hero h1 { margin: 24px 0 8px; font-size: clamp(30px, 5vw, 52px); line-height: 1.12; letter-spacing: -.035em; }
-.destination-directory-hero p { margin: 0; color: #e5eee5; }
+.destination-directory-hero p { margin: 0; color: #e5e8ee; }
 .destination-directory-hero form { display: flex; align-items: stretch; gap: 8px; max-width: 540px; margin-top: 22px; }
-.destination-directory-hero input { min-width: 0; flex: 1; border: 1px solid #9bb9ab; border-radius: 12px; padding: 8px 12px; font-size: 16px; color: #102b29; background: #fff; }
+.destination-directory-hero input { min-width: 0; flex: 1; border: 1px solid #9ba5b9; border-radius: 12px; padding: 8px 12px; font-size: 16px; color: #10192b; background: #fff; }
 .destination-directory-hero button { min-height: 44px; gap: 6px; }
 .destination-directory-list { padding-block: 26px 48px; }
 .destination-directory-list > nav { display: flex; flex-wrap: wrap; gap: 8px; }
-.destination-directory-list > nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 13px; border: 1px solid #ceddd2; border-radius: 999px; background: #fff; font-size: 14px; font-weight: 650; }
-.destination-directory-list > nav a[aria-current] { background: #113c34; color: #fff; border-color: #113c34; }
+.destination-directory-list > nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 13px; border: 1px solid #ced3dd; border-radius: 999px; background: #fff; font-size: 14px; font-weight: 650; }
+.destination-directory-list > nav a[aria-current] { background: #111f3c; color: #fff; border-color: #111f3c; }
 .destination-directory-list h2 { margin: 26px 0 15px; font-size: clamp(22px, 3vw, 31px); overflow-wrap: anywhere; }
 .destination-directory-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.destination-directory-grid article { min-width: 0; border: 1px solid #d4e0d6; border-radius: 16px; overflow: hidden; background: #fff; }
-.destination-directory-photo { position: relative; aspect-ratio: 1.75; background: #dae9df; }
+.destination-directory-grid article { min-width: 0; border: 1px solid #d4d8e0; border-radius: 16px; overflow: hidden; background: #fff; }
+.destination-directory-photo { position: relative; aspect-ratio: 1.75; background: #dadfe9; }
 .destination-directory-photo img { object-fit: cover; }
 .destination-directory-card { padding: 14px; }
 .destination-directory-card h3 { margin: 0 0 4px; font-size: 21px; }
-.destination-directory-card p { margin: 0 0 10px; color: #4a655a; }
+.destination-directory-card p { margin: 0 0 10px; color: #4a5365; }
 .destination-directory-card > div { display: flex; flex-wrap: wrap; column-gap: 15px; }
 .destination-directory-card a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; color: #9a4222; text-decoration: underline; text-underline-offset: .2em; }
 .destination-directory-empty { padding: 16px; border-radius: 12px; background: #fff; }

@@ -1,5 +1,7 @@
 import Form from 'next/form';
 import Image from 'next/image';
+// Photos with recorded provenance (public/travel/README.md).
+const destinationPhoto: Record<string, string> = {maldives: '/travel/maldives.jpg', bali: '/travel/bali.jpg', dubai: '/travel/dubai.jpg', paris: '/travel/paris-evening.webp', goa: '/travel/goa.jpg'};
 import Link from 'next/link';
 import {TravelFooter,TravelHeader,TravelIcon} from '@/components/travel-shell';
 import {destinations,destinationThemes} from '@/lib/featured-destinations';
@@ -44,7 +46,7 @@ export default async function DestinationsPage({searchParams}:PageProps<'/destin
         <h2 id="featured-destinations">{query?`Destinations matching “${query}”`:theme==='All'?'Featured destinations':theme}</h2>
         {matches.length?<div className="destination-directory-grid">
           {matches.map(place=><article key={place.slug} aria-label={place.name}>
-            <div className="destination-directory-photo"><Image src={`/travel/stitch/desktop-${place.slug}.webp`} alt="" fill sizes="(max-width: 560px) 100vw, (max-width: 960px) 50vw, 380px"/></div>
+            <div className="destination-directory-photo"><Image src={destinationPhoto[place.slug] ?? `/travel/stitch/desktop-${place.slug}.webp`} alt="" fill sizes="(max-width: 560px) 100vw, (max-width: 960px) 50vw, 380px"/></div>
             <div className="destination-directory-card">
               <h3>{place.name}</h3><p>{place.location} · {place.airports}</p>
               <div>

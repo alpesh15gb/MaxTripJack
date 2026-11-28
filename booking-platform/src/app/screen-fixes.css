@@ -1,0 +1,13 @@
+/* Screen-by-screen fixes from the November 2026 review (loaded last). */
+
+/* Hotel results (phones): the property search sat in row 1 under the heading. */
+@media (max-width: 600px) {
+  .journey-flow .hotel-shopping-toolbar > .hotel-reference-controls { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* My trips (phones): actions shared a row with the name, which then broke mid-word. */
+@media (max-width: 600px) {
+  html body .private-trips-masthead .page-heading { grid-template-columns: auto minmax(0, 1fr); row-gap: 14px; }
+  html body .private-trips-masthead .page-heading > :last-child { grid-column: 1 / -1; justify-content: flex-start; }
+  html body .private-trips-masthead .hub-identity h1 { overflow-wrap: normal; word-break: normal; hyphens: manual; font-size: 26px; line-height: 1.15; }
+}

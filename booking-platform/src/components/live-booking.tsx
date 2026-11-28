@@ -1020,7 +1020,8 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         phase:needsMapping?'destination':'availability',
       };
       setPendingSearchContext(context);
-      if(!nearby)requestAnimationFrame(()=>{if(current(task.id)&&busyRef.current)document.getElementById('booking-pending')?.scrollIntoView({behavior:'auto',block:'start'});});
+      if(!nearby)requestAnimationFrame(()=>{if(!current(task.id)||!busyRef.current)return;const pending=document.getElementById('booking-pending');if(!pending)return;// Keep the site header in view while the search runs.
+const top=pending.getBoundingClientRect().top+window.scrollY;window.scrollTo({top:top<window.innerHeight*0.6?0:Math.max(0,top-96),behavior:'auto'});});
       if(needsMapping){
         const regionId=String(fields.get('regionId')??'');let cursor=String(fields.get('destinationCursor')??'');
         if(!regionId||!cursor)throw Error('Choose a destination from the suggestions before searching for stays.');

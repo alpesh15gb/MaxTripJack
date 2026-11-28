@@ -1,5 +1,5 @@
 /* Shared foundation and discovery. Route-specific experiences own their own styles. */
-:root{--blue:#2455e7;--ink:#142d40;--muted:#5c7081;--line:#dfe6ee;--travel-surface:#f5f7fa;--travel-navy:#142d40;--travel-teal:#087f8c;--travel-lemon:#e8f08a;--travel-radius:20px;--travel-shadow:0 12px 36px #142d4008}
+:root{--blue:#2455e7;--ink:#142d40;--muted:#5c7081;--line:#dfe6ee;--travel-surface:#f5f7fa;--travel-navy:#142d40;--travel-teal:#0b3589;--travel-lemon:#e8f08a;--travel-radius:20px;--travel-shadow:0 12px 36px #142d4008}
 body{background:var(--travel-surface);color:var(--ink);font-size:15px;line-height:1.5;font-family:var(--font-geist-sans),Arial,sans-serif}
 :where(button,a,input,select,textarea,summary):focus-visible{outline:3px solid #2455e7;outline-offset:4px}
 :where(button,input,select,textarea){font:inherit}
@@ -35,7 +35,7 @@ body{background:var(--travel-surface);color:var(--ink);font-size:15px;line-heigh
 .travel-footer-top>div>a:not(.travel-brand){display:flex;align-items:center;min-height:44px;text-decoration:none;color:#cad5df;font-size:13px;padding:8px 0;overflow-wrap:anywhere}
 .travel-footer-top>div>a:hover{color:white;text-decoration:underline;text-underline-offset:4px}
 .travel-footer-promise{padding:20px;border:1px solid #ffffff20;border-radius:18px;background:#ffffff05}
-.travel-footer-promise>svg{color:#9acbd2}
+.travel-footer-promise>svg{color:#9aadd2}
 .travel-footer-promise h2{margin-top:8px}
 .travel-footer-promise p{font-size:13px}
 .travel-footer-bottom{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;border-top:1px solid #ffffff20;padding:24px 0;font-size:12px;color:#a8bdcd}
@@ -49,7 +49,7 @@ body{background:var(--travel-surface);color:var(--ink);font-size:15px;line-heigh
 .home-intro>div>p:last-child{color:var(--muted);font-size:15px;margin:0}
 .home-office-link{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);flex-shrink:0;padding:12px;border-radius:14px}
 .home-office-link:hover{background:#edf1f6}
-.home-office-link>span{width:44px;height:44px;display:grid;place-items:center;color:var(--travel-teal);background:#e6f0f1;border-radius:14px}
+.home-office-link>span{width:44px;height:44px;display:grid;place-items:center;color:var(--travel-teal);background:#e6eaf1;border-radius:14px}
 .home-office-link strong{display:block;font-size:13px;font-weight:650}
 .home-office-link small{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:4px}
 .home-search-card{position:relative;z-index:3;background:white;border:1px solid var(--line);border-radius:22px;padding:0 24px 18px;box-shadow:var(--travel-shadow)}
@@ -92,38 +92,38 @@ body{background:var(--travel-surface);color:var(--ink);font-size:15px;line-heigh
 .home-hotel-destination .muted,.home-hotel-destination [role="status"],.home-hotel-destination .lookup-gate{font-size:12px;line-height:1.6;margin:8px 0 0}
 .home-confidence{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding:22px 10px;margin-bottom:12px}
 .home-confidence>div{display:flex;gap:12px;align-items:center;justify-content:center}
-.home-confidence>div>svg{width:40px;height:40px;padding:10px;color:var(--travel-teal);background:#e7f0f1;border-radius:13px}
+.home-confidence>div>svg{width:40px;height:40px;padding:10px;color:var(--travel-teal);background:#e7eaf1;border-radius:13px}
 .home-confidence strong{display:block;font-size:13px;font-weight:650;margin-bottom:3px}
 .home-confidence small{display:block;font-size:12px;color:var(--muted)}
-.home-escape{position:relative;isolation:isolate;min-height:300px;border-radius:24px;overflow:hidden;background:#346f80;color:white;margin-top:8px;margin-bottom:46px}
+.home-escape{position:relative;isolation:isolate;min-height:300px;border-radius:24px;overflow:hidden;background:#344d80;color:white;margin-top:8px;margin-bottom:46px}
 .home-escape-photo{object-fit:cover;object-position:center 56%;z-index:-2}
-.home-escape:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#102f40e6,#102f4060 60%,#102f4010);z-index:-1}
+.home-escape:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#102040e6,#10204060 60%,#10204010);z-index:-1}
 .home-escape-copy{padding:34px 42px;max-width:600px}
-.home-escape .home-kicker{color:#d1edf0;font-size:10px}
+.home-escape .home-kicker{color:#d1dbf0;font-size:10px}
 .home-escape h2{font-size:42px;line-height:1.08;font-weight:600;letter-spacing:-1.5px;margin:14px 0}
 .home-escape h2 em{font-family:Georgia,serif;font-weight:400;color:#e8f0db}
-.home-escape p:not(.home-kicker){font-size:14px;color:#e4edef;margin:0 0 18px}
+.home-escape p:not(.home-kicker){font-size:14px;color:#e4e8ef;margin:0 0 18px}
 .home-escape-copy>a{display:inline-flex;align-items:center;gap:16px;min-height:44px;padding:10px 16px;border-radius:11px;background:white;color:var(--ink);text-decoration:none;font-size:13px;font-weight:650}
-.home-escape-location{position:absolute;right:24px;bottom:22px;display:flex;align-items:center;gap:7px;font-size:12px;padding:8px 12px;border-radius:9px;background:#153b4b70;backdrop-filter:blur(8px)}
+.home-escape-location{position:absolute;right:24px;bottom:22px;display:flex;align-items:center;gap:7px;font-size:12px;padding:8px 12px;border-radius:9px;background:#15274b70;backdrop-filter:blur(8px)}
 .home-section-heading{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:22px}
 .home-section-heading h2{font-size:30px;line-height:1.2;font-weight:650;letter-spacing:-1px;margin:0 0 10px}
 .home-section-heading p:not(.home-kicker){font-size:14px;line-height:1.7;color:var(--muted);margin:0}
 .home-section-heading>a,.home-text-link{display:inline-flex;gap:10px;align-items:center;min-height:44px;color:var(--blue);font-size:14px;font-weight:650;text-decoration:none}
 .home-destinations{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.home-destination{position:relative;min-height:280px;background-color:#345469;background-size:cover;background-position:center;border-radius:20px;color:white;text-decoration:none;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.home-destination{position:relative;min-height:280px;background-color:#344669;background-size:cover;background-position:center;border-radius:20px;color:white;text-decoration:none;overflow:hidden;transition:transform .2s,box-shadow .2s}
 .home-destination:hover{transform:translateY(-4px);box-shadow:0 16px 30px #142d401a}
 .home-destination-mood{position:absolute;top:20px;left:20px;font-size:10px;letter-spacing:1px;padding:7px 10px;background:#142d406e;border:1px solid #ffffff30;border-radius:7px;backdrop-filter:blur(6px)}
 .home-destination-number{position:absolute;right:20px;top:26px;font-size:11px}
 .home-destination>div{position:absolute;bottom:24px;left:24px;right:58px}
 .home-destination h3{font-size:31px;font-weight:600;letter-spacing:-.7px;margin:0 0 7px}
-.home-destination p{font-size:13px;line-height:1.6;margin:0;color:#e1ecef}
+.home-destination p{font-size:13px;line-height:1.6;margin:0;color:#e1e6ef}
 .home-destination-arrow{display:grid;place-items:center;position:absolute;right:20px;bottom:26px;width:36px;height:36px;border:1px solid #ffffff70;border-radius:50%}
-.home-how{display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:48px;margin-bottom:40px;padding:40px;background:#eaf1f3;border:1px solid #dfe9ec;border-radius:24px}
+.home-how{display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:48px;margin-bottom:40px;padding:40px;background:#eaedf3;border:1px solid #dfe3ec;border-radius:24px}
 .home-how h2{font-size:32px;line-height:1.2;font-weight:650;letter-spacing:-1px;margin:15px 0}
 .home-how h2 em{font-family:Georgia,serif;font-weight:400;color:var(--travel-teal)}
 .home-how-intro>p:not(.home-kicker){font-size:14px;line-height:1.8;color:var(--muted);max-width:380px;margin-bottom:12px}
 .home-how-steps{list-style:none;padding:0;margin:0}
-.home-how-steps li{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid #cfdde2}
+.home-how-steps li{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid #cfd5e2}
 .home-how-steps li:first-child{padding-top:0}.home-how-steps li:last-child{border:0;padding-bottom:0}
 .home-how-steps li>span{display:grid;place-items:center;flex-shrink:0;width:32px;height:32px;background:white;color:var(--travel-teal);border-radius:10px;font-size:12px;font-weight:650}
 .home-how-steps h3{font-size:16px;font-weight:650;margin:3px 0 6px}

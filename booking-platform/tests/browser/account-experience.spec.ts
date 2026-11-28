@@ -376,7 +376,7 @@ test('journey studio traveller form separates optional documents and keeps a sin
 
 test('journey studio signed-in account keeps security controls and readable identity',async({page,provider},testInfo)=>{
  await page.goto('/account');
- await expect(page.getByRole('heading',{level:1,name:'Your account',exact:true})).toHaveCSS('color','rgb(255, 253, 248)');
+ await expect(page.getByRole('heading',{level:1,name:'Your account',exact:true})).toHaveCSS('color','rgb(255, 255, 255)');
  await expect(page.getByRole('heading',{name:'Hello, Synthetic Traveller',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Account security',exact:true})).toBeVisible();
  await expect(page.getByRole('region',{name:'Password and signed-in devices',exact:true})).toBeVisible();
