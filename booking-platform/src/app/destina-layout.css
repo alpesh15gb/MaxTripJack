@@ -171,7 +171,7 @@ body .trip-home.destina-home .home-confidence strong { font: 650 14px/1.35 var(-
 .destina-home-help > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 22px; }
 .destina-home-help h2 { margin: 0; font: 800 28px/1.2 var(--s-display); }
 .destina-home-help p { margin: 10px 0 18px; }
-.destina-home-help img { width: 100%; height: auto; }
+.destina-home-help :is(img,.support-illustration) { width: 100%; height: auto; display: block; }
 .destina-home-help .destina-help-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .destina-help-actions a { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 5px 13px; color: var(--brand-action); text-decoration: none; font-weight: 750; }
 .destina-help-actions a:first-child { background: var(--brand-action); color: white; border-radius: 24px; }
@@ -275,3 +275,50 @@ html body .destina-footer .travel-footer-data-credit { margin: 0; color: inherit
   .destina-footer-brand p { flex: 1 1 60%; }
   .destina-footer-directory { grid-template-columns: 1fr 1fr; gap: 16px 10px; }
 }
+
+/* Holiday Flight Deals, Why Book, FAQ and closing summary (reference home order). */
+.destina-home-deals { padding-block: 26px 6px; }
+.destina-deal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
+.destina-deal-grid a { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--atlas-line, #dedbd0); border-radius: 12px; background: #fff; color: inherit; text-decoration: none; transition: border-color .15s ease, box-shadow .15s ease; }
+.destina-deal-grid a:hover { border-color: var(--brand-action, #236052); box-shadow: 0 6px 18px rgb(16 43 41 / 8%); }
+.destina-deal-route { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+.destina-deal-route .stitch-symbol { color: var(--brand-action, #236052); }
+.destina-deal-meta { color: var(--atlas-muted, #52635f); font-size: 13px; }
+.destina-deal-price { font-size: 18px; font-weight: 800; color: var(--atlas-ink, #102b29); font-variant-numeric: tabular-nums; }
+.destina-deal-price small { font-size: 12px; font-weight: 500; color: var(--atlas-muted, #52635f); }
+.destina-deal-note { margin: 10px 0 0; color: var(--atlas-muted, #52635f); font-size: 12px; }
+
+.destina-home-why { padding-block: 34px 10px; text-align: center; }
+.destina-home-why h2 { margin: 0 0 20px; font: 800 26px/1.2 var(--s-display, inherit); }
+.destina-home-why ul { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
+.destina-home-why li { display: grid; justify-items: center; gap: 8px; padding: 6px 10px; }
+.destina-home-why i { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--brand-tint, #f3f0e7); color: var(--brand-action, #236052); }
+.destina-home-why strong { font-size: 15px; }
+.destina-home-why p { margin: 0; color: var(--atlas-muted, #52635f); font-size: 13.5px; line-height: 1.55; }
+
+.destina-home-faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 28px; padding-block: 34px 10px; }
+.destina-home-faq h2 { margin: 0; font: 800 26px/1.2 var(--s-display, inherit); }
+.destina-home-faq > div:first-child p { margin: 10px 0 16px; color: var(--atlas-muted, #52635f); }
+.destina-faq-link { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 16px; border: 1px solid var(--brand-action, #236052); border-radius: 999px; color: var(--brand-action, #236052); font-weight: 700; text-decoration: none; }
+.destina-faq-list details { border-bottom: 1px solid var(--atlas-line, #dedbd0); }
+.destina-faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 12px 0; font-weight: 700; cursor: pointer; list-style: none; }
+.destina-faq-list summary::-webkit-details-marker { display: none; }
+.destina-faq-list summary .stitch-symbol { transition: transform .2s ease; color: var(--atlas-muted, #52635f); }
+.destina-faq-list details[open] summary .stitch-symbol { transform: rotate(180deg); }
+.destina-faq-list details p { margin: 0 0 8px; color: var(--atlas-muted, #52635f); line-height: 1.6; }
+.destina-faq-list details a { display: inline-block; margin-bottom: 14px; color: var(--brand-action, #236052); font-weight: 650; }
+
+.destina-home-about { margin-block: 34px 30px; padding: 26px 28px; border-radius: 16px; background: var(--brand-tint, #f3f0e7); }
+.destina-home-about h2 { margin: 0 0 16px; font: 800 22px/1.25 var(--s-display, inherit); }
+.destina-home-about > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.destina-home-about h3 { margin: 0 0 6px; font-size: 15px; }
+.destina-home-about p { margin: 0; color: var(--atlas-muted, #52635f); font-size: 13.5px; line-height: 1.6; }
+
+@media (max-width: 900px) {
+  .destina-deal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .destina-home-why ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .destina-home-faq { grid-template-columns: 1fr; gap: 14px; }
+  .destina-home-about > div { grid-template-columns: 1fr; gap: 14px; }
+}
+@media (max-width: 560px) { .destina-deal-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .destina-faq-list summary .stitch-symbol, .destina-deal-grid a { transition: none; } }

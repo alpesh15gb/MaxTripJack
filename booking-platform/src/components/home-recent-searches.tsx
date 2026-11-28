@@ -88,7 +88,7 @@ export default function HomeRecentSearches() {
           const end = displayDate(params.get(hotel ? 'end' : 'returnDate'));
           const travellers = Number(params.get('adults') ?? 1) + Number(params.get('children') ?? 0) + Number(params.get('infants') ?? 0);
           return <Link key={item.query} aria-label={item.label} prefetch={false} href={{ pathname: '/book', query: Object.fromEntries(params) }}>
-            <Image className="destina-recent-image" src={hotel ? '/travel/destina-perk-package.jpg' : '/travel/destina-hero.jpg'} width={440} height={248} alt="" sizes="221px"/>
+            <Image className="destina-recent-image" src={hotel ? '/travel/goa.jpg' : '/travel/dubai.jpg'} width={440} height={248} alt="" sizes="221px"/>
             <span className="destina-recent-tag"><StitchSymbol name={hotel ? 'hotel' : 'flight'} size={13}/>{hotel ? 'Hotel' : 'Flight'}</span>
             <span className="destina-recent-label"><strong>{item.label}</strong><small>{[start && end ? `${start} – ${end}` : start, `${travellers} ${hotel ? 'guest' : 'traveller'}${travellers === 1 ? '' : 's'}`, !hotel && (end ? 'Round trip' : 'One way')].filter(Boolean).join(' · ')}</small></span>
           </Link>;

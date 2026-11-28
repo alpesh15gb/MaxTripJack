@@ -134,6 +134,7 @@ export const test = base.extend<{ provider: ProviderFixture }>({
         case 'GET /api/travel/destinations': reply = { body: { destinations: [{ region_id: '1001', label: 'Goa, India' }] } }; break;
         case 'POST /api/travel/destination-hotels': reply = { body: { hotelIds: ['10001', '10002'], hasMore: false } }; break;
         case 'GET /api/travel/nationalities': reply = { body: { nationalities: [{ countryId: '106', name: 'India' }] } }; break;
+        case 'GET /api/travel/fare-deals': reply = { body: { deals: [{ from: 'HYD', to: 'DEL', date: departure, minor: 548000 }, { from: 'BOM', to: 'GOI', date: returning, minor: 412000 }, { from: 'DEL', to: 'BLR', date: departure, minor: 603000 }] } }; break;
         case 'POST /api/travel/search/warm': reply = { body: { status: 'ready' } }; break;
         case 'GET /api/travel/fare-calendar': reply = { body: { days: { [departure]: { minor: 562000, band: 'low' }, [returning]: { minor: 918000, band: 'high' } } } }; break;
         case 'POST /api/travel/fare-calendar': reply = { status: 202, body: {} }; break;

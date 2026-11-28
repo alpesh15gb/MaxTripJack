@@ -1,6 +1,6 @@
 # Max Travel journeys
 
-The user confirmed permission to reproduce the Destina Holidays reference design, including the homepage hero and four feature illustrations. Max Travel uses the reference page structure and interaction patterns with its own logo, colours, copy, business details, and booking services. [Destina Holidays homepage](https://www.destinaholidays.com/)
+Max Travel follows the reference page structure, user flows and interaction patterns with its own logo, colours, copy, images, business details, and booking services. It does not reproduce the reference site's images or text. [Destina Holidays homepage](https://www.destinaholidays.com/)
 
 ## Public browser evidence
 
@@ -66,16 +66,16 @@ Destina’s private bookings, ticketing and payment completion were outside the 
 
 ## Homepage image provenance
 
-The homepage serves local files from `public/travel/`. The hero URL was verified in the rendered background style and the other sources in the rendered image elements. The public reference displayed no credit for the hero.
+The homepage uses only Max Travel images with recorded provenance (see `public/travel/README.md`). No image files from the reference site are served.
 
-| Reference image | Local file | Source |
+| Homepage use | Local file | Source |
 | --- | --- | --- |
-| Mountain and lake hero | `public/travel/destina-hero.jpg` | [Reference hero](https://destinaholidays-static.nyc3.digitaloceanspaces.com/home/hero-nature.jpg) |
-| Book & Hold | `public/travel/destina-perk-hold.jpg` | [Reference booking illustration](https://www.destinaholidays.com/assets/img/home/perk-hold.jpg?v=1793652163) |
-| Flight + Hotel | `public/travel/destina-perk-package.jpg` | [Reference package illustration](https://www.destinaholidays.com/assets/img/home/perk-package.jpg?v=1793652163) |
-| Flexible experiences | `public/travel/destina-perk-tours.jpg` | [Reference tours illustration](https://www.destinaholidays.com/assets/img/home/perk-tours.jpg?v=1793652163) |
-| Real travel experts | `public/travel/destina-perk-experts.jpg` | [Reference experts illustration](https://www.destinaholidays.com/assets/img/home/perk-experts.jpg?v=1793652163) |
-| Customer support | `public/travel/destina-travel-support.png` | [Reference support illustration](https://www.destinaholidays.com/assets/img/home/travel-support.png?v=1793652163) |
+| Hero and price-alert dialog | `public/travel/maldives.jpg` | Unsplash License (recorded in `public/travel/README.md`) |
+| Review before you book | `public/travel/paris-evening.webp` | Original Max Travel illustration |
+| Flight + Hotel, recent hotel searches | `public/travel/goa.jpg` | Unsplash License |
+| Tours & Activities | `public/travel/bali.jpg` | Unsplash License |
+| Real travel experts, recent flight searches | `public/travel/dubai.jpg` | Unsplash License |
+| Customer support | `src/components/support-illustration.tsx` | Original inline SVG |
 
 ## Earlier REA observations
 

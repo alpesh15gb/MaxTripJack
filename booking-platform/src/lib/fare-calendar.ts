@@ -7,7 +7,7 @@ import {exactAirportGroups} from './flight-airport-scope';
 import {customerFlightResults, type PricingRule} from './customer-pricing';
 import {requestLimit} from './request-limit';
 import {validateSearchCriteria} from './search-validation';
-import {bandFares, fareCalendarDates, lowestAdultFareMinor, staleDates, type Cabin, type FareDay} from './fare-calendar-core';
+import {bandFares, fareCalendarDates, FARE_CALENDAR_SHOW_MS, lowestAdultFareMinor, staleDates, type Cabin, type FareDay} from './fare-calendar-core';
 
 // Matches supplier_searches provenance: the provider host is currently UAT.
 const ENVIRONMENT = 'uat';
@@ -136,4 +136,25 @@ export async function prepareFareCalendar(route: Route, dates: string[], anchor:
   });
   runQueue();
   return {pending: jobs.map(job => job.date), finished: Promise.all(jobs.map(job => job.completion))};
+}
+
+export type FareDeal = {from: string; to: string; date: string; minor: number};
+
+/** Cheapest recently verified one-adult economy fare per route over the next
+ * `days` days. Only observations inside the calendar display window count, so
+ * nothing older than the fare calendar itself would show is advertised. */
+export async function readFareDeals(pairs: [string, string][], today: string, days = 60): Promise<FareDeal[]> {
+  if (!pairs.length) return [];
+  const result = await database().query<{origin_code: string; destination_code: string; departure_date: string; lowest_adult_minor: string}>(
+    `SELECT DISTINCT ON (origin_code,destination_code) origin_code,destination_code,
+       to_char(departure_date,'YYYY-MM-DD') AS departure_date,lowest_adult_minor
+     FROM flight_fare_calendar_verified
+     WHERE provider_environment=$1 AND cabin='ECONOMY' AND lowest_adult_minor IS NOT NULL
+       AND (origin_code || '-' || destination_code) = ANY($2::text[])
+       AND departure_date > $3::date AND departure_date <= $3::date + $4::int
+       AND observed_at > now() - ($5::int * interval '1 millisecond')
+     ORDER BY origin_code,destination_code,lowest_adult_minor ASC,departure_date ASC`,
+    [ENVIRONMENT, pairs.map(([from, to]) => `${from}-${to}`), today, days, FARE_CALENDAR_SHOW_MS],
+  );
+  return result.rows.map(row => ({from: row.origin_code, to: row.destination_code, date: row.departure_date, minor: Number(row.lowest_adult_minor)}));
 }

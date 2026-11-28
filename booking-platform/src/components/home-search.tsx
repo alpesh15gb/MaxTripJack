@@ -24,6 +24,8 @@ import { HomeServiceRail } from "./travel-navigation";
 import {StitchSymbol} from "./stitch-symbol";
 import {HomeDisclosure} from "./home-disclosure";
 import HomeRecentSearches, { rememberHomeSearch } from "./home-recent-searches";
+import SupportIllustration from "./support-illustration";
+import { HomeAboutText, HomeFaq, HomeFlightDeals, HomeWhyBook } from "./home-destina-sections";
 import { MaxAiInlineAction } from "./max-ai-assistant";
 
 type Product = "FLIGHT" | "HOTEL";
@@ -42,10 +44,10 @@ type SearchDraft = {
 const cities: Record<string,string> = { HYD:"Hyderabad", DEL:"New Delhi", BOM:"Mumbai", GOI:"Goa", DXB:"Dubai", BLR:"Bengaluru" };
 const popularPairs = [["HYD","DEL"], ["DEL","BOM"], ["BOM","GOI"], ["HYD","DXB"], ["DEL","BLR"], ["BLR","HYD"]];
 const homePerks = [
-  { title: "Review before you book", photo: "hold", href: "/pricing-transparency", detail: "Check the price, baggage and fare conditions before paying." },
-  { title: "Flight + Hotel", photo: "package", href: "/packages", detail: "Ask our travel desk to put your flights and stay together in one itinerary." },
-  { title: "Tours & Activities", photo: "tours", href: "/contact?topic=activity#office-enquiry", detail: "Ask about activities and tickets for your destination." },
-  { title: "Real travel experts", photo: "experts", href: "/customer-support", detail: "Call the travel desk or send a support request for help with your trip." },
+  { title: "Review before you book", photo: "hold", image: "/travel/paris-evening.webp", href: "/pricing-transparency", detail: "Check the price, baggage and fare conditions before paying." },
+  { title: "Flight + Hotel", photo: "package", image: "/travel/goa.jpg", href: "/packages", detail: "Ask our travel desk to put your flights and stay together in one itinerary." },
+  { title: "Tours & Activities", photo: "tours", image: "/travel/bali.jpg", href: "/contact?topic=activity#office-enquiry", detail: "Ask about activities and tickets for your destination." },
+  { title: "Real travel experts", photo: "experts", image: "/travel/dubai.jpg", href: "/customer-support", detail: "Call the travel desk or send a support request for help with your trip." },
 ];
 function shiftDate(value: string, days: number) {
   return new Date(Date.parse(`${value}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
@@ -287,7 +289,7 @@ export default function HomeSearch({ children, offers, guides, startingProduct }
     <HomeServiceRail product={assisted ?? product} onProductChange={openSearch}/>
     <main id="main-content">
       <section className="destina-home-hero" aria-labelledby="home-title">
-        <Image src="/travel/destina-hero.jpg" alt="" fill preload sizes="100vw" />
+        <Image src="/travel/maldives.jpg" alt="" fill preload sizes="100vw" />
         <div className="destina-home-heading">
           <h1 id="home-title">Travel Made Simple</h1>
           <ul><li><StitchSymbol name="check_circle" size={16}/>Compare flights and stays</li><li><StitchSymbol name="check_circle" size={16}/>Expert travel support</li><li><StitchSymbol name="check_circle" size={16}/>Clear prices before booking</li></ul>
@@ -340,7 +342,7 @@ export default function HomeSearch({ children, offers, guides, startingProduct }
 
       <section className="destina-home-tiles stitch-home-wrap" aria-label="Travel smarter with Max Travel">
         <div className="destina-home-perks">{homePerks.map(perk => <Link href={perk.href} key={perk.photo}>
-          <Image src={`/travel/destina-perk-${perk.photo}.jpg`} alt="" width={560} height={420} sizes="(max-width: 900px) 50vw, 282px"/>
+          <Image src={perk.image} alt="" width={560} height={420} sizes="(max-width: 900px) 50vw, 282px"/>
           <div><h3>{perk.title}</h3><p>{perk.detail}</p></div>
         </Link>)}</div>
       </section>
@@ -364,6 +366,7 @@ export default function HomeSearch({ children, offers, guides, startingProduct }
       </section>
       {offers}
 
+      <HomeFlightDeals />
       <section className="destina-home-routes stitch-home-wrap" aria-labelledby="home-routes-heading">
         <div className="stitch-section-title"><div><h2 id="home-routes-heading">Popular Flight Routes</h2><p>Pick a route and compare flights for your dates</p></div><Link href="/flights/routes">All routes <TravelIcon name="arrow" size={15}/></Link></div>
         <div className="destina-route-options">{popularPairs.map(([from,to]) => <button type="button" key={from+to} aria-label={`Set route to ${cities[from]} to ${cities[to]}`} onClick={() => { openSearch("FLIGHT"); selectPair(from,to); }}><StitchSymbol name="flight" size={16}/>{cities[from]} to {cities[to]}<TravelIcon name="arrow" size={14}/></button>)}</div>
@@ -376,9 +379,13 @@ export default function HomeSearch({ children, offers, guides, startingProduct }
         <div className="stitch-hubs-mobile">{hubLinks}</div>{guides}
       </HomeDisclosure></div>
 
+      <HomeWhyBook />
+      <HomeFaq />
+      <HomeAboutText />
+
       <section className="destina-home-help" aria-labelledby="home-help-heading"><div className="stitch-home-wrap">
         <div><h2 id="home-help-heading">Customer Support</h2><p>Get help finding a trip, checking booking status or requesting a change.</p><div className="destina-help-actions"><Link href="/customer-support"><StitchSymbol name="support_agent" size={18}/>Support Center</Link><Link href="/customer-support/faq">FAQs</Link><MaxAiInlineAction ariaLabel="Open Max AI travel assistant"/></div></div>
-        <Image src="/travel/destina-travel-support.png" alt="" width={640} height={300} sizes="(max-width:760px) 100vw, 570px"/>
+        <SupportIllustration/>
       </div></section>
     </main>
     <TravelFooter />

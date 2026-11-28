@@ -105,7 +105,7 @@ export function FlightPriceAlertDialog({watch,route,searchEstimate,initialEmail=
       {message&&<p role="alert">{message}</p>}
     </div>
     <aside className="flight-price-alert-preview" aria-label="Search being tracked">
-      <Image src="/travel/destina-hero.jpg" alt="" fill sizes="(max-width: 700px) 100vw, 420px"/>
+      <Image src="/travel/maldives.jpg" alt="" fill sizes="(max-width: 700px) 100vw, 420px"/>
       <div className="flight-price-alert-summary">
         <span><TravelIcon name="bell" size={15}/>Price alert</span>
         <strong>{route}</strong>
