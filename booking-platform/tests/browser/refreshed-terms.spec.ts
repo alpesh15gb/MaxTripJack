@@ -2,7 +2,7 @@ import type {Page} from '@playwright/test';
 import {reviewedTerms} from '../../src/lib/reviewed-terms';
 import {publicSupplierPolicy} from '../../src/lib/public-supplier-policy';
 import {hotelRoomInfo,hotelStringList} from '../../src/lib/hotel-presentation';
-import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,quoteId,bookingId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
+import {continueToTravellerDetails, test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,quoteId,bookingId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
 
 const renewedId='44444444-4444-4444-8444-444444444444';
 const pay=(page:Page)=>form(page).getByRole('button',{name:/^Agree & pay /});
@@ -27,24 +27,26 @@ async function selectFare(page:Page,label='Check fare & continue'){
  await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:label,exact:true}).first().click();
 }
-async function openFlight(page:Page){await openFlightSearch(page);await selectFare(page);await expect(form(page)).toBeVisible();}
+async function openFlight(page:Page){await openFlightSearch(page);await selectFare(page);await continueToTravellerDetails(page);}
 async function openHotel(page:Page,provider:ProviderFixture){
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Synthetic terms stay',customerEstimateMinor:800000}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[room()]}};
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',autoSearch:'1'}));
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
- await page.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(form(page)).toBeVisible();
+ await page.getByRole('button',{name:'Continue with room',exact:true}).click();await continueToTravellerDetails(page);
 }
 async function fillTraveller(page:Page){
+ await continueToTravellerDetails(page);
  await form(page).getByLabel('First name',{exact:true}).fill('Aarav');await form(page).getByLabel('Last name',{exact:true}).fill('Example');
  await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Mobile number',{exact:true}).fill('9876543210');
 }
 async function retainedTraveller(page:Page){
+ await continueToTravellerDetails(page);
  await expect(form(page).getByLabel('First name',{exact:true})).toHaveValue('Aarav');await expect(form(page).getByLabel('Last name',{exact:true})).toHaveValue('Example');
  await expect(form(page).getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');await expect(form(page).getByLabel('Mobile number',{exact:true})).toHaveValue('9876543210');
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');
 }
-async function reviewPayment(page:Page){await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(form(page).getByLabel('First name',{exact:true})).toBeVisible();}
+async function reviewPayment(page:Page){await continueToTravellerDetails(page);await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(form(page).getByLabel('First name',{exact:true})).toBeVisible();}
 async function refresh(page:Page){await page.getByRole('button',{name:'Refresh reviewed price',exact:true}).click();await expect(disclosure(page)).toBeVisible();await expect(form(page).locator('.booking-continue')).toBeEnabled();await expect(page.locator('#refreshed-terms-title')).toBeFocused();await expect(page.locator('.travel-skip')).not.toBeFocused();await expect(page.locator('.travel-skip')).toHaveCSS('clip-path','inset(50%)');}
 async function prepareRefreshedFlight(page:Page,provider:ProviderFixture){
  provider.quote=flightQuote([fare()]);await openFlight(page);await fillTraveller(page);

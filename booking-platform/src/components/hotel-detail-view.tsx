@@ -56,6 +56,7 @@ function distinctPropertyAmenities(values:string[]=[]){
 }
 export default function HotelDetailView({name,property,metadataStatus='ready',context,options,roomsStatus,roomsError,busy,now,checkingOptionId,selectedOptionId,onBack,onRetry,onEditSearch,onReview,galleryOpen,onGalleryChange}:HotelDetailViewProps){
  const [localGallery,setLocalGallery]=useState(false),[mobileActionVisible,setMobileActionVisible]=useState(false);
+ const [currentSection,setCurrentSection]=useState('hotel-room-options-title');
  const detailRoot=useRef<HTMLElement>(null),detailEnd=useRef<HTMLDivElement>(null),roomSection=useRef<HTMLElement>(null);
  const pendingRateStatus=useRef<HTMLParagraphElement>(null);
  useEffect(()=>{
@@ -66,11 +67,32 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
  useEffect(()=>{
   const root=detailRoot.current,end=detailEnd.current,rooms=roomSection.current;if(!root||!end||!rooms||typeof IntersectionObserver==='undefined')return;
   let visible=false,atEnd=false,atRooms=false;
-  const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.target===root)visible=entry.isIntersecting;if(entry.target===end)atEnd=entry.isIntersecting;if(entry.target===rooms)atRooms=entry.isIntersecting;}setMobileActionVisible(visible&&!atEnd&&!atRooms);},{rootMargin:'0px 0px 90px 0px'});
-  observer.observe(root);observer.observe(end);observer.observe(rooms);return()=>observer.disconnect();
+  const updateShortcut=()=>setMobileActionVisible(visible&&!atEnd&&!atRooms);
+  const observer=new IntersectionObserver(entries=>{
+   for(const entry of entries){if(entry.target===root)visible=entry.isIntersecting;if(entry.target===end)atEnd=entry.isIntersecting;}
+   updateShortcut();
+  },{rootMargin:'0px 0px 90px 0px'});
+  observer.observe(root);observer.observe(end);
+  let roomObserver:IntersectionObserver|undefined;
+  const observeRooms=()=>{
+   roomObserver?.disconnect();
+   // A heading entering the bottom of the viewport leaves room actions out of reach.
+   roomObserver=new IntersectionObserver(([entry])=>{atRooms=entry.isIntersecting;updateShortcut();},
+    {rootMargin:`0px 0px -${Math.round(window.innerHeight*.44)}px 0px`});
+   roomObserver.observe(rooms);
+  };
+  observeRooms();
+  window.addEventListener('resize',observeRooms);
+  return()=>{observer.disconnect();roomObserver?.disconnect();window.removeEventListener('resize',observeRooms);};
  },[]);
  const [rateFilters,setRateFilters]=useState({breakfast:false,freeCancellation:false});
+ const [comparisonId,setComparisonId]=useState(selectedOptionId??'');
  const {filteredOptions,lowest}=hotelRoomRateSummary(options,rateFilters,now);
+ const comparison=filteredOptions.find(option=>option.optionId===comparisonId);
+ const comparisonTotal=comparison?optionTotal(comparison):null;
+ const comparedRate=comparison&&comparisonTotal!==null?{option:comparison,total:comparisonTotal}:null;
+ const currentRate=roomsStatus==='ready'?(comparedRate??lowest):undefined;
+ const summaryPriceLabel=comparedRate?(comparisonId===selectedOptionId?'Selected full stay estimate':'Compared full stay total'):'Estimated full stay total from';
  const filtersActive=rateFilters.breakfast||rateFilters.freeCancellation;
  const noMatchingRates=roomsStatus==='ready'&&options.length>0&&!filteredOptions.length;
  const noPrices=roomsStatus==='ready'&&filteredOptions.length>0&&!lowest;
@@ -80,42 +102,49 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
  const groups=groupHotelRoomRates(filteredOptions);
  const amenities=distinctPropertyAmenities(property?.amenities);
  const nights=stayNights(context);
+ const guestLabel=context?`${context.rooms} room${context.rooms===1?'':'s'} · ${context.guests} guest${context.guests===1?'':'s'}`:null;
  const stayLabel=context?`${nights?`${nights} night${nights===1?'':'s'} · `:''}${context.rooms} room${context.rooms===1?'':'s'} · ${context.guests} guest${context.guests===1?'':'s'}`:'All selected rooms and guests';
+ const nightlyScope=context&&context.rooms>1?'average per night across all rooms':'average per night';
+ const location=property?.address||property?.city;
+ const sections=[
+  ['hotel-room-options-title','Rooms & rates'],
+  ['stay-about-title','About this stay'],
+  ['stay-amenities-title','Amenities'],
+  ...(location?[['stay-location-title','Location']]:[]),
+  ['stay-overview','Overview & photos'],
+ ];
  const scrollToSection=(id:string)=>{
   const target=document.getElementById(id);
   target?.focus({preventScroll:true});
   target?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
  };
- const showRooms=()=>scrollToSection('hotel-room-options-title');
+ const showRooms=()=>{setCurrentSection('hotel-room-options-title');scrollToSection('hotel-room-options-title');};
  const followSection=(event:MouseEvent<HTMLAnchorElement>,id:string)=>{
   if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
   event.preventDefault();
+  setCurrentSection(id);
   scrollToSection(id);
  };
  const otherDatesLabel=onEditSearch?'Change stay dates':'Browse other stays';
  const roomAction=canClearRates?clearRateFilters:stayUnavailable?(onEditSearch??onBack):showRooms;
  const roomActionLabel=canClearRates?'Show all rates':stayUnavailable?otherDatesLabel:roomsStatus==='ready'?'Choose room':'View room availability';
  const previewActionLabel=roomsStatus==='ready'&&lowest? `View ${filteredOptions.length} room rate${filteredOptions.length===1?'':'s'}`:roomActionLabel;
- return <section ref={detailRoot} id="booking-rooms" className="stay-detail stay-rate-comparison" aria-label={`${name} property details`}>
+ return <section ref={detailRoot} id="booking-rooms" className="stay-detail stay-rate-comparison hotel-reference-detail" aria-label={`${name} property details`}>
   <nav className="stay-breadcrumb" aria-label="Property breadcrumb"><button type="button" disabled={busy} onClick={onBack}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m10 5-7 7 7 7M3 12h18"/></svg>Back to stays</button><span aria-hidden="true">/</span><span aria-current="page">{name}</span></nav>
-  <header className="stay-detail-heading"><div><p className="stay-eyebrow">{property?.propertyType||'EXPLORE YOUR STAY'}</p><h2 id="hotel-detail-title" tabIndex={-1}>{name}</h2><div className="stay-category">{property?.starRating?<><span className="stay-stars" aria-hidden="true">{Array.from({length:property.starRating},(_,index)=><svg key={index} width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3L7 14.2 2 9.3l6.9-1Z"/></svg>)}</span><span>{property.starRating}-star property category</span></>:<span>{metadataStatus==='loading'?'Property details loading…':metadataStatus==='unavailable'?'Property category unavailable right now':'Property category not supplied'}</span>}</div><p className="stay-address">{property?.address||(metadataStatus==='loading'?'Loading the property address…':metadataStatus==='unavailable'?'Property address unavailable right now':'Property address not supplied')}</p></div>
+  <header className="stay-detail-heading"><div className="stay-heading-copy">
+   <div className="stay-heading-title"><h2 id="hotel-detail-title" tabIndex={-1}>{name}</h2>
+    {property?.starRating?<span className="stay-category"><span className="stay-stars" aria-hidden="true">{Array.from({length:property.starRating},(_,index)=><svg key={index} width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3L7 14.2 2 9.3l6.9-1Z"/></svg>)}</span><span className="sr-only">{property.starRating}-star property category</span></span>:<span className="sr-only">{metadataStatus==='loading'?'Property details loading…':metadataStatus==='unavailable'?'Property category unavailable right now':'Property category not supplied'}</span>}
+   </div>
+   <div className="stay-heading-meta"><p className="stay-address"><TravelIcon name="pin" size={15}/>{location||(metadataStatus==='loading'?'Loading the property address…':metadataStatus==='unavailable'?'Property address unavailable right now':'Property address not supplied')}</p>{property?.propertyType&&<span className="stay-property-tag">{property.propertyType}</span>}</div>
+  </div>
    <button type="button" className="secondary stay-heading-cta" disabled={busy} onClick={roomAction}>{roomActionLabel}</button>
   </header>
-  {context&&<div className="stay-date-strip" aria-label="Selected stay dates and guests"><div><small>CHECK-IN</small><strong>{travelDateLabel(context.checkIn)}</strong></div><div><small>CHECK-OUT</small><strong>{travelDateLabel(context.checkOut)}</strong></div><div><small>YOUR STAY</small><strong>{stayLabel}</strong></div></div>}
+  <div id="stay-overview" tabIndex={-1} className="stay-overview-main"><HotelGallery name={name} photos={property?.photos} metadataStatus={metadataStatus} open={galleryOpen??localGallery} onOpenChange={onGalleryChange??setLocalGallery} expandedMosaic/></div>
+  {amenities.length>0&&<ul className="stay-overview-amenities" aria-label="Property highlights">{amenities.slice(0,6).map(item=><li key={item}><TravelIcon name="check" size={15}/>{item}</li>)}</ul>}
   <nav className="stay-section-nav" aria-label="Property sections">
-   <a href="#stay-overview" onClick={event=>followSection(event,'stay-overview')}>Overview & photos</a>
-   <a href="#stay-about-title" onClick={event=>followSection(event,'stay-about-title')}>About this stay</a>
-   <a href="#hotel-room-options" onClick={event=>followSection(event,'hotel-room-options-title')}>Rooms & rates</a>
+   {sections.map(([id,label])=><a key={id} href={`#${id}`} aria-current={currentSection===id?'location':undefined} onClick={event=>followSection(event,id)}>{label}</a>)}
   </nav>
-  <div id="stay-overview" tabIndex={-1} className="stay-overview-layout"><div className="stay-overview-main"><HotelGallery name={name} photos={property?.photos} metadataStatus={metadataStatus} open={galleryOpen??localGallery} onOpenChange={onGalleryChange??setLocalGallery}/><section className="stay-about" aria-labelledby="stay-about-title"><h3 id="stay-about-title" tabIndex={-1}>About this stay</h3>{property?.descriptionHeadline&&<h4 className="stay-description-headline">{property.descriptionHeadline}</h4>}{property?.description?<><p>{property.description.length>600?property.description.slice(0,600).replace(/\s+\S*$/,'')+'…':property.description}</p>{property.description.length>600&&<details className="stay-description-more"><summary>Read the full property description</summary><p>{property.description}</p></details>}</>:<p className="stay-muted">{metadataStatus==='loading'?'Property description is loading…':metadataStatus==='unavailable'?'Property description is unavailable right now.':'The supplier has not provided a property description.'}</p>}{property?.propertyType&&<p className="stay-property-type">Property type: <strong>{property.propertyType}</strong></p>}<h4>Property amenities</h4>{amenities.length?<ul className="stay-amenities">{amenities.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul>:<p className="stay-muted">{metadataStatus==='loading'?'Amenities are loading…':metadataStatus==='unavailable'?'Property amenities are unavailable right now.':'Amenities were not supplied for this property.'}</p>}<p className="stay-content-note">Property information is supplied separately from room availability. Check the selected rate for meals, inclusions and conditions.</p></section></div>
-   <aside className="stay-rate-preview" aria-label="Stay price summary">
-    <h3>{roomsStatus==='ready'&&lowest?hotelRoomLabel({roomInfo:lowest.option.roomInfo??[]}):'Room availability'}</h3>
-    <p>{stayLabel}</p>
-    {roomsStatus==='loading'?<div className="stay-rate-loading" role="status"><strong>Checking room options…</strong><p>Explore the available property information while we check your rooms.</p></div>:roomsStatus==='error'?<p className="stay-muted">Room availability could not be checked. Open the room options to try again.</p>:lowest?<><dl className="stay-preview-facts"><div><dt>Meals</dt><dd>{roomMealLabel(lowest.option)}</dd></div><div><dt>Cancellation</dt><dd>{hotelCancellationLabel(lowest.option.cancellation,now??NaN)}</dd></div></dl><div className="stay-preview-price"><small>Estimated full stay total from</small><strong>{money(lowest.total)}</strong><span>{stayLabel}</span></div></>:<p>{noMatchingRates?'No rates match these preferences.':noPrices?'Room prices aren’t available.':'No room rates are available for these dates.'}</p>}
-    <button type="button" className="primary" disabled={busy} onClick={roomAction}>{previewActionLabel}</button>
-    {lowest&&<small className="stay-price-disclosure">The final price and conditions are checked at review. Nothing is reserved yet. Additional property-payable charges are not verified here.</small>}
-   </aside>
-  </div>
+  <div className="stay-room-layout">
   <section ref={roomSection} id="hotel-room-options" className="stay-rooms-section" aria-labelledby="hotel-room-options-title">
    <header><div>
     <a className="stay-room-property-link" href="#hotel-detail-title" onClick={event=>followSection(event,'hotel-detail-title')}>{name} <span aria-hidden="true">↑</span></a>
@@ -145,13 +174,29 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
    </div>}
    {roomsStatus==='ready'&&groups.length>0&&<div className="stay-room-groups">{groups.map((group,groupIndex)=>{
     const groupId=`stay-room-group-${groupIndex}`;
+    const pricedPlans=group.options.flatMap((option,index)=>{
+     const total=optionTotal(option);
+     return total===null?[]:[{option,index,total}];
+    });
+    const groupComparison=pricedPlans.find(({option})=>option.optionId===comparisonId);
+    const priceIncrease=groupComparison?groupComparison.total-pricedPlans[0].total:0;
     return <section className="stay-room-group" key={group.key} data-room-group={groupIndex} aria-label={`Room combination ${groupIndex+1}: ${group.label}`}>
      <header className="stay-room-group-heading">
-      <h3 id={groupId}>{group.label}</h3>
+      <div className="stay-room-group-title"><TravelIcon name="bed" size={23}/><div><h3 id={groupId}>{group.label}</h3>{guestLabel&&<p><TravelIcon name="user" size={15}/>{guestLabel}</p>}</div></div>
       <span>{group.options.length} rate plan{group.options.length===1?'':'s'}</span>
      </header>
+     {pricedPlans.length>1&&<div className="stay-room-compare">
+      <label><span>Compare rate plans</span>
+       <select aria-label={`Compare rates for ${group.label}`} value={groupComparison?.option.optionId??''} disabled={busy} onChange={event=>setComparisonId(event.target.value)}>
+        <option value="">Choose a rate to compare</option>
+        {pricedPlans.map(({option,index,total})=><option key={option.optionId} value={option.optionId}>{`Rate ${index+1}: ${roomMealLabel(option)} · ${hotelCancellationLabel(option.cancellation,now??NaN)} · ${money(total)}`}</option>)}
+       </select>
+      </label>
+      {groupComparison&&<p role="status"><strong>{money(groupComparison.total)} for the full stay</strong>{priceIncrease>0&&<span>{money(priceIncrease)} more than the lowest rate for this room choice</span>}</p>}
+     </div>}
      <div className="stay-room-rates">{group.options.map((option,index)=>{
       const total=optionTotal(option),selected=selectedOptionId===option.optionId,checking=busy&&checkingOptionId===option.optionId;
+      const comparing=comparedRate?.option.optionId===option.optionId;
       const planId=`${groupId}-plan-${index}`;
       const freeCancellation=hasFreeCancellation(option,now);
       const cancellation=hotelCancellationLabel(option.cancellation,now??NaN);
@@ -161,16 +206,19 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
        const repeatsBreakfast=mealLabel==='Breakfast included'&&/^(?:(?:complimentary|free|daily) )?breakfast(?: included)?$/.test(text);
        return text!==mealLabel.toLowerCase()&&!repeatsBreakfast;
       });
-      return <article className={`room-option-card stay-room-rate${selected?' is-selected':''}`} key={option.optionId} data-room-option-id={option.optionId} aria-label={`Rate ${index+1}: ${group.label}`} aria-describedby={planId}>
+      return <article className={`room-option-card stay-room-rate${selected?' is-selected':''}${comparing?' is-compared':''}`} key={option.optionId} data-room-option-id={option.optionId} aria-label={`Rate ${index+1}: ${group.label}`} aria-describedby={planId}>
        <div className="stay-room-rate-main">
-        {selected&&<span className="room-selection-label">Selected room rate</span>}
-        <h4 className="stay-plan-title" id={planId}><StitchSymbol name="restaurant" size={18}/>{mealLabel}</h4>
+        {(selected||comparing)&&<span className="room-selection-label">{selected?'Selected room rate':'Rate being compared'}</span>}
+        <div className="stay-rate-choices">
+         <div><span className="stay-choice-label"><TravelIcon name="shield" size={15}/> Cancellation</span><p className="stay-rate-cancellation" data-free={freeCancellation} id={`${planId}-terms`}>{cancellation}</p></div>
+         <div><span className="stay-choice-label"><StitchSymbol name="restaurant" size={15}/> Meals</span><h4 className="stay-plan-title" id={planId}>{mealLabel}</h4></div>
+        </div>
         {Boolean(inclusions?.length)&&<ul className="stay-rate-inclusions">{inclusions?.map((item,i)=><li key={`${item}-${i}`}>{item}</li>)}</ul>}
        </div>
        <div className="room-option-action stay-room-rate-action">
         <div className="stay-rate-total"><small>Estimated full stay total</small><strong id={`${planId}-price`}>{total===null?'Price unavailable':money(total)}</strong><p>{stayLabel}</p></div>
-        <p className="stay-rate-cancellation" data-free={freeCancellation} id={`${planId}-terms`}><TravelIcon name={freeCancellation?'check':'receipt'} size={16}/><span>{cancellation}</span></p>
-        <button type="button" className="primary" aria-describedby={`${groupId} ${planId} ${planId}-terms ${planId}-price`} disabled={busy||total===null} onClick={()=>onReview(option.optionId)}>{checking?'Checking your room…':'Continue with room'}</button>
+        {total!==null&&nights&&nights>1&&<small className="stay-rate-nightly">{money(Math.round(total/nights))} {nightlyScope}</small>}
+        <button type="button" className="primary" aria-describedby={`${groupId} ${planId} ${planId}-terms ${planId}-price`} disabled={busy||total===null} onClick={()=>{setComparisonId(option.optionId);onReview(option.optionId);}}>{checking?'Checking your room…':'Continue with room'}</button>
         {checking&&<p ref={pendingRateStatus} role="status">Checking your selected room rate. Nothing is reserved yet.</p>}
        </div>
        <details className="stay-room-conditions"><summary>Full cancellation policy & room details</summary>{option.priceBreakdown&&<section><h5>Estimated price breakdown</h5><dl className="stay-preview-facts">{bookingPriceLines('HOTEL',option.priceBreakdown).map(([label,amount])=><div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl></section>}<HotelCancellationTimeline value={option.cancellation}/>{option.bookingNotes&&<section><h5>Property instructions</h5><p className="stay-booking-notes">{option.bookingNotes}</p></section>}</details>
@@ -179,7 +227,19 @@ export default function HotelDetailView({name,property,metadataStatus='ready',co
     </section>;
    })}</div>}
   </section>
+   <aside className="stay-rate-preview" aria-label="Stay price summary">
+    {currentRate?<div className="stay-preview-price"><small>{summaryPriceLabel}</small><strong>{money(currentRate.total)}</strong><span>{stayLabel}</span>{nights&&nights>1&&<span>{money(Math.round(currentRate.total/nights))} {nightlyScope}</span>}</div>:<h3>Room availability</h3>}
+    {roomsStatus==='loading'?<div className="stay-rate-loading" role="status"><strong>Checking room options…</strong><p>Explore the available property information while we check your rooms.</p></div>:roomsStatus==='error'?<p className="stay-muted">Room availability could not be checked. Open the room options to try again.</p>:!lowest&&<p>{noMatchingRates?'No rates match these preferences.':noPrices?'Room prices aren’t available.':'No room rates are available for these dates.'}</p>}
+    {context&&<div className="stay-date-strip" aria-label="Selected stay dates and guests"><div><small>CHECK-IN</small><strong>{travelDateLabel(context.checkIn)}</strong></div><div><small>CHECK-OUT</small><strong>{travelDateLabel(context.checkOut)}</strong></div><div className="stay-preview-guests"><TravelIcon name="user" size={18}/><span><small>ROOMS & GUESTS</small><strong>{guestLabel}</strong></span></div></div>}
+    <button type="button" className="primary" disabled={busy} onClick={roomAction}>{previewActionLabel}</button>
+    {currentRate&&<dl className="stay-preview-facts"><div><dt>Room</dt><dd>{hotelRoomLabel(currentRate.option)}</dd></div><div><dt>Meals</dt><dd>{roomMealLabel(currentRate.option)}</dd></div><div><dt>Cancellation</dt><dd>{hotelCancellationLabel(currentRate.option.cancellation,now??NaN)}</dd></div></dl>}
+    {currentRate&&<small className="stay-price-disclosure">The final price and conditions are checked at review. Nothing is reserved yet. Additional property-payable charges are not verified here.</small>}
+   </aside>
+  </div>
+  <section className="stay-about" aria-labelledby="stay-about-title"><h3 id="stay-about-title" tabIndex={-1}>About this stay</h3>{property?.descriptionHeadline&&<h4 className="stay-description-headline">{property.descriptionHeadline}</h4>}{property?.description?<><p>{property.description.length>600?property.description.slice(0,600).replace(/\s+\S*$/,'')+'…':property.description}</p>{property.description.length>600&&<details className="stay-description-more"><summary>Read the full property description</summary><p>{property.description}</p></details>}</>:<p className="stay-muted">{metadataStatus==='loading'?'Property description is loading…':metadataStatus==='unavailable'?'Property description is unavailable right now.':'The supplier has not provided a property description.'}</p>}</section>
+  <section className="stay-detail-info-panel" aria-labelledby="stay-amenities-title"><h3 id="stay-amenities-title" tabIndex={-1}>Property amenities</h3>{amenities.length?<ul className="stay-amenities">{amenities.map(item=><li key={item}>{item}</li>)}</ul>:<p className="stay-muted">{metadataStatus==='loading'?'Amenities are loading…':metadataStatus==='unavailable'?'Property amenities are unavailable right now.':'Amenities were not supplied for this property.'}</p>}</section>
+  {location&&<section className="stay-detail-info-panel" aria-labelledby="stay-location-title"><h3 id="stay-location-title" tabIndex={-1}>Location</h3><p>{location}</p><a className="inline-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property?.address?`${name}, ${location}`:location)}`} target="_blank" rel="noreferrer">Show on map <TravelIcon name="arrow-up-right" size={16}/></a></section>}
   <div ref={detailEnd} className="stay-detail-end" aria-hidden="true"/>
-  <div className="stay-mobile-action" aria-label="Quick room selection" hidden={!mobileActionVisible||(galleryOpen??localGallery)}><div><small>{roomsStatus==='ready'&&lowest?'Estimated full stay from':'Your room options'}</small><strong>{roomsStatus==='ready'&&lowest?money(lowest.total):roomsStatus==='loading'?'Checking availability…':noMatchingRates?'No matching rates':noPrices?'No room prices':stayUnavailable?'No rooms for these dates':'Availability unavailable'}</strong></div><button type="button" className="primary" disabled={busy} onClick={roomAction}>{roomActionLabel}</button></div>
+  <div className="stay-mobile-action" aria-label="Quick room selection" hidden={!mobileActionVisible||(galleryOpen??localGallery)}><div><small>{currentRate?summaryPriceLabel:'Your room options'}</small><strong>{currentRate?money(currentRate.total):roomsStatus==='loading'?'Checking availability…':noMatchingRates?'No matching rates':noPrices?'No room prices':stayUnavailable?'No rooms for these dates':'Availability unavailable'}</strong></div><button type="button" className="primary" disabled={busy} onClick={roomAction}>{roomActionLabel}</button></div>
  </section>;
 }

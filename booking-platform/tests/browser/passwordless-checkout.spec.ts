@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, capture, bookingId, departure, returning, searchId, reviewedQuote, syntheticSession, openFlightSearch, expectNoHorizontalOverflow, type ProviderFixture } from './fixtures';
+import {continueToTravellerDetails,  test, expect, capture, bookingId, departure, returning, searchId, reviewedQuote, syntheticSession, openFlightSearch, expectNoHorizontalOverflow, type ProviderFixture } from './fixtures';
 
 const email = 'checkout@example.test';
 const sendPath = '/api/auth/email-otp/send-verification-otp';
@@ -140,6 +140,7 @@ test('verified payment opens this booking status without claiming supplier confi
   verified(provider);
   await verification.getByRole('button', { name: 'Verify & continue', exact: true }).click();
   const form = page.getByRole('form', { name: 'Review and travellers' });
+  await continueToTravellerDetails(page);
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
   await form.getByLabel('Mobile number', { exact: true }).fill('9876543210');

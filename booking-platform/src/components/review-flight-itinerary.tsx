@@ -4,6 +4,7 @@ import {connectionLabel} from '@/lib/flight-duration';
 import {travelDateLabel, travelTimeLabel} from '@/lib/travel-date';
 import AirlineLogo from './airline-logo';
 import {StitchSymbol} from './stitch-symbol';
+import {TravelIcon} from './travel-icon';
 
 function dateChange(departure: string, arrival: string) {
   const from = Date.parse(`${departure.slice(0, 10)}T00:00:00Z`);
@@ -29,18 +30,8 @@ function FlightReviewLeg({segments, label, confirmedBoundary}: {
   }) : [];
   const stopsLabel = !connected ? null : stops.length === 0 ? 'Non-stop'
     : `${stops.length} stop${stops.length > 1 ? 's' : ''} via ${stops.join(', ')}`;
-  return <section className="review-flight-leg">
-    <header className="review-flight-route">
-      <div>
-        {label && <p className="review-leg-label">{label}</p>}
-        <h3>{confirmedBoundary ? `${first.da.code} → ${last.aa.code}` : 'Flight segments'}</h3>
-        {stopsLabel && <p>{stopsLabel}{duration !== null && ` · ${durationLabel(duration)} total`}</p>}
-      </div>
-      {dayChange && <span className="review-arrival-note"><StitchSymbol name="schedule" size={16}/>
-        <span><strong>{dayChange}</strong><small>Arrives {travelDateLabel(last.at)}</small></span>
-      </span>}
-    </header>
-    <ol className="review-flights" aria-label="Flight segments">
+  const flightNumbers = segments.map(segment => [segment.fD.aI.code,segment.fD.fN].filter(Boolean).join(' ')).filter(Boolean);
+  const sectorList = <ol className="review-flights" aria-label="Flight segments">
       {segments.map((segment, index) => {
         const next = confirmedBoundary ? segments[index + 1] : undefined;
         return <li key={index}>
@@ -55,7 +46,36 @@ function FlightReviewLeg({segments, label, confirmedBoundary}: {
           {next && <p className="review-flight-connection"><StitchSymbol name="schedule" size={16}/>{connectionLabel(segment, next)}</p>}
         </li>;
       })}
-    </ol>
+    </ol>;
+  return <section className="review-flight-leg">
+    {confirmedBoundary ? <>
+      <header className="review-flight-face-header">
+        <div className="review-flight-airline">
+          <AirlineLogo code={first.fD.aI.code} name={first.fD.aI.name}/>
+          <div><strong>{first.fD.aI.name || 'Airline'}{new Set(segments.map(segment=>segment.fD.aI.name)).size>1&&' and other airlines'}</strong>
+            <small>{flightNumbers.join(' · ')}</small></div>
+        </div>
+        <span className="review-flight-departure"><TravelIcon name="departure" size={14}/>{label||'Depart'} · {travelDateLabel(first.dt)}</span>
+      </header>
+      <h3 className="sr-only">{first.da.code} → {last.aa.code}</h3>
+      <div className="review-flight-face">
+        <div><strong>{travelTimeLabel(first.dt)}</strong><span>{first.da.code}</span>{first.da.city&&<small>{first.da.city}</small>}</div>
+        <div className="review-flight-track">
+          {duration!==null&&<small>{durationLabel(duration)} total</small>}
+          <span aria-hidden="true"></span>
+          {stopsLabel&&<small>{stopsLabel}</small>}
+        </div>
+        <div><strong>{travelTimeLabel(last.at)}</strong><span>{last.aa.code}</span>{last.aa.city&&<small>{last.aa.city}</small>}</div>
+      </div>
+      {dayChange&&<p className="review-flight-arrival"><StitchSymbol name="schedule" size={16}/>{dayChange} · Arrives {travelDateLabel(last.at)}</p>}
+      <details className="review-flight-details">
+        <summary>Flight details</summary>
+        {sectorList}
+      </details>
+    </> : <>
+      <header className="review-flight-route"><div><h3>Flight segments</h3></div></header>
+      {sectorList}
+    </>}
   </section>;
 }
 

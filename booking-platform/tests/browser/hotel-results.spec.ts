@@ -129,7 +129,8 @@ test('hotel results prioritize real stay totals with scoped filters, sorting and
  await expect(cards).toHaveCount(3);await expect(cards.first()).toHaveAttribute('aria-label','Bay Stay');
  await expect(page.getByRole('status').filter({hasText:'3 of 3 loaded stays'})).toBeVisible();
  await expect(cards.first()).toContainText('Estimated stay total');await expect(cards.first()).toContainText('1 room · 2 guests');
- await expect(cards.first()).toContainText('From ₹4,000');await expect(cards.first()).not.toContainText('per night');
+ await expect(cards.first()).toContainText('From ₹4,000');await expect(cards.first()).toContainText('₹1,000 average per night');
+ await expect(cards.first().getByRole('link',{name:'Show Bay Stay on map',exact:true})).toHaveAttribute('href',/query=Bay%20Stay%2C%20Bay%20Road%2C%20Goa/);
  await expect(page.getByRole('article',{name:'Unknown Stay',exact:true})).toContainText('Price available with rooms');
  await expect(page.getByRole('article',{name:'Palm House',exact:true}).getByRole('listitem').filter({hasText:/^parking$/i})).toHaveCount(1);
  const firstTop=await cards.first().evaluate(node=>node.getBoundingClientRect().top+window.scrollY);

@@ -1,0 +1,102 @@
+@media screen {
+  .reference-confirmation .booking-status-back {
+    margin-bottom: 5px;
+    font-size: .84rem;
+  }
+
+  .reference-confirmation .booking-confirmation-hero {
+    position: relative;
+    isolation: isolate;
+    padding: 16px 0 28px;
+    color: #fff;
+  }
+
+  .reference-confirmation .booking-confirmation-hero::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0 auto 0 50%;
+    width: 100vw;
+    transform: translateX(-50%);
+    border-radius: 0 0 24px 24px;
+    background: linear-gradient(115deg, #0c3532, #236353);
+  }
+
+  .reference-confirmation .confirmation-progress {
+    margin-bottom: 11px;
+  }
+
+  body.stitch-theme .reference-confirmation.revamp-trip-status .booking-status-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  body.stitch-theme .reference-confirmation.revamp-trip-status .booking-status-header h1 {
+    color: #fff;
+    font: 750 clamp(24px, 3vw, 34px)/1.16 var(--font-stitch-display), sans-serif;
+  }
+
+  .reference-confirmation .booking-confirmation-hero .booking-status-header p { color: #e2f0e8; }
+  .reference-confirmation .booking-confirmation-hero .voucher-status-tag { color: #cceee0; }
+  .reference-confirmation .booking-confirmation-hero .booking-status-icon {
+    flex: 0 0 43px;
+    height: 43px;
+    background: #e1f0e6;
+    color: #17483d;
+  }
+  .reference-confirmation .booking-confirmation-hero .booking-status-header:is(.is-attention,.is-pending) .booking-status-icon {
+    background: #fff0df;
+    color: #71391d;
+  }
+  .reference-confirmation .booking-confirmation-hero .booking-status-icon .stitch-symbol { font-size: 24px; }
+
+  .reference-confirmation .booking-confirmation-hero .voucher-header-actions :is(a,button) {
+    min-height: 42px;
+    padding: 6px 12px;
+    border: 1px solid #ffffff70;
+    border-radius: 99px;
+    background: #ffffff18;
+    color: #fff;
+  }
+
+  body.stitch-theme .reference-confirmation .voucher-reference {
+    position: relative;
+    margin: -13px 0 16px;
+    padding: 8px 16px;
+    border: 1px solid var(--journey-line);
+    border-radius: 13px;
+    background: #fffdf8;
+  }
+
+  .reference-confirmation .booking-status-layout {
+    grid-template-columns: minmax(0, 1.85fr) minmax(260px, 1fr);
+  }
+
+  .reference-confirmation .booking-status-card {
+    border-radius: 15px;
+  }
+
+  .reference-confirmation .booking-status-summary .booking-concierge { background: var(--journey-pine, #0c3532); }
+  .reference-confirmation .booking-concierge .concierge-symbol { background: #32675b; }
+  .reference-confirmation .booking-concierge a { background: #ebf2e8; color: #0c3532; }
+
+  .reference-confirmation .voucher-mobile-actions a { border-radius: 99px; }
+}
+
+@media (max-width: 760px) {
+  .reference-confirmation .booking-confirmation-hero { padding-block: 12px 23px; }
+  body.stitch-theme .reference-confirmation.revamp-trip-status .booking-status-header { flex-direction: row; text-align: start; align-items: flex-start; }
+  .reference-confirmation .confirmation-progress li:not([aria-current]) { display: none; }
+  .reference-confirmation .booking-status-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media print {
+  .reference-confirmation .confirmation-progress { display: none; }
+}

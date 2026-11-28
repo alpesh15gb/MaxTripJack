@@ -324,9 +324,9 @@ export function MaxAiFooterAction(){
   </button>;
 }
 
-export function MaxAiInlineAction({ label = 'Ask Max AI', draft }: { label?: string; draft?: string }) {
+export function MaxAiInlineAction({ label = 'Ask Max AI', draft, ariaLabel }: { label?: string; draft?: string; ariaLabel?: string }) {
   if (!useContext(MaxAiAvailable)) return null;
-  return <button className="secondary max-ai-inline-action" type="button" aria-haspopup="dialog"
+  return <button className="secondary max-ai-inline-action" type="button" aria-haspopup="dialog" aria-label={ariaLabel}
     onClick={event => event.currentTarget.dispatchEvent(draft
       ? new CustomEvent('maxtravel:compose-message', {bubbles:true,detail:draft})
       : new Event('maxtravel:open-assistant', {bubbles:true}))}>

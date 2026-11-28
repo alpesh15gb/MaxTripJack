@@ -1,17 +1,31 @@
 'use client';
 
-import {useRef, useState} from 'react';
+import {useRef, useState, type ReactNode} from 'react';
 import {formatBookingDate, normalizeBookingDate} from '@/lib/travel-date';
 import FareDatePicker from './fare-date-picker';
 
-export default function BookingDateInput({name,label,initial='',min,onDateChange}: {name:string;label:string;initial?:string;min:string;onDateChange?:(date:string)=>void}) {
+const shortDate = new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
+const narrowDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
+
+export default function BookingDateInput({name,label,caption=label,initial='',min,onDateChange,compact=false,previousDate,nextDate}: {
+  name:string;label:string;caption?:string;initial?:string;min:string;onDateChange?:(date:string)=>void;
+  compact?:boolean;previousDate?:ReactNode;nextDate?:ReactNode;
+}) {
   const field = useRef<HTMLInputElement>(null);
   const [text,setText] = useState(() => formatBookingDate(initial));
   const date = normalizeBookingDate(text);
+  const dateTimestamp = date ? Date.parse(`${date}T00:00:00Z`) : null;
+  const calendar = <FareDatePicker iconOnly label={`${label} calendar`} value={date>=min?date:''} min={min} onChange={value=>{
+    setText(formatBookingDate(value));
+    field.current?.setCustomValidity('');
+    onDateChange?.(value);
+  }}/>;
 
-  return <div className="booking-date-input">
-    <label>{label}
-      <input ref={field} name={name} value={text} inputMode="numeric" autoComplete="off" placeholder="DD/MM/YYYY" maxLength={10} required
+  return <div className={`booking-date-input${compact?' booking-date-compact':''}${previousDate || nextDate?' booking-date-adjacent':''}`}>
+    {compact&&calendar}
+    {previousDate}
+    <label>{caption}
+      <input ref={field} aria-label={caption===label?undefined:label} name={name} value={text} inputMode="numeric" autoComplete="off" placeholder="DD/MM/YYYY" maxLength={10} required
         onChange={event=>{
           const input = event.currentTarget;
           const value = input.value;
@@ -22,11 +36,12 @@ export default function BookingDateInput({name,label,initial='',min,onDateChange
           setText(display);
           onDateChange?.(parsed);
         }}/>
+      {compact&&dateTimestamp!==null&&<span className="booking-date-readable" aria-hidden="true">
+        <span className="booking-date-wide">{shortDate.format(dateTimestamp)}</span>
+        <span className="booking-date-narrow">{narrowDate.format(dateTimestamp)}</span>
+      </span>}
     </label>
-    <FareDatePicker iconOnly label={`${label} calendar`} value={date>=min?date:''} min={min} onChange={value=>{
-      setText(formatBookingDate(value));
-      field.current?.setCustomValidity('');
-      onDateChange?.(value);
-    }}/>
+    {nextDate}
+    {!compact&&calendar}
   </div>;
 }

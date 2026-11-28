@@ -8,7 +8,7 @@ import { customerEmail, hasVerifiedCustomerIdentity, normalizeWhatsAppPhone } fr
 type Stage = "contact" | "code" | "mfa" | "check";
 type Channel = "email" | "whatsapp";
 export type VerifiedContact = { email: string; phoneNumber?: string };
-type Props = { onVerified: (contact: VerifiedContact) => void | Promise<void>; initialEmail?: string; initialPhoneNumber?: string; expectedUserId?: string; mode?: "signin" | "link-phone" };
+type Props = { onVerified: (contact: VerifiedContact) => void | Promise<void>; initialEmail?: string; initialPhoneNumber?: string; expectedUserId?: string; mode?: "signin" | "link-phone"; emailOnly?: boolean; context?: "price-alert" };
 
 async function verificationRequest<T>(request: (signal: AbortSignal) => Promise<T>): Promise<T> {
   const controller = new AbortController();
@@ -21,7 +21,7 @@ async function verificationRequest<T>(request: (signal: AbortSignal) => Promise<
 }
 
 /** Authentication stays in the mounted workspace; contact ownership is checked server-side. */
-export default function CheckoutVerification({ onVerified, initialEmail = "", initialPhoneNumber = "", expectedUserId, mode = "signin" }: Props) {
+export default function CheckoutVerification({ onVerified, initialEmail = "", initialPhoneNumber = "", expectedUserId, mode = "signin", emailOnly = false, context }: Props) {
   const id = useId(), linking = mode === "link-phone";
   const [channel, setChannel] = useState<Channel>(linking ? "whatsapp" : "email");
   const [email, setEmail] = useState(initialEmail), [phone, setPhone] = useState(initialPhoneNumber);
@@ -160,23 +160,23 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
   }
 
   return <section className="checkout-verification" aria-labelledby={`${id}-heading`} aria-busy={busy}>
-    {!linking && channels?.whatsapp && <div className="checkout-verification-channels" role="group" aria-label="Verification method">
+    {!linking && !emailOnly && channels?.whatsapp && <div className="checkout-verification-channels" role="group" aria-label="Verification method">
       <button type="button" aria-pressed={channel === "email"} disabled={busy || finished} onClick={() => changeContact("email")}>Email</button>
       <button type="button" aria-pressed={channel === "whatsapp"} disabled={busy || finished} onClick={() => changeContact("whatsapp")}>WhatsApp</button>
     </div>}
-    <header className="checkout-verification-heading">
+    <header className={context==="price-alert"&&stage==="contact"?"sr-only":"checkout-verification-heading"}>
       <h3 id={`${id}-heading`}>{stage === "contact" ? linking ? "Connect WhatsApp to your account" : channel === "email" ? "Continue with your email" : "Continue with WhatsApp"
         : stage === "mfa" ? "Your account security check" : stage === "check" ? linking ? "Confirm your WhatsApp number" : "Confirm your sign-in" : channel === "email" ? "Enter your email code" : "Enter your WhatsApp code"}</h3>
       <p>{stage === "contact" ? linking ? "Verify your number to use WhatsApp codes for this same account and its trips." : "We’ll send a one-time code. No password needed."
         : stage === "mfa" ? "Your existing two-factor protection stays on." : `Continue securely as ${destination}.`}</p>
     </header>
     {channelUnavailable && <p role="status">{channel === "whatsapp" ? channels === null ? "Checking WhatsApp availability…" : "WhatsApp verification is unavailable right now. Please try again later."
-      : "Email verification is unavailable right now. Choose WhatsApp or try again later."}</p>}
+      : emailOnly ? "Email verification is unavailable right now. Please try again later." : "Email verification is unavailable right now. Choose WhatsApp or try again later."}</p>}
     {message && <p className="info-message" role="status">{message}</p>}
     {error && <p id={`${id}-error`} className="info-message" role="alert">{error}</p>}
     <form className="checkout-verification-form" onSubmit={event => { event.preventDefault(); void (stage === "contact" ? sendCode() : verify()); }}>
       {stage === "contact" ? channel === "email" ? <label htmlFor={`${id}-email`}>Email address
-        <input id={`${id}-email`} name="email" type="email" autoComplete="email" maxLength={254} required value={email} onChange={event => setEmail(event.target.value)} disabled={busy} />
+        <input id={`${id}-email`} name="email" type="email" autoComplete="email" maxLength={254} required value={email} onChange={event => setEmail(event.target.value)} disabled={busy} placeholder={context==="price-alert"?"Enter your email":undefined} />
       </label> : <label htmlFor={`${id}-phone`}>WhatsApp number
         <input id={`${id}-phone`} name="phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={24} required value={phone} placeholder="98765 43210 or +country code" onChange={event => setPhone(event.target.value)} disabled={busy} aria-label="WhatsApp number" aria-describedby={`${id}-phone-hint`} />
         <small id={`${id}-phone-hint`}>India (+91) for 10-digit numbers. For another country, include + and its country code.</small>
@@ -184,13 +184,13 @@ export default function CheckoutVerification({ onVerified, initialEmail = "", in
         <input ref={codeInput} className="checkout-verification-code" id={`${id}-code`} name="code" type="text" inputMode={recovery ? "text" : "numeric"} autoComplete="one-time-code" pattern={recovery ? undefined : "[0-9]{6}"} maxLength={recovery ? 80 : 6} required value={code} onChange={event => setCode(recovery ? event.target.value : event.target.value.replace(/\D/g, "").slice(0, 6))} disabled={busy} aria-describedby={error ? `${id}-error` : undefined} aria-invalid={Boolean(error)} />
       </label> : null}
       {stage === "mfa" && <label className="checkbox"><input type="checkbox" checked={recovery} onChange={event => { setRecovery(event.target.checked); setCode(""); setError(""); }} disabled={busy} />Use a saved recovery code</label>}
-      <button ref={submitButton} className="primary" disabled={busy || finished || (stage === "contact" && (cooldown > 0 || channelUnavailable))}>{busy ? stage === "contact" ? "Requesting code…" : stage === "check" ? "Checking sign-in…" : "Checking code…" : stage === "contact" ? cooldown > 0 ? `Send code in ${cooldown}s` : channel === "email" ? "Send verification code" : "Send WhatsApp code" : stage === "check" ? linking ? "Check number status" : "Check sign-in status" : "Verify & continue"}</button>
+      <button ref={submitButton} className="primary" disabled={busy || finished || (stage === "contact" && (cooldown > 0 || channelUnavailable))}>{busy ? stage === "contact" ? "Requesting code…" : stage === "check" ? "Checking sign-in…" : "Checking code…" : stage === "contact" ? cooldown > 0 ? `Send code in ${cooldown}s` : channel === "email" ? context==="price-alert" ? "Continue" : "Send verification code" : "Send WhatsApp code" : stage === "check" ? linking ? "Check number status" : "Check sign-in status" : "Verify & continue"}</button>
     </form>
     {stage !== "contact" && <div className="checkout-verification-actions">
       {stage === "code" && <button type="button" className="secondary" disabled={busy || cooldown > 0} onClick={() => void sendCode()}>{cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}</button>}
       <button type="button" className="secondary" disabled={busy} onClick={() => changeContact()}>{channel === "email" ? "Use a different email" : "Use a different number"}</button>
       {stage === "code" && error && <button type="button" className="secondary" disabled={busy} onClick={() => { setStage("check"); setError(""); }}>Already verified? Check sign-in</button>}
     </div>}
-    <p className="checkout-verification-note">{linking ? "Your trips stay in this account." : channel === "whatsapp" ? "Use this verified number to return to your trips." : "Your email gives you secure access to your trips."} <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</Link> · <Link href="/customer-support" target="_blank" rel="noopener noreferrer">Need help?</Link></p>
+    <p className="checkout-verification-note">{context==="price-alert"?"We’ll send a one-time code to verify your email.":linking ? "Your trips stay in this account." : channel === "whatsapp" ? "Use this verified number to return to your trips." : "Your email gives you secure access to your trips."} <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</Link> · <Link href="/customer-support" target="_blank" rel="noopener noreferrer">Need help?</Link></p>
   </section>;
 }

@@ -1,8 +1,8 @@
 import {hotelCancellation,hotelCancellationScheduleIsUnambiguous,hotelStringList,type HotelPropertyDetails} from './hotel-presentation';
 import type {HotelContentStatus} from './hotel-content-cache';
-import {hasFreeCancellation,includesBreakfast,type RoomPlan} from './hotel-room-filters';
+import {hasFreeCancellation,hasMixedHotelMealPlans,includesBreakfast,type RoomPlan} from './hotel-room-filters';
 import {supplierInstant} from './supplier-time';
-type HotelListingRate=RoomPlan & {optionId:string;optionType?:string;roomInfo?:{name:string}[];pricing:{totalPrice:number}};
+type HotelListingRate=RoomPlan & {optionId:string;roomInfo?:{name:string}[];pricing:{totalPrice:number}};
 export type HotelResult={tjHotelId:string;originSearchId?:string;name:string;customerEstimateMinor?:number|null;property?:HotelPropertyDetails;propertyContentStatus?:HotelContentStatus;options?:HotelListingRate[]};
 export type HotelStayContext={checkIn:string;checkOut:string;rooms:number;guests:number};
 export const hotelBoardLabels={
@@ -24,8 +24,7 @@ const explicitBoards=new Map<string,HotelBoard>([
 ]);
 function boardForRate(rate:HotelListingRate):HotelBoard|undefined{
  // TripJack's cross-meal plans do not guarantee one board for all selected rooms.
- const optionType=rate.optionType?.trim().toUpperCase();
- if(optionType==='SRCM'||optionType==='CRCM')return undefined;
+ if(hasMixedHotelMealPlans(rate))return undefined;
  const meal=rate.mealBasis?.trim().toUpperCase().replace(/[ -]+/g,'_')??'';
  return explicitBoards.get(meal)??(includesBreakfast(rate)?'breakfast':undefined);
 }

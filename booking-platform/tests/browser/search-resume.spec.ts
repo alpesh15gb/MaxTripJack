@@ -87,6 +87,6 @@ test('round-trip auto-search refresh preserves the return date and searches once
  expect(provider.requests('/api/travel/search')).toHaveLength(2);
  expect(provider.requests('/api/travel/search')[1].body).toMatchObject({returnDate:returning,adults:2,cabin:'FIRST'});
  await toggleResultSearch(page);
- await expect(page.getByRole('combobox',{name:'Journey type'})).toHaveValue('round-trip');
+ await expect(page.getByRole('button',{name:'Round trip',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('[name="returnDate"]')).toHaveValue(formatBookingDate(returning));
 });

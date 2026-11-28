@@ -4,6 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {createSearchWarmCache,type WarmScope} from '../src/lib/search-warm-cache';
 import type {Search} from '../src/lib/providers/contracts';
 import {cachedFlightSearch,clearFlightSearchCache} from '../src/lib/flight-search-cache';
+import {flightSeatInventoryExpiry} from '../src/lib/flight-seat-inventory';
 const criteria:Search={product:'HOTEL',hotelIds:['101','102'],checkIn:'2027-01-01',checkOut:'2027-01-02',adults:2,childrenAges:[],nationality:'106',rooms:[{adults:2,children:1,childAge:[7]}]};
 const scope:WarmScope={actor:{userId:'guest:fixture',companyId:null},peer:'fixture-peer'};
 const result={data:{hotels:[{tjHotelId:'101'}]},correlationId:'original-correlation'};
@@ -63,6 +64,26 @@ test('wrapping an existing flight cache result never extends its original freshn
   assert.equal(freshUntil,90_000);return{...result,data,freshUntil};
  });
  now=90_000;assert.equal(cache.take(intent,criteria,scope).status,'miss');
+ clearFlightSearchCache();
+});
+
+test('adopted flight results retain the supplier age after the seat indicator expires',async()=>{
+ let now=55_000;
+ const cache=createSearchWarmCache(()=>now),intent=randomUUID();
+ const flight:Search={product:'FLIGHT',from:'BOM',to:'DEL',date:'2027-01-11',adults:1,children:0,infants:0,cabin:'ECONOMY'};
+ const payload={fixture:'seat-inventory-age'};
+ clearFlightSearchCache();
+ await cachedFlightSearch(payload,async()=>result.data,300_000,0);
+ await cache.warm(intent,flight,scope,async()=>{
+  let flightFetchedSince:number|undefined;
+  const data=await cachedFlightSearch(payload,async()=>{throw Error('Expected cached availability');},300_000,now,(_status,_until,at)=>{flightFetchedSince=at;});
+  return {data,correlationId:result.correlationId,flightFetchedSince};
+ });
+ now=61_000;
+ const adopted=await cache.take(intent,flight,scope).result;
+ assert.equal(adopted?.flightFetchedSince,0);
+ assert.equal(flightSeatInventoryExpiry(adopted?.flightFetchedSince,now),undefined);
+ assert.deepEqual(adopted?.data,result.data);
  clearFlightSearchCache();
 });
 

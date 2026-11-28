@@ -48,7 +48,7 @@ test('private trips and temporary failures have distinct recovery states', async
   await expect(page.getByRole('link', { name: 'Sign in to view trips', exact: true })).toHaveCount(0);
   provider.overrides['GET /api/bookings'] = { body: { bookings: [], hasMore: false } };
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Your next story starts here.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No trips yet' })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expect(provider.calls.filter(call => call.method !== 'GET')).toEqual([]);
 });

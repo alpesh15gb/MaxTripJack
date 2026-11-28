@@ -1,7 +1,7 @@
 import {formatBookingDate} from '../../src/lib/travel-date';
 import path from 'node:path';
 import type {Page} from '@playwright/test';
-import {toggleResultSearch, mainNavigation,test,expect,capture,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
+import {toggleResultSearch, hotelSearchNavigationLink,test,expect,capture,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
 import {travelDateLabel} from '../../src/lib/travel-date';
 
 // All inventory and images below are synthetic fixtures. No supplier or payment is contacted.
@@ -85,6 +85,16 @@ test('hotel NAME opens property overview, gallery, room rate, review and reversi
  await expect(page.locator('#booking-rooms')).toContainText(property.address);await expect(page.locator('.stay-about')).toContainText(property.description);await expect(page.locator('.stay-about')).toContainText(property.descriptionHeadline);await expect(page.locator('#booking-rooms')).toContainText('4');
  await expect(page.locator('#booking-rooms')).toContainText(travelDateLabel(departure));await expect(page.locator('#booking-rooms')).toContainText(travelDateLabel(returning));
  await expectNoHorizontalOverflow(page);await capture(page,testInfo,'hotel-name-opened-overview');
+ const mosaic=page.locator('.stay-photo-mosaic');
+ const hero=await mosaic.getByRole('button',{name:`View photo 1 of ${name}`,exact:true}).boundingBox();
+ const thumbnail=await mosaic.getByRole('button',{name:`View photo 2 of ${name}`,exact:true}).boundingBox();
+ expect(hero).not.toBeNull();expect(thumbnail).not.toBeNull();
+ if(testInfo.project.name==='desktop-1440'){expect(Math.abs(hero!.y-thumbnail!.y)).toBeLessThan(2);expect(hero!.height).toBeGreaterThan(thumbnail!.height*1.75);}
+ else {
+  expect(hero!.y+hero!.height).toBeLessThanOrEqual(thumbnail!.y);
+  await expect(page.locator('.travel-navigation-context')).toContainText('Goa');
+  await expect(page.locator('.travel-navigation-context')).toContainText('2 guests, 1 room');
+ }
  const gallery=page.getByRole('button',{name:/View all.*photos/i});await gallery.click();
  await expect(page.getByRole('dialog')).toBeVisible();await expect(page).toHaveURL(/gallery=1/);
  await page.keyboard.press('ArrowRight');await expect(page.getByRole('dialog')).toContainText('2');
@@ -102,6 +112,8 @@ test('hotel NAME opens property overview, gallery, room rate, review and reversi
  await breakfast.getByRole('button',{name:'Continue with room',exact:true}).click();await expect(page.locator('#booking-review-title')).toBeVisible();
  expect(provider.requests('/api/travel/review').map(call=>call.body)).toEqual([{searchId,hid:'10001',optionId:'exact-breakfast'}]);
  await page.getByRole('button',{name:'Change selection',exact:true}).click();await expect(page.locator('#hotel-detail-title')).toBeVisible();
+ await expect(page.locator('.stay-preview-price')).toContainText('Selected full stay estimate');
+ await expect(page.locator('.stay-preview-price')).toContainText('₹9,200');
  await expect(breakfast).toContainText('Selected');await expect(breakfast.getByRole('button',{name:'Continue with room',exact:true})).toBeFocused();await page.getByRole('button',{name:'Back to stays',exact:true}).click();await expect(title(page)).toBeFocused();
  expect(provider.requests('/api/travel/search')).toHaveLength(1);expect(provider.requests('/api/payments/create')).toHaveLength(0);await expectNoHorizontalOverflow(page);
 });
@@ -296,7 +308,7 @@ test.afterEach(async({page},testInfo)=>{
 test('real same-book Next Link applies new public criteria without a document reload or stale hotel state',async({page,provider})=>{
  await page.goto(searchUrl());await title(page).click();await expect(page.locator('.room-option-card')).toHaveCount(2);
  await page.evaluate(()=>Object.assign(window,{__sameBookNavigationProof:'document-retained'}));
- const link=(await mainNavigation(page)).getByRole('link',{name:'Hotels',exact:true});await expect(link).toHaveAttribute('href','/book?product=HOTEL');await link.click();
+ const link=(await hotelSearchNavigationLink(page));await expect(link).toHaveAttribute('href','/book?product=HOTEL');await link.click();
  await expect(page).toHaveURL(/\/book\?product=HOTEL$/);
  const form=page.getByRole('form',{name:'Search availability',exact:true});await expect(form).toBeVisible();
  await expect(form.getByLabel('Destination',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-in',{exact:true})).toHaveValue('');await expect(form.getByLabel('Check-out',{exact:true})).toHaveValue('');await expect(form.getByRole('combobox',{name:'Rooms',exact:true})).toHaveValue('1');
@@ -320,11 +332,20 @@ test('room preferences narrow exact rate plans and can be cleared before continu
  provider.overrides['POST /api/travel/hotel-detail']={body:{property,options:[options[0],options[1],{...options[1],optionId:'exact-breakfast-free',cancellation:free,pricing:{totalPrice:9800,currency:'INR'}}]}};
  await page.goto(searchUrl());await title(page).click();
  await expect(page.locator('[data-room-option-id]')).toHaveCount(3);
+ const comparison=page.getByRole('combobox',{name:'Compare rates for Twin room',exact:true});
+ const staySummary=page.getByRole('complementary',{name:'Stay price summary',exact:true});
+ await comparison.selectOption('exact-breakfast');
+ await expect(staySummary).toContainText('Compared full stay total');
+ await expect(staySummary).toContainText('₹9,200');
+ await expect(page.locator('.stay-room-compare').getByRole('status')).toContainText('₹1,200 more');
+ await expect(page.locator('[data-room-option-id="exact-breakfast"]')).toContainText('Rate being compared');
+ expect(provider.requests('/api/travel/review')).toHaveLength(0);
  await page.getByRole('checkbox',{name:'Breakfast included',exact:true}).check();
  await expect(page.locator('[data-room-option-id]')).toHaveCount(2);
  await page.getByRole('checkbox',{name:'Free cancellation available now',exact:true}).check();
  await expect(page.locator('[data-room-option-id]')).toHaveCount(1);
  await expect(page.locator('[data-room-option-id="exact-breakfast-free"]')).toBeVisible();
+ await expect(staySummary).toContainText('₹9,800');
  await page.getByRole('button',{name:'Clear rate filters',exact:true}).click();
  await expect(page.locator('[data-room-option-id]')).toHaveCount(3);
  await expectNoHorizontalOverflow(page);

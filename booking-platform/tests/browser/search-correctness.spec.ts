@@ -59,7 +59,7 @@ test('editing search criteria does not erase an outstanding supplier failure',as
 });
 
 test('homepage clears corrected airport feedback before native return-date validation',async({page,provider})=>{
- await page.goto('/');const form=page.locator('.home-search-form');
+ await page.goto('/?product=FLIGHT');const form=page.locator('.home-search-form');
  await form.getByLabel('To airport',{exact:true}).fill('BOM');await form.getByRole('button',{name:'Search flights',exact:true}).click();
  await expect(form.getByRole('alert')).toContainText('different departure and arrival');
  await expect(form.getByLabel('To airport',{exact:true})).toBeFocused();

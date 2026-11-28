@@ -122,19 +122,23 @@ test('switching account recovery modes retains email but clears password and nev
  await expect(page.getByLabel('Email for verification',{exact:true})).toHaveValue('person@example.test');
  await page.getByRole('button',{name:'Back to sign in',exact:true}).click();
  await expect(page.getByLabel('Email',{exact:true})).toHaveValue('person@example.test');await expect(page.getByLabel('Password',{exact:true})).toHaveValue('');
- await page.getByRole('button',{name:'Reset password',exact:true}).click();await expect(page.getByLabel('Email',{exact:true})).toHaveValue('person@example.test');
+ await page.getByRole('button',{name:'Forgot password?',exact:true}).click();await expect(page.getByLabel('Email',{exact:true})).toHaveValue('person@example.test');
  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
 });
 
-test('leaving a pending sign-in prevents its late response from redirecting the new journey',async({page,provider})=>{
+test('dismissing a pending sign-in prevents its late response from redirecting the journey',async({page,provider})=>{
  provider.session=null;let release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve;});let writes=0;
  await page.route('**/api/auth/sign-in/email',async route=>{writes++;await held;await route.fulfill({json:{user:{id:'synthetic'},token:null}});});
  try{
   await page.goto('/account?returnTo=%2Ftravellers');await page.getByLabel('Email',{exact:true}).fill('person@example.test');await page.getByLabel('Password',{exact:true}).fill('SyntheticPassword123');
   await page.getByRole('button',{name:'Sign in',exact:true}).last().click();await expect.poll(()=>writes).toBe(1);
-  await page.getByRole('banner').getByRole('link',{name:'Max Travel home',exact:true}).click();await expect(page).toHaveURL('/');
- }finally{const response=page.waitForResponse('**/api/auth/sign-in/email');release();await response;}
- await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  await page.getByRole('button',{name:'Close sign in',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Sign in or create an account',exact:true})).toBeFocused();
+  const response=page.waitForResponse('**/api/auth/sign-in/email');release();await response;
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  await expect(page).toHaveURL('/account?returnTo=%2Ftravellers');
+  await page.getByRole('banner').getByRole('link',{name:'Max Travel home',exact:true}).click();
+ }finally{release();}
  await expect(page).toHaveURL('/');expect(writes).toBe(1);
 });
 
@@ -167,7 +171,7 @@ async function refreshSession(page:import('@playwright/test').Page){
  const other=await page.context().newPage();
  try{
   await other.route('**/*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Synthetic session notification only</title>'}));
-  await other.goto('http://127.0.0.1:3100/synthetic-session-notification');
+  await other.goto(new URL('/synthetic-session-notification',page.url()).href);
   await other.evaluate(()=>localStorage.setItem('better-auth.message',JSON.stringify({event:'session',data:{trigger:'getSession'},clientId:'synthetic-test-tab',timestamp:Date.now()})));
  }finally{await other.close();}
 }
@@ -229,9 +233,9 @@ test('settled trips hide on network uncertainty and clear on confirmed sign-out'
  await expect(page.getByText(pending.reference,{exact:true})).toBeHidden();
  delete provider.overrides['GET /api/auth/get-session'];provider.session=null;
  await page.getByRole('button',{name:'Check account access',exact:true}).click();
- await expect(page.getByRole('main').getByRole('heading',{name:'Your trips are private.'})).toBeVisible();
+ await expect(page.getByRole('main').getByRole('heading',{name:'Find your trip'})).toBeVisible();
  await expect(page.getByText(pending.reference,{exact:true})).toHaveCount(0);
- await expect(page.getByRole('link',{name:'Sign in to view trips',exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Sign in to view trips across devices',exact:true})).toBeVisible();
 });
 
 test('MFA enrollment secrets and pending completion are scoped to the authenticated identity',async({page,provider})=>{

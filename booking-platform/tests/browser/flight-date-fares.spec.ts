@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { addDays, type FareCalendarDay } from '../../src/lib/fare-calendar-core';
 import { travelDateLabel } from '../../src/lib/travel-date';
-import { capture, departure, expect, expectNoHorizontalOverflow, flightResults, openFlightSearch, returning, test } from './fixtures';
+import { capture, departure, expect, expectNoHorizontalOverflow, flightResults, openFlightSearch, openNearbyFlightDates, returning, test } from './fixtures';
 
 const calendarPath = '/api/travel/fare-calendar';
 const calendarEndpoint = '**/api/travel/fare-calendar**';
@@ -25,6 +25,7 @@ test('the date strip shows fifteen independently priced dates for the exact visi
   provider.overrides[`POST ${calendarPath}`] = { status: 204, body: null };
 
   await openFlightSearch(page);
+  await openNearbyFlightDates(page);
   await expect(timeline(page).locator('button[data-flight-date]')).toHaveCount(15);
   for (const [date, price] of prices) {
     const rupees = (price.minor / 100).toLocaleString('en-IN');
@@ -44,6 +45,7 @@ test('the date strip shows fifteen independently priced dates for the exact visi
 test('one-adult round trips preserve the return without showing standalone one-way prices', async ({ page, provider }) => {
   provider.search = flightResults(true);
   await openFlightSearch(page, { roundTrip: true });
+  await openNearbyFlightDates(page);
   await expect(timeline(page)).toContainText(`Return stays ${travelDateLabel(returning)}`);
   await expect(timeline(page)).toContainText('Round-trip fares depend on both dates.');
   await expect(day(page, addDays(returning, 1))).toBeDisabled();
@@ -72,6 +74,7 @@ test('nearby fares fill progressively without copying an observed price to an un
   });
 
   await openFlightSearch(page);
+  await openNearbyFlightDates(page);
   await expect(fare(page, departure)).toHaveText('₹6,540');
   await expect(day(page, later)).toHaveAccessibleName(/checking fare/i);
   await expect(fare(page, missing)).not.toContainText('₹');
@@ -121,6 +124,7 @@ test('a late calendar response cannot overwrite overlapping prices after the dat
 
   try {
     await openFlightSearch(page);
+    await openNearbyFlightDates(page);
     await expect.poll(() => reads).toContain(firstStart);
     const nextResults = flightResults();
     const nextSegment = nextResults.results.searchResult.tripInfos.ONWARD[0].sI[0];

@@ -51,7 +51,7 @@ export default function useBackgroundSearch({form,read,enabled,formKey='',editin
  },[enabled,isPending,owner,schedule,cancelTimer]);
  useEffect(()=>{
   const element=form.current;if(!element)return;
-  const clicked=(event:Event)=>{if(event.target instanceof Element&&event.target.closest('.destination-suggestions button,.home-swap,.multi-city-legs button,.booking-date-input button[data-date]'))interact(event);};
+  const clicked=(event:Event)=>{if(event.target instanceof Element&&event.target.closest('.destination-suggestions button,.home-swap,.flight-inline-swap,.flight-inline-journeys button,.multi-city-legs button,.booking-date-input button[data-date]'))interact(event);};
   const observer=new MutationObserver(()=>{if(touched.current)schedule();});
   observer.observe(element,{subtree:true,childList:true,attributes:true,attributeFilter:['value','disabled']});
   const visible=()=>{if(document.visibilityState==='hidden')cancelTimer();else schedule();};

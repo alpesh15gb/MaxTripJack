@@ -26,6 +26,33 @@ async function openManagement(page: Page, provider: ProviderFixture, requests: u
   await expect(page.getByRole('heading', { name: 'Cancellation progress', exact: true })).toBeVisible();
 }
 
+test('cancellation terms without retained charges never display zero or ask for acceptance',async({page,provider})=>{
+  await openManagement(page,provider,[offer({penalty_minor:null})]);
+  const progress = page.locator('.cancellation-progress');
+  await expect(progress).toContainText('Amount unavailable');
+  await expect(progress).not.toContainText('₹0');
+  await expect(progress).toContainText('Complete terms are unavailable');
+  await expect(progress.getByRole('button',{name:'Accept cancellation terms',exact:true})).toHaveCount(0);
+  expect(provider.requests(history).filter(call=>call.method==='POST')).toHaveLength(0);
+  await expectNoHorizontalOverflow(page);
+});
+
+test('an incomplete success response preserves the original cancellation request key',async({page,provider})=>{
+  await openManagement(page,provider,[]);
+  provider.overrides[`POST ${submit}`]={status:202,body:{}};
+  await page.getByLabel('Reason for cancellation').fill('Fixture changed travel plans');
+  await page.getByRole('button',{name:'Request cancellation terms',exact:true}).click();
+  const retry=page.getByRole('button',{name:'Retry existing cancellation request',exact:true});
+  await expect(retry).toBeVisible();
+  await expect(page.getByLabel('Reason for cancellation')).toBeDisabled();
+  provider.overrides[`POST ${submit}`]={status:202,body:{message:'Cancellation request received.'}};
+  await retry.click();
+  await expect(page.getByText('Cancellation request received.',{exact:true})).toBeVisible();
+  const requests=provider.requests(submit).filter(call=>call.method==='POST');
+  expect(requests).toHaveLength(2);
+  expect(requests[1].body).toEqual(requests[0].body);
+});
+
 // All transitions below are explicitly supplied by synthetic API fixtures. No
 // supplier cancellation, refund or customer email is performed by this test.
 test('ticketed trip requests terms, requires consent, accepts once and shows only server-reported cancellation and refund stages', async ({ page, provider }, info) => {
@@ -37,7 +64,11 @@ test('ticketed trip requests terms, requires consent, accepts once and shows onl
   await page.getByRole('button', { name: 'Request cancellation terms', exact: true }).click();
   await expect(page.locator('.cancellation-progress')).toContainText('AWAITING ACCEPTANCE');
   expect(provider.requests(submit).filter(call => call.method === 'POST')).toHaveLength(1);
-  await expect(page.locator('.cancellation-progress')).toContainText('Estimated refund: ₹5000');
+  const amounts=page.locator('.private-cancellation-estimate');
+  await expect(amounts).toContainText('Estimated refund');
+  await expect(amounts).toContainText('₹5,000');
+  await expect(amounts).toContainText('₹1,540');
+  await capture(page, info, 'cancellation-offer-before-consent');
   const accept = page.getByRole('button', { name: 'Accept cancellation terms', exact: true });
   await accept.click();
   expect(provider.requests(history).filter(call => call.method === 'POST')).toHaveLength(0);
@@ -68,10 +99,13 @@ test('ticketed trip requests terms, requires consent, accepts once and shows onl
   provider.overrides[`GET ${history}`] = { body: { requests: [offer({ accepted_at: new Date().toISOString(), status: 'CONFIRMED' })] } };
   await page.getByRole('button', { name: 'Refresh cancellation progress', exact: true }).click();
   await expect(page.locator('.cancellation-progress strong')).toHaveText('CONFIRMED');
+  await expect(page.getByText('The supplier confirmed this cancellation. Check refund progress for any amount due.',{exact:true})).toBeVisible();
   provider.bookingsPages['1'] = { hasMore: false, bookings: [trip('CANCELLED', 'PROCESSING')] };
   await page.getByRole('button', { name: 'Refresh booking updates', exact: true }).click();
   await expect(page.getByText('Refund processing', { exact: true })).toBeVisible();
   await expect(page.getByText('Refund completed', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Download cancelled booking record (PDF)', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Download confirmation PDF', exact: true })).toHaveCount(0);
   await capture(page, info, 'cancellation-confirmed-refund-still-processing');
   provider.bookingsPages['1'] = { hasMore: false, bookings: [trip('CANCELLED', 'COMPLETED')] };
   await page.getByRole('button', { name: 'Refresh booking updates', exact: true }).click();

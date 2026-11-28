@@ -17,6 +17,12 @@ test('breakfast filters require an explicit included rate benefit',()=>{
  assert.equal(includesBreakfast({inclusions:['Complimentary breakfast']}),true);
  for(const mealBasis of ['ROOM_ONLY','BREAKFAST_NOT_INCLUDED','BREAKFAST_FOR_A_FEE','UNKNOWN'])assert.equal(includesBreakfast({mealBasis}),false);
  for(const text of ['Breakfast available','No complimentary breakfast','Breakfast not included','Breakfast for a fee'])assert.equal(includesBreakfast({inclusions:[text]}),false);
+ for(const optionType of ['SRCM',' crcm ']){
+  const mixed={optionType,mealBasis:'BREAKFAST',inclusions:['Complimentary breakfast']};
+  assert.equal(includesBreakfast(mixed),false);
+  assert.equal(roomMealLabel(mixed),'Meal plans vary by room');
+ }
+ assert.equal(includesBreakfast({optionType:'CRSM',mealBasis:'BREAKFAST'}),true);
 });
 test('free-cancellation filters exclude unknown, expired, charged, contradictory and overlapping terms',()=>{
  assert.equal(hasFreeCancellation({cancellation:free},now),true);

@@ -1,8 +1,8 @@
 import { test, expect, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, openFlightSearch, reviewedQuote, searchId, pickHomeDate, setHomeTravellers } from './fixtures';
 
 test('homepage carries canonical airports and selected adults into exactly one search', async ({ page, provider }, testInfo) => {
-  await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find your next escape.');
+  await page.goto('/?product=FLIGHT');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Travel Made Simple');
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, 'homepage');
   const form = page.locator('.home-search-form');
@@ -26,19 +26,19 @@ test('homepage carries canonical airports and selected adults into exactly one s
 });
 
 test('same airport input is rejected locally, independent of display casing', async ({ page, provider }) => {
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   await page.getByLabel('From airport', { exact: true }).fill('Mumbai (BOM)');
   await page.getByLabel('To airport', { exact: true }).fill('bom');
   await page.getByRole('button', { name: 'Search flights', exact: true }).click();
   await expect(page.locator('.home-search-form').getByRole('alert')).toContainText('different departure and arrival');
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL('/?product=FLIGHT');
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
 
 test('homepage hotel selection preserves selected destination and one-room adult occupancy', async ({ page, provider }) => {
   provider.search = { searchId, results: { hotels: [{ tjHotelId: '10001', name: 'Synthetic Goa Beach Stay', options: [] }] } };
   await page.goto('/');
-  await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Hotels', exact: true }).click();
+  await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Stays', exact: true }).click();
   const form = page.locator('.home-search-form');
   await form.getByLabel('Destination', { exact: true }).fill('Goa');
   await form.getByRole('option', { name: 'Goa, India', exact: true }).click();
@@ -57,7 +57,7 @@ test('homepage hotel selection preserves selected destination and one-room adult
     rooms: [{ adults: 3, children: 0, childAge: [] }], nationality: '106',
   });
   await page.goto('/');
-  const recentStay = page.getByRole('region', { name: 'Recent searches' }).getByRole('link', { name: 'Goa, India', exact: true });
+  const recentStay = page.getByRole('region', { name: 'Your recent searches' }).getByRole('link', { name: 'Goa, India', exact: true });
   await expect(recentStay).toHaveAttribute('href', /destinationCursor=0%3A0/);
   await expect(recentStay).not.toHaveAttribute('href', /hotelIds/);
   await recentStay.click();
@@ -96,6 +96,7 @@ test('hotel search sends separate adults and child ages for every room', async (
   await capture(page, testInfo, 'hotel-results');
   await page.getByRole('button', { name: 'Choose room', exact: true }).click();
   await page.getByRole('button', { name: 'Continue with room', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue to guests', exact: true }).click();
   const review = page.getByRole('form', { name: 'Review and travellers' });
   await expect(review.locator('.traveller-card')).toHaveCount(7);
   await expect(review.getByRole('group', { name: 'Room 1 · Child 4', exact: true })).toBeVisible();

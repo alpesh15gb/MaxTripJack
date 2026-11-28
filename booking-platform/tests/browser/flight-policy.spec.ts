@@ -1,7 +1,7 @@
 import {formatBookingDate} from '../../src/lib/travel-date';
 import type {Page} from '@playwright/test';
 import {publicSupplierReview} from '../../src/lib/public-supplier-review';
-import {test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
+import {continueToTravellerDetails, test,expect,capture,departure,returning,flight,flightResults,openFlightSearch,reviewedQuote,searchId,expectNoHorizontalOverflow,type ProviderFixture} from './fixtures';
 
 const renewedId='44444444-4444-4444-8444-444444444444';
 const form=(page:Page)=>page.getByRole('form',{name:'Review and travellers'});
@@ -33,6 +33,7 @@ async function reviewRoundTrip(page:Page,provider:ProviderFixture){
  await openFlightSearch(page,{roundTrip:true});
  await selectFare(page,'Choose this outbound fare');await selectFare(page,'Choose this return fare');
  await page.getByRole('button',{name:/Review selected journey \(2\/2\)/}).click();
+ await continueToTravellerDetails(page);
  await expect(form(page)).toBeVisible();
  await form(page).getByLabel('First name',{exact:true}).fill('Aarav');await form(page).getByLabel('Last name',{exact:true}).fill('Example');
  await form(page).getByLabel('Email',{exact:true}).fill('traveller@example.test');await form(page).getByLabel('Mobile number',{exact:true}).fill('9876543210');
@@ -87,10 +88,14 @@ test('overnight one-way flights group the Goa connection and next-day Delhi arri
  const itinerary=page.getByRole('region',{name:'Selected itinerary'});
  await expect(itinerary.getByRole('heading',{name:'BOM → DEL',exact:true})).toBeVisible();
  await expect(itinerary.locator('.review-flight-leg')).toHaveCount(1);
- await expect(itinerary.getByText('1 stop via Goa (GOI) · 6h 50m total')).toBeVisible();
- await expect(itinerary.locator('.review-flight-connection')).toContainText('Connection at GOI · 2h 50m');
- await expect(itinerary.getByText('Next-day arrival',{exact:true})).toBeVisible();
+ const route=itinerary.locator('.review-flight-track');
+ await expect(route.getByText('1 stop via Goa (GOI)',{exact:true})).toBeVisible();
+ await expect(route.getByText('6h 50m total',{exact:true})).toBeVisible();
+ await expect(itinerary.locator('.review-flight-arrival')).toContainText('Next-day arrival');
  await expect(itinerary.getByText('Return',{exact:true})).toHaveCount(0);
+ await itinerary.locator('.review-flight-details > summary').click();
+ await expect(itinerary.locator('.review-flight-connection')).toBeVisible();
+ await expect(itinerary.locator('.review-flight-connection')).toContainText('Connection at GOI · 2h 50m');
  await expect(itinerary.locator('.review-flights li')).toHaveCount(2);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
  await expectNoHorizontalOverflow(page);

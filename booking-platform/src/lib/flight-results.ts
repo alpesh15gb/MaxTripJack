@@ -18,13 +18,15 @@ export function arrivalDayLabel(departure:string,arrival:string):string|null{
 }
 export const flightDepartureWindows = ['EARLY','MORNING','AFTERNOON','EVENING'] as const;
 export type FlightDepartureWindow = typeof flightDepartureWindows[number];
+const departureWindowEndHour: Record<FlightDepartureWindow, number> = {EARLY:5,MORNING:12,AFTERNOON:18,EVENING:24};
 
 export function matchesFlightRefinements(flight:Flight,group:string,departure:string|readonly FlightDepartureWindow[],budget:string):boolean{
  if(budget.trim()){const limit=Number(budget),price=estimatedFare(flight);if(!Number.isFinite(limit)||limit<0||!Number.isFinite(price)||price>limit*100)return false;}
  const windows=typeof departure==='string'?(departure==='ALL'?[]:[departure]):departure;
  if(group==='COMBO'||!windows.length)return true;
  const time=flight.sI[0]?.dt.slice(11,16);if(!time||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))return false;
- const window=flightDepartureWindows[Math.floor(Number(time.slice(0,2))/6)];
+ const hour=Number(time.slice(0,2));
+ const window=flightDepartureWindows.find(value=>hour<departureWindowEndHour[value]);
  return windows.some(selected=>selected===window);
 }
 

@@ -21,20 +21,31 @@ function booking(id: string, reference: string, status: string, product = 'FLIGH
 test('a verified account can find a flight by airline PNR', async ({page, provider}) => {
   provider.overrides['POST /api/bookings/lookup']={body:{matches:[{id:ids.ticket,reference:'MX-SYNTHETIC-TICKET'}],incomplete:false}};
   await page.goto('/my-trips');
-  await page.getByText('Find a flight by PNR',{exact:true}).click();
-  await page.getByLabel('Airline PNR').fill('K5LQ72');
-  await page.getByRole('button',{name:'Find flight',exact:true}).click();
+  await page.getByText('Find a booking',{exact:true}).click();
+  await page.getByLabel('Booking reference or airline PNR').fill('K5LQ72');
+  await page.getByRole('button',{name:'Find booking',exact:true}).click();
   await expect(page.getByRole('link',{name:'Open booking MX-SYNTHETIC-TICKET'})).toHaveAttribute('href',`/my-trips/${ids.ticket}`);
   expect(provider.requests('/api/bookings/lookup')[0].body).toEqual({pnr:'K5LQ72'});
+});
+
+test('a verified account can open its booking by Max Travel reference', async ({page,provider})=>{
+  provider.overrides['POST /api/bookings/lookup']={body:{matches:[{id:ids.ticket,reference:'MT-1234ABCD'}],incomplete:false}};
+  await page.goto('/my-trips');
+  await page.getByText('Find a booking',{exact:true}).click();
+  await page.getByLabel('Booking reference or airline PNR').fill('MT-1234ABCD');
+  await page.getByRole('button',{name:'Find booking',exact:true}).click();
+  await expect(page.getByRole('link',{name:'Open booking MT-1234ABCD'})).toHaveAttribute('href',`/my-trips/${ids.ticket}`);
+  expect(provider.requests('/api/bookings/lookup').map(call=>call.body)).toEqual([{reference:'MT-1234ABCD'}]);
+  await expectNoHorizontalOverflow(page);
 });
 
 test('a signed-out guest can look up a booking from the same browser by reference',async({page,provider})=>{
   provider.session=null;
   provider.overrides['POST /api/bookings/lookup']={body:{matches:[{id:ids.ticket,reference:'MT-1234ABCD'}],incomplete:false}};
   await page.goto('/my-trips?lookup=flight');
-  await expect(page.getByRole('link',{name:'Sign in with the email on your booking'})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
+  await expect(page.getByRole('link',{name:'Sign in to view trips across devices'})).toHaveAttribute('href','/account?returnTo=%2Fmy-trips');
   await page.getByLabel('Booking reference or airline PNR').fill('MT-1234ABCD');
-  await page.getByRole('button',{name:'Find booking',exact:true}).click();
+  await page.getByRole('button',{name:'Find my trip',exact:true}).click();
   await expect(page.getByRole('link',{name:'Open booking MT-1234ABCD'})).toHaveAttribute('href',`/my-trips/${ids.ticket}`);
   expect(provider.requests('/api/bookings/lookup')[0].body).toEqual({reference:'MT-1234ABCD'});
 });
@@ -45,7 +56,7 @@ test('booking lookup recovers from a malformed success without replacing My trip
   await page.goto('/my-trips');
   const input=page.getByLabel('Booking reference or airline PNR');
   await input.fill('MT-1234ABCD');
-  const submit=page.getByRole('button',{name:'Find booking',exact:true});
+  const submit=page.getByRole('button',{name:'Find my trip',exact:true});
   await submit.click();
   await expect(page.getByRole('status').filter({hasText:'The lookup response was incomplete'})).toBeVisible();
   await expect(input).toHaveValue('MT-1234ABCD');

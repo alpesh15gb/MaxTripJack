@@ -1,0 +1,195 @@
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets {
+  gap: 13px;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-facets-header h3 {
+  color: var(--journey-ink);
+  font: 700 17px/1.3 var(--font-stitch-body), sans-serif;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-facets-header button {
+  color: var(--journey-pine);
+}
+
+body.stitch-theme .revamp-booking #booking-results .stitch-flight-facets.flight-reference-facets > section {
+  padding: 14px 16px;
+  border: 1px solid var(--journey-line);
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: var(--journey-shadow);
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets h4 {
+  color: var(--journey-ink);
+  font-size: 15px;
+  font-weight: 680;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .flight-stop-options button {
+  min-height: 42px;
+  color: var(--journey-ink);
+  font: 620 13px/1.3 var(--font-stitch-body), sans-serif;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .flight-stop-options button[aria-pressed=true] {
+  border-color: var(--journey-pine);
+  background: var(--journey-sage);
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-time-grid button {
+  min-height: 36px;
+  color: var(--journey-ink);
+  font-size: 13px;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-time-grid small {
+  color: var(--journey-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-time-grid strong {
+  font-weight: 570;
+  text-align: left;
+}
+
+.flight-reference-facets .flight-facet-option-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-facet-option {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 7px;
+  min-width: 0;
+  min-height: 40px;
+  color: var(--journey-ink);
+  cursor: pointer;
+}
+
+.flight-reference-facets .flight-facet-text {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .flight-facet-text small {
+  margin-inline-start: 0;
+  color: var(--journey-muted);
+  font-size: 11px;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .flight-facet-price {
+  color: var(--journey-ink);
+  font-size: 11px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-facet-tick {
+  border-color: #aabcb0;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-facet-option[aria-pressed=true] .stitch-facet-tick {
+  border-color: var(--journey-pine);
+  background: var(--journey-pine);
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .flight-facet-only {
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 36px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--journey-pine);
+  font: 680 12px/1.2 var(--font-stitch-body), sans-serif;
+  cursor: pointer;
+}
+
+.flight-reference-facets .flight-facet-only:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-more-airlines > summary {
+  color: var(--journey-pine);
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .stitch-facet-budget input[type=range] {
+  padding: 0;
+  min-height: 24px;
+  accent-color: var(--journey-pine);
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-reference-facets :is(button,input,summary):focus-visible {
+  outline: 2px solid var(--brand-gold-ink, #785a25);
+  outline-offset: 2px;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-comparison-bar:has(.flight-filter-action-row),
+body.stitch-theme .revamp-booking #booking-results .flight-filter-toolbar:has(.flight-visible-count) {
+  width: 100%;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-filter-toolbar:has(.flight-visible-count) {
+  display: block;
+}
+
+.flight-filter-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-filter-action-row .flight-filter-quick {
+  position: relative;
+  max-width: 100%;
+  margin-inline-start: auto;
+  justify-content: flex-end;
+}
+
+body.stitch-theme .revamp-booking #booking-results .flight-filter-action-row .flight-nonstop-toggle:not(:focus-visible) {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 1100px) {
+  body.stitch-theme .revamp-booking #booking-results .flight-filter-action-row .flight-visible-count {
+    margin: 0;
+  }
+
+  body.stitch-theme .revamp-booking #booking-results .flight-filter-action-row .flight-filter-trigger {
+    min-height: 44px;
+    padding-inline: 13px;
+    border: 1px solid var(--journey-line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--journey-pine);
+  }
+
+  body.stitch-theme .revamp-booking #booking-results .flight-reference-facets :is(.stitch-time-grid button,.stitch-facet-option,.flight-facet-only,.flight-stop-options button) {
+    min-height: 44px;
+  }
+
+  body.stitch-theme .revamp-booking #booking-results .flight-reference-facets .flight-facet-only {
+    min-width: 44px;
+  }
+}

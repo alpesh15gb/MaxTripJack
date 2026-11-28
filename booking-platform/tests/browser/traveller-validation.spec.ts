@@ -1,11 +1,11 @@
 import type { Page } from '@playwright/test';
-import {toggleResultSearch,  test, expect, departure, returning, openFlightSearch, reviewedQuote, searchId, hotelOption, expectNoHorizontalOverflow, capture } from './fixtures';
+import {continueToTravellerDetails, test, expect, departure, returning, openFlightSearch, reviewedQuote, searchId, hotelOption, expectNoHorizontalOverflow, capture } from './fixtures';
 
 function birthForAge(age:number){const date=new Date(`${departure}T00:00:00Z`);date.setUTCFullYear(date.getUTCFullYear()-age);return date.toISOString().slice(0,10);}
 function after(date:string,days:number){return new Date(Date.parse(`${date}T00:00:00Z`)+days*86400000).toISOString().slice(0,10);}
-async function selectFare(page:Page){await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();}
+async function selectFare(page:Page){await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await continueToTravellerDetails(page);}
 async function openPartyFlightSearch(page:Page,children:number,infants:number){await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',children:String(children),infants:String(infants),autoSearch:'1'}));}
-async function fillParty(page:Page,count:number){const form=page.getByRole('form',{name:'Review and travellers'});for(let i=0;i<count;i++){await form.locator(`[name="first-${i}"]`).fill(`Traveller ${i+1}`);await form.locator(`[name="last-${i}"]`).fill('Example');}await form.locator('[name="email"]').fill('traveller@example.test');await form.locator('[name="phone"]').fill('9876543210');}
+async function fillParty(page:Page,count:number){await continueToTravellerDetails(page);const form=page.getByRole('form',{name:'Review and travellers'});for(let i=0;i<count;i++){await form.locator(`[name="first-${i}"]`).fill(`Traveller ${i+1}`);await form.locator(`[name="last-${i}"]`).fill('Example');}await form.locator('[name="email"]').fill('traveller@example.test');await form.locator('[name="phone"]').fill('9876543210');}
 async function attemptPayment(page:Page){await page.locator('#booking-review').getByRole('button',{name:/^Agree & pay /}).click();}
 async function inlineReview(page:Page){await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(page.locator('[name="first-0"]')).toBeVisible();}
 async function noPrivateStorage(page:Page){expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('traveller@example.test');expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBeNull();}
@@ -54,12 +54,12 @@ test('child and infant age errors retain corrections and block payment until the
 test('passport validation uses final travel in saved quote, not an edited unsubmitted search',async({page,provider})=>{
  provider.quote=reviewedQuote({summary:{from:'BOM',to:'DEL',date:departure,returnDate:returning,adults:1}});
  await openFlightSearch(page);
- await toggleResultSearch(page);
+ await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
  const search=page.getByRole('form',{name:'Search availability'});
- await search.locator('[name="date"]').fill(after(returning,90));
- await search.getByRole('combobox',{name:'Journey type'}).selectOption('round-trip');
- await search.locator('[name="returnDate"]').fill(after(returning,100));
- await toggleResultSearch(page);await selectFare(page);await fillParty(page,1);
+ await search.getByRole('button',{name:'Round trip',exact:true}).click();
+ await search.locator('[name="date"]').fill(after(returning,90).split('-').reverse().join('/'));
+ await search.locator('[name="returnDate"]').fill(after(returning,100).split('-').reverse().join('/'));
+ await selectFare(page);await fillParty(page,1);
  const documents=page.locator('.traveller-card details').filter({hasText:'Travel documents'});
  await documents.locator('summary').click();await page.locator('[name="expiry-0"]').fill(returning);await documents.locator('summary').click();
  await attemptPayment(page);await expect(documents).toHaveAttribute('open','');await expect(page.locator('[name="expiry-0"]')).toBeFocused();

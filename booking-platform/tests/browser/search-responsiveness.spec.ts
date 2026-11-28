@@ -98,10 +98,10 @@ test('large flight response mounts fare details only when opened and retains all
  provider.search={searchId,results:{searchResult:{tripInfos:{ONWARD:flights}}}};
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',autoSearch:'1'}));
  const cards=page.locator('.flight-shopping-list .live-flight-card');
- await expect(cards).toHaveCount(25);
- await expect(page.locator('.flight-load-more')).toContainText('Showing 25 of 145 flights');
- for (let visible = 25; visible < flights.length; visible += 25) {
-  const additional = Math.min(25, flights.length - visible);
+ await expect(cards).toHaveCount(30);
+ await expect(page.locator('.flight-load-more')).toContainText('Showing 30 of 145 flights');
+ for (let visible = 30; visible < flights.length; visible += 30) {
+  const additional = Math.min(30, flights.length - visible);
   await page.getByRole('button', { name: `Show ${additional} more flights` }).click();
   await expect(cards).toHaveCount(visible + additional);
   const nextFare = cards.nth(visible).locator('.fare-comparison-trigger');
@@ -110,7 +110,7 @@ test('large flight response mounts fare details only when opened and retains all
  }
  await expect(page.locator('.flight-load-more')).toHaveCount(0);
  await expect(page.locator('.fare-comparison-options')).toHaveCount(0);
- await expect(page.locator('.flight-results-count,.results-count').filter({hasText:'145 of 145'})).toBeVisible();
+ await expect(page.locator('.flight-visible-count').filter({hasText:'1–145 of 145'})).toBeVisible();
  const first=cards.first();const disclosure=first.locator('.fare-comparison-trigger');
  await disclosure.focus();await page.keyboard.press('Enter');await expect(first.locator('.fare-option')).toHaveCount(8);
  const dialog=first.getByRole('dialog',{name:'Flight details and fare options'});
@@ -122,8 +122,6 @@ test('large flight response mounts fare details only when opened and retains all
  await expect(dialog.getByRole('heading',{name:'Flight details and fare options'})).toBeFocused();
  await page.keyboard.press('Tab');
  await expect(dialog.getByRole('button',{name:'Back to flights',exact:true})).toBeFocused();
- await page.keyboard.press('Tab');
- await expect(dialog.locator('.flight-segment-details > summary')).toBeFocused();
  await page.keyboard.press('Tab');
  await expect(dialog.getByRole('combobox',{name:'Jump to fare'})).toBeFocused();
  await page.keyboard.press('Tab');

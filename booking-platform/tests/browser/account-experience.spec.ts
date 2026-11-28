@@ -3,13 +3,19 @@ import { test, expect, capture, expectNoHorizontalOverflow } from './fixtures';
 test('account sign-in and registration share an accessible responsive workspace', async ({ page, provider }, testInfo) => {
   provider.session = null;
   await page.goto('/account');
+  const drawer = page.getByRole('dialog', { name: 'Welcome back', exact: true });
+  await expect(drawer).toBeVisible();
+  await drawer.getByRole('button', { name: 'Close sign in', exact: true }).click();
   await expect(page.getByRole('main')).toHaveCount(1);
   const accountHeading=page.getByRole('heading',{level:1,name:'Your MaxTravel account',exact:true});
   await expect(accountHeading).toBeVisible();
+  const openDrawer = page.getByRole('button', { name: 'Sign in or create an account', exact: true });
+  await expect(openDrawer).toBeFocused();
+  await openDrawer.click();
   await expect(page.getByRole('button', { name: 'Sign in', exact: true }).last()).toBeVisible();
   await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create account', exact: true }).first().click();
-  await expect(accountHeading).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Create an account', exact: true })).toBeVisible();
   await expect(page.getByLabel('Your name', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('minlength', '12');
   await expectNoHorizontalOverflow(page);
@@ -212,6 +218,41 @@ test('signed-in devices offer readable names, retry and an honest empty result',
  expect(provider.calls.filter(call=>call.method==='POST')).toHaveLength(0);
 });
 
+test('signed-in account places trip tools before security and keeps the masthead continuous', async ({page,provider},testInfo)=>{
+ const mobile = testInfo.project.name.includes('mobile');
+ if(mobile) await page.setViewportSize({width:320,height:760});
+ await page.goto('/account');
+ const hero = page.locator('.account-signed-dashboard > .page-heading');
+ await expect(hero.getByRole('heading',{level:1,name:'Your account',exact:true})).toBeVisible();
+ const background = await hero.evaluate(element=>{
+  const style=getComputedStyle(element,'::before');
+  const x=element.getBoundingClientRect().x+parseFloat(style.left)+new DOMMatrix(style.transform).m41;
+  return {x,width:parseFloat(style.width),viewport:innerWidth,shadow:getComputedStyle(element).boxShadow};
+ });
+ expect(background.x).toBeCloseTo(0,0);
+ expect(background.width).toBe(background.viewport);
+ expect(background.shadow).toBe('none');
+ const alerts=page.locator('#flight-price-alerts');
+ const security=page.getByRole('region',{name:'Account security',exact:true});
+ const devices=page.getByRole('region',{name:'Sign-in and devices',exact:true});
+ const quickLinks=page.locator('.account-quick-links');
+ const trips=(await quickLinks.getByRole('link',{name:'My trips',exact:true}).boundingBox())!;
+ const travellers=(await quickLinks.getByRole('link',{name:'Saved travellers',exact:true}).boundingBox())!;
+ expect((await alerts.boundingBox())!.y).toBeLessThan((await security.boundingBox())!.y);
+ if(mobile){
+  const nav=page.getByRole('navigation',{name:'Your travel workspace'});
+  expect((await nav.boundingBox())!.y).toBeGreaterThan((await hero.boundingBox())!.y);
+  expect(travellers.y).toBeGreaterThan(trips.y);
+ }else{
+  expect((await devices.boundingBox())!.x).toBeGreaterThan((await security.boundingBox())!.x);
+  expect(travellers.y).toBe(trips.y);
+  expect(travellers.x).toBeGreaterThan(trips.x);
+ }
+ expect(provider.requests('/api/travel/price-alerts')).toHaveLength(0);
+ await expectNoHorizontalOverflow(page);
+ await capture(page,testInfo,'signed-in-account-layout');
+});
+
 test('current-device revocation requires confirmation and returns to sign-in', async ({page,provider},testInfo)=>{
  provider.overrides['GET /api/auth/list-sessions']={body:[{token:'synthetic-session-not-a-credential',userAgent:'Mozilla/5.0 (Windows NT 10.0) Chrome/140 Safari/537',createdAt:'2026-10-21T12:00:00Z'}]};
  provider.overrides['POST /api/auth/revoke-session']={body:{status:true}};
@@ -294,9 +335,20 @@ test('account heading styling does not reduce footer text contrast',async({page,
  const colours=await footer.evaluate(node=>({background:getComputedStyle(node).backgroundColor,headings:Array.from(node.querySelectorAll('h2')).map(h=>getComputedStyle(h).color)}));
  const rgb=(value:string)=>value.match(/[\d.]+/g)!.slice(0,3).map(Number);
  const luminance=(value:string)=>rgb(value).map(c=>c/255).map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)).reduce((sum,c,i)=>sum+c*[.2126,.7152,.0722][i],0);
+ const contrast=(foreground:string,background:string)=>{
+  const a=luminance(foreground),b=luminance(background);
+  return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+ };
  expect(colours.headings.length).toBeGreaterThan(0);
- for(const foreground of colours.headings){const a=luminance(foreground),b=luminance(colours.background);expect((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toBeGreaterThanOrEqual(4.5);}
- await expect(page.locator('.account-experience-main h1')).toHaveCSS('color','rgb(0, 23, 54)');
+ for(const foreground of colours.headings)expect(contrast(foreground,colours.background)).toBeGreaterThanOrEqual(4.5);
+ const masthead=page.locator('.account-guest-overview > .page-heading');
+ await expect(masthead).toHaveCount(1);
+ const {foreground,stops}=await masthead.evaluate(element=>({
+  foreground:getComputedStyle(element.querySelector('h1')!).color,
+  stops:getComputedStyle(element).backgroundImage.match(/rgba?\([^)]*\)/g)??[],
+ }));
+ expect(stops).toHaveLength(2);
+ for(const background of stops)expect(contrast(foreground,background)).toBeGreaterThanOrEqual(4.5);
  await capture(page,testInfo,'account-heading-footer-contrast');
 });
 
@@ -324,6 +376,7 @@ test('journey studio traveller form separates optional documents and keeps a sin
 
 test('journey studio signed-in account keeps security controls and readable identity',async({page,provider},testInfo)=>{
  await page.goto('/account');
+ await expect(page.getByRole('heading',{level:1,name:'Your account',exact:true})).toHaveCSS('color','rgb(255, 253, 248)');
  await expect(page.getByRole('heading',{name:'Hello, Synthetic Traveller',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Account security',exact:true})).toBeVisible();
  await expect(page.getByRole('region',{name:'Password and signed-in devices',exact:true})).toBeVisible();

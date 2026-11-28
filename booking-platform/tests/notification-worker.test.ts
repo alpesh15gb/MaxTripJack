@@ -39,6 +39,7 @@ test("actual worker does not start SMTP when shutdown arrives during lease renew
     "../src/lib/worker-health": "export async function heartbeat(){}",
     "../src/lib/vault": 'export function unseal(){return {email:"recipient@example.test"};}',
     "../src/lib/mail": `${prefix} export function mailReady(){return true;} export const sendMail=state.send;`,
+    "../src/lib/flight-price-alerts": 'export const FLIGHT_PRICE_ALERT_HEARTBEAT="flight-price-alerts"; export function flightPriceAlertsAvailable(){return false;} export function runFlightPriceAlertCycle(){throw Error("Alerts disabled");}',
   };
   const originalUrl = process.env.BETTER_AUTH_URL;
   const originalListeners = new Map((["SIGTERM", "SIGINT"] as const).map(signal => [signal, process.listeners(signal)]));

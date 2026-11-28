@@ -1,9 +1,76 @@
 import { test, expect, departure, returning, expectNoHorizontalOverflow, pickHomeDate, setHomeTravellers } from './fixtures';
 
-test('a featured destination opens a stay search with the selected hotel dates and party', async ({page, provider}) => {
+test('planner deep links and browser history restore each draft',async({page,provider})=>{
+  await page.goto('/#packages');
+  const planner=page.getByRole('region',{name:'Plan your trip'});
+  const packageTab=planner.getByRole('button',{name:'Flight + Hotel',exact:true});
+  const activityTab=planner.getByRole('button',{name:'Tours & Activities',exact:true});
+  await expect(packageTab).toHaveAttribute('aria-pressed','true');
+  await planner.getByLabel('Destination',{exact:true}).fill('Dubai');
+  await planner.getByLabel('Start date',{exact:true}).fill(departure);
+  await expect(planner.getByLabel('End date',{exact:true})).toHaveValue(addDay(departure));
+  await activityTab.click();
+  await expect(page).toHaveURL('/#tours');
+  await planner.getByLabel('Destination',{exact:true}).fill('Goa');
+  await page.goBack();
+  await expect(packageTab).toHaveAttribute('aria-pressed','true');
+  await expect(planner.getByLabel('Destination',{exact:true})).toHaveValue('Dubai');
+  await page.goForward();
+  await expect(activityTab).toHaveAttribute('aria-pressed','true');
+  await expect(planner.getByLabel('Destination',{exact:true})).toHaveValue('Goa');
+  await expectNoHorizontalOverflow(page);
+  expect(provider.requests('/api/travel/search')).toHaveLength(0);
+});
+
+test('activity navigation opens the activity planner from home and other pages',async({page})=>{
+  const narrow=(page.viewportSize()?.width??1440)<=900;
+  const menu=page.getByRole('navigation',{name:'Main navigation'});
+  async function openActivities(){
+    if(narrow)await page.getByRole('button',{name:'Open navigation',exact:true}).click();
+    else await menu.locator('summary').filter({hasText:/^Activities/}).click();
+  }
   await page.goto('/');
+  await openActivities();
+  await menu.getByRole('button',{name:'Tours & Activities',exact:true}).click();
+  await expect(page).toHaveURL('/#tours');
+  await expect(page.getByRole('region',{name:'Plan your trip'}).getByRole('button',{name:'Tours & Activities',exact:true})).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('contentinfo').getByRole('link',{name:'About MaxTravel',exact:true}).click();
+  await expect(page).toHaveURL('/about');
+  await openActivities();
+  await menu.getByRole('link',{name:'Tours & Activities',exact:true}).click();
+  await expect(page).toHaveURL('/#tours');
+  await expect(page.getByRole('region',{name:'Plan your trip'}).getByRole('button',{name:'Tours & Activities',exact:true})).toHaveAttribute('aria-pressed','true');
+});
+
+function addDay(value:string) {
+  return new Date(Date.parse(value)+86_400_000).toISOString().slice(0,10);
+}
+
+for (const [tab, topic, title] of [
+  ['Flight + Hotel', 'package', 'Holiday package enquiry'],
+  ['Tours & Activities', 'activity', 'Activities enquiry'],
+] as const) {
+  test(`${tab} preserves trip details in the assisted enquiry`, async ({page, provider}) => {
+    await page.goto('/');
+    const planner = page.getByRole('region', {name:'Plan your trip'});
+    await planner.getByRole('button', {name:tab, exact:true}).click();
+    await planner.getByLabel('Destination', {exact:true}).fill('Dubai');
+    await planner.getByLabel('Start date').fill(departure);
+    await planner.getByLabel('End date').fill(returning);
+    await planner.getByLabel('Travellers', {exact:true}).fill('3');
+    await planner.getByRole('button', {name:'Enquire', exact:true}).click();
+    await expect(page).toHaveURL(new RegExp('/contact\\?topic=' + topic));
+    const message = page.getByRole('region', {name:title}).getByLabel('Message');
+    await expect(message).toHaveValue(`Destination: Dubai\nTravel dates: ${departure} to ${returning}\nTravellers: 3`);
+    expect(provider.requests('/api/travel/enquiries')).toHaveLength(0);
+    expect(provider.requests('/api/payments/create')).toHaveLength(0);
+  });
+}
+
+test('a featured destination opens a stay search with the selected hotel dates and party', async ({page, provider}) => {
+  await page.goto('/?product=FLIGHT');
   const planner = page.getByRole('region', {name:'Plan your trip'});
-  await planner.getByRole('button', {name:'Hotels', exact:true}).click();
+  await planner.getByRole('button', {name:'Stays', exact:true}).click();
   await pickHomeDate(planner, 'Check-in', departure);
   await pickHomeDate(planner, 'Check-out', returning);
   await setHomeTravellers(planner, {adults:2});
@@ -19,7 +86,7 @@ test('a featured destination opens a stay search with the selected hotel dates a
 for (const width of [320, 768]) {
   test(`homepage airport names and codes fit at ${width}px`, async ({page}) => {
     await page.setViewportSize({width, height: 900});
-    await page.goto('/');
+    await page.goto('/?product=FLIGHT');
     const form = page.locator('.home-search-form');
     await expect(form.getByLabel('From airport', {exact: true})).toHaveValue('Mumbai (BOM)');
     await expect(form.getByLabel('To airport', {exact: true})).toHaveValue('New Delhi (DEL)');
@@ -46,14 +113,12 @@ for (const width of [320, 768]) {
 }
 
 test('family can choose cabin on homepage without losing search context', async ({page, provider}) => {
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   const form=page.locator('.home-search-form');
   await pickHomeDate(form,'Departure',departure);
-  const cabinShortcuts=form.getByRole('group',{name:'Quick cabin selection'});
-  if(await cabinShortcuts.isVisible()){
-    await cabinShortcuts.getByRole('button',{name:'Premium economy'}).click();
-    await expect(form.locator('.travellers-picker>small')).toContainText('Premium economy');
-  }
+  const cabin = form.getByRole('combobox',{name:'Cabin class', exact:true});
+  await cabin.selectOption('PREMIUM_ECONOMY');
+  await expect(cabin).toHaveValue('PREMIUM_ECONOMY');
   // Children, infants and cabin are inside the Travellers & class field, after the dates.
   await setHomeTravellers(form,{adults:2,children:1,infants:1,cabin:'Business'});
   await expect(form.locator('.travellers-trigger')).toContainText('4 Travellers');
@@ -66,13 +131,13 @@ test('family can choose cabin on homepage without losing search context', async 
 });
 
 test('advanced search retains entered airports dates and party without automatic supplier call',async({page,provider})=>{
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   const form=page.locator('.home-search-form');
   await form.getByLabel('From airport',{exact:true}).fill('HYD');
   await form.getByLabel('To airport',{exact:true}).fill('DXB');
   await pickHomeDate(form,'Departure',departure);
   await setHomeTravellers(form,{adults:2});
-  await form.getByRole('button',{name:'More search options',exact:true}).click();
+  await page.getByRole('region',{name:'Plan your trip'}).getByRole('button',{name:'More search options',exact:true}).click();
   await page.waitForURL(url=>url.pathname==='/book');
   expect(Object.fromEntries(new URL(page.url()).searchParams)).toMatchObject({from:'HYD',to:'DXB',adults:'2',date:departure});
   expect(new URL(page.url()).searchParams.has('autoSearch')).toBe(false);
@@ -81,7 +146,7 @@ test('advanced search retains entered airports dates and party without automatic
 });
 
 test('switching travel products preserves each homepage search draft', async ({page, provider}) => {
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   const planner = page.getByRole('region', {name: 'Plan your trip'});
   const form = planner.locator('form');
   await form.getByLabel('To airport', {exact: true}).fill('Hyderabad (HYD)');
@@ -89,7 +154,7 @@ test('switching travel products preserves each homepage search draft', async ({p
   await pickHomeDate(form, 'Departure', departure);
   await pickHomeDate(form, 'Return', returning);
   await setHomeTravellers(form, {adults: 5, children: 1, cabin: 'Business'});
-  const hotels = planner.getByRole('button', {name: 'Hotels', exact: true});
+  const hotels = planner.getByRole('button', {name: 'Stays', exact: true});
   const flights = planner.getByRole('button', {name: 'Flights', exact: true});
   await hotels.click();
   await expect(form.locator('.travellers-trigger')).toContainText('1 Adult');
@@ -104,7 +169,7 @@ test('switching travel products preserves each homepage search draft', async ({p
   await expect(form.locator('input[name="date"]')).toHaveValue(departure);
   await expect(form.locator('input[name="end"]')).toHaveValue(returning);
   await expect(form.locator('.travellers-trigger')).toContainText('6 Travellers');
-  await expect(form.locator('.home-guests')).toContainText('Business');
+  await expect(form.getByRole('combobox',{name:'Cabin class',exact:true})).toHaveValue('BUSINESS');
   await hotels.click();
   await expect(form.getByLabel('Destination', {exact: true})).toHaveValue('Goa, India');
   await expect(form.locator('input[name="date"]')).toHaveValue(returning);
@@ -115,9 +180,9 @@ test('switching travel products preserves each homepage search draft', async ({p
 });
 
 test('homepage hotel validation guides customers to the destination field', async ({page}) => {
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   const planner = page.getByRole('region', {name: 'Plan your trip'});
-  await planner.getByRole('button', {name: 'Hotels', exact: true}).click();
+  await planner.getByRole('button', {name: 'Stays', exact: true}).click();
   await planner.getByRole('button', {name: 'Search stays', exact: true}).click();
   const destination = planner.getByLabel('Destination', {exact: true});
   await expect(planner.getByRole('alert')).toContainText('Choose a destination');
@@ -127,7 +192,7 @@ test('homepage hotel validation guides customers to the destination field', asyn
 });
 
 for (const entry of [
-  { product: 'flight', path: '/', label: 'To airport', value: 'Hyderabad (HYD)' },
+  { product: 'flight', path: '/?product=FLIGHT', label: 'To airport', value: 'Hyderabad (HYD)' },
   { product: 'hotel', path: '/book?product=HOTEL', label: 'Destination', value: 'Goa' },
 ]) {
   test(`${entry.product} search input waits for hydration before accepting edits`, async ({page}) => {
@@ -157,9 +222,9 @@ for (const entry of [
 }
 
 test('popular pairs and multi-city carry the selected first leg into the editable itinerary', async ({page,provider}) => {
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   const planner=page.getByRole('region',{name:'Plan your trip'});
-  await planner.getByRole('button',{name:'Set route to Hyderabad to Dubai'}).click();
+  await page.getByRole('button',{name:'Set route to Hyderabad to Dubai'}).click();
   await expect(planner.getByLabel('From airport',{exact:true})).toHaveValue('Hyderabad (HYD)');
   await expect(planner.getByLabel('To airport',{exact:true})).toHaveValue('Dubai (DXB)');
   await planner.getByRole('button',{name:'Multi-city',exact:true}).click();
@@ -170,7 +235,7 @@ test('popular pairs and multi-city carry the selected first leg into the editabl
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
 });
 test('the homepage date picker blocks underlying links and applies the chosen departure date',async({page})=>{
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   const departureButton=page.getByRole('button',{name:/^Departure /});
   const picker=page.getByRole('dialog',{name:'Choose departure'});
   await departureButton.click();
@@ -188,7 +253,7 @@ test('the homepage date picker blocks underlying links and applies the chosen de
   });
   await page.mouse.click(4,4);
   await expect(picker).toHaveCount(0);
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL('/?product=FLIGHT');
   await page.locator('#underlaid-test-link').evaluate(link=>link.remove());
 
   await departureButton.click();

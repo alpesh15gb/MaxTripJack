@@ -33,4 +33,5 @@ export const bookingMigrations = [
   "032-flight-fare-calendar-verified",
   "033-office-enquiries",
   "034-hotel-catalogue-photo-order",
+  "035-flight-price-alerts",
 ];

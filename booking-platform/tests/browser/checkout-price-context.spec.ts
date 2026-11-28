@@ -1,6 +1,6 @@
 import type {Page} from '@playwright/test';
 import type {Flight} from '../../src/lib/booking-presentation';
-import {test,expect,flight,openFlightSearch,reviewedQuote,departure,returning,searchId,quoteId,capture,expectNoHorizontalOverflow} from './fixtures';
+import {continueToTravellerDetails, test,expect,flight,openFlightSearch,reviewedQuote,departure,returning,searchId,quoteId,capture,expectNoHorizontalOverflow} from './fixtures';
 
 const notice=(page:Page)=>page.getByRole('region',{name:'Price updated at review',exact:true});
 const form=(page:Page)=>page.getByRole('form',{name:'Review and travellers',exact:true});
@@ -9,6 +9,7 @@ async function chooseFare(page:Page,name='Check fare & continue'){
  await page.getByRole('button',{name,exact:true}).first().click();
 }
 async function fillGuests(page:Page,names:string[]){
+ await continueToTravellerDetails(page);
  for(const [index,name] of names.entries()){
   await form(page).getByLabel('First name',{exact:true}).nth(index).fill(name);
   await form(page).getByLabel('Last name',{exact:true}).nth(index).fill('Example');
@@ -42,7 +43,7 @@ test('first roundtrip review explains the whole-party price increase and display
 });
 
 test('hotel bundle comparison stays inclusive and final review identifies each guests submitted room',async({page,provider},info)=>{
- const option={optionId:'two-room-bundle',roomInfo:[{id:'double',name:'Garden Double'},{id:'twin',name:'Garden Twin'}],mealBasis:'BREAKFAST',pricing:{totalPrice:13000,currency:'INR'},priceBreakdown:{baseMinor:1100000,taxMinor:200000,managementFeeMinor:0,managementTaxMinor:0}};
+ const option={optionId:'two-room-bundle',roomInfo:[{id:'double',name:'Garden Double'},{id:'twin',name:'Garden Twin'}],optionType:'CRCM',mealBasis:'BREAKFAST',pricing:{totalPrice:13000,currency:'INR'},priceBreakdown:{baseMinor:1100000,taxMinor:200000,managementFeeMinor:0,managementTaxMinor:0}};
  const rooms=[{adults:1,children:0,childAge:[]},{adults:1,children:0,childAge:[]}];
  provider.search={searchId,results:{hotels:[{tjHotelId:'10001',name:'Price Context Stay',customerEstimateMinor:900000}]}};
  provider.overrides['POST /api/travel/hotel-detail']={body:{options:[option]}};
@@ -51,7 +52,10 @@ test('hotel bundle comparison stays inclusive and final review identifies each g
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
  await page.getByText('Full cancellation policy & room details',{exact:true}).click();
  await expect(page.getByRole('heading',{name:'Estimated price breakdown'})).toBeVisible();
+ await expect(page.locator('.stay-plan-title')).toHaveText('Meal plans vary by room');
+ await expect(page.getByRole('checkbox',{name:'Breakfast included',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Continue with room',exact:true}).click();
+ await expect(page.locator('.review-stay .review-room')).toContainText('Meal plans vary by room');
  await expect(notice(page)).toContainText('₹13,000');await expect(notice(page)).toContainText('₹12,000');
  await expect(notice(page)).not.toContainText('₹9,000');await expect(notice(page)).not.toContainText('₹26,000');
  await expect(notice(page)).toContainText('Full stay · all selected rooms and guests');
@@ -60,6 +64,7 @@ test('hotel bundle comparison stays inclusive and final review identifies each g
  await expect(page.getByRole('button',{name:'Open Max AI travel assistant',exact:true})).toBeHidden();
  await expect(page.getByRole('button',{name:'Ask Max AI about this booking',exact:true})).toHaveCount(0);
  await fillGuests(page,['Aarav','Isha']);
+ await expect(page.locator('#booking-summary .review-room')).toContainText('Meal plans vary by room');
  const summary=page.locator('.final-traveller-summary');
  await expect(summary.getByRole('listitem').first()).toHaveCSS('display','grid');
  const editContact=summary.getByRole('button',{name:'Edit contact details',exact:true});

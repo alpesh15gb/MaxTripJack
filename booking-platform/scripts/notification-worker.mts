@@ -4,14 +4,24 @@ import { database } from "../src/lib/db";
 import { unseal } from "../src/lib/vault";
 import { sendMail, mailReady } from "../src/lib/mail";
 import { deliverNotification } from "../src/lib/notification-delivery";
+import { FLIGHT_PRICE_ALERT_HEARTBEAT,flightPriceAlertsAvailable,runFlightPriceAlertCycle } from "../src/lib/flight-price-alerts";
 
 if (!mailReady() || !process.env.BETTER_AUTH_URL) throw Error("Configure email delivery and the public application URL.");
 let stopping = false;
+let nextPriceAlertAt = 0;
+let priceAlertTask: Promise<void>|undefined;
 process.on("SIGTERM", () => { stopping = true; });
 process.on("SIGINT", () => { stopping = true; });
 try {
   while (!stopping) {
     await heartbeat("notifications");
+    if (!priceAlertTask && Date.now()>=nextPriceAlertAt && flightPriceAlertsAvailable()) {
+      nextPriceAlertAt = Date.now()+30_000;
+      priceAlertTask = heartbeat(FLIGHT_PRICE_ALERT_HEARTBEAT)
+        .then(()=>runFlightPriceAlertCycle(()=>stopping))
+        .catch(()=>console.error("Flight price alert cycle incomplete."))
+        .finally(()=>{priceAlertTask=undefined;});
+    }
     const lease = randomUUID();
     const result = await database().query("UPDATE customer_notifications SET lease_token=$1,lease_until=now()+interval '90 seconds' WHERE id=(SELECT id FROM customer_notifications WHERE delivered_at IS NULL AND attempts<12 AND next_attempt<=now() AND (lease_until IS NULL OR lease_until<now()) ORDER BY next_attempt FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *", [lease]);
     const item = result.rows[0];
@@ -47,4 +57,4 @@ try {
       console.error("Customer notification database operation failed", { id: item.id });
     }
   }
-} finally { await database().end(); }
+} finally { await priceAlertTask; await database().end(); }

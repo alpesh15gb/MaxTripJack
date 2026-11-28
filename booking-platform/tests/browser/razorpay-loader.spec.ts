@@ -1,11 +1,12 @@
 import type { Page, Route } from '@playwright/test';
-import {mainNavigation, test, expect, openFlightSearch, bookingId, quoteId, type ProviderFixture } from './fixtures';
+import {continueToTravellerDetails, test, expect, openFlightSearch, bookingId, quoteId, type ProviderFixture } from './fixtures';
 import { RAZORPAY_CHECKOUT_SCRIPT, RAZORPAY_CHECKOUT_LOAD_TIMEOUT } from '../../src/lib/razorpay-checkout-loader';
 
 async function readyToPay(page: Page) {
   await openFlightSearch(page);
   await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button', { name: 'Check fare & continue', exact: true }).first().click();
+  await continueToTravellerDetails(page);
   const form = page.getByRole('form', { name: 'Review and travellers' });
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
@@ -104,8 +105,7 @@ test('a delayed SDK cannot open the old checkout after leaving its booking works
   await page.route(RAZORPAY_CHECKOUT_SCRIPT, route => { held = route; });
   await readyToPay(page);
   await expect.poll(() => held !== null).toBe(true);
-  await mainNavigation(page);
-  await page.getByRole('banner').getByRole('link', { name: 'My Trips', exact: true }).click();
+  await page.getByRole('contentinfo').getByRole('link', { name: 'Find My Trip', exact: true }).click();
   await expect(page).toHaveURL(/\/my-trips$/);
   const delayed = held as Route | null;
   if (!delayed) throw Error('SDK request was not intercepted');

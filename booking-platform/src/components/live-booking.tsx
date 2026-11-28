@@ -10,16 +10,24 @@ import {takeBackgroundSearchHeaders,invalidateBackgroundSearch} from '@/lib/back
 import useBackgroundSearch from './use-background-search';
 import BookingSearchSummary from './booking-search-summary';
 import BookingResultsHeading from './booking-results-heading';
+import FlightTripIdeas from './flight-trip-ideas';
+import {FlightPriceAlertBanner,FlightPriceAlertButton,FlightPriceAlertDialog} from './flight-price-alert';
+import {flightPriceAlertWatch} from '@/lib/flight-price-alert-client';
+import {lowestAdultFareMinor} from '@/lib/fare-calendar-core';
+import {MaxAiInlineAction} from './max-ai-assistant';
 import FlightDateTimeline from './flight-date-timeline';
-import {fareDecisionName} from '@/lib/flight-decision';
+import { FlightAdjacentDay, FlightJourneyButtons, FlightResultsRoute, PreferredAirlines, type FlightJourney } from './flight-results-search';
+import {baggageDecisionLabel,fareDecisionName} from '@/lib/flight-decision';
 import '@/app/booking-experience.css';
 import '@/app/flight-results-polish.css';
 import '@/app/hotel-results-polish.css';
 import '@/app/flight-shopping.css';
 import '@/app/hotel-shopping.css';
 import '@/app/flight-filter-drawer.css';
+import './flight-reference-filters.css';
 import '@/app/booking-journey-visual.css';
-import { useCallback,useEffect, useMemo,useRef,useState } from 'react';
+import '@/app/hotel-reference.css';
+import { Fragment,useCallback,useEffect, useMemo,useRef,useState,type MouseEvent } from 'react';
 import { guestDetailsIssues,panRequiredForTraveller,type GuestIssue,type PartySearch } from '@/lib/guest-validation-rules';
 import { guestIssueField,guestNativeIssues,guestsFromForm,parseGuestIssues } from '@/lib/guest-form';
 import { useRouter,useSearchParams } from 'next/navigation';
@@ -49,6 +57,7 @@ import BookingDateInput from './booking-date-input';
 import {normalizeBookingDate,travelDateLabel,travelDateTimeLabel} from '@/lib/travel-date';
 import SelectedJourneyReceipt from './selected-journey-receipt';
 import {matchesFlightRefinements,matchesFlightAirlineQuery,matchesFlightStops,groupIdenticalFlights,flightConnectionAirports,type FlightDepartureWindow} from '@/lib/flight-results';
+import {flightAlliance,type FlightAlliance} from '@/lib/flight-alliances';
 import {hotelContentUnavailable,type HotelStayContext} from '@/lib/hotel-results';
 import AirportPicker from './airport-picker';
 import HotelDestination from './hotel-destination';
@@ -71,21 +80,42 @@ import {CheckoutPartySummary} from './checkout-party-summary';
 import BookingFlightCard,{money} from './booking-flight-card';
 import FlightResultShortcuts,{FlightResultColumns} from './flight-result-shortcuts';
 import FlightResultsControls, {FlightDesktopFilters, FlightDeskLink} from './flight-results-controls';
-import {flightDepartureKey,type FlightSort} from '@/lib/flight-result-shortcuts';
+import {flightArrivalKey,flightDepartureKey,type FlightSort} from '@/lib/flight-result-shortcuts';
 import {TravelHeader,TravelFooter,TravelIcon} from './travel-shell';
 import {authClient} from '@/lib/auth-client';
 import useCheckoutRecovery from './use-checkout-recovery';
 import {clearCheckoutMarker,readCheckoutMarkers,saveCheckoutMarker,isResumableCheckout,isResumableHostedCheckout,parseCheckoutRecoveryStatus,type CheckoutMarker,type CheckoutRecoveryStatus} from '@/lib/checkout-recovery';
 import { compatibleReturnPair,estimatedFare,groupLabel,indiaToday,initialAdults,journeyMinutes,orderedGroups,parseHotelIds,paymentFailureAction,quoteRemaining,type Flight,type FlightFare } from '@/lib/booking-presentation';
 
+import { FLIGHT_SEAT_INVENTORY_TTL_MS } from '@/lib/flight-seat-inventory';
+
 type Product='FLIGHT'|'HOTEL';
-type FlightJourney='one-way'|'round-trip'|'multi-city';
 type HotelOption=AvailableHotelOption;
 type Hotel={originSearchId?:string;tjHotelId:string;name:string;options?:HotelOption[];customerEstimateMinor?:number|null;property?:HotelPropertyDetails;propertyContentStatus?:'pending'|'resolved'|'unavailable'};
-type Results={searchId:string;propertyContentPending?:boolean;propertyContentUnavailable?:boolean;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[]}};
+type Results={searchId:string;propertyContentPending?:boolean;propertyContentUnavailable?:boolean;results:{searchResult?:{tripInfos?:Record<string,Flight[]>};hotels?:Hotel[];flightInventoryExpiresAt?:number}};
 const callingCodes=bookingCallingCodes();
 
-type Quote={extrasRefresh?:'kept'|'removed';baseTotalMinor?:number;savedFlightExtrasCount?:number;priceBreakdown?:BookingPriceBreakdown|null;discountMinor?:number;promoCode?:string|null;quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;childrenAges?:number[];rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{terms?:ReviewTerm[];fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
+type Quote={extrasRefresh?:'kept'|'removed';baseTotalMinor?:number;savedFlightExtrasCount?:number;priceBreakdown?:BookingPriceBreakdown|null;discountMinor?:number;promoCode?:string|null;quoteId:string;product:Product;hotelName?:string|null;summary?:{from?:string;to?:string;date?:string;returnDate?:string;legs?:{from:string;to:string;date:string}[];checkIn?:string;checkOut?:string;adults:number;children?:number;infants?:number;childrenAges?:number[];rooms?:{adults:number;children:number;childAge:number[]}[]};totalMinor:number;expiresAt:string;review:{terms?:ReviewTerm[];fareRules?:unknown;conditions?:{pcs?:{pm?:boolean;pped?:boolean};dob?:{adobr?:boolean;cdobr?:boolean;idobr?:boolean};gst?:{igm?:boolean};iecr?:boolean;ipa?:boolean};option?:{roomInfo?:HotelRoomOption['roomInfo'];inclusions?:string[];mealBasis?:string;optionType?:string;cancellation?:unknown;compliance?:{passportRequired?:boolean;panRequired?:boolean;gstType?:string};bookingNotes?:string;pricing?:{mf?:number;mft?:number}};alerts?:unknown}};
+function FlightReviewBaggage({terms}: {terms?: ReviewTerm[]}) {
+  const bags = (kind:'cabin'|'checked') => (terms??[]).filter(term =>
+    term.key.startsWith('trip.') && term.key.endsWith('.'+kind) && term.value);
+  return <section className="flight-review-baggage" aria-label="Bags per traveller">
+    <h3>Bags</h3>
+    <p>Reviewed baggage per traveller</p>
+    <div className="flight-review-baggage-options">
+      {(['cabin','checked'] as const).map(kind => {
+        const allowances = bags(kind);
+        return <section key={kind}>
+          <h4><TravelIcon name="bag" size={19}/>{kind==='cabin'?'Cabin baggage':'Checked baggage'}</h4>
+          {allowances.length ? <dl>{allowances.map(term => <div key={term.key}>
+            <dt>{term.label.replace(new RegExp(' '+kind+' baggage$'), '').replace(/\b(ADULT|CHILD|INFANT)\b/g, label=>label[0]+label.slice(1).toLowerCase()).replace(/\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?/, date=>travelDateLabel(date))}</dt>
+            <dd>{baggageDecisionLabel(term.value)}</dd>
+          </div>)}</dl> : <p>Allowance unavailable in this review.</p>}
+        </section>;
+      })}
+    </div>
+  </section>;
+}
 function refreshedReviewUnchanged(before:Quote,after:Quote){
   const oldTerms=before.review.terms,newTerms=after.review.terms;
   if(before.product!==after.product||before.totalMinor!==after.totalMinor||after.extrasRefresh==='removed'||!oldTerms?.length||!newTerms?.length)return false;
@@ -154,6 +184,11 @@ function currentRoutePrefill(){
 }
 function routeFingerprint(value:Record<string,string>){return JSON.stringify(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)));}
 function flightViewFingerprint(value:Record<string,string>){return JSON.stringify([value.flightSearch??'',value.flightStops??'',value.flightSort??'',value.flightAirlineQuery??'']);}
+const flightDateFormatter = new Intl.DateTimeFormat('en-US', {weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
+function shortFlightResultDate(value?:string){
+  const timestamp=Date.parse(`${value??''}T00:00:00Z`);
+  return Number.isFinite(timestamp)?flightDateFormatter.format(timestamp):travelDateLabel(value);
+}
 function prepareFlightDate(criteria:Record<string,string>,prepare:ReturnType<typeof useBackgroundSearch>['prepare']){
   const {fields,party}=submittedFlightDateInput(criteria);
   let input;
@@ -295,9 +330,14 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const [selectedFares,setSelectedFares]=useState<Record<string,string>>({}),[activeGroup,setActiveGroup]=useState('');
   const [departureWindows,setDepartureWindows]=useState<FlightDepartureWindow[]>([]),[flightBudget,setFlightBudget]=useState('');
   const [connections,setConnections]=useState<string[]>([]);
-  const [sortBy,setSortBy]=useState('price'),[stopFilter,setStopFilter]=useState('ALL'),[airlineFilter,setAirlineFilter]=useState('ALL');
+  const [sortBy,setSortBy]=useState('price'),[stopFilter,setStopFilter]=useState('ALL');
+  const [priceAlertOpener,setPriceAlertOpener]=useState<{searchId:string;scope:string;button:HTMLButtonElement}|null>(null);
+  const [airlineFilters,setAirlineFilters]=useState<string[]>([]);
+  const [allianceFilters,setAllianceFilters]=useState<FlightAlliance[]>([]);
+  const [preferredAirline,setPreferredAirline]=useState('');
   const [airlineQuery,setAirlineQuery]=useState('');
   const [guestErrors,setGuestErrors]=useState<GuestIssue[]>([]);
+  const [travellersStep,setTravellersStep]=useState(false);
   const guestErrorFocus=useRef(false);
   const [travellerSummary,setTravellerSummary]=useState<{quoteId:string;names:string[];email:string;phone:string}|null>(null);
   const [selectedJourney,setSelectedJourney]=useState<Flight[]>([]);
@@ -313,6 +353,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const [reviewBase,setReviewBase]=useState(0),[now,setNow]=useState<number|null>(null);
   const [selection,setSelection]=useState<Selection|null>(null),[payment,setPayment]=useState<Payment|null>(null);
   const [paymentUncertain,setPaymentUncertain]=useState(false),[needsReview,setNeedsReview]=useState(false);
+  const enteringTravellers=travellersStep||Boolean(payment)||paymentUncertain;
   const searchForm=useRef<HTMLFormElement>(null),checkoutForm=useRef<HTMLFormElement>(null);
   const searchFocusFrame=useRef<number|null>(null);
   const autoSearchStarted=useRef(false),operation=useRef(0),requestController=useRef<AbortController|null>(null),busyRef=useRef(false);
@@ -320,14 +361,22 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current+=1;checkoutLaunch.current+=1;requestController.current?.abort();hotelRequest.current?.abort();snapshotController.current?.abort();hotelMoreRequest.current?.abort();if(searchFocusFrame.current!==null)cancelAnimationFrame(searchFocusFrame.current);};},[]);
   const ownedRoute=useRef<{url:string;state:unknown}>({url:'/book?'+new URLSearchParams(prefill).toString(),state:null});
+  const [flightDateTraversal,setFlightDateTraversal]=useState(0);
+  useEffect(()=>{
+    const restoreDate=(event:PopStateEvent)=>{
+      if(event.state?.flightDateSearch)setFlightDateTraversal(revision=>revision+1);
+    };
+    window.addEventListener('popstate',restoreDate);
+    return()=>window.removeEventListener('popstate',restoreDate);
+  },[]);
   // Local filter controls update this before replaceState. Only a different
   // incoming view (for example reopening an AI card) reapplies its preferences.
   const flightViewRoute=useRef(flightViewFingerprint(prefill));
   useEffect(()=>{
     const rememberRoute=()=>{
-      const {hotelEntry,bookingCheckout,flightDateSearch}=window.history.state??{};
+      const {hotelEntry,bookingCheckout,flightDateSearch,flightDateComparison}=window.history.state??{};
       // Keep only our own state; Next must manage its private router tree.
-      ownedRoute.current={url:window.location.pathname+window.location.search,state:{...(['detail','gallery','review'].includes(hotelEntry)?{hotelEntry}:{}),...(bookingCheckout?{bookingCheckout}:{}),...(flightDateSearch?{flightDateSearch:true}:{})}};
+      ownedRoute.current={url:window.location.pathname+window.location.search,state:{...(['detail','gallery','review'].includes(hotelEntry)?{hotelEntry}:{}),...(bookingCheckout?{bookingCheckout}:{}),...(flightDateSearch?{flightDateSearch:true,flightDateComparison:Boolean(flightDateComparison)}:{})}};
     };
     const currentRoute=currentRoutePrefill();
     if(submittedSearchRoute.current===window.location.pathname+window.location.search){rememberRoute();return;}
@@ -341,7 +390,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         if(flightViewFingerprint(currentRoutePrefill())!==view||busyRef.current)return;
         flightViewRoute.current=view;
         setStopFilter(currentRoute.flightStops??'ALL');setSortBy(currentRoute.flightSort??'price');setAirlineQuery(currentRoute.flightAirlineQuery??'');
-        setAirlineFilter('ALL');setDepartureWindows([]);setConnections([]);setFlightBudget('');
+        setAirlineFilters([]);setAllianceFilters([]);setPreferredAirline('');setDepartureWindows([]);setConnections([]);setFlightBudget('');
         setSubmittedSearch(current=>{const next={...current};for(const key of ['flightStops','flightSort','flightAirlineQuery']){delete next[key];if(currentRoute[key])next[key]=currentRoute[key];}return next;});
       },0);
       return()=>clearTimeout(timer);
@@ -365,7 +414,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       adoptRoute(currentRoute);
     },0);
     return()=>clearTimeout(timer);
-  },[routeSearch,routePrefill,submittedSearch,results,prefill.browseSearch,prefill.flightSearch,savedHandoff?.key,busy,payment,paymentUncertain,recoveryBlocked,adoptRoute]);
+  },[routeSearch,flightDateTraversal,routePrefill,submittedSearch,results,prefill.browseSearch,prefill.flightSearch,savedHandoff?.key,busy,payment,paymentUncertain,recoveryBlocked,adoptRoute]);
   const propertyContentGeneration=useRef(0);
   const resultSearchId=results?.searchId;
   const propertyContentPending=results?.propertyContentPending===true;
@@ -393,7 +442,10 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     if(!resultSearchId||new URLSearchParams(window.location.search).has('stay'))return;
     // The results section is conditional. Scroll only after React has committed it,
     // not from the response callback where a single frame can precede that commit.
-    const frame=requestAnimationFrame(()=>document.getElementById('booking-results')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}));
+    const frame=requestAnimationFrame(()=>{
+      if(document.querySelector('.has-inline-flight-search'))window.scrollTo({top:0,behavior:'instant'});
+      else document.getElementById('booking-results')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+    });
     return()=>cancelAnimationFrame(frame);
   },[resultSearchId]);
   useEffect(()=>{
@@ -421,7 +473,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   useEffect(()=>{
     const summary=checkoutSummaryRef.current;
     if(!reviewedQuoteId||!summary)return;
-    const header = document.querySelector('.concierge-header');
+    const header = document.querySelector('.travel-navigation');
     // Keep short desktop summaries visible without clipping expanded terms,
     // multiple guests or billing controls in a nested scrolling panel.
     const update=()=>{
@@ -445,6 +497,24 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     const timer=setInterval(tick,1000);
     return()=>{clearTimeout(immediate);clearInterval(timer);};
   },[quote,roomView]);
+
+  const flightInventoryExpiresAt=results?.results.flightInventoryExpiresAt;
+  const [visibleFlightInventory,setVisibleFlightInventory]=useState<number|null>(null);
+  useEffect(()=>{
+    if(typeof flightInventoryExpiresAt!=='number'||!Number.isSafeInteger(flightInventoryExpiresAt))return;
+    const expiresAt=flightInventoryExpiresAt;
+    const remaining=expiresAt-Date.now();
+    if(remaining<=0||remaining>FLIGHT_SEAT_INVENTORY_TTL_MS)return;
+    const deadline=performance.now()+remaining;
+    const sync=()=>setVisibleFlightInventory(Date.now()<expiresAt&&performance.now()<deadline?expiresAt:null);
+    const timer=setTimeout(sync,0);
+    const expiry=setTimeout(()=>setVisibleFlightInventory(null),remaining);
+    document.addEventListener('visibilitychange',sync);
+    return()=>{clearTimeout(timer);clearTimeout(expiry);document.removeEventListener('visibilitychange',sync);};
+  },[flightInventoryExpiresAt]);
+  const seatInventoryScope=visibleFlightInventory!==null&&visibleFlightInventory===flightInventoryExpiresAt
+    ? (Number(submittedSearch.children)>0||Number(submittedSearch.infants)>0?'mixed':'adult-only')
+    : undefined;
 
   useEffect(()=>{
     // Read the actual history URL: Next may restore the previous route tree whose
@@ -597,6 +667,12 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const journeyLabel=reviewedJourney==='one-way'?'One way':reviewedJourney==='round-trip'?'Round trip':'Multi-city';
   const cancellationTerms=quote?.review.option?.cancellation??quote?.review.fareRules;
   const hotelRate=hotelRateContent(quote?.review.option?.inclusions??selectedRoom?.inclusions,quote?.review.option?.bookingNotes??selectedRoom?.bookingNotes);
+  const reviewedHotelMeal=roomMealLabel({
+    mealBasis:quote?.review.option?.mealBasis??selectedRoom?.mealBasis,
+    optionType:quote?.review.option?.optionType??selectedRoom?.optionType,
+    inclusions:hotelRate.inclusions,
+  });
+  const selectedHotelMeal=selectedRoom?roomMealLabel(selectedRoom):savedHandoff?.hotel?.mealBasis?.replaceAll('_',' ');
   const hasCancellationTerms=cancellationTerms!==null&&cancellationTerms!==undefined&&(typeof cancellationTerms==='object'?Object.keys(cancellationTerms).length>0:typeof cancellationTerms==='string'?cancellationTerms.trim().length>0:true);
   const cancellationNeedsAttention=quote?.product==='FLIGHT'?!hasFlightCancellationRules(cancellationTerms):!hasCancellationTerms;
   const requiredBookingDetails=[
@@ -629,19 +705,26 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   // The original flight retains every offer and ID for comparison and review.
   const comparableFlight=(flight:Flight):Flight=>({...flight,totalPriceList:flight.totalPriceList.filter(compatibleFare)});
   const groupFlights=groups[shownGroup]??[];
+  const activeAirlineQuery=preferredAirline||airlineQuery;
   const flightsWithOtherFilters=groupFlights
     .filter(flight=>matchesFlightRefinements(comparableFlight(flight),shownGroup,departureWindows,flightBudget))
     .filter(flight=>!connections.length||shownGroup==='COMBO'||flightConnectionAirports(flight,shownGroup).some(airport=>connections.includes(airport.code)))
-    .filter(flight=>matchesFlightAirlineQuery(flight,airlineQuery))
-    .filter(flight=>airlineFilter==='ALL'||flight.sI.some(segment=>segment.fD.aI.name===airlineFilter));
+    .filter(flight=>matchesFlightAirlineQuery(flight,activeAirlineQuery))
+    .filter(flight=>{
+      if(!allianceFilters.length)return true;
+      const alliance=flightAlliance(flight);
+      return alliance!==undefined&&allianceFilters.includes(alliance);
+    })
+    .filter(flight=>!airlineFilters.length||flight.sI.some(segment=>airlineFilters.includes(segment.fD.aI.name)));
   const nonstopCount=shownGroup==='COMBO'?0:flightsWithOtherFilters.filter(flight=>matchesFlightStops(flight,shownGroup,'0')).length;
   const filteredFlights=flightsWithOtherFilters.filter(flight=>matchesFlightStops(flight,shownGroup,stopFilter));
   const hasSortMetrics=(metric:(flight:Flight)=>string|number|null)=>filteredFlights.some(flight=>flight.totalPriceList.some(compatibleFare)&&metric(flight)!==null);
   let effectiveSort:FlightSort='price';
   if(sortBy==='duration'&&hasSortMetrics(flight=>journeyMinutes(flight,shownGroup)))effectiveSort='duration';
   if(sortBy==='departure'&&hasSortMetrics(flightDepartureKey))effectiveSort='departure';
-  const compareDeparture=(left:Flight,right:Flight)=>{
-    const a=flightDepartureKey(left),b=flightDepartureKey(right);
+  if(sortBy==='arrival'&&shownGroup!=='COMBO'&&hasSortMetrics(flightArrivalKey))effectiveSort='arrival';
+  const compareTime=(left:Flight,right:Flight,key:(flight:Flight)=>string|null)=>{
+    const a=key(left),b=key(right);
     if(a===null)return b===null?0:1;
     if(b===null)return -1;
     return a.localeCompare(b);
@@ -649,9 +732,12 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const flightRows=filteredFlights.sort((a,b)=>{
     const eligibility=Number(b.totalPriceList.some(compatibleFare))-Number(a.totalPriceList.some(compatibleFare));
     if(eligibility)return eligibility;
-    return effectiveSort==='departure'?compareDeparture(a,b):effectiveSort==='duration'?(journeyMinutes(a,shownGroup)??Number.MAX_SAFE_INTEGER)-(journeyMinutes(b,shownGroup)??Number.MAX_SAFE_INTEGER):estimatedFare(comparableFlight(a))-estimatedFare(comparableFlight(b));
+    if(effectiveSort==='departure')return compareTime(a,b,flightDepartureKey);
+    if(effectiveSort==='arrival')return compareTime(a,b,flightArrivalKey);
+    if(effectiveSort==='duration')return (journeyMinutes(a,shownGroup)??Number.MAX_SAFE_INTEGER)-(journeyMinutes(b,shownGroup)??Number.MAX_SAFE_INTEGER);
+    return estimatedFare(comparableFlight(a))-estimatedFare(comparableFlight(b));
   });
-  const FLIGHT_PAGE=25,flightListKey=`${results?.searchId}|${shownGroup}|${effectiveSort}|${stopFilter}|${airlineFilter}|${airlineQuery}|${departureWindows.join(',')}|${connections.join(',')}|${flightBudget}`;
+  const FLIGHT_PAGE=30,flightListKey=`${results?.searchId}|${shownGroup}|${effectiveSort}|${stopFilter}|${JSON.stringify(airlineFilters)}|${activeAirlineQuery}|${allianceFilters.join(',')}|${departureWindows.join(',')}|${connections.join(',')}|${flightBudget}`;
   const [flightLimit,setFlightLimit]=useState({key:'',count:FLIGHT_PAGE});
   const flightShown=flightLimit.key===flightListKey?flightLimit.count:FLIGHT_PAGE;
   const visibleFlightRows=flightRows.filter((flight,index)=>index<flightShown||flight.totalPriceList.some(fare=>fare.id===selectedFares[shownGroup]));
@@ -666,15 +752,13 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       element?.focus({preventScroll:true});
       const context=reviewing?element?.closest<HTMLElement>('.flight-selection-summary'):null;
       if(!context||!element){element?.scrollIntoView({behavior:'instant',block:'start'});return;}
-      const header=document.querySelector<HTMLElement>('.concierge-header');
-      const dock=document.querySelector<HTMLElement>('#booking-results .shopping-filter-actions');
+      const header=document.querySelector<HTMLElement>('.travel-navigation');
       const headerBottom=header&&['sticky','fixed'].includes(getComputedStyle(header).position)?header.getBoundingClientRect().bottom:0;
-      const dockBox=dock?.getBoundingClientRect();
       const top=Math.max(0,headerBottom)+8;
-      const bottom=(dockBox?.height&&dock&&getComputedStyle(dock).position==='fixed'?dockBox.top:window.innerHeight)-8;
+      const bottom=window.innerHeight-8;
       const summaryBounds=context.getBoundingClientRect();
       // Keep both legs and the total in view when they fit. On long itineraries
-      // the focused review button and its price stay above the shopping dock.
+      // the focused review button and its price stay within the viewport.
       const distance=summaryBounds.height<=bottom-top?summaryBounds.top-top:element.getBoundingClientRect().bottom-bottom;
       window.scrollBy({top:distance,behavior:'instant'});
     });
@@ -682,6 +766,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   },[selectedFares,shownGroup,allSelected]);
   const verificationActive=signInRequired||signInWithoutSelection;
   const checkoutStarted=Boolean(quote)||verificationActive||Boolean(busy&&verificationSelection);
+  const inlineFlightSearch=product==='FLIGHT'&&hasFullSearchResults&&Boolean(results)&&!checkoutStarted;
   const canWarmSearch=!busy&&!destinationResolving&&!roomView&&!checkoutStarted&&!payment&&!paymentUncertain&&!recoveryBlocked;
   const preloadSearch=Boolean(prefill.date&&!prefill.autoSearch&&!prefill.resumeSelection&&!prefill.flightSearch&&!prefill.browseSearch&&!prefill.searchInvalid);
   const backgroundSearch=useBackgroundSearch({form:searchForm,formKey:JSON.stringify(searchPrefill),enabled:canWarmSearch,editingResults:hasFullSearchResults,preloadOnMount:preloadSearch,read:()=>{
@@ -698,8 +783,14 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     enabled:product==='FLIGHT'&&hasFullSearchResults&&!checkoutStarted&&showTimelineFares,
   });
   const nextFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,1,today),[submittedSearch,today]);
+  const previousFlightDate=useMemo(()=>nearbyFlightSearch(submittedSearch,-1,today),[submittedSearch,today]);
   const prepareSearch=backgroundSearch.prepare;
   const preparedNearbyDate=useRef(false);
+  const dateComparison=useRef<HTMLDetailsElement>(null);
+  const restoreDateComparison=useCallback((panel:HTMLDetailsElement|null)=>{
+    dateComparison.current=panel;
+    if(panel&&window.history.state?.flightDateComparison)panel.open=true;
+  },[]);
   function prepareNearbyDate(criteria:Record<string,string>){
     preparedNearbyDate.current=true;
     prepareFlightDate(criteria,prepareSearch);
@@ -708,7 +799,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     // Prepare one likely next day after a completed one-way search, including on touch screens.
     if(preparedNearbyDate.current||!canWarmSearch||!hasFullSearchResults||!nextFlightDate||submittedSearch.returnDate)return;
     const timer=setTimeout(()=>{
-      if(document.querySelector<HTMLDetailsElement>('#booking-search')?.open)return;
+      if(document.querySelector<HTMLDetailsElement>('#booking-search:not(.has-inline-flight-search)')?.open)return;
       preparedNearbyDate.current=true;
       prepareFlightDate(nextFlightDate.criteria,prepareSearch);
     },600);
@@ -718,23 +809,32 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const selectedEstimate=hasFullSearchResults?(product==='HOTEL'
     ?(selectedRoom&&Number.isFinite(selectedRoom.pricing.totalPrice)&&selectedRoom.pricing.totalPrice>0?Math.round(selectedRoom.pricing.totalPrice*100):null)
     :(selectedEstimates.length&&selectedEstimates.every(Number.isFinite)?selectedEstimates.reduce((total,value)=>total+value,0):null)):null;
-  const summaryTitle=quote?.product==='HOTEL'?quote.hotelName||'Your selected stay':quote?.summary?.legs?quote.summary.legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · '):quote?`${quote.summary?.from} → ${quote.summary?.to}`:product==='HOTEL'?'A stay that suits you':'Your next journey';
+  const summaryTitle=quote?.product==='HOTEL'?quote.hotelName||'Your selected stay'
+    :quote?.summary?.legs?.length?quote.summary.legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · ')
+    :quote?.summary?.from&&quote.summary.to?`${quote.summary.from} → ${quote.summary.to}`
+    :quote?'Your selected flight':product==='HOTEL'?'A stay that suits you':'Your next journey';
 
   function clearFlightViewFields(keys=['flightStops','flightSort','flightAirlineQuery']){
     const url=new URL(window.location.href);for(const key of keys)url.searchParams.delete(key);
     flightViewRoute.current=flightViewFingerprint(bookingSearchPrefill(Object.fromEntries(url.searchParams)));
-    window.history.replaceState(window.history.state,'',url.pathname+url.search);
+    if(url.href!==window.location.href)window.history.replaceState(window.history.state,'',url.pathname+url.search);
     setSubmittedSearch(current=>{const next={...current};for(const key of keys)delete next[key];return next;});
   }
-  function changeFlightCarrier(value:string){setAirlineFilter(value);setAirlineQuery('');clearFlightViewFields(['flightAirlineQuery']);}
+  function changeFlightCarriers(values:string[]){setAirlineFilters(values);setPreferredAirline('');setAirlineQuery('');clearFlightViewFields(['flightAirlineQuery']);}
+  function changePreferredAirline(value:string){changeFlightCarriers([]);setPreferredAirline(value);}
+  function changeFlightJourney(journey:FlightJourney){
+    setFlightJourney(journey);
+    if(journey!=='round-trip')setReturnDateDraft('');
+  }
   function changeFlightStops(value:string){setStopFilter(value);clearFlightViewFields(['flightStops']);}
   function changeFlightSort(value:string){setSortBy(value);clearFlightViewFields(['flightSort']);}
   const flightFilterProps={
-    group:shownGroup,airlines,airline:airlineFilter,airlineQuery,onAirline:changeFlightCarrier,
+    group:shownGroup,airlines,airlineFilters,airlineQuery:activeAirlineQuery,onAirlines:changeFlightCarriers,
+    allianceFilters,onAlliances:setAllianceFilters,
     stops:stopFilter,onStops:changeFlightStops,departureWindows,onDeparture:setDepartureWindows,connections,onConnections:setConnections,
     budget:flightBudget,onBudget:setFlightBudget,count:flightRows.length,nonstopCount,disabled:busy,
   };
-  function resetFlightGroupRefinements(){setStopFilter(submittedSearch.flightStops??'ALL');setAirlineFilter('ALL');setAirlineQuery(submittedSearch.flightAirlineQuery??'');setDepartureWindows([]);setConnections([]);setFlightBudget('');}
+  function resetFlightGroupRefinements(){setStopFilter(submittedSearch.flightStops??'ALL');setAirlineFilters([]);setAllianceFilters([]);setAirlineQuery(submittedSearch.flightAirlineQuery??'');setDepartureWindows([]);setConnections([]);setFlightBudget('');}
   function changeFlightGroup(group:string){
     if(busyRef.current)return;
     if(group===shownGroup){
@@ -784,7 +884,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   }
   function focusOpenedSearch(panel:HTMLDetailsElement){
     if(searchFocusFrame.current!==null){cancelAnimationFrame(searchFocusFrame.current);searchFocusFrame.current=null;}
-    if(!panel.open||!results||quote)return;
+    if(!panel.open||!results||quote||inlineFlightSearch)return;
     const origin=document.activeElement;
     const summary=panel.querySelector(':scope > summary');
     // Native toggle is deferred: never override a field the customer has already chosen.
@@ -806,7 +906,21 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   }
   function current(id:number){return mounted.current&&operation.current===id;}
   function savePrivateDraft(){
-    if(checkoutForm.current)privateDraft.current={party:party.join(','),values:Array.from(new FormData(checkoutForm.current).entries()).filter((entry):entry is [string,string]=>typeof entry[1]==='string'&&entry[0]!=='consent')};
+    const form=checkoutForm.current;
+    const fields=form?.querySelector<HTMLFieldSetElement>('#booking-traveller-details');
+    if(!form||!fields)return;
+    const partyKey=party.join(',');
+    if(fields.hidden){
+      const email=form.elements.namedItem('email');
+      if(quote?.product!=='FLIGHT'||!(email instanceof HTMLInputElement)||!email.getClientRects().length||email.matches(':disabled'))return;
+      const saved=privateDraft.current;
+      const values=new Map(saved?.party===partyKey?saved.values:[]);
+      values.set('email',email.value);
+      privateDraft.current={party:partyKey,values:[...values]};
+      return;
+    }
+    if(fields.disabled)return;
+    privateDraft.current={party:partyKey,values:Array.from(new FormData(form).entries()).filter((entry):entry is [string,string]=>typeof entry[1]==='string'&&entry[0]!=='consent')};
   }
   function checkoutHistoryState(nextQuote:Quote){
     return {...(nextQuote.product==='HOTEL'?{hotelEntry:'review'}:{}),bookingCheckout:{quoteId:nextQuote.quoteId}};
@@ -831,9 +945,10 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     // Keep returnTo within its allowlisted size even for a large multi-city search.
     return bookingSearchUrl(criteria)??('/book?'+new URLSearchParams({product,resumeSelection:'1',resumeReview:review?'1':'0',...(handoff?.key?{selectionKey:handoff.key}:{})}).toString());
   }
-  function clearSelectionHandoff(){
+  function clearSelectionHandoff(resetRoute=true){
     setSignInWithoutSelection(false);setSignInRequired(false);setVerificationSelection(null);setResumeSelection(null);setSavedHandoff(null);
     try{sessionStorage.removeItem(BOOKING_HANDOFF_KEY);}catch{}
+    if(!resetRoute)return;
     const url=new URL(window.location.href);
     const keys=['resumeSelection','resumeReview','selectionKey','autoSearch'];
     const state=window.history.state;
@@ -864,13 +979,14 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
     ++operation.current;snapshotController.current?.abort();hotelRequest.current?.abort();++hotelGeneration.current;
     setSnapshotLoading(false);setGalleryOpen(false);setRoomsStatus('ready');setRoomsError('');
     const url=new URL(window.location.href);for(const key of ['browseSearch','flightSearch','flightStops','flightSort','flightAirlineQuery','stay','gallery','stayStep'])url.searchParams.delete(key);url.searchParams.set('product',next);window.history.replaceState(null,'',url.pathname+url.search);
-    clearSelectionHandoff();checkoutHistory.current=null;setHasFullSearchResults(false);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;privateDraft.current=null;setProduct(next);setAirlineQuery('');setResults(null);setQuote(null);setRooms(null);setRoomView(false);setSelectedFares({});setMessage('');setSelection(null);setExtrasPending(false);
+    clearSelectionHandoff();checkoutHistory.current=null;setHasFullSearchResults(false);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;privateDraft.current=null;setProduct(next);setAirlineQuery('');setPreferredAirline('');setAllianceFilters([]);setResults(null);setQuote(null);setRooms(null);setRoomView(false);setSelectedFares({});setMessage('');setSelection(null);setExtrasPending(false);
   }
   async function search(form:HTMLFormElement|null,dateSearch?:Record<string,string>){
     if((!form&&!dateSearch)||(product==='HOTEL'&&destinationResolving)||payment||paymentUncertain||recoveryBlocked)return;
     const nearby=dateSearch?submittedFlightDateInput(dateSearch):null;
     const fields=nearby?.fields??new FormData(form!);
     const party=nearby?.party??{adults,children,infants};
+    const isMultiCitySearch=!nearby&&multiCity;
     backgroundSearch.pause();
     const task=begin('Finding available journeys');if(!task)return;snapshotController.current?.abort();setSnapshotLoading(false);if(!nearby){clearFlightViewFields();setAirlineQuery('');}hotelMoreRequest.current?.abort();setLoadingMoreHotels(false);setHotelMoreError('');privateDraft.current=null;checkoutHistory.current=null;setFreshSearchRequired(false);
     let validating=true;
@@ -882,11 +998,11 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       if(fields.get('returnDate')&&!returnDate)throw Error('Enter a valid return date (DD/MM/YYYY).');
       if(product==='FLIGHT'&&origin===destination)throw Error('Choose different departure and arrival airports.');
       if(product==='FLIGHT'&&(party.adults+party.children>9||party.infants>party.adults))throw Error('Adults and children must total nine or fewer. Each infant needs an adult.');
-      if(product==='FLIGHT'&&!multiCity&&returnDate&&returnDate<date)throw Error('Your return date cannot be before departure.');
+      if(product==='FLIGHT'&&!isMultiCitySearch&&returnDate&&returnDate<date)throw Error('Your return date cannot be before departure.');
       const end=normalizeBookingDate(String(fields.get('end')??''));
       if(product==='HOTEL'&&end<=date)throw Error('Check-out must be after check-in.');
       const legs=[{from:origin,to:destination,date},...Array.from({length:legCount-1},(_,i)=>({from:String(fields.get(`leg-from-${i+1}`)).toUpperCase(),to:String(fields.get(`leg-to-${i+1}`)).toUpperCase(),date:normalizeBookingDate(String(fields.get(`leg-date-${i+1}`)??''))}))];
-      if(product==='FLIGHT'&&multiCity&&legs.some((leg,index)=>leg.from===leg.to||(index>0&&leg.date<legs[index-1].date)))throw Error('Choose different airports and chronological dates for every flight.');
+      if(product==='FLIGHT'&&isMultiCitySearch&&legs.some((leg,index)=>leg.from===leg.to||(index>0&&leg.date<legs[index-1].date)))throw Error('Choose different airports and chronological dates for every flight.');
       const completeRooms=product==='HOTEL'?completeHotelRooms(hotelOccupancy):[];
       const numberOfGuests=completeRooms.reduce((sum,room)=>sum+room.adults+room.childAge.length,0);
       const travellerCount=party.adults+party.children+party.infants;
@@ -894,7 +1010,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       const displayDates=`${travelDateLabel(date)}${lastDate?` – ${travelDateLabel(lastDate)}`:''}`;
       const needsMapping=product==='HOTEL'&&!parseHotelIds(String(fields.get('hotelIds')??'')).length;
       const context:PendingSearch=product==='FLIGHT'?{
-        title:multiCity?legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · '):`${origin} → ${destination}`,
+        title:isMultiCitySearch?legs.map(leg=>`${leg.from} → ${leg.to}`).join(' · '):`${origin} → ${destination}`,
         detail:`${displayDates} · ${travellerCount} traveller${travellerCount===1?'':'s'} · ${String(fields.get('cabin')||'Economy').replaceAll('_',' ').toLowerCase().replace(/^./,letter=>letter.toUpperCase())}`,
         phase:'availability',
         ...(nearby&&{departureDate:date}),
@@ -919,30 +1035,40 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         if(!parseHotelIds(String(fields.get('hotelIds')??'')).length)throw Error(cursor?'No stays in these destination batches. Search again to check the next available batch.':'No hotels were found for this destination. Choose another destination.');
         setPendingSearchContext({...context,phase:'availability'});
       }
-      const input=bookingSearchInput(fields,{product,...party,multiCity:!nearby&&multiCity,legCount,hotelOccupancy});
-      validating=false;setSearchValidation(false);snapshotController.current?.abort();setSnapshotLoading(false);hotelRequest.current?.abort();++hotelGeneration.current;setGalleryOpen(false);clearSelectionHandoff();setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;
+      const input=bookingSearchInput(fields,{product,...party,multiCity:isMultiCitySearch,legCount,hotelOccupancy});
+      const flightCriteria=product==='FLIGHT'?dateSearch??{product,from:origin,to:destination,date,adults:String(adults),children:String(children),infants:String(infants),cabin:String(fields.get('cabin')),...(isMultiCitySearch?{legs:JSON.stringify(legs)}:returnDate?{returnDate}:{})}:null;
+      // The inline results form unmounts during a new search. Keep its validated draft
+      // in the form even if availability fails. The URL still commits only on success.
+      if(flightCriteria&&!nearby&&hasFullSearchResults)setSearchPrefill(flightCriteria);
+      const dateTraversal=Boolean(nearby||window.history.state?.flightDateSearch);
+      validating=false;setSearchValidation(false);snapshotController.current?.abort();setSnapshotLoading(false);hotelRequest.current?.abort();++hotelGeneration.current;setGalleryOpen(false);clearSelectionHandoff(!dateTraversal);setSearchRecovery(false);restoreRoomReturn.current=false;restoreFlightResults.current=false;
       if(!nearby){setHasFullSearchResults(false);setResults(null);setSelectedFares({});}
       setQuote(null);setRooms(null);setRoomView(false);setSelection(null);setPayment(null);setPaymentUncertain(false);setNeedsReview(false);
       const data=await api<Results>('/api/travel/search',input,task.signal,takeBackgroundSearchHeaders(input));
       if(current(task.id)){
-        setSelectedFares({});setSortBy('price');setStopFilter('ALL');setAirlineFilter('ALL');setAirlineQuery('');setDepartureWindows([]);setConnections([]);setFlightBudget('');
+        setSelectedFares({});setSortBy('price');setStopFilter('ALL');setAirlineFilters([]);setAllianceFilters([]);setAirlineQuery('');setDepartureWindows([]);setConnections([]);setFlightBudget('');
         // Commit only successful submitted criteria, never an unsubmitted edit or checkout fields.
-        const criteria:Record<string,string>=dateSearch??(product==='FLIGHT'?{product,from:origin,to:destination,date,adults:String(adults),children:String(children),infants:String(infants),cabin:String(fields.get('cabin')),...(multiCity?{legs:JSON.stringify(legs)}:returnDate?{returnDate}:{})}:{product,city:String(fields.get('city')??''),hotelIds:String(fields.get('hotelIds')??''),date,end,adults:String(hotelOccupancy[0].adults),rooms:JSON.stringify(hotelOccupancy),nationality:String(fields.get('nationality')),regionId:String(fields.get('regionId')??''),destinationCursor:String(fields.get('destinationCursor')??'')});
+        const criteria:Record<string,string>=flightCriteria??{product,city:String(fields.get('city')??''),hotelIds:String(fields.get('hotelIds')??''),date,end,adults:String(hotelOccupancy[0].adults),rooms:JSON.stringify(hotelOccupancy),nationality:String(fields.get('nationality')),regionId:String(fields.get('regionId')??''),destinationCursor:String(fields.get('destinationCursor')??'')};
         if(product==='HOTEL')setHotelNextCursor(criteria.destinationCursor);
-        if(prefill.autoSearch==='1'||window.history.state?.flightDateSearch)criteria.autoSearch='1';
-        const committedSearch=submittedBookingSearch(criteria);
+        const autoSearch=prefill.autoSearch==='1'||window.history.state?.flightDateSearch;
+        const committedSearch=submittedBookingSearch(autoSearch?{...criteria,autoSearch:'1'}:criteria);
         const searchUrl=committedSearch.shareable?committedSearch.url:null;
         setSubmittedSearch(committedSearch.criteria);submittedSearchRoute.current=committedSearch.url;
         if(nearby){
           const previous=submittedBookingSearch({...submittedSearch,autoSearch:'1'});
-          window.history.replaceState({flightDateSearch:true},'',previous.url);
-          window.history.pushState({flightDateSearch:true},'',committedSearch.url);
+          const dateHistory={flightDateSearch:true,flightDateComparison:dateComparison.current?.open??false};
+          const previousUrl=previous.url===window.location.pathname+window.location.search?undefined:previous.url;
+          window.history.replaceState(dateHistory,'',previousUrl);
+          window.history.pushState(dateHistory,'',committedSearch.url);
           setAdults(party.adults);setChildren(party.children);setInfants(party.infants);setCabin(criteria.cabin);
+          setFlightJourney(criteria.returnDate?'round-trip':'one-way');setReturnDateDraft(criteria.returnDate??'');
           setSearchPrefill(committedSearch.criteria);
         }else{
           const currentDateEntry=product==='FLIGHT'&&window.history.state?.flightDateSearch;
-          window.history.replaceState(currentDateEntry?{flightDateSearch:true}:null,'',committedSearch.url);
-          if(needsMapping)setSearchPrefill(committedSearch.criteria);
+          const dateHistory=currentDateEntry?{flightDateSearch:true,flightDateComparison:Boolean(window.history.state?.flightDateComparison)}:null;
+          const nextUrl=committedSearch.url===window.location.pathname+window.location.search?undefined:committedSearch.url;
+          window.history.replaceState(dateHistory,'',nextUrl);
+          if(flightCriteria||needsMapping)setSearchPrefill(committedSearch.criteria);
         }
         if(!searchUrl)setMessage('Your search is ready. This large search cannot be saved in a link; after refreshing or signing in, choose your search again.');
         setHotelStayContext(product === 'HOTEL' ? {
@@ -982,7 +1108,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       if(current(task.id)){
         setReceivedReviewWindow({quoteId:value.quoteId,refreshAtSeconds:Math.min(60,Math.floor(quoteRemaining(value.expiresAt,new Date().getTime())/3))});
         refreshedContinuation.current=renew?{quoteId:value.quoteId,validate:validateAfterRefresh}:null;
-        if(!renew)checkoutQuoteIds.current.clear();
+        if(!renew){checkoutQuoteIds.current.clear();setTravellersStep(false);}
         checkoutQuoteIds.current.add(value.quoteId);
         setExtrasRefreshBlockedQuote(null);
         setExtrasResetNotice(resetDraftExtras);
@@ -1012,7 +1138,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
         const flights=chosenFlights.length?chosenFlights.map(flight=>({...flight,totalPriceList:flight.totalPriceList.filter(fare=>nextSelection.priceIds?.includes(fare.id))})):selectedJourney;
         const prior=savedHandoff?.searchId===reviewSearchId?savedHandoff:null;
         const sameSelection=prior&&JSON.stringify(prior.selection)===JSON.stringify(nextSelection);
-        const handoff=parseBookingHandoff({version:1,savedAt:prior?.savedAt??new Date().getTime(),key:(sameSelection?prior?.key:undefined)??crypto.randomUUID(),...(checkoutSession?.user.id?{ownerId:checkoutSession.user.id}:{}),product,searchId:reviewSearchId,selection:nextSelection,flights,...(product==='HOTEL'?{hotel:rooms?{name:rooms.name,roomLabel:hotelRoomLabel({roomInfo:room?.roomInfo??[]}),mealBasis:room?.mealBasis}:prior?.hotel}:{})});
+        const handoff=parseBookingHandoff({version:1,savedAt:prior?.savedAt??new Date().getTime(),key:(sameSelection?prior?.key:undefined)??crypto.randomUUID(),...(checkoutSession?.user.id?{ownerId:checkoutSession.user.id}:{}),product,searchId:reviewSearchId,selection:nextSelection,flights,...(product==='HOTEL'?{hotel:rooms?{name:rooms.name,roomLabel:hotelRoomLabel({roomInfo:room?.roomInfo??[]}),mealBasis:room?roomMealLabel(room):undefined}:prior?.hotel}:{})});
         // The mounted checkout keeps the complete search and selection. Storage
         // is only a public-choice recovery aid if this tab is later reloaded.
         setVerificationSelection(nextSelection);setSavedHandoff(handoff);handoffRead.current=true;
@@ -1040,6 +1166,7 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   useEffect(()=>{
     function restoreCheckout(event:PopStateEvent){
       if(window.location.pathname!=='/book')return;
+      setPriceAlertOpener(null);
       const target=event.state?.bookingCheckout,cached=checkoutHistory.current;
       if(payment||paymentUncertain||recoveryBlocked||busyRef.current){
         if(quote)window.history.pushState(checkoutHistoryState(quote),'',ownedRoute.current.url);
@@ -1330,10 +1457,26 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const showSearchScene=searchingAvailability&&!switchingDate;
   const hasPreviousCheckout=Boolean(recovery.pending)||recovery.pendingCount>0;
   const checkoutLocked=busy||Boolean(payment)||paymentUncertain||recoveryBlocked;
+  const checkoutSteps=checkoutConfigured?['Review trip',quote?.product==='HOTEL'?'Guests & payment':'Travellers & payment','Confirmation']:['Review trip'];
+  function showTravellerStep(){
+    const email=checkoutForm.current?.elements.namedItem('email');
+    if(quote?.product==='FLIGHT'&&email instanceof HTMLInputElement&&email.getClientRects().length&&!email.validity.valid){
+      email.focus({preventScroll:true});
+      email.scrollIntoView({block:'center'});
+      email.reportValidity();
+      return;
+    }
+    setTravellersStep(true);
+    requestAnimationFrame(()=>{
+      if(checkoutForm.current)updateTravellerSummary(checkoutForm.current);
+      document.getElementById('checkout-stage-title')?.focus({preventScroll:true});
+      document.getElementById('booking-review')?.scrollIntoView({block:'start'});
+    });
+  }
   const bookingProgress=<ol className="booking-progress" aria-label="Booking progress">{['Search',product==='HOTEL'?'Choose stay':'Choose flight',checkoutConfigured?'Review & pay':'Review selection',...(checkoutConfigured?['Confirmation']:[])].map((label,index)=><li key={label} aria-current={step===index?'step':undefined} className={index<step?'is-complete':index===step?'is-current':''}><span aria-hidden="true">{index<step?'✓':index+1}</span>{label}</li>)}</ol>;
   useEffect(()=>{
     const workflow=document.getElementById('main-content');
-    const header=document.querySelector('.concierge-header');
+    const header=document.querySelector('.travel-navigation');
     if(!workflow||!header)return;
     const setOffset=()=>workflow.style.setProperty('--booking-header-offset',`${Math.ceil(header.getBoundingClientRect().height)+12}px`);
     setOffset();
@@ -1345,32 +1488,101 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
   const originCity=outward?.[0]?.da.code===submittedSearch.from?outward?.[0]?.da.city:undefined;
   const arrivalAirport=outward?.at(-1)?.aa;
   const arrivalCity=arrivalAirport?.code===submittedSearch.to?arrivalAirport?.city:undefined;
+  const watch=product==='FLIGHT'&&hasFullSearchResults?flightPriceAlertWatch(submittedSearch):null;
+  const reviewAlertQuoteId=watch&&quote?.product==='FLIGHT'&&!enteringTravellers&&quote.summary?.from===watch.from
+    &&quote.summary.to===watch.to&&quote.summary.date===watch.date&&quote.summary.adults===1
+    &&!quote.summary.returnDate&&!quote.summary.legs?.length&&!quote.summary.children&&!quote.summary.infants?quote.quoteId:null;
+  const priceAlertScope=inlineFlightSearch?'results':reviewAlertQuoteId;
+  const watchedEstimate=watch&&priceAlertScope?lowestAdultFareMinor(results?.results,{...watch,adults:1}):null;
+  const priceAlert=watch&&watchedEstimate!==null?{watch,searchEstimate:watchedEstimate,
+    route:`${originCity||watch.from} to ${arrivalCity||watch.to}`}:null;
+  function openPriceAlert(event:MouseEvent<HTMLButtonElement>){
+    if(results&&priceAlert&&priceAlertScope&&!busyRef.current){
+      setPriceAlertOpener({searchId:results.searchId,scope:priceAlertScope,button:event.currentTarget});
+    }
+  }
+  const reviewPriceAlert=reviewAlertQuoteId&&priceAlert&&<button type="button" className="flight-review-price-alert" aria-haspopup="dialog" aria-label="Set a price alert" disabled={checkoutLocked} onClick={openPriceAlert}>
+    <TravelIcon name="bell" size={18}/><span>Set a price alert</span>
+  </button>;
   const submittedLegs=searchLegs(submittedSearch.legs);
   const mobileRoute=submittedLegs?.length?'Multi-city':`${submittedSearch.from} → ${submittedSearch.to}`;
   const shoppingHeader=Boolean(results&&hasFullSearchResults&&!checkoutStarted&&!roomView&&!showSearchScene);
   const travellerCount=Number(submittedSearch.adults||1)+Number(submittedSearch.children||0)+Number(submittedSearch.infants||0);
   const mobileCabin=(submittedSearch.cabin||'ECONOMY').replaceAll('_',' ').toLowerCase().replace(/^./,letter=>letter.toUpperCase());
   const mobileDate=(date?:string)=>travelDateLabel(date).replace(/\s+\d{4}$/,'');
+  const flightDisplayDate=shortFlightResultDate(submittedSearch.date);
   const mobileParty=product==='HOTEL'&&hotelStayContext
     ? `${hotelStayContext.guests} guest${hotelStayContext.guests===1?'':'s'}, ${hotelStayContext.rooms} room${hotelStayContext.rooms===1?'':'s'}`
     : `${travellerCount} traveller${travellerCount===1?'':'s'} · ${mobileCabin}`;
-  const resultMobileSubtitle=shoppingHeader?`${mobileDate(submittedLegs?.[0]?.date??submittedSearch.date)}${product==='HOTEL'&&submittedSearch.end?' – '+mobileDate(submittedSearch.end):''} · ${mobileParty}`:undefined;
-  const mobileHeading=checkoutStarted?'Booking review':roomView?'Room selection':shoppingHeader?(product==='HOTEL'?submittedSearch.city||'Hotel results':`${mobileRoute} Flight Results`):product==='FLIGHT'?'Find a flight':'Find a stay';
-  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} mobileTitle={mobileHeading} mobileSubtitle={checkoutStarted?'Details & payment':resultMobileSubtitle}
+  const resultJourney=submittedLegs?.length?'Multi-city':submittedSearch.returnDate?'Round trip':'One way';
+  const hotelPropertyHeader=product==='HOTEL'&&roomView&&Boolean(hotelStayContext);
+  const mobileStayEnd=hotelStayContext?.checkOut??submittedSearch.end;
+  const resultMobileSubtitle=shoppingHeader||hotelPropertyHeader?`${mobileDate(hotelStayContext?.checkIn??submittedLegs?.[0]?.date??submittedSearch.date)}${product==='HOTEL'&&mobileStayEnd?' – '+mobileDate(mobileStayEnd):''} · ${mobileParty}`:undefined;
+  const mobileHeading=checkoutStarted?'Booking review':hotelPropertyHeader?(submittedSearch.city||'Room selection'):roomView?'Room selection':shoppingHeader?(product==='HOTEL'?submittedSearch.city||'Hotel results':`${mobileRoute} Flight Results`):product==='FLIGHT'?'Find a flight':'Find a stay';
+  const flightReview=quote?.product==='FLIGHT';
+  const reviewExpiry=<div className={`booking-expiry${priceRefreshNeeded?' is-expired':''}`} role={priceRefreshNeeded?'alert':undefined}>
+    <div>
+      <strong>{payment?'Payment order created':expired?'Price review expired':needsReview?'Price review needed':extrasRefreshSoon?'Refresh fare & extras before payment':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong>
+      <p className={!priceRefreshNeeded&&!payment?'booking-expiry-helper':undefined}>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':priceRefreshNeeded?'Your selected extras and traveller details are kept. Refresh the fare below, then choose Agree & pay for the latest total. Refreshing does not start payment.':'We’ll check the price again if needed before payment.'}</p>
+      <small className="checkout-test-mode">In testing · No live bookings or payments</small>
+    </div>
+    {busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}
+    {!payment&&!paymentUncertain&&selection&&(!priceRefreshNeeded||!enteringTravellers)&&<button type="button" className="secondary" disabled={busy} aria-label={busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'} onClick={()=>void review(selection,true)}>
+      <span className="clock-refresh-wide">{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</span>
+      <span className="clock-refresh-short">{busy&&checkingSelection?'Checking…':'Refresh'}</span>
+    </button>}
+  </div>;
+  const flightReviewContext=flightReview&&<div className="flight-review-trip-facts">
+    <TravelIcon name="airplane" size={20}/>
+    <div><strong>{summaryTitle}</strong><small>{[[quote.summary?.date,quote.summary?.returnDate].filter(Boolean).map(date=>mobileDate(date)).join(' – '),journeyLabel,submittedSearch.cabin&&mobileCabin,`${party.length} traveller${party.length===1?'':'s'}`].filter(Boolean).join(' · ')}</small></div>
+  </div>;
+  function showSelectedFlightItinerary() {
+    const heading=document.getElementById('booking-review-title');
+    heading?.focus({preventScroll:true});
+    heading?.scrollIntoView({block:'center'});
+  }
+  const checkoutContact=<section id="booking-contact-details" className="booking-contact">
+    <h3><StitchSymbol name="contact_mail" size={21}/> Contact information</h3>
+    <p className="muted">Booking updates and confirmation will go to these contact details.</p>
+    {!checkoutSession&&<p className="guest-checkout-note"><strong>Booking as a guest.</strong> No account or code needed. Your confirmation and updates go to this email; sign in with it later to manage the trip in My trips. <Link href={accountHref('/book?'+new URLSearchParams(submittedSearch).toString())}>Sign in instead</Link></p>}
+    <fieldset className="booking-contact-fields" disabled={checkoutLocked||!checkoutConfigured}>
+      <div className="form-row">
+        <label>Email<input {...fieldProps('email')} name="email" type="email" autoComplete="section-contact email" defaultValue={verifiedEmail||customerEmail(checkoutSession?.user)} required maxLength={254}/>{fieldError('email')}</label>
+        <fieldset className="booking-phone-fields" hidden={!enteringTravellers} disabled={!enteringTravellers}>
+          <label>Country code<select name="phoneCountryCode" autoComplete="section-contact tel-country-code" defaultValue={savedPhone?.code??'+91'}>{callingCodes.map(({code,label})=><option key={code} value={code}>{label}</option>)}</select></label>
+          <label>Mobile number<input {...fieldProps('phone')} name="phone" type="tel" autoComplete="section-contact tel-national" defaultValue={savedPhone?.national??''} required maxLength={40} placeholder="Mobile number"/>{fieldError('phone')}</label>
+        </fieldset>
+      </div>
+      <details className="review-contact-gst" open={gstRequired} hidden={!enteringTravellers}><summary>GST billing details{gstRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>GST number<input {...fieldProps('gstNumber')} name="gstNumber" onChange={event=>setGstEntered(Boolean(event.target.value.trim()))} required={gstRequired} minLength={15} maxLength={15}/>{fieldError('gstNumber')}</label><label>Registered business name<input {...fieldProps('gstName')} name="gstName" required={gstRequired||gstEntered} maxLength={35}/>{fieldError('gstName')}</label><label>Billing address<input {...fieldProps('gstAddress')} name="gstAddress" maxLength={70}/>{fieldError('gstAddress')}</label></div></details>
+    </fieldset>
+    {flightReview&&!enteringTravellers&&<button type="button" className="primary flight-review-contact-next" disabled={checkoutLocked} onClick={showTravellerStep}>Continue <TravelIcon name="chevron" size={17}/></button>}
+  </section>;
+  const departureField=<BookingDateInput name="date" label={product==='FLIGHT'?'Departure':'Check-in'} caption={inlineFlightSearch?'Depart':undefined} min={today} initial={searchPrefill.date} compact={inlineFlightSearch}
+    previousDate={inlineFlightSearch&&<FlightAdjacentDay direction="previous" day={previousFlightDate} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)}/>}
+    nextDate={inlineFlightSearch&&<FlightAdjacentDay direction="next" day={nextFlightDate} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)}/>}/>;
+  const flightReturnField=product==='FLIGHT'&&flightJourney==='round-trip'?<BookingDateInput name="returnDate" label="Return date" caption={inlineFlightSearch?'Return':undefined} min={today} initial={returnDateDraft} onDateChange={setReturnDateDraft} compact={inlineFlightSearch}/>:undefined;
+  const draftTravellerCount=adults+children+infants;
+  const submitSearch=<button className="primary booking-search-submit" aria-label={product==='FLIGHT'?'Search flights':undefined} disabled={busy||(product==='HOTEL'&&destinationResolving)}>{busy?'Checking availability…':inlineFlightSearch?<><TravelIcon name="search" size={17}/>Search</>:product==='FLIGHT'?'Search flights':destinationResolving?'Finding your destination…':'Search stays'}</button>;
+  const preferredAirlineChoices=[...new Map(groupFlights.flatMap(item=>item.sI.map(segment=>segment.fD.aI)).map(airline=>[airline.code||airline.name,airline])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+  const selectedItinerary=quote?<SelectedJourneyReceipt context={<div className="review-selection-context">
+            <h2 id="booking-review-title" tabIndex={-1}>{!checkoutConfigured?'Your reviewed selection':quote.product==='HOTEL'?'Hotel stay':'Flight itinerary'}</h2>
+            <button type="button" className="inline-link" aria-label="Change selection" disabled={checkoutLocked} onClick={changeSelection}>Change <TravelIcon name="chevron" size={13}/></button>
+          </div>} fallbackFlight={{title:quote.summary?.from&&quote.summary.to?summaryTitle:'Your selected flight',date:quote.summary?.date}} flights={reviewFlights} flightCriteria={flightCriteria} flightJourney={quote.product==='FLIGHT'?journeyLabel:undefined} totalMinor={quote.totalMinor} hotel={quote.product==='HOTEL'?{name:quote.hotelName||rooms?.name||savedHandoff?.hotel?.name||'Selected stay',property:rooms?.hid===selection?.hid?roomProperty:undefined,guests:party.length,rooms:reviewedRooms.length,inclusions:hotelRate.inclusions,bookingNotes:hotelRate.bookingNotes??undefined,checkIn:quote.summary?.checkIn,checkOut:quote.summary?.checkOut,room:hotelRoomLabel({roomInfo:quote.review.option?.roomInfo??selectedRoom?.roomInfo??[]}),meal:reviewedHotelMeal,cancellation:hotelCancellationLabel(quote.review.option?.cancellation,now??undefined)}:undefined}><h3>{quote.product==='FLIGHT'?'Your selected flights':'Your selected room'}</h3>{quote.product==='FLIGHT'?reviewFlights.map((flight,index)=><BookingFlightCard key={index} flight={flight} group={reviewedJourney==='one-way'?'ONWARD':reviewFlights.length===1?'COMBO':reviewedJourney==='round-trip'?(index===0?'ONWARD':'RETURN'):String(index+1)} busy={true} readOnly onSelect={()=>{}} selectedFareId={flight.totalPriceList[0]?.id}/>):<><p>{quote.hotelName||rooms?.name||savedHandoff?.hotel?.name||'Selected stay'}</p><h4>{hotelRoomLabel({roomInfo:quote.review.option?.roomInfo??selectedRoom?.roomInfo??[]})}</h4>{hotelRate.inclusions.length>0&&<ul>{hotelRate.inclusions.map(item=><li key={item}>{item}</li>)}</ul>}<p>{reviewedHotelMeal}</p>{hotelRate.bookingNotes&&<section><h4>Property instructions</h4><p className="stay-booking-notes">{hotelRate.bookingNotes}</p></section>}</>}<p className="muted">Search details are shown for your selection. The latest reviewed price and supplier conditions below take precedence.</p></SelectedJourneyReceipt>:null;
+  return <><TravelHeader active={product==='FLIGHT'?'flights':'hotels'} mobileTitle={inlineFlightSearch?null:mobileHeading} mobileSubtitle={checkoutStarted?'Details & payment':resultMobileSubtitle}
     onMobileBack={checkoutStarted?(payment||paymentUncertain||recoveryBlocked?undefined:changeSelection):roomView?backToStays:shoppingHeader?()=>router.push('/'):undefined}
-    onMobileEdit={results&&!checkoutStarted&&!showSearchScene?()=>{const panel=searchForm.current?.closest('details');if(!panel)return;panel.open=true;panel.scrollIntoView({block:'start'});searchForm.current?.querySelector<HTMLInputElement>(product==='HOTEL'?'input[name="city"]':'input:not([type=hidden])')?.focus({preventScroll:true});}:undefined}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow revamp-journey revamp-booking${results||quote?' has-journey':''}${!checkoutStarted?' booking-shopping':' checkout-active'}${showSearchScene?' is-searching':''}${product==='HOTEL'&&results&&!checkoutStarted?' hotel-results-page':''}${product==='FLIGHT'&&results&&!checkoutStarted?' flight-results-page':''}${results&&!checkoutStarted?' results-only':''}`}>
-    <nav className="revamp-booking-breadcrumb" aria-label="Booking breadcrumb">
+    onMobileEdit={results&&!checkoutStarted&&!showSearchScene&&!inlineFlightSearch?()=>{const panel=searchForm.current?.closest('details');if(!panel)return;panel.open=true;panel.scrollIntoView({block:'start'});searchForm.current?.querySelector<HTMLInputElement>(product==='HOTEL'?'input[name="city"]':'input:not([type=hidden])')?.focus({preventScroll:true});}:undefined}/><main id="main-content" className={`page-shell live-booking booking-workflow journey-flow revamp-journey revamp-booking${results||quote?' has-journey':''}${!checkoutStarted?' booking-shopping':' checkout-active'}${showSearchScene?' is-searching':''}${product==='HOTEL'&&results&&!checkoutStarted?' hotel-results-page':''}${product==='FLIGHT'&&results&&!checkoutStarted?' flight-results-page':''}${results&&!checkoutStarted?' results-only':''}${inlineFlightSearch?' destina-flight-results':''}`}>
+    {!results&&!quote&&<nav className="revamp-booking-breadcrumb" aria-label="Booking breadcrumb">
       <Link href="/" className="back">Explore</Link><span aria-hidden="true">/</span>
       <span aria-current="page">{checkoutStarted?'Booking review':roomView?'Room selection':product==='FLIGHT'?'Flights':'Stays'}</span>
-    </nav>
+    </nav>}
     {showSearchScene&&<SearchJourneyPending product={product} context={pendingSearchContext} onStop={stopAvailabilitySearch}/>}
     {busy&&activity!=='Finding available journeys'&&!checkingSelection&&!checkingHotelId&&
       <BookingActivity id="booking-pending" title={`${activity}…`} detail="We’re checking the details. Please wait before trying again."/>}
     {snapshotLoading&&<BookingActivity title={`Restoring your ${product==='FLIGHT'?'flight':'hotel'} search…`}
       detail="Checking this browser’s search and dates." product={product}/>}
-    <div className="page-heading booking-intro"><div className="booking-heading-copy"><span className="booking-heading-icon" aria-hidden="true"><TravelIcon name={product === "FLIGHT" ? "plane" : "hotel"} size={28}/></span><div><h1>{checkoutStarted?('Checkout'):results?(product==='FLIGHT'?'Choose your flight':roomView?'Choose your room':'Choose your stay'):(product==='FLIGHT'?'Find your flight':'Find your stay')}</h1>{!results&&!quote&&<p>{product==='FLIGHT'?'Compare fares, flight times and baggage for your trip.':'Compare properties and room rates for your full stay.'}</p>}</div></div><span className="booking-test-badge">In Testing · No live bookings or payments</span></div>
+    {!inlineFlightSearch&&<div className="page-heading booking-intro"><div className="booking-heading-copy"><span className="booking-heading-icon" aria-hidden="true"><TravelIcon name={product === "FLIGHT" ? "plane" : "hotel"} size={28}/></span><div><h1>{checkoutStarted?('Checkout'):results?(product==='FLIGHT'?'Choose your flight':roomView?'Choose your room':'Choose your stay'):(product==='FLIGHT'?'Find your flight':'Find your stay')}</h1>{!results&&!quote&&<p>{product==='FLIGHT'?'Compare fares, flight times and baggage for your trip.':'Compare properties and room rates for your full stay.'}</p>}</div></div><span className="booking-test-badge">In Testing · No live bookings or payments</span></div>}
     {!checkoutConfigured&&<section className="booking-status info-message booking-availability-notice" aria-label="Online payment availability"><h2>Online payment is currently unavailable.</h2><p>Explore options and compare terms, but you cannot complete a booking here. Traveller details and new payments are disabled.</p><Link className="inline-link" href="/customer-support">Contact Max Travel for booking help →</Link></section>}
-    {!quote&&!showSearchScene&&bookingProgress}
+    {!results&&!quote&&!showSearchScene&&bookingProgress}
     <div className={quote?"booking-layout is-inline-checkout":"booking-layout"} hidden={showSearchScene}><div className="booking-main">
       {recovery.checking&&!hasPreviousCheckout&&<div className="booking-status info-message" role="status">Checking for an interrupted checkout…</div>}
       {hasPreviousCheckout&&<section className="white-card booking-recovery" aria-label="Interrupted checkout">
@@ -1391,31 +1603,29 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       {!hasPreviousCheckout&&recovery.message&&<p className="info-message" role="status">{recovery.message} <Link href="/my-trips">My trips →</Link></p>}
       {!results&&!quote&&<div className="account-tabs booking-product-tabs" aria-label="Booking product"><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} aria-pressed={product==='FLIGHT'} onClick={()=>switchProduct('FLIGHT')}><TravelIcon name="plane" size={17}/>Flights</button><button type="button" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} aria-pressed={product==='HOTEL'} onClick={()=>switchProduct('HOTEL')}><TravelIcon name="hotel" size={17}/>Stays</button></div>}
       {searchRecovery&&<section id="booking-search-recovery" tabIndex={-1} className="info-message" role="status"><h2>Search again to compare options</h2><p>Previous search results are not available in this tab. Search again to compare other options.</p><p>Your search criteria are kept below. No new availability request is made until you search.</p></section>}
-      <details id="booking-search" className="booking-search-panel" hidden={checkoutStarted} open={!results&&!quote} onToggle={event=>focusOpenedSearch(event.currentTarget)}>
+      <details id="booking-search" className={`booking-search-panel${inlineFlightSearch?' has-inline-flight-search':''}`} hidden={checkoutStarted} open={inlineFlightSearch||!results&&!quote} onToggle={event=>focusOpenedSearch(event.currentTarget)}>
         {results && hasFullSearchResults ? <summary className="booking-criteria-strip">
           <BookingSearchSummary criteria={submittedSearch} fromCity={originCity} toCity={arrivalCity} stay={product === 'HOTEL' ? hotelStayContext : null}/>
         </summary> : <summary>
           <span className="search-panel-icon" aria-hidden="true"><TravelIcon name="search" size={18}/></span>
           {results || quote ? <><span>{summaryTitle}</span><small className="search-edit-label">Modify search</small></> : (product==='FLIGHT'?'Flight search details':'Stay search details')}
         </summary>}
-      <form key={JSON.stringify(searchPrefill)} ref={searchForm} onChange={()=>{if(searchValidation){setMessage('');setSearchValidation(false);}}} aria-label="Search availability" className="white-card live-search" onSubmit={event=>{event.preventDefault();void search(event.currentTarget);}}>
+      <form key={JSON.stringify(searchPrefill)} ref={searchForm} onChange={()=>{if(searchValidation){setMessage('');setSearchValidation(false);}}} aria-label="Search availability" className={`white-card live-search${inlineFlightSearch?' flight-inline-search':''}`} onSubmit={event=>{event.preventDefault();void search(event.currentTarget);}}>
         <fieldset className="live-search-controls" disabled={busy||Boolean(quote)||Boolean(payment)||paymentUncertain||recoveryBlocked}>
-          {product==='FLIGHT'&&<label>Journey type<select value={flightJourney} onChange={event=>{
-            const journey=event.target.value as FlightJourney;
-            setFlightJourney(journey);
-            if(journey!=='round-trip')setReturnDateDraft('');
-          }}><option value="one-way">One way</option><option value="round-trip">Round trip</option><option value="multi-city">Multi-city</option></select></label>}
-          <div className="form-row">{product==='FLIGHT'?<><AirportPicker name="from" label="From airport" initialCode={searchPrefill.from||'BOM'}/><AirportPicker name="to" label="To airport" initialCode={searchPrefill.to||'DEL'}/></>:<><HotelDestination initialQuery={searchPrefill.city||''} initialHotelIds={parseHotelIds(searchPrefill.hotelIds)} initialRegionId={searchPrefill.regionId} initialDestinationCursor={searchPrefill.destinationCursor} onResolvingChange={setDestinationResolving}/><NationalitySelect initialValue={/^\d+$/.test(searchPrefill.nationality??'')?searchPrefill.nationality:'106'}/></>}</div>
-          <div className="form-row"><BookingDateInput name="date" label={product==='FLIGHT'?'Departure':'Check-in'} min={indiaToday()} initial={searchPrefill.date}/>{product==='HOTEL'&&<BookingDateInput name="end" label="Check-out" min={indiaToday()} initial={searchPrefill.end}/>} {product==='FLIGHT'&&flightJourney==='round-trip'&&<BookingDateInput name="returnDate" label="Return date" min={indiaToday()} initial={returnDateDraft} onDateChange={setReturnDateDraft}/>}</div>
-          {product==='FLIGHT'?<details className="booking-party-picker"><summary><span><strong>Travellers & cabin</strong><small>{adults} adult{adults===1?'':'s'}{children?` · ${children} child${children===1?'':'ren'}`:''}{infants?` · ${infants} infant${infants===1?'':'s'}`:''} · {cabin==='PREMIUM_ECONOMY'?'Premium economy':cabin.charAt(0)+cabin.slice(1).toLowerCase()}</small></span><span className="party-edit">Edit</span></summary><div className="form-row"><label>Adults<select value={adults} onChange={event=>{const count=Number(event.target.value);setAdults(count);setInfants(value=>Math.min(value,count));}}>{[1,2,3,4,5,6,7,8,9].map(count=><option key={count}>{count}</option>)}</select></label><label>Children · age 2–11<select value={children} onChange={event=>setChildren(Number(event.target.value))}>{[0,1,2,3,4,5,6,7,8].map(count=><option key={count}>{count}</option>)}</select></label><label>Infants · under 2<select value={infants} onChange={event=>setInfants(Number(event.target.value))}>{Array.from({length:adults+1},(_,count)=><option key={count}>{count}</option>)}</select></label><label>Cabin<select name="cabin" value={cabin} onChange={event=>setCabin(event.target.value)}><option value="ECONOMY">Economy</option><option value="PREMIUM_ECONOMY">Premium economy</option><option value="BUSINESS">Business</option><option value="FIRST">First</option></select></label></div><p className="muted">Children are aged 2–11. Each infant under 2 must travel with an adult.</p></details>:<><label>Rooms<select value={hotelOccupancy.length} onChange={event=>{const count=Number(event.target.value);setHotelOccupancy(current=>Array.from({length:count},(_,index)=>current[index]??{adults:2,childAge:[]}));}}>{[1,2,3,4].map(count=><option key={count}>{count}</option>)}</select></label>{hotelOccupancy.map((room,roomIndex)=><fieldset key={roomIndex}><legend>Room {roomIndex+1} · Guests</legend><div className="form-row"><label>Adults<select value={room.adults} onChange={event=>setHotelOccupancy(current=>current.map((value,index)=>index===roomIndex?{...value,adults:Number(event.target.value)}:value))}>{[1,2,3,4].map(count=><option key={count}>{count}</option>)}</select></label><label>Children<select value={room.childAge.length} onChange={event=>{const count=Number(event.target.value);setHotelOccupancy(current=>current.map((value,index)=>index===roomIndex?{...value,childAge:Array.from({length:count},(_,child)=>value.childAge[child]??'')}:value));}}>{[0,1,2,3].map(count=><option key={count}>{count}</option>)}</select></label>{room.childAge.map((age,childIndex)=><label key={childIndex}>Child {childIndex+1} age at check-in<input type="number" required min={0} max={17} value={age} onChange={event=>setHotelOccupancy(current=>current.map((value,index)=>index===roomIndex?{...value,childAge:value.childAge.map((child,i)=>i===childIndex?(event.target.value===''?'':Number(event.target.value)):child)}:value))}/></label>)}</div></fieldset>)}</>}
+          {product==='FLIGHT'&&(inlineFlightSearch?<FlightJourneyButtons value={flightJourney} onChange={changeFlightJourney}/>:<label>Journey type<select value={flightJourney} onChange={event=>changeFlightJourney(event.target.value as FlightJourney)}><option value="one-way">One way</option><option value="round-trip">Round trip</option><option value="multi-city">Multi-city</option></select></label>)}
+          {inlineFlightSearch?<FlightResultsRoute from={searchPrefill.from||'BOM'} to={searchPrefill.to||'DEL'} departure={departureField} returning={flightReturnField} searchButton={submitSearch}/>:<>
+            <div className="form-row">{product==='FLIGHT'?<><AirportPicker name="from" label="From airport" initialCode={searchPrefill.from||'BOM'}/><AirportPicker name="to" label="To airport" initialCode={searchPrefill.to||'DEL'}/></>:<><HotelDestination initialQuery={searchPrefill.city||''} initialHotelIds={parseHotelIds(searchPrefill.hotelIds)} initialRegionId={searchPrefill.regionId} initialDestinationCursor={searchPrefill.destinationCursor} onResolvingChange={setDestinationResolving}/><NationalitySelect initialValue={/^\d+$/.test(searchPrefill.nationality??'')?searchPrefill.nationality:'106'}/></>}</div>
+            <div className="form-row">{departureField}{product==='HOTEL'&&<BookingDateInput name="end" label="Check-out" min={today} initial={searchPrefill.end}/>} {flightReturnField}</div>
+          </>}
+          {product==='FLIGHT'?<details className="booking-party-picker"><summary>{inlineFlightSearch&&<TravelIcon name="user" size={16}/>}<span className="booking-party-description"><strong>Travellers & cabin</strong><small>{inlineFlightSearch?`${draftTravellerCount} traveller${draftTravellerCount===1?'':'s'}`:<>{adults} adult{adults===1?'':'s'}{children?` · ${children} child${children===1?'':'ren'}`:''}{infants?` · ${infants} infant${infants===1?'':'s'}`:''}</>} · {cabin==='PREMIUM_ECONOMY'?'Premium economy':cabin.charAt(0)+cabin.slice(1).toLowerCase()}</small></span><span className="party-edit">Edit</span></summary><div className="form-row"><label>Adults<select value={adults} onChange={event=>{const count=Number(event.target.value);setAdults(count);setInfants(value=>Math.min(value,count));}}>{[1,2,3,4,5,6,7,8,9].map(count=><option key={count}>{count}</option>)}</select></label><label>Children · age 2–11<select value={children} onChange={event=>setChildren(Number(event.target.value))}>{[0,1,2,3,4,5,6,7,8].map(count=><option key={count}>{count}</option>)}</select></label><label>Infants · under 2<select value={infants} onChange={event=>setInfants(Number(event.target.value))}>{Array.from({length:adults+1},(_,count)=><option key={count}>{count}</option>)}</select></label><label>Cabin<select name="cabin" value={cabin} onChange={event=>setCabin(event.target.value)}><option value="ECONOMY">Economy</option><option value="PREMIUM_ECONOMY">Premium economy</option><option value="BUSINESS">Business</option><option value="FIRST">First</option></select></label></div><p className="muted">Children are aged 2–11. Each infant under 2 must travel with an adult.</p></details>:<><label>Rooms<select value={hotelOccupancy.length} onChange={event=>{const count=Number(event.target.value);setHotelOccupancy(current=>Array.from({length:count},(_,index)=>current[index]??{adults:2,childAge:[]}));}}>{[1,2,3,4].map(count=><option key={count}>{count}</option>)}</select></label>{hotelOccupancy.map((room,roomIndex)=><fieldset key={roomIndex}><legend>Room {roomIndex+1} · Guests</legend><div className="form-row"><label>Adults<select value={room.adults} onChange={event=>setHotelOccupancy(current=>current.map((value,index)=>index===roomIndex?{...value,adults:Number(event.target.value)}:value))}>{[1,2,3,4].map(count=><option key={count}>{count}</option>)}</select></label><label>Children<select value={room.childAge.length} onChange={event=>{const count=Number(event.target.value);setHotelOccupancy(current=>current.map((value,index)=>index===roomIndex?{...value,childAge:Array.from({length:count},(_,child)=>value.childAge[child]??'')}:value));}}>{[0,1,2,3].map(count=><option key={count}>{count}</option>)}</select></label>{room.childAge.map((age,childIndex)=><label key={childIndex}>Child {childIndex+1} age at check-in<input type="number" required min={0} max={17} value={age} onChange={event=>setHotelOccupancy(current=>current.map((value,index)=>index===roomIndex?{...value,childAge:value.childAge.map((child,i)=>i===childIndex?(event.target.value===''?'':Number(event.target.value)):child)}:value))}/></label>)}</div></fieldset>)}</>}
           {product==='FLIGHT'&&multiCity&&<div className="multi-city-legs">{Array.from({length:legCount-1},(_,index)=><fieldset key={index}><legend>Flight {index+2}</legend><div className="form-row"><AirportPicker name={`leg-from-${index+1}`} label="From airport" initialCode={restoredLegs?.[index+1]?.from??''}/><AirportPicker name={`leg-to-${index+1}`} label="To airport" initialCode={restoredLegs?.[index+1]?.to??''}/><BookingDateInput name={`leg-date-${index+1}`} label="Departure" initial={restoredLegs?.[index+1]?.date} min={indiaToday()}/></div></fieldset>)}<button className="secondary" type="button" disabled={legCount>=6} onClick={()=>setLegCount(value=>value+1)}>+ Add flight</button>{legCount>2&&<button className="secondary" type="button" onClick={()=>setLegCount(value=>value-1)}>Remove last flight</button>}</div>}
-          <p className="muted search-footnote">{product==='FLIGHT'?'Up to 9 adults and children, plus infants. All results show the estimated total for all travellers.':'Set guests for each room. Child ages must match their dates of birth at check-in.'}</p><button className="primary booking-search-submit" disabled={busy||(product==='HOTEL'&&destinationResolving)}>{busy?'Checking availability…':product==='FLIGHT'?'Search flights':destinationResolving?'Finding your destination…':'Search stays'}</button>
+          {inlineFlightSearch?<PreferredAirlines choices={preferredAirlineChoices} value={activeAirlineQuery} onChange={changePreferredAirline}/>:<><p className="muted search-footnote">{product==='FLIGHT'?'Up to 9 adults and children, plus infants. All results show the estimated total for all travellers.':'Set guests for each room. Child ages must match their dates of birth at check-in.'}</p>{submitSearch}</>}
         </fieldset>{quote&&<p className="muted">To edit your search, return to your selection first.</p>}
       </form></details>
       {busy&&verificationSelection&&checkingSelection&&<section className="white-card" role="status"><h2>Checking your selected {product==='HOTEL'?'room':'flight'}</h2><p>Your sign-in is verified. We’re confirming the latest price and availability.</p></section>}
       {verificationActive&&<section className="white-card checkout-verification-stage" aria-labelledby="booking-signin-title">
         <h2 id="booking-signin-title" tabIndex={-1}>{product==='HOTEL'?'Continue to guest details':'Continue to traveller details'}</h2>
-        <div className="booking-verification-summary signin-selection-context"><strong>{product==='HOTEL'?rooms?.name||savedHandoff?.hotel?.name||'Selected stay':'Your selected flight'}</strong><p>{product==='HOTEL'?(savedHandoff?.hotel?.roomLabel||hotelRoomLabel({roomInfo:selectedRoom?.roomInfo??[]})):selectedJourney.map(flight=>flight.sI[0]?.da.code+' → '+flight.sI.at(-1)?.aa.code+' · '+travelDateTimeLabel(flight.sI[0]?.dt)).join(' / ')}</p>{product==='FLIGHT'&&<p>Selected fare: {selectedJourney.flatMap(flight=>flight.totalPriceList.map(fare=>fareDecisionName(fare))).join(' / ')}</p>}{product==='HOTEL'&&(selectedRoom?.mealBasis||savedHandoff?.hotel?.mealBasis)&&<p>{(selectedRoom?.mealBasis||savedHandoff?.hotel?.mealBasis)?.replaceAll('_',' ')}</p>}{selectedEstimate!==null&&<p className="booking-verification-estimate"><strong>{money(selectedEstimate)}</strong> estimated {product==='HOTEL'?'stay total':'total for all travellers'}</p>}<p className="muted">Your choice stays here. We’ll confirm the latest price and availability before you enter traveller details.</p></div>
+        <div className="booking-verification-summary signin-selection-context"><strong>{product==='HOTEL'?rooms?.name||savedHandoff?.hotel?.name||'Selected stay':'Your selected flight'}</strong><p>{product==='HOTEL'?(savedHandoff?.hotel?.roomLabel||hotelRoomLabel({roomInfo:selectedRoom?.roomInfo??[]})):selectedJourney.map(flight=>flight.sI[0]?.da.code+' → '+flight.sI.at(-1)?.aa.code+' · '+travelDateTimeLabel(flight.sI[0]?.dt)).join(' / ')}</p>{product==='FLIGHT'&&<p>Selected fare: {selectedJourney.flatMap(flight=>flight.totalPriceList.map(fare=>fareDecisionName(fare))).join(' / ')}</p>}{product==='HOTEL'&&selectedHotelMeal&&<p>{selectedHotelMeal}</p>}{selectedEstimate!==null&&<p className="booking-verification-estimate"><strong>{money(selectedEstimate)}</strong> estimated {product==='HOTEL'?'stay total':'total for all travellers'}</p>}<p className="muted">Your choice stays here. We’ll confirm the latest price and availability before you enter traveller details.</p></div>
         <CheckoutVerification initialEmail={customerEmail(checkoutSession?.user)} initialPhoneNumber={checkoutSession?.user.phoneNumber??undefined} onVerified={continueVerifiedSelection}/>
         <div className="booking-verification-actions"><button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>{if(product==='HOTEL')returnToRoomOptions();else backToFlightResults();}}>{product==='HOTEL'?'Back to room options':'Back to flights'}</button></div>
       </section>}
@@ -1428,64 +1638,91 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
       {results&&!hasFullSearchResults&&!quote&&!signInRequired&&<section id="saved-selection-recovery" tabIndex={-1} className="white-card saved-selection-recovery" aria-label="Saved selection"><h2>Your saved selection</h2><p>This tab has your selected option, not the complete previous search results. No price or availability is confirmed; nothing is reserved. For privacy, traveller and contact details must be entered again after a reload.</p>{product==='FLIGHT'?selectedJourney.map((flight,index)=><div key={index}><h3>{flight.sI[0]?.da.code} → {flight.sI.at(-1)?.aa.code}</h3><p>{flight.sI[0]?.fD.aI.name} · {travelDateTimeLabel(flight.sI[0]?.dt)}</p><p>Selected fare: {flight.totalPriceList.map(fare=>fareDecisionName(fare)).join(' / ')}</p></div>):savedHandoff?.hotel&&<div><h3>{savedHandoff.hotel.name}</h3><p>{savedHandoff.hotel.roomLabel}</p>{savedHandoff.hotel.mealBasis&&<p>{savedHandoff.hotel.mealBasis.replaceAll('_',' ')}</p>}</div>}{busy&&checkingSelection?<p role="status">Checking the current price and conditions… Nothing is reserved yet.</p>:resumeSelection&&!hasVerifiedCustomerIdentity(checkoutSession?.user)?<><p>Verify your email to reopen your saved selection and check the current price. Your flight or room is checked again at this step.</p><CheckoutVerification initialEmail={checkoutSession?.user.email} onVerified={continueVerifiedSelection}/></>:<>{savedHandoff&&<button type="button" className="primary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>void review(savedHandoff.selection)}>Check current price and conditions</button>}<p>To compare other options, search again using your retained criteria.</p></>}<button type="button" className="secondary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={recoverSearch}>Search again</button></section>}
 
       {results&&hasFullSearchResults&&<section id="booking-results" className="live-results" hidden={checkoutStarted||showSearchScene||(product==='HOTEL'&&roomView)} aria-label="Available options" aria-busy={busy&&!switchingDate}>
-        {product==='FLIGHT'&&timeline.length>0&&<FlightDateTimeline days={timeline} selectedDate={submittedSearch.date} returnDate={submittedSearch.returnDate} pendingDate={switchingDate} disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)} showFares={showTimelineFares} fares={timelineCalendar.days} pendingFares={timelineCalendar.pending}/>}
+        {product==='FLIGHT'?<div className="flight-results-breadcrumb-row">
+          <nav className="revamp-booking-breadcrumb" aria-label="Booking breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><Link href="/flights">Flights</Link><span aria-hidden="true">/</span><span aria-current="page">{submittedLegs?.length?'Multi-city':`${originCity||submittedSearch.from} to ${arrivalCity||submittedSearch.to}`}</span></nav>
+          {timeline.length>0&&<details className="flight-nearby-comparison" ref={restoreDateComparison}><summary>Compare nearby dates</summary><FlightDateTimeline days={timeline} selectedDate={submittedSearch.date} returnDate={submittedSearch.returnDate} pendingDate={switchingDate} disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onPrepare={prepareNearbyDate} onSelect={criteria=>void search(null,criteria)} showFares={showTimelineFares} fares={timelineCalendar.days} pendingFares={timelineCalendar.pending}/></details>}
+          {!checkoutStarted&&<MaxAiInlineAction ariaLabel="Open Max AI travel assistant"/>}
+        </div>:<nav className="revamp-booking-breadcrumb" aria-label="Booking breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><Link href="/hotels">Hotels</Link><span aria-hidden="true">/</span><span aria-current="page">{submittedSearch.city||'Hotel results'}</span></nav>}
         {switchingDate&&<div id="booking-pending" className="flight-date-progress"><div role="status" aria-label="Search and booking activity"><span className="booking-spinner" aria-hidden="true"/><strong>Checking flights for {travelDateLabel(switchingDate)}…</strong></div><button className="secondary" type="button" onClick={stopAvailabilitySearch}>Stop search</button></div>}
         {product==='FLIGHT'&&!switchingDate&&<>
           {pairedFares&&<div className="flight-group-tabs" aria-label="Choose each flight">{fareGroups.map(group=><button type="button" key={group} className={shownGroup===group?'is-active':''} aria-pressed={shownGroup===group} disabled={busy} onClick={()=>{setActiveGroup(group);resetFlightGroupRefinements();}}>{groupLabel(group)} {selectedFares[group]?'✓':''}</button>)}</div>}
           {pairedFares&&<FlightSelectionSummary groups={fareGroups.map(group=>{const fare=selectedFare(group);return {group,fare,flight:groups[group]?.find(item=>item.totalPriceList.some(option=>option.id===fare?.id))};})} activeGroup={shownGroup} busy={busy} checking={Boolean(busy&&checkingSelection)} allSelected={allSelected} onChange={changeFlightGroup} onReview={()=>void review({priceIds:fareGroups.map(group=>selectedFares[group])})}/>}
           <div className="flight-shopping">
-          {!checkoutStarted&&<FlightDesktopFilters {...flightFilterProps} flights={groupFlights.map(comparableFlight)}/>}
+          {!checkoutStarted&&<FlightDesktopFilters {...flightFilterProps} flights={groupFlights.map(comparableFlight)} topAction={priceAlert&&<FlightPriceAlertButton disabled={busy} onClick={openPriceAlert}/>}/>}
           <div className="flight-shopping-list">
           <div className="flight-shopping-sort-row booking-results-toolbar">
             <BookingResultsHeading id="flight-results-title"
-              title={pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:`${flightRows.length} ${flightRows.length===1?'flight':'flights'} found`}
-              context={!pairedFares&&(originCity||submittedSearch.from)?`${originCity||submittedSearch.from} → ${arrivalCity||submittedSearch.to}`:undefined}
-              status={`${flightRows.length} of ${groupFlights.length} options · ${groupLabel(shownGroup||'')}`}/>
+              title={pairedFares?`Choose your ${groupLabel(shownGroup).toLowerCase()} flight`:submittedLegs?.length?'Multi-city flights':`Flights from ${originCity||submittedSearch.from} to ${arrivalCity||submittedSearch.to}`}
+              context={!pairedFares?`${resultJourney} · ${flightDisplayDate} · ${mobileParty}`:undefined}
+              status={`${flightRows.length} ${flightRows.length===1?'flight':'flights'} found`} level={1}/>
             <div className="stitch-sort-buttons"><FlightResultShortcuts flights={flightRows} group={shownGroup} isCompatible={compatibleFare} sortBy={effectiveSort} onSort={changeFlightSort} disabled={busy}/></div>
           <div className="flight-comparison-bar">
             {flightRows.length>0&&<div className="flight-sort-heading">
               <span>Sort by</span>
               <p id="flight-sort-fare-scope">Estimated fares for all travellers</p>
             </div>}
-            {!checkoutStarted&&<FlightResultsControls {...flightFilterProps} flights={groupFlights.map(comparableFlight)} sortBy={effectiveSort} onSort={changeFlightSort}/>}
+            {!checkoutStarted&&<FlightResultsControls {...flightFilterProps} flights={groupFlights.map(comparableFlight)} summary={flightRows.length>0&&<div className="flight-results-count-and-alert">
+              <p className="flight-visible-count" role="status">Showing <strong>1–{visibleFlightRows.length}</strong> of {flightRows.length} {flightRows.length===1?'flight':'flights'}</p>
+              {priceAlert&&visibleFlightRows.length<3&&<FlightPriceAlertButton compact disabled={busy} onClick={openPriceAlert}/>}
+            </div>}/>}
           </div></div>
           {flightRows.length>0&&shownGroup!=='COMBO'&&<FlightResultColumns/>}
           {visibleFlightRows.length>0&&<FlightDeskLink/>}
-          {visibleFlightRows.map((flight,index)=><BookingFlightCard key={`${shownGroup}-${flight.totalPriceList[0]?.id??index}`} flight={flight} group={shownGroup} selectionMode={pairedFares?'leg':'review'} busy={busy} checkingFareId={checkingSelection?.priceIds?.find(id=>flight.totalPriceList.some(fare=>fare.id===id))} selectedFareId={selectedFares[shownGroup]} onSelect={(fare,trigger)=>chooseFare(shownGroup,fare,trigger)} isCompatible={compatibleFare} onChangeOutbound={shownGroup==='RETURN'&&onwardFare?()=>changeFlightGroup('ONWARD'):undefined} onEditSearch={editFlightSearch}/>)}
+          {visibleFlightRows.map((flight,index)=><Fragment key={`${shownGroup}-${flight.totalPriceList[0]?.id??index}`}>
+            <BookingFlightCard flight={flight} group={shownGroup} journeyContext={`${resultJourney} · ${mobileParty}`} seatInventoryScope={seatInventoryScope} selectionMode={pairedFares?'leg':'review'} busy={busy} checkingFareId={checkingSelection?.priceIds?.find(id=>flight.totalPriceList.some(fare=>fare.id===id))} selectedFareId={selectedFares[shownGroup]} onSelect={(fare,trigger)=>chooseFare(shownGroup,fare,trigger)} isCompatible={compatibleFare} onChangeOutbound={shownGroup==='RETURN'&&onwardFare?()=>changeFlightGroup('ONWARD'):undefined} onEditSearch={editFlightSearch}/>
+            {index===5&&shownGroup==='ONWARD'&&arrivalCity&&<FlightTripIdeas destination={arrivalCity}/>}
+            {(index===2||index===9)&&priceAlert&&<FlightPriceAlertBanner route={priceAlert.route} disabled={busy} onClick={openPriceAlert}/>}
+          </Fragment>)}
           {flightRows.length>flightShown&&<div className="flight-load-more"><p className="muted" role="status">Showing {Math.min(flightShown,flightRows.length)} of {flightRows.length} flights</p><button type="button" className="secondary" disabled={busy} onClick={showMoreFlights}>Show {Math.min(FLIGHT_PAGE,flightRows.length-flightShown)} more flights</button></div>}
           {!flightRows.length&&<div className="empty-results">
             <h3>{groupFlights.length?'No flights match these filters':'No flights found for these airports'}</h3>
             <p>{groupFlights.length?'Clear the filters to see all flights for this search.':'Try a different date, route or cabin. Your search details are kept.'}</p>
-            {groupFlights.length?<button className="secondary" type="button" disabled={busy} onClick={()=>{changeFlightStops('ALL');changeFlightCarrier('ALL');setDepartureWindows([]);setConnections([]);setFlightBudget('');requestAnimationFrame(focusFlightResults);}}>Reset filters</button>:<button className="primary" type="button" disabled={busy} onClick={editFlightSearch}>Edit flight search</button>}
+            {groupFlights.length?<button className="secondary" type="button" disabled={busy} onClick={()=>{changeFlightStops('ALL');changeFlightCarriers([]);setAllianceFilters([]);setDepartureWindows([]);setConnections([]);setFlightBudget('');requestAnimationFrame(focusFlightResults);}}>Reset filters</button>:<button className="primary" type="button" disabled={busy} onClick={editFlightSearch}>Edit flight search</button>}
           </div>}
           </div></div>
         </>}
         {product==='HOTEL'&&<HotelResults destination={submittedSearch.city} active={!checkoutStarted&&!roomView} key={results.searchId} hotels={results.results.hotels??[]} context={hotelStayContext} checkingHotelId={checkingHotelId} metadataStatus={results.propertyContentPending?'loading':results.propertyContentUnavailable||results.results.hotels?.some(hotel=>hotel.propertyContentStatus==='unavailable')?'unavailable':'ready'} busy={busy||loadingMoreHotels} searchId={results.searchId} hasMore={Boolean(submittedSearch.regionId&&hotelNextCursor)} loadingMore={loadingMoreHotels} loadMoreError={hotelMoreError} onLoadMore={()=>void loadMoreHotels()} onEditSearch={()=>editHotelSearch('city')} onChoose={chooseHotel}/>}
       </section>}
       {rooms&&roomView&&!checkoutStarted&&product==='HOTEL'&&<HotelDetailView name={rooms.name} options={rooms.options} property={roomProperty} context={hotelStayContext} metadataStatus={roomListing?.propertyContentStatus==='pending'?'loading':roomListing?.propertyContentStatus==='unavailable'?'unavailable':'ready'} roomsStatus={roomsStatus} roomsError={roomsError} onRetry={()=>void loadHotelRooms({tjHotelId:rooms.hid,name:rooms.name,property:roomProperty},rooms.searchId)} galleryOpen={galleryOpen} onGalleryChange={changeHotelGallery} busy={busy} checkingOptionId={checkingSelection?.optionId} selectedOptionId={selectedRoom?.optionId} now={now} onBack={backToStays} onEditSearch={()=>editHotelSearch('date')} onReview={optionId=>void review({hid:rooms.hid,optionId})}/>}
-      {quote&&<form ref={checkoutForm} noValidate id="booking-review" aria-label="Review and travellers" className="white-card booking-review is-inline-checkout stitch-checkout"
-        onKeyDown={event=>{if(event.key==='Enter'&&event.target instanceof HTMLInputElement)event.preventDefault();}}
+      {quote&&<form ref={checkoutForm} noValidate id="booking-review" aria-label="Review and travellers" className={`white-card booking-review is-inline-checkout stitch-checkout ${enteringTravellers?'checkout-step-travellers':'checkout-step-review'}${flightReview?' flight-reference-checkout':' hotel-checkout-reference'}`}
+        onKeyDown={event=>{
+          if(event.key!=='Enter'||!(event.target instanceof HTMLInputElement))return;
+          event.preventDefault();
+          if(flightReview&&!enteringTravellers&&!checkoutLocked&&event.target.name==='email')showTravellerStep();
+        }}
         onSubmit={event=>{
           event.preventDefault();
-          if((event.nativeEvent as SubmitEvent).submitter?.classList.contains('booking-continue'))void submitCheckout(event.currentTarget);
+          if(enteringTravellers&&(event.nativeEvent as SubmitEvent).submitter?.classList.contains('booking-continue'))void submitCheckout(event.currentTarget);
         }}>
+
+        <header className="booking-checkout-hero">
+          <ol className="booking-checkout-progress" aria-label="Booking progress">{checkoutSteps.map((label,index)=><li key={label} aria-current={index===Number(enteringTravellers)?'step':undefined}><span aria-hidden="true">{enteringTravellers&&index===0?'✓':index+1}</span>{label}</li>)}</ol>
+          <h1 id="checkout-stage-title" tabIndex={-1}>{enteringTravellers?(quote.product==='HOTEL'?'Who’s staying?':'Who’s travelling?'):'Review your trip'}</h1>
+          <p>{enteringTravellers?'Enter the details required to complete your booking.':'Check the itinerary, price and booking conditions before continuing.'}</p>
+          <div className="booking-checkout-context-row">
+            <div className="booking-review-context"><strong>{summaryTitle}</strong><span>{flightReview&&`${journeyLabel} · `}{party.length} {quote.product==='HOTEL'?'guest':'traveller'}{party.length===1?'':'s'}</span>{enteringTravellers&&!checkoutLocked&&!extrasPending&&<button type="button" onClick={()=>{savePrivateDraft();setTravellersStep(false);requestAnimationFrame(()=>document.getElementById('checkout-stage-title')?.focus());}}>Review trip</button>}</div>
+            {flightReview&&<div className="checkout-stages">{reviewExpiry}</div>}
+          </div>
+        </header>
 
         {!checkoutConfigured&&<section className="review-unavailable" aria-label="Payment unavailable"><h3>Payment unavailable</h3><p>This selection has been reviewed, but no booking has been made. Online payment and traveller entry are disabled.</p><div><button type="button" className="primary" disabled={busy||Boolean(payment)||paymentUncertain||recoveryBlocked} onClick={()=>{setQuote(null);setExtrasPending(false);if(product==='HOTEL')backToStays();else backToFlightResults();}}>Back to results</button><Link className="secondary" href="/customer-support">Contact MaxTravel</Link></div></section>}
         {previousReview&&<RefreshedTerms before={previousReview} after={quote} extrasRefresh={quote.extrasRefresh}/>}
-        {initialPriceChange?.quoteId===quote.quoteId&&initialPriceChange.reviewedMinor===quote.totalMinor&&!extrasPending&&<InitialReviewPriceNotice change={initialPriceChange} product={quote.product} estimateBreakdown={initialPriceChange.estimateBreakdown} reviewedBreakdown={quote.priceBreakdown}/>}
-        <h1 className="visually-hidden">Booking review &amp; checkout</h1>
-        <div className="checkout-stages"><div className={`booking-expiry${priceRefreshNeeded?' is-expired':''}`} role={priceRefreshNeeded?'alert':undefined}><div><strong>{payment?'Payment order created':expired?'Price review expired':needsReview?'Price review needed':extrasRefreshSoon?'Refresh fare & extras before payment':`Price reviewed · ${remaining===null?'checking validity':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining`}`}</strong><p>{payment?'Your original order is preserved. Check My trips if your payment status is unclear.':priceRefreshNeeded?'Your selected extras and traveller details are kept. Refresh the fare below, then choose Agree & pay for the latest total. Refreshing does not start payment.':'We’ll check the price again if needed before payment.'}</p><small className="checkout-test-mode">In testing · No live bookings or payments</small></div>{busy&&checkingSelection&&<p role="status">Checking the latest price and rules… Please wait before continuing.</p>}{!payment&&!paymentUncertain&&selection&&!priceRefreshNeeded&&<button type="button" className="secondary" disabled={busy} aria-label={busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'} onClick={()=>void review(selection,true)}><span className="clock-refresh-wide">{busy&&checkingSelection?'Checking current price…':'Refresh reviewed price'}</span><span className="clock-refresh-short">{busy&&checkingSelection?'Checking…':'Refresh'}</span></button>}</div>{bookingProgress}</div>
+        {!enteringTravellers&&initialPriceChange?.quoteId===quote.quoteId&&initialPriceChange.reviewedMinor===quote.totalMinor&&!extrasPending&&<InitialReviewPriceNotice change={initialPriceChange} product={quote.product} estimateBreakdown={initialPriceChange.estimateBreakdown} reviewedBreakdown={quote.priceBreakdown}/>}
+        {!flightReview&&<div className="checkout-stages">{reviewExpiry}</div>}
         <div className="booking-inline-grid"><div className="booking-details-column">
-          <SelectedJourneyReceipt context={<div className="review-selection-context">
-            <h2 id="booking-review-title" tabIndex={-1}>{!checkoutConfigured?'Your reviewed selection':quote.product==='HOTEL'?'Hotel stay':'Flight itinerary'}</h2>
-            <button type="button" className="inline-link" aria-label="Change selection" disabled={checkoutLocked} onClick={changeSelection}>Change <TravelIcon name="chevron" size={13}/></button>
-          </div>} fallbackFlight={{title:quote.summary?.from&&quote.summary.to?summaryTitle:'Your selected flight',date:quote.summary?.date}} flights={reviewFlights} flightCriteria={flightCriteria} flightJourney={quote.product==='FLIGHT'?journeyLabel:undefined} totalMinor={quote.totalMinor} hotel={quote.product==='HOTEL'?{name:quote.hotelName||rooms?.name||savedHandoff?.hotel?.name||'Selected stay',property:rooms?.hid===selection?.hid?roomProperty:undefined,guests:party.length,rooms:reviewedRooms.length,inclusions:hotelRate.inclusions,bookingNotes:hotelRate.bookingNotes??undefined,checkIn:quote.summary?.checkIn,checkOut:quote.summary?.checkOut,room:hotelRoomLabel({roomInfo:quote.review.option?.roomInfo??selectedRoom?.roomInfo??[]}),meal:roomMealLabel({mealBasis:quote.review.option?.mealBasis??selectedRoom?.mealBasis,inclusions:hotelRate.inclusions}),cancellation:hotelCancellationLabel(quote.review.option?.cancellation,now??undefined)}:undefined}><h3>{quote.product==='FLIGHT'?'Your selected flights':'Your selected room'}</h3>{quote.product==='FLIGHT'?reviewFlights.map((flight,index)=><BookingFlightCard key={index} flight={flight} group={reviewedJourney==='one-way'?'ONWARD':reviewFlights.length===1?'COMBO':reviewedJourney==='round-trip'?(index===0?'ONWARD':'RETURN'):String(index+1)} busy={true} readOnly onSelect={()=>{}} selectedFareId={flight.totalPriceList[0]?.id}/>):<><p>{quote.hotelName||rooms?.name||savedHandoff?.hotel?.name||'Selected stay'}</p><h4>{hotelRoomLabel({roomInfo:quote.review.option?.roomInfo??selectedRoom?.roomInfo??[]})}</h4>{hotelRate.inclusions.length>0&&<ul>{hotelRate.inclusions.map(item=><li key={item}>{item}</li>)}</ul>}<p>{roomMealLabel({mealBasis:quote.review.option?.mealBasis??selectedRoom?.mealBasis,inclusions:hotelRate.inclusions})}</p>{hotelRate.bookingNotes&&<section><h4>Property instructions</h4><p className="stay-booking-notes">{hotelRate.bookingNotes}</p></section>}</>}<p className="muted">Search details are shown for your selection. The latest reviewed price and supplier conditions below take precedence.</p></SelectedJourneyReceipt>
+          {!enteringTravellers&&selectedItinerary}
+        {flightReview&&enteringTravellers&&<button type="button" className="flight-mobile-itinerary" onClick={showSelectedFlightItinerary}><TravelIcon name="airplane" size={20}/><span><strong>{summaryTitle}</strong><small>{travelDateLabel(quote.summary?.date)}</small></span><span>Itinerary <TravelIcon name="chevron" size={15}/></span></button>}
         {Boolean(quote.review.alerts)&&<div className="info-message"><strong>Supplier update</strong><SupplierPolicy title="Review these fare alerts" value={quote.review.alerts}/></div>}
+        <details id="booking-fare-conditions" className="review-conditions" open={cancellationNeedsAttention&&(flightReview||!enteringTravellers)}>
+          <summary>{flightReview?<><TravelIcon name="bag" size={16}/><strong>Notices</strong><span aria-hidden="true">|</span>Baggage &amp; policies</>:'Stay conditions, cancellation & documents'}</summary>
+          {hasCancellationTerms?(quote.product==='HOTEL'&&quote.review.option?.cancellation?<HotelCancellationTimeline value={quote.review.option.cancellation}/>:<SupplierPolicy title="Cancellation and fare rules" value={cancellationTerms}/>):<section className="supplier-policy" aria-label="Cancellation and fare rules"><h4>Cancellation and fare rules</h4><p className="policy-note">Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.</p></section>}
+          <section className="supplier-policy" aria-label="Required booking details"><h4>Required booking details</h4>{requiredBookingDetails.length?<ul className="fare-features">{requiredBookingDetails.map(detail=><li key={detail}>{detail}</li>)}</ul>:<p className="policy-note">No additional documents are requested in this review. Traveller names must match their travel documents.</p>}</section>
+          {flightReview&&enteringTravellers&&<FlightReviewBaggage terms={quote.review.terms}/>}
+        </details>
+        {flightReview&&!enteringTravellers&&<FlightReviewBaggage terms={quote.review.terms}/>}
         {guestErrors.length>0&&<section id="traveller-errors" className="guest-error-summary" role="alert" aria-labelledby="traveller-errors-title" tabIndex={-1}><h3 id="traveller-errors-title">Check these details before payment</h3><p>Your entries are kept. Correct the highlighted fields before paying.</p><ul>{guestErrors.map((issue,index)=><li key={`${issue.path}:${index}`}><button type="button" onClick={()=>focusGuestIssue(issue)}>{guestIssueLabel(issue)}: {issue.message}</button></li>)}</ul></section>}
-        <fieldset id="booking-traveller-details" className="booking-traveller-fields" onChange={event=>{if(checkoutForm.current)updateGuestDetails(checkoutForm.current,event.target);}} disabled={!checkoutConfigured||checkoutLocked} hidden={!checkoutConfigured}>
-          <section id="booking-contact-details" className="booking-contact"><h3><StitchSymbol name="contact_mail" size={21}/> Contact information</h3><p className="muted">Booking updates and confirmation will go to these contact details.</p>{!checkoutSession&&<p className="guest-checkout-note"><strong>Booking as a guest.</strong> No account or code needed. Your confirmation and updates go to this email; sign in with it later to manage the trip in My trips. <Link href={accountHref('/book?'+new URLSearchParams(submittedSearch).toString())}>Sign in instead</Link></p>}<div className="form-row"><label>Email<input {...fieldProps('email')} name="email" type="email" autoComplete="section-contact email" defaultValue={verifiedEmail||customerEmail(checkoutSession?.user)} required/>{fieldError('email')}</label><div className="booking-phone-fields"><label>Country code<select name="phoneCountryCode" autoComplete="section-contact tel-country-code" defaultValue={savedPhone?.code??'+91'}>{callingCodes.map(({code,label})=><option key={code} value={code}>{label}</option>)}</select></label><label>Mobile number<input {...fieldProps('phone')} name="phone" type="tel" autoComplete="section-contact tel-national" defaultValue={savedPhone?.national??''} required maxLength={40} placeholder="Mobile number"/>{fieldError('phone')}</label></div></div>
-          <details className="review-contact-gst" open={gstRequired}><summary>GST billing details{gstRequired?' · Required':' · Optional'}</summary><div className="form-row"><label>GST number<input {...fieldProps('gstNumber')} name="gstNumber" onChange={event=>setGstEntered(Boolean(event.target.value.trim()))} required={gstRequired} minLength={15} maxLength={15}/>{fieldError('gstNumber')}</label><label>Registered business name<input {...fieldProps('gstName')} name="gstName" required={gstRequired||gstEntered} maxLength={35}/>{fieldError('gstName')}</label><label>Billing address<input {...fieldProps('gstAddress')} name="gstAddress" maxLength={70}/>{fieldError('gstAddress')}</label></div></details></section>
-          <div className="review-guests"><h3><TravelIcon name="user" size={20}/> {quote.product==='HOTEL'?'Guest details':'Traveller details'}</h3>
+        <fieldset id="booking-traveller-details" className="booking-traveller-fields" onChange={event=>{if(checkoutForm.current)updateGuestDetails(checkoutForm.current,event.target);}} disabled={!checkoutConfigured||checkoutLocked||!enteringTravellers} hidden={!checkoutConfigured||!enteringTravellers}>
+          <div className="review-guests"><h3>{flightReview?<span className="flight-review-section-number" aria-hidden="true">1</span>:<TravelIcon name="user" size={20}/>} {quote.product==='HOTEL'?'Guest details':'Traveller details'}</h3>
           {party.map((pt,index)=>{
             const dobRequired=pt!=='ADULT'||Boolean(quote.review.conditions?.dob?.adobr);
             const panRequired=panRequiredForTraveller(quote.review,quote.product==='HOTEL'?hotelParty:party.map(pt=>({pt})),index);
@@ -1500,11 +1737,15 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           </div>
           {extrasResetNotice&&<p className="info-message" role="status">Unapplied changes to flight extras were cleared on refresh. Open flight extras to make those changes again.</p>}
           {quote.product==='FLIGHT'&&<details id="booking-flight-extras" className="checkout-optional-extras"><summary><span>Seats, meals & extra baggage</span><small>{extrasPending?'Changes to review':quote.savedFlightExtrasCount?`${quote.savedFlightExtrasCount} saved`:'Optional'}</small></summary><CheckoutExtras key={quote.quoteId} quoteId={quote.quoteId} disabled={busy||expired} onPending={setExtrasPending} onSaved={(total,savedFlightExtrasCount)=>{setPreviousReview(null);setPromoRevision(n=>n+1);setExtrasResetNotice(false);setQuote(current=>current?.quoteId===quote.quoteId?{...current,totalMinor:total,savedFlightExtrasCount,discountMinor:0,promoCode:null}:current);}}/></details>}
+          {!flightReview&&checkoutContact}
         </fieldset>
-        <details id="booking-fare-conditions" className="review-conditions" open={cancellationNeedsAttention}><summary>{quote.product==='HOTEL'?'Stay conditions, cancellation & documents':'Fare conditions, cancellation & documents'}</summary>{hasCancellationTerms?(quote.product==='HOTEL'&&quote.review.option?.cancellation?<HotelCancellationTimeline value={quote.review.option.cancellation}/>:<SupplierPolicy title="Cancellation and fare rules" value={cancellationTerms}/>):<section className="supplier-policy" aria-label="Cancellation and fare rules"><h4>Cancellation and fare rules</h4><p className="policy-note">Cancellation terms unavailable. Do not assume this fare is refundable. Contact support for the terms before paying.</p></section>}<section className="supplier-policy" aria-label="Required booking details"><h4>Required booking details</h4>{requiredBookingDetails.length?<ul className="fare-features">{requiredBookingDetails.map(detail=><li key={detail}>{detail}</li>)}</ul>:<p className="policy-note">No additional documents are requested in this review. Traveller names must match their travel documents.</p>}</section></details>
+        {flightReview&&checkoutConfigured&&<div className="flight-booking-contact" onChange={event=>{if(checkoutForm.current)updateGuestDetails(checkoutForm.current,event.target);}}>{checkoutContact}</div>}
+        {enteringTravellers&&flightReview&&selectedItinerary}
         </div>
         <aside ref={checkoutSummaryRef} id="booking-summary" className="booking-summary booking-review-column" aria-label="Your journey summary">
           <h3 className="checkout-summary-kicker" id="checkout-summary-heading" tabIndex={-1}>{checkoutConfigured?'Review your booking':'Your journey summary'}</h3>
+          {flightReviewContext}
+          {enteringTravellers&&quote.product==='HOTEL'&&selectedItinerary}
 
           <details className="checkout-price-breakdown" open>
             <summary><span>{quote.product==='HOTEL'?'Stay price breakdown':'Fare breakdown'}</span><small>INR · {quote.product==='HOTEL'?'entire stay':'all travellers'}</small></summary>
@@ -1520,7 +1761,13 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           <div className="checkout-summary-policy">
             <button type="button" className="inline-link" aria-controls="booking-fare-conditions" onClick={()=>showCheckoutDisclosure('booking-fare-conditions')}>View cancellation rules</button>
           </div>
-          {checkoutConfigured&&<>
+          {checkoutConfigured&&!enteringTravellers&&<div className="booking-review-next-dock">
+            <span className="booking-review-next-total" aria-hidden="true"><small>Reviewed total</small><strong>{money(quote.totalMinor)}</strong></span>
+            <button type="button" className="primary booking-travellers-next" disabled={checkoutLocked} onClick={showTravellerStep}>{quote.product==='HOTEL'?'Continue to guests':'Continue to travellers'} <TravelIcon name="chevron" size={17}/></button>
+            {reviewPriceAlert}
+          </div>}
+          {!checkoutConfigured&&reviewPriceAlert}
+          {checkoutConfigured&&enteringTravellers&&<>
 
             <CheckoutPromo actionsRef={promoActions} key={`${quote.quoteId}:${promoRevision}`} quoteId={quote.quoteId} needsConfirmation={uncertainPromoQuote===quote.quoteId} disabled={checkoutLocked||expired||needsReview||extrasPending} onBusy={pending=>{busyRef.current=pending;setBusy(pending);if(pending)setActivity('Confirming promo total');}} onUncertain={uncertain=>setUncertainPromoQuote(uncertain?quote.quoteId:null)} onUpdate={result=>setQuote(current=>current?.quoteId===result.quoteId?{...current,totalMinor:result.totalMinor,discountMinor:result.discountMinor,promoCode:result.code}:current)}/>
             <CheckoutPaymentMethods key={quote.quoteId} quoteId={quote.quoteId} totalMinor={quote.totalMinor} discountMinor={quote.discountMinor??0} appliedCode={quote.promoCode}
@@ -1549,6 +1796,8 @@ function LiveBookingWorkspace({prefill={},routePrefill,adoptRoute,checkoutConfig
           </>}
         </aside><BookingConcierge/></div>
       </form>}
+      {priceAlert&&results&&priceAlertOpener?.searchId===results.searchId&&priceAlertOpener.scope===priceAlertScope&&<FlightPriceAlertDialog {...priceAlert} opener={priceAlertOpener.button}
+        initialEmail={checkoutSession?.user.emailVerified?customerEmail(checkoutSession.user):undefined} onDismiss={()=>setPriceAlertOpener(null)}/>}
     </div>
     {!results&&!quote&&<aside id="booking-summary" className="booking-summary is-planning" aria-label="Your journey summary">
       <div className="booking-planning-photo"><Image src={product === "FLIGHT" ? "/travel/dubai.jpg" : "/travel/bali.jpg"} alt={product === "FLIGHT" ? "Dubai skyline at sunset" : "Lakeside temple in Bali"} fill sizes="(max-width: 900px) 100vw, 360px"/><span>{product === "FLIGHT" ? "Dubai" : "Bali"} · Travel inspiration</span></div>

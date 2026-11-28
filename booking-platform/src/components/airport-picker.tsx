@@ -7,11 +7,12 @@ const defaultAirportNames: Record<string,string> = {
   BOM: "Chhatrapati Shivaji Maharaj International Airport",
   DEL: "Indira Gandhi International Airport",
 };
+const defaultAirportCities: Record<string,string> = { BOM: "Mumbai", DEL: "New Delhi" };
 
 type Airport = {code:string; name:string; city:string; country:string};
 
-export default function AirportPicker({name, label, initialCode, showSelectedCode = false, onCodeChange}: {
-  name:string; label:string; initialCode:string; showSelectedCode?:boolean; onCodeChange?:(code:string) => void;
+export default function AirportPicker({name, label, caption = label, initialCode, showSelectedCode = false, hideHint = false, inlineCity = false, onCodeChange}: {
+  name:string; label:string; caption?:string; initialCode:string; showSelectedCode?:boolean; hideHint?:boolean; inlineCity?:boolean; onCodeChange?:(code:string) => void;
 }) {
   const id = useId();
   const ready = useClientReady();
@@ -21,7 +22,8 @@ export default function AirportPicker({name, label, initialCode, showSelectedCod
   const selected = rows.find(row => row.code === code);
   const country = selected?.country || (code in defaultAirportNames ? "IN" : "");
   const city = selected?.city || query.replace(/\s*\([A-Z]{3}\)$/, "");
-  const term = showSelectedCode && code ? code : query.trim();
+  const inlineLabel = city.toUpperCase() !== code ? city : defaultAirportCities[code];
+  const term = (showSelectedCode || inlineCity) && code ? code : query.trim();
   useEffect(() => {onCodeChange?.(code);}, [code, onCodeChange]);
   useEffect(() => {
     if (term.length < 2) return;
@@ -47,9 +49,11 @@ export default function AirportPicker({name, label, initialCode, showSelectedCod
     </span>
       <span className="airport-edit">{field}
         {code && <span className="stitch-airport-value" aria-hidden="true"><strong className="airport-code-badge">{code}</strong>{city !== code && <span>{city}</span>}</span>}
-      </span></> : <>{label}{field}</>}
+      </span></> : inlineCity ? <><span>{caption}</span><span className="flight-inline-airport-field">{field}
+        {code && <span className="flight-inline-airport-selection" aria-hidden="true"><strong>{code}</strong>{inlineLabel && <span>{inlineLabel}</span>}</span>}
+      </span></> : <>{caption}{field}</>}
     <input type="hidden" name={name} value={code}/>
     <datalist id={id}>{query.trim().length>=2 && rows.map(row => <option key={row.code} value={`${row.city || row.name} (${row.code})`}>{row.name} · {row.country}</option>)}</datalist>
-    <small className="airport-hint">{showSelectedCode && code ? selected?.name || defaultAirportNames[code] || "Selected airport" : "City name or 3-letter airport code"}</small>
+    {!hideHint&&<small className="airport-hint">{showSelectedCode && code ? selected?.name || defaultAirportNames[code] || "Selected airport" : "City name or 3-letter airport code"}</small>}
   </label></div>;
 }

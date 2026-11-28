@@ -9,6 +9,13 @@ test('same-price stricter hotel terms show before and after, not an inferred pri
  const rows=compareReviewedTerms(reviewedTerms('HOTEL',hotel()),reviewedTerms('HOTEL',hotel(false,'ROOM_ONLY')));
  assert.equal(rows.length,2);assert.equal(rows[0].before,'BREAKFAST');assert.equal(rows[0].after,'ROOM ONLY');assert.equal(rows[1].after,'Non-refundable');
 });
+test('the refreshed hotel review identifies a cross-meal bundle even if breakfast is listed',()=>{
+ const standard=hotel();
+ const mixed={option:{...standard.option,optionType:'CRCM'}};
+ const change=compareReviewedTerms(reviewedTerms('HOTEL',standard),reviewedTerms('HOTEL',mixed));
+ assert.equal(change.length,1);
+ assert.equal(change[0].after,'Meal plans vary by room');
+});
 test('unchanged normalized terms ignore object order, inclusions order, transient IDs and pricing',()=>{
  const a=hotel(),b={...hotel(),bookingId:'new',expiresAt:'new',option:{...hotel().option,inclusions:['Breakfast','Wifi'],pricing:{totalPrice:999}}};
  assert.deepEqual(compareReviewedTerms(reviewedTerms('HOTEL',a),reviewedTerms('HOTEL',b)),[]);

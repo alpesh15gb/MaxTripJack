@@ -10,7 +10,7 @@ export type FlightSegment = {
 export type FlightFare = {
   id: string; fareIdentifier: string; customerEstimateMinor?: number | null; currency?: string;
   sri?: string; msri?: string | string[];
-  fD: Record<string, { cc?: string; rT?: number; bI?: { iB?: string; cB?: string } }>;
+  fD: Record<string, { cc?: string; rT?: number; bI?: { iB?: string; cB?: string }; sR?: number }>;
 };
 export type Flight = { sI: FlightSegment[]; totalPriceList: FlightFare[] };
 

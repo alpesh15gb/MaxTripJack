@@ -11,6 +11,9 @@ import { TravelFooter, TravelHeader, TravelIcon } from "./travel-shell";
 import HotelPropertyMedia from "./hotel-property-media";
 import BookingConcierge from "./booking-concierge";
 import {StitchSymbol} from "./stitch-symbol";
+import TripManagement from "./trip-management";
+import "@/app/destina-booking-status.css";
+import "@/app/private-reference.css";
 
 export default function BookingStatusPage({ bookingId }: { bookingId: string }) {
   const router=useRouter();
@@ -24,13 +27,13 @@ export default function BookingStatusPage({ bookingId }: { bookingId: string }) 
   const signedOut = !error && !session || error?.status === 401;
   return <>
     <TravelHeader active="trips" mobileTitle="Booking status" mobileSubtitle="Secure booking status" onMobileBack={()=>router.push('/my-trips')} />
-    {(!ready || paused) && <main className="page-shell booking-status-page revamp-journey revamp-trip-status" id="main-content"><section className="booking-status-card booking-status-access"><p className="eyebrow">YOUR PRIVATE BOOKING</p><h1>Your booking updates are here.</h1>{checking ? <p role="status">Checking secure account access…</p> : signedOut ? <><p>Sign in to check this booking. Signing in does not change its payment or confirmation status.</p><Link className="primary" href={accountHref(`/my-trips/${bookingId}`)}>Sign in to view booking</Link></> : <><p role="alert">We couldn’t verify access to this booking. Your private details are hidden until access is confirmed.</p><button className="primary" onClick={() => void refetch()}>Check account access</button></>}</section></main>}
-    {ready && <div hidden={paused} inert={paused}><PrivateBookingStatus key={session?`${bookingId}:${session.user.id}:${session.session.id}:${session.user.emailVerified}:${session.user.phoneNumberVerified}`:`${bookingId}:guest`} bookingId={bookingId} paused={paused} /></div>}
+    {(!ready || paused) && <main className="page-shell booking-status-page revamp-journey revamp-trip-status reference-confirmation" id="main-content"><section className="booking-status-card booking-status-access"><p className="eyebrow">YOUR PRIVATE BOOKING</p><h1>Your booking updates are here.</h1>{checking ? <p role="status">Checking secure account access…</p> : signedOut ? <><p>Sign in to check this booking. Signing in does not change its payment or confirmation status.</p><Link className="primary" href={accountHref(`/my-trips/${bookingId}`)}>Sign in to view booking</Link></> : <><p role="alert">We couldn’t verify access to this booking. Your private details are hidden until access is confirmed.</p><button className="primary" onClick={() => void refetch()}>Check account access</button></>}</section></main>}
+    {ready && <div hidden={paused} inert={paused}><PrivateBookingStatus key={session?`${bookingId}:${session.user.id}:${session.session.id}:${session.user.emailVerified}:${session.user.phoneNumberVerified}`:`${bookingId}:guest`} bookingId={bookingId} paused={paused} authenticated={Boolean(session)}/></div>}
     <TravelFooter />
   </>;
 }
 
-function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused: boolean }) {
+function PrivateBookingStatus({ bookingId, paused, authenticated }: { bookingId: string; paused: boolean; authenticated: boolean }) {
   const [booking, setBooking] = useState<BookingStatusDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -84,16 +87,25 @@ function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused
 
   function retry() { setLoading(true); setRevision(value => value + 1); }
   const view = booking ? bookingStatusView(booking) : null;
-  return <main className={`page-shell booking-status-page stitch-voucher revamp-journey revamp-trip-status${view?.confirmed ? ' voucher-confirmed' : ''}`} id={paused ? undefined : "main-content"}>
+  const documentName = view?.documentReady
+    ? booking?.product === 'HOTEL' ? 'Download voucher (PDF)' : 'Download flight confirmation (PDF)'
+    : 'Download booking record (PDF)';
+  return <main className={`page-shell booking-status-page stitch-voucher revamp-journey revamp-trip-status reference-confirmation${view?.confirmed ? ' voucher-confirmed' : ''}`} id={paused ? undefined : "main-content"}>
     <Link className="booking-status-back" href="/my-trips">← My trips</Link>
     {!booking ? <section className="booking-status-card booking-status-access"><p className="eyebrow">YOUR BOOKING UPDATE</p><h1>{loading ? "Checking your booking…" : accessStatus === 404 ? "We couldn’t find this booking." : "Let’s check your booking."}</h1><p role={error ? "alert" : "status"}>{loading ? "Checking payment and supplier confirmation separately." : error}</p><div className="booking-status-actions">{accessStatus === 401 || accessStatus === 403 ? <Link className="primary" href={accountHref(`/my-trips/${bookingId}`)}>{accessStatus === 401 ? "Sign in to view booking" : "Open account"}</Link> : !loading && accessStatus !== 404 ? <button className="primary" onClick={retry}>Check status again</button> : null}<Link className="secondary" href="/customer-support">Get booking support</Link></div></section> : <>
-      {view!.confirmed && <nav className="voucher-trail" aria-label="Completed booking steps"><span><StitchSymbol name="check_circle" size={16}/> {booking.product==='HOTEL'?'Room':'Flight'} selection</span><StitchSymbol name="chevron_right" size={14}/><span><StitchSymbol name="check_circle" size={16}/> Review &amp; details</span><StitchSymbol name="chevron_right" size={14}/><strong>Confirmation</strong></nav>}
-      <header className={`booking-status-header is-${view!.tone}`}>
-        <span className="booking-status-icon"><StitchSymbol name={view!.confirmed ? "task_alt" : view!.tone === "pending" ? "schedule" : "receipt_long"} size={34}/></span>
-        <div>{view!.confirmed && <small className="voucher-status-tag"><StitchSymbol name="verified" size={13}/> Supplier confirmed</small>}<h1 aria-live="polite">{view!.title}</h1><p>{view!.description}</p></div>
-        {view!.confirmed && <div className="voucher-header-actions"><button type="button" onClick={()=>window.print()}><StitchSymbol name="print" size={17}/> Print</button>
-          <a href={`/api/bookings/${booking.id}/document`}><StitchSymbol name="download" size={17}/> Download voucher (PDF)</a></div>}
-      </header>
+      <div className="booking-confirmation-hero">
+        {view!.confirmed && <ol className="booking-checkout-progress confirmation-progress" aria-label="Booking progress">
+          <li><span aria-hidden="true"><TravelIcon name="check" size={14}/></span>Review trip</li>
+          <li><span aria-hidden="true"><TravelIcon name="check" size={14}/></span>{booking.product==="HOTEL"?"Guests & payment":"Travellers & payment"}</li>
+          <li aria-current="step"><span aria-hidden="true">3</span>Confirmation</li>
+        </ol>}
+        <header className={`booking-status-header is-${view!.tone}`}>
+          <span className="booking-status-icon"><StitchSymbol name={view!.tone === "confirmed" ? "task_alt" : view!.tone === "pending" ? "schedule" : "receipt_long"} size={34}/></span>
+          <div>{view!.confirmed && <small className="voucher-status-tag"><StitchSymbol name="verified" size={13}/> Supplier confirmed</small>}<h1 aria-live="polite">{view!.title}</h1><p>{view!.description}</p></div>
+          {view!.confirmed && <div className="voucher-header-actions"><button type="button" onClick={()=>window.print()}><StitchSymbol name="print" size={17}/> Print</button>
+            <a href={`/api/bookings/${booking.id}/document`}><StitchSymbol name="download" size={17}/> {documentName}</a></div>}
+        </header>
+      </div>
       <div className="voucher-reference">
         <div><small>Booking reference</small><strong>{booking.reference}</strong></div>
         <button type="button" className="secondary" onClick={async () => {
@@ -104,7 +116,7 @@ function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused
       </div>
       {view!.confirmed && view!.paymentReceived && <div className="voucher-payment-line"><StitchSymbol name="payments" size={17}/><strong>Paid {bookingStatusMoney(booking.totalMinor,booking.currency)}</strong><span>Payment verified</span></div>}
       {view!.confirmed && <div className="voucher-mobile-actions">
-        <a href={`/api/bookings/${booking.id}/document`}><StitchSymbol name="download" size={19}/>PDF voucher</a>
+        <a href={`/api/bookings/${booking.id}/document`}><StitchSymbol name="download" size={19}/>{!view!.documentReady?'Booking record':booking.product==='HOTEL'?'PDF voucher':'PDF confirmation'}</a>
         <a href="#voucher-receipt"><StitchSymbol name="receipt_long" size={19}/>{view!.paymentReceived?'Payment receipt':'Booking total'}</a>
         <Link href="/my-trips"><StitchSymbol name="luggage" size={19}/>My trips</Link></div>}
       {error && <p className="booking-status-notice" role="alert">{error} Your last checked details remain below.</p>}
@@ -125,7 +137,7 @@ function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused
               {booking.stay.inclusions.length > 0 && <div><strong>Included in your booking</strong><ul>{booking.stay.inclusions.map(item => <li key={item}><TravelIcon name="check" size={16}/>{item}</li>)}</ul></div>}
             </div>}
             <div className="voucher-doc"><div><small>Supplier reference</small><strong>{booking.supplierBookingId || "Awaiting supplier reference"}</strong></div>
-              <a className="primary" href={`/api/bookings/${booking.id}/document`}><TravelIcon name="receipt" size={18} />Download confirmation PDF</a></div>
+              <a className="primary" href={`/api/bookings/${booking.id}/document`}><TravelIcon name="receipt" size={18} />{view!.documentReady?'Download confirmation PDF':'Download booking record (PDF)'}</a></div>
             {booking.passengers.length > 0 && <section className="voucher-party">
               <h3><TravelIcon name="user" size={19}/>{booking.product === 'HOTEL' ? 'Guest details' : 'Traveller details'}</h3>
               {booking.passengers.map((passenger, index) => <div className="booking-status-passenger" key={index}>
@@ -139,7 +151,7 @@ function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused
             <h2>Important stay guidelines</h2>
             <div><StitchSymbol name="badge" size={18}/><p><strong>Check-in &amp; identification</strong>Have your voucher and the identification requested by the property ready at check-in.</p></div>
             {booking.stay?.bookingNotes && <div><StitchSymbol name="info" size={18}/><p><strong>Property instructions</strong>{booking.stay.bookingNotes}</p></div>}
-            <div><StitchSymbol name="calendar_month" size={18}/><p><strong>Changes &amp; cancellation</strong><Link href="/my-trips">Open My trips</Link> to check the options for your reservation.</p></div>
+            <div><StitchSymbol name="calendar_month" size={18}/><p><strong>Changes &amp; cancellation</strong><a href="#manage-booking">See options for this booking</a>.</p></div>
             {booking.stay?.property.address && <div><StitchSymbol name="location_on" size={18}/><p><strong>Property directions</strong>{booking.stay.property.address}<br/><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bookingStatusTitle(booking)+' '+booking.stay.property.address)}`} target="_blank" rel="noopener noreferrer">Open in Maps</a></p></div>}
           </section>}
           <section className="booking-status-card" aria-label="Payment and confirmation progress">
@@ -152,6 +164,13 @@ function PrivateBookingStatus({ bookingId, paused }: { bookingId: string; paused
             <div className="booking-status-refresh"><span>{checkedAt ? `Last checked ${checkedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Checking status"}{view!.poll ? " · Updates automatically" : ""}</span><button className="secondary" disabled={loading} onClick={retry}><TravelIcon name="refresh" size={16} />{loading ? "Checking…" : "Refresh status"}</button></div>
           </section>
           {booking.refunds.length > 0 && <section className="booking-status-card booking-status-refunds" aria-label="Refund updates"><h2>Your refund updates</h2>{booking.refunds.map(refund => <div key={refund.id}><h3>{refundStage(refund.status).label}</h3><strong>{bookingStatusMoney(refund.amountMinor, booking.currency)}</strong><p>{refundStage(refund.status).description}</p></div>)}<p>Refunds are tracked separately from booking and cancellation.</p></section>}
+          <section id="manage-booking" className="booking-status-card booking-status-management" aria-labelledby="manage-booking-title">
+            <h2 id="manage-booking-title">Manage this booking</h2>
+            {authenticated ? <TripManagement bookingId={booking.id} product={booking.product} status={booking.status} serviceKind={booking.serviceKind} onUpdate={retry}/> : <>
+              <p>Sign in with your booking email to check eligible changes and cancellation updates.</p>
+              <Link className="secondary" href={accountHref(`/my-trips/${bookingId}`)}>Sign in to manage booking</Link>
+            </>}
+          </section>
         </div>
         <aside id="voucher-receipt" className="booking-status-card booking-status-summary" aria-label="Your booking summary">
           {view!.paymentReceived && <span className="voucher-paid"><StitchSymbol name="verified_user" size={14}/> Payment received</span>}

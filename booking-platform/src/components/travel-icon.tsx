@@ -1,4 +1,4 @@
-type IconName = "phone" | "plane" | "airplane" | "hotel" | "bed" | "bus" | "holiday" | "passport" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe";
+type IconName = "phone" | "plane" | "airplane" | "hotel" | "bed" | "bus" | "holiday" | "passport" | "arrow" | "arrow-up-right" | "shield" | "bag" | "user" | "search" | "pin" | "check" | "swap" | "clock" | "receipt" | "chevron" | "refresh" | "globe" | "menu" | "close" | "departure" | "arrival" | "bell";
 
 export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, string> = {
@@ -24,6 +24,11 @@ export function TravelIcon({ name, size = 20 }: { name: IconName; size?: number 
     chevron: "m9 5 7 7-7 7",
     refresh: "M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 13 2M18 18A8 8 0 0 1 5 16",
     globe: "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM2 12h20M12 2c5 6 5 14 0 20-5-6-5-14 0-20Z",
+    menu: "M3 8h18M3 16h13",
+    close: "m5 5 14 14m0-14L5 19",
+    bell: "M18 8a6 6 0 0 0-12 0v5c0 2-1 3-2 4h16c-1-1-2-2-2-4V8Zm-8 12a2 2 0 0 0 4 0",
+    departure: "M2 20h20m-5-8-4 3-7 2-3-3 2-1 2 1 3-1-3-5 2-1 5 4 4-2c2-1 4 1 2 3l-3 2",
+    arrival: "M2 20h20M20 16l-7-3-4-8-2 1 2 6-3-1-2-3-2 1 2 5 13 4c4 1 5-1 3-2Z",
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }

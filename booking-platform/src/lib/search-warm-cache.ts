@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import type {Search} from './providers/contracts';
 export type WarmActor={userId:string;companyId:string|null};
 export type WarmScope={actor:WarmActor|null;peer:string;sessionFingerprint?:string};
-export type WarmSupplierResult={data:unknown;correlationId:string;freshUntil?:number};
+export type WarmSupplierResult={data:unknown;correlationId:string;freshUntil?:number;flightFetchedSince?:number};
 export type WarmAdoptionStatus='miss'|'hit'|'joined';
 const TTL=45_000,MAX_ENTRIES=20,MAX_ACTIVE=4,MAX_BYTES=12*1024*1024,MAX_RESULT_BYTES=4*1024*1024;
 const digest=(value:string)=>createHash('sha256').update(value).digest('hex');

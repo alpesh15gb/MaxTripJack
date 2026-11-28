@@ -58,12 +58,12 @@ test('rates retain exact IDs, complete multi-room composition and customer total
  const html=await render({selectedOptionId:'exact-option-A',options:[{optionId:'exact-option-A',roomInfo:[{id:'twin',name:'Twin'},{id:'double',name:'Double'}],mealBasis:'ROOM_ONLY',inclusions:['Wi-Fi'],bookingNotes:'Check supplier conditions.',pricing:{totalPrice:8765.43},cancellation:{isRefundable:true,penalties:[]}},{optionId:'exact-option-B',roomInfo:[{name:'Twin'},{name:'Double'}],pricing:{totalPrice:9000}}]});
  assert.match(html,/data-room-option-id="exact-option-A"/);assert.match(html,/data-room-option-id="exact-option-B"/);
  assert.match(html,/Twin \+ Double/);assert.match(html,/Selected room rate/);
- assert.match(html,/<div class="stay-preview-price"><small>Estimated full stay total from<\/small><strong>₹8,765\.43<\/strong><span>2 nights · 2 rooms · 4 guests<\/span><\/div>/);
+ assert.match(html,/<div class="stay-preview-price"><small>Selected full stay estimate<\/small><strong>₹8,765\.43<\/strong><span>2 nights · 2 rooms · 4 guests<\/span><span>₹4,382\.72 average per night across all rooms<\/span><\/div>/);
  for(const [group,total] of ['₹8,765.43','₹9,000'].entries())assert.ok(html.includes(`<small>Estimated full stay total</small><strong id="stay-room-group-${group}-plan-0-price">${total}</strong><p>2 nights · 2 rooms · 4 guests</p>`));
  assert.match(html,/Cancellation terms require review/);assert.match(html,/Room only/);assert.match(html,/Wi-Fi/);
  assert.equal((html.match(/>Continue with room<\/button>/g)??[]).length,2);
  assert.doesNotMatch(html,/<button[^>]*aria-pressed=[^>]*>Continue with room<\/button>/);
- assert.doesNotMatch(html,/free.cancellation|per night|taxes included|discount/i);
+ assert.doesNotMatch(html,/free.cancellation|taxes included|discount/i);
 });
 test('invalid rate total cannot be selected and active review locks property-back controls',async()=>{
  const html=await render({busy:true,options:[{optionId:'invalid',pricing:{totalPrice:NaN}}]});
@@ -75,6 +75,9 @@ test('gallery shows only deduplicated allowlisted supplier images without leakin
  const html=await render({property:{amenities:[],photos:[{url:safe,isHero:true},{url:safe,isHero:false},{url:'https://evil.example/private.jpg',isHero:false}]}});
  assert.match(html,/View all 1 photo/);assert.match(html,/referrerPolicy="no-referrer"/i);assert.doesNotMatch(html,/evil\.example/);
  assert.match(html,/aria-label="Close photo gallery"/);assert.match(html,/aria-labelledby="stay-gallery-title"/);
+ const mosaic=await render({property:{amenities:[],photos:Array.from({length:7},(_,index)=>({url:`https://i.travelapi.com/lodging/10000/${index}.jpg`,isHero:index===0}))}});
+ assert.match(mosaic,/data-preview-count="5"/);assert.match(mosaic,/stay-photo-remainder" aria-hidden="true">\+2</);
+ assert.match(mosaic,/View all 7 photos/);
 });
 test('rate groups match the exact ordered complete room composition, not a first-room name or unknown variant',async()=>{
  const twin={id:'twin-A',name:'Twin'},double={id:'double-B',name:'Double'};

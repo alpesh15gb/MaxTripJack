@@ -1,4 +1,4 @@
-import {test,expect,expectNoHorizontalOverflow,capture,openFlightSearch,quoteId,searchId,reviewedQuote,departure,returning} from './fixtures';
+import {continueToTravellerDetails, test,expect,expectNoHorizontalOverflow,capture,openFlightSearch,quoteId,searchId,reviewedQuote,departure,returning} from './fixtures';
 const id='11111111-1111-4111-8111-111111111111';
 test('cabin seats show the customer price and recheck exact choices before payment',async({page,provider},info)=>{
  const paid={kind:'SEAT',code:'6A',label:'Seat 6A',seatNumber:'6A',amountMinor:90390};
@@ -16,6 +16,7 @@ test('cabin seats show the customer price and recheck exact choices before payme
  await openFlightSearch(page);
  await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
+ await continueToTravellerDetails(page);
  const form=page.getByRole('form',{name:'Review and travellers'});
  await expect(form.locator('.booking-concierge h3')).toHaveCSS('color','rgb(255, 255, 255)');
  await form.locator('.checkout-optional-extras > summary').click();
@@ -124,6 +125,7 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
   await page.getByRole('button',{name:'Choose room',exact:true}).first().click();
   await page.getByRole('button',{name:'Continue with room',exact:true}).first().click();
  }
+ await continueToTravellerDetails(page);
  const form=page.getByRole('form',{name:'Review and travellers'});
  await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');
  await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
@@ -176,6 +178,7 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} checkout appli
 test('flight reload restores public selection without persisting traveller details',async({page,provider},info)=>{
  await openFlightSearch(page);await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
+ await continueToTravellerDetails(page);
  const form=page.getByRole('form',{name:'Review and travellers'});
  await form.getByLabel('First name',{exact:true}).fill('Privatefirstname');
  await page.reload();
@@ -184,6 +187,7 @@ test('flight reload restores public selection without persisting traveller detai
  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('Privatefirstname');
  await expectNoHorizontalOverflow(page);await capture(page,info,'flight-reload-recovery');
  await recovery.getByRole('button',{name:'Check current price and conditions',exact:true}).click();
+ await continueToTravellerDetails(page);
  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('');
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });

@@ -20,7 +20,8 @@ test('result cards retain originating search navigation, complete stay totals an
  assert.equal((html.match(/<li>/g)??[]).length,3);assert.doesNotMatch(html,/>Gym</);
  assert.match(html,/aria-haspopup="dialog" aria-expanded="false" aria-controls="hotel-filter-dialog"/);
  assert.match(html,/<dialog[^>]+aria-labelledby="hotel-filter-dialog-title"/);assert.doesNotMatch(html,/<dialog[^>]+\bopen=/);
- assert.equal((html.match(/placeholder="Find a property"/g)??[]).length,1);
+ assert.equal((html.match(/aria-label="Property name"/g)??[]).length,1);
+ assert.match(html,/₹4,000 average per night across all rooms/);
  assert.doesNotMatch(html,/Free cancellation|Breakfast included|Guest rating/);
 });
 test('hotel filters use loaded full-stay estimates and exclude unknown prices under budget',()=>{

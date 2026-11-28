@@ -1,49 +1,169 @@
-import Link from "next/link";
-import { TravelFooter, TravelHeader, TravelIcon } from "./travel-shell";
-import SeoJsonLd from "./seo-json-ld";
-import {getCompanyProfile} from "@/lib/company-settings";
-import { editorialDiscoveryGraph } from "@/lib/discovery-graph";
-import { getPublicPage } from "@/lib/public-pages";
-import { accountHref } from "@/lib/account-return";
-import "./support-experience.css";
-import "./public-refresh.css";
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { accountHref } from '@/lib/account-return';
+import { getCompanyProfile } from '@/lib/company-settings';
+import { editorialDiscoveryGraph } from '@/lib/discovery-graph';
+import { getPublicPage } from '@/lib/public-pages';
+import { findSupportQuestions, popularSupportQuestions, supportQuestions, supportTopics, type SupportQuestion } from '@/lib/support-faq';
+import BookingLookup from './booking-lookup';
+import SeoJsonLd from './seo-json-ld';
+import SupportRequestForm from './support-request-form';
+import SupportSearch from './support-search';
+import { TravelFooter, TravelHeader, TravelIcon } from './travel-shell';
+import './support-experience.css';
 
-const tasks = [
-  { id: "booking", icon: "bag" as const, label: "YOUR JOURNEY", title: "Change or cancel a booking", detail: "Open your trip, then choose Changes, cancellation & refund updates to see the available next step.", action: "Manage a booking", href: "/my-trips", note: "A request does not change your travel until the supplier confirms it." },
-  { id: "payment", icon: "receipt" as const, label: "PAYMENTS & REFUNDS", title: "Check a payment or refund", detail: "Find the existing booking and its payment, confirmation or refund status before trying again.", action: "Check booking status", href: "/my-trips", note: "Payment and supplier confirmation are separate. Avoid paying again while a result is unclear." },
-  { id: "account", icon: "user" as const, label: "YOUR ACCOUNT", title: "Get back into your account", detail: "Sign in, request a password-reset link or resend your verification email from the account page.", action: "Open account help", href: accountHref("/my-trips"), note: "Never share your password, one-time code or authenticator recovery codes with support." },
-  { id: "planning", icon: "globe" as const, label: "SOMETHING TO LOOK FORWARD TO", title: "Plan your next trip", detail: "Explore published packages, then use the package’s enquiry options to discuss dates and availability.", action: "Explore travel packages", href: "/packages", note: "Have a different plan in mind? Our team can discuss the assistance available." },
-];
+const supportHref = '/customer-support';
+const faqHref = `${supportHref}/faq`;
+const requestHref = `${supportHref}/request`;
+const account = accountHref('/my-trips');
+type Company = Awaited<ReturnType<typeof getCompanyProfile>>;
+
+function SupportPage({ children }: { children: ReactNode }) {
+  return <><TravelHeader/><main id="main-content" className="help-page">{children}</main><TravelFooter/></>;
+}
+
+function SupportHero({ mode = 'support', initialQuery }: { mode?: 'support' | 'faq' | 'request'; initialQuery?: string }) {
+  const request = mode === 'request';
+  const title = request ? 'Raise a support request' : mode === 'faq' ? 'Frequently asked questions' : 'How can we help you?';
+  return <header className={`help-hero ${request ? 'help-hero--request' : 'help-hero--centered'}`}>
+    {!request && <span className="help-hero-mark" aria-hidden="true">FAQ</span>}
+    <div className="help-width">
+      <nav className="help-breadcrumb" aria-label="Breadcrumb">
+        <Link href="/">Home</Link><span aria-hidden="true">/</span>
+        {mode === 'support' ? <span aria-current="page">Support</span> : <><Link href={supportHref}>Support</Link><span aria-hidden="true">/</span><span aria-current="page">{request ? 'Support request' : 'FAQs'}</span></>}
+      </nav>
+      <h1>{title}</h1>
+      {mode === 'support' && <p>Search our FAQs, raise a request or talk to our travel team.</p>}
+      {request ? <p>Tell us what you need and prepare an email to our travel desk.</p> : <SupportSearch key={initialQuery} initialQuery={initialQuery} />}
+    </div>
+  </header>;
+}
+
+function SupportQuestions({ title, questions, query, activeAnswer, more = false }: {
+  title: string;
+  questions: readonly SupportQuestion[];
+  query?: string;
+  activeAnswer?: string;
+  more?: boolean;
+}) {
+  return <section className="help-panel help-questions" aria-labelledby="support-answers-heading">
+    <div className="help-panel-heading">
+      <div><h2 id="support-answers-heading">{title}</h2><p>{query ? `Questions matching “${query}”` : 'Quick answers to common travel questions.'}</p></div>
+      {more && <Link href={faqHref}>View all FAQs <TravelIcon name="arrow" size={17}/></Link>}
+    </div>
+    {questions.length ? questions.map(question => <details id={question.id} key={question.id} open={activeAnswer === question.id || undefined}>
+      <summary>{question.title}<TravelIcon name="chevron" size={17}/></summary>
+      <div><p>{question.answer}</p><div className="help-answer-actions">
+        <Link href={question.action.href}>{question.action.label} <TravelIcon name="arrow" size={16}/></Link>
+        <Link href={`${faqHref}?answer=${question.id}#${question.id}`}>Link to this answer</Link>
+      </div></div>
+    </details>) : <div className="help-empty"><p>No questions match your search.</p><Link href={faqHref}>View all questions</Link></div>}
+  </section>;
+}
+
+function SupportContact({ company, request = false }: { company: Company; request?: boolean }) {
+  const title = request ? 'Other ways to reach us' : 'Talk to MaxTravel';
+  return <aside className={`help-panel help-contact${request ? '' : ' help-contact--channels'}`} id="contact-team" aria-labelledby="contact-team-title">
+    <h2 id="contact-team-title">{title}</h2>
+    <div className="help-contact-row"><span className="help-icon"><TravelIcon name="phone" size={20}/></span><div><span>{company.address.addressLocality} · {company.hours.display}</span><a href={company.phoneHref}>Call {company.phone}</a></div></div>
+    <div className="help-contact-row"><span className="help-icon"><TravelIcon name="receipt" size={20}/></span><div><span>Email support</span><a href={company.emailHref}>Email {company.email}</a></div></div>
+    <div className="help-contact-row"><span className="help-icon"><TravelIcon name="pin" size={20}/></span><div><span>Office directions and hours</span><Link href="/office">Visit our {company.address.addressLocality} office</Link></div></div>
+    {request && <div className="help-contact-links"><Link href={faqHref}>Browse frequently asked questions</Link><Link href="/my-trips">Check my trip status</Link></div>}
+    <small>These links open your phone or email app. Nothing is sent from this page.</small>
+  </aside>;
+}
+
+function SupportActions({ company }: { company: Company }) {
+  return <section className="help-actions" aria-label="Ways to get help">
+    <article className="help-panel help-card">
+      <span className="help-icon"><TravelIcon name="user" size={22}/></span>
+      <h2>Sign in to your account</h2><p>See your bookings, confirmations and available travel documents in one place.</p>
+      <Link className="help-button" href={account}>Sign in or register</Link>
+    </article>
+    <article className="help-panel help-card">
+      <span className="help-icon"><TravelIcon name="receipt" size={22}/></span>
+      <h2>Raise a support request</h2><p>Ask about changes, cancellations, refunds, baggage or anything else.</p>
+      <Link className="help-button" href={requestHref}>Raise a request</Link>
+      <Link className="help-card-secondary" href="/my-trips">Check booking status <TravelIcon name="arrow" size={15}/></Link>
+    </article>
+    <article className="help-panel help-card">
+      <span className="help-icon"><TravelIcon name="phone" size={22}/></span>
+      <h2>Call a travel expert</h2><p>{company.hours.display}</p>
+      <div className="help-card-contact"><span>{company.address.addressLocality}</span><a href={company.phoneHref}>{company.phone}</a></div>
+      <div className="help-card-contact"><span>Email</span><a href={company.emailHref}>{company.email}</a></div>
+    </article>
+    <article className="help-panel help-card" id="find-my-trip">
+      <span className="help-icon"><TravelIcon name="airplane" size={22}/></span>
+      <h2>Find my trip</h2>
+      <BookingLookup compact guest emailVerified={false} initiallyOpen />
+      <Link className="help-card-secondary" href={account}>Booked on another device?</Link>
+    </article>
+  </section>;
+}
 
 export default async function SupportExperience() {
-  const businessProfile=await getCompanyProfile();
-  const page = getPublicPage("customer-support")!;
-  // This task-oriented page has no visible editorial date; do not invent one.
+  const company = await getCompanyProfile();
+  const page = getPublicPage('customer-support', company)!;
   const schema = editorialDiscoveryGraph(
-    { path: "/customer-support", title: page.title, description: page.description },
-    [{ label: "Home", href: "/" }, { label: "Customer support", href: "/customer-support" }],{businessProfile},
+    { path: supportHref, title: page.title, description: page.description },
+    [{ label:'Home', href:'/' }, { label:'Customer support', href:supportHref }], { businessProfile: company },
   );
-  return <><TravelHeader/><main id="main-content" className="support-experience page-shell public-refresh revamp-discovery">
-    <nav className="support-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span><span aria-current="page">Customer support</span></nav>
-    <header className="support-intro discovery-detail-hero">
-      <div>
-        <p className="support-eyebrow">Customer support</p>
-        <h1>Let’s find your next step.</h1>
-        <p>Manage a booking, get help with your account, or talk to our travel team.</p>
-      </div>
-      <div className="support-intro-contact">
-        <a className="support-contact-jump" href="#contact-team">Talk to our team <TravelIcon name="arrow" size={18}/></a>
-        <span>{businessProfile.hours.display}</span>
-      </div>
-    </header>
-    <nav className="discovery-support-topics" aria-label="Support topics">
-      <Link href="/my-trips">Manage a trip</Link>
-      <a href="#support-payment">Payments and refunds</a>
-      <a href="#support-answers-heading">Common questions</a>
-    </nav>
-    <div className="support-layout"><section aria-labelledby="support-tasks-heading"><h2 id="support-tasks-heading" className="support-section-title">What do you need help with?</h2><div className="support-task-grid">{tasks.map(task=><article className="support-task" key={task.id} aria-labelledby={`support-${task.id}`}><span className="support-task-icon"><TravelIcon name={task.icon} size={25}/></span><h3 id={`support-${task.id}`}>{task.title}</h3><p>{task.detail}</p><Link className="support-task-action" href={task.href}>{task.action}<TravelIcon name="arrow" size={17}/></Link><small>{task.note}</small></article>)}</div></section>
-    <aside className="support-contact" id="contact-team" aria-labelledby="support-contact-heading" tabIndex={-1}><span className="support-task-icon"><TravelIcon name="user" size={25}/></span><p className="support-eyebrow">A REAL PERSON. A DIRECT CONTACT.</p><h2 id="support-contact-heading">Talk to MaxTravel</h2><p className="support-hours"><TravelIcon name="clock" size={18}/><span>{businessProfile.hours.display}</span></p><div className="support-contact-actions"><a href={businessProfile.phoneHref}>Call {businessProfile.phone}<TravelIcon name="arrow" size={17}/></a><a href={businessProfile.emailHref}>Email {businessProfile.email}<TravelIcon name="arrow" size={17}/></a></div><p className="support-external-note">These links open your phone or email app. Nothing is sent from this page.</p><div className="support-prepare"><h3>For an existing booking</h3><p>Keep your booking reference and a short description ready. Share identifiers only in the private conversation—never passwords, payment-card details or one-time codes.</p></div><Link className="support-office-link" href="/office"><TravelIcon name="pin" size={17}/>Visit our {businessProfile.address.addressLocality} office <span aria-hidden="true">→</span></Link></aside></div>
-    <section className="support-answers" aria-labelledby="support-answers-heading"><div><p className="support-eyebrow">WHEN THE NEXT STEP ISN’T CLEAR</p><h2 id="support-answers-heading">A few useful answers.</h2><p>For the status of a specific booking, use My trips or contact the team privately.</p></div><div className="support-question-list"><details><summary>Money deducted, but no confirmed booking?</summary><p>Check the existing booking in My trips. A payment notification alone is not a confirmed flight or stay. Keep the receipt and contact the team if the result is pending or unclear; do not pay again until it has been checked.</p><Link href="/my-trips">Check the existing booking →</Link></details><details><summary>My flight is coming up soon. What should I do?</summary><p>Check your confirmation documents and the operating airline’s official flight-status and airport guidance. Contact MaxTravel during the office hours shown above. We do not provide 24-hour emergency support or override airline operational decisions.</p><a href="#contact-team">See contact options →</a></details><details><summary>How do I follow up on an unresolved issue?</summary><p>Email the team with a short timeline, what has already been checked and the outcome you need. Refund eligibility and completion depend on the particular booking and payment outcome; no blanket refund deadline applies here.</p><a href={businessProfile.emailHref}>Email the support team →</a></details><details><summary>Can I make a live booking through this website?</summary><p>The online platform is currently In Testing. Test results and online checkout do not create live travel bookings or payments. Contact MaxTravel about your travel needs; an enquiry is not a confirmed booking.</p><Link href="/services">Explore available travel assistance →</Link></details></div></section>
-    <div className="support-resource-links"><Link href="/flight-booking-guide">Flight booking guide <span aria-hidden="true">↗</span></Link><Link href="/pricing-transparency">Understand prices & confirmation <span aria-hidden="true">↗</span></Link><Link href="/contact">All contact details <span aria-hidden="true">↗</span></Link></div>
-  </main><TravelFooter/><SeoJsonLd data={schema}/></>;
+  return <SupportPage>
+    <SupportHero />
+    <div className="help-body help-width help-overlap">
+      <SupportActions company={company}/>
+      <nav className="help-quick-links" aria-label="Quick links">
+        <a href="#find-my-trip"><TravelIcon name="airplane" size={17}/>Find my trip</a>
+        <Link href="/my-trips"><TravelIcon name="bag" size={17}/>My bookings</Link>
+        <Link href={requestHref}><TravelIcon name="receipt" size={17}/>Support request</Link>
+        <Link href={`${faqHref}?topic=refunds`}><TravelIcon name="refresh" size={17}/>Cancellations &amp; refunds</Link>
+        <Link href={faqHref}><TravelIcon name="search" size={17}/>All FAQs</Link>
+      </nav>
+      <SupportQuestions title="Popular questions" questions={popularSupportQuestions} more />
+      <section className="help-browse" aria-labelledby="browse-support-heading">
+        <h2 id="browse-support-heading">Browse by topic</h2>
+        <div>{supportTopics.map(topic => <Link className="help-panel" key={topic.id} href={`${faqHref}?topic=${topic.id}`}>
+          <span className="help-icon"><TravelIcon name={topic.icon} size={20}/></span><div><h3>{topic.title}</h3><p>{topic.description}</p></div><TravelIcon name="arrow" size={17}/>
+        </Link>)}</div>
+      </section>
+      <SupportContact company={company}/>
+    </div>
+    <SeoJsonLd data={schema}/>
+  </SupportPage>;
+}
+
+export function SupportFaqExperience({ query, topic, answer }: { query: string; topic?: string; answer?: string }) {
+  const selectedTopic = supportTopics.find(item => item.id === topic);
+  const selectedAnswer = supportQuestions.find(question => question.id === answer);
+  const activeTopic = selectedAnswer?.topic ?? selectedTopic?.id;
+  const topicTitle = supportTopics.find(item=>item.id===activeTopic)?.title;
+  const title = query ? 'Search results' : topicTitle ?? 'Popular topics';
+  const questions = activeTopic || query ? findSupportQuestions(query, activeTopic) : popularSupportQuestions;
+  const topicLinks = <nav aria-label="FAQ topics">
+    <Link href={faqHref} aria-current={!activeTopic && !query ? 'page' : undefined}>Popular topics</Link>
+    {supportTopics.map(item => <Link href={`${faqHref}?topic=${item.id}`} key={item.id} aria-current={activeTopic === item.id && !query ? 'page' : undefined}>{item.title}</Link>)}
+  </nav>;
+  return <SupportPage>
+    <SupportHero mode="faq" initialQuery={query} />
+    <div className="help-width help-body help-overlap help-faq-layout">
+      <aside className="help-panel help-faq-topics">
+        <div className="help-faq-topics-desktop">{topicLinks}</div>
+        <details className="help-faq-topics-mobile" key={activeTopic??'popular'}><summary>FAQ topics <span>{topicTitle??'Popular topics'}</span><TravelIcon name="chevron" size={16}/></summary>{topicLinks}</details>
+        <div className="help-faq-escalation"><p>Still need help?</p><Link className="help-button" href={requestHref}>Raise a support request</Link></div>
+      </aside>
+      <SupportQuestions title={title} questions={questions} query={query} activeAnswer={selectedAnswer?.id}/>
+      <section className="help-panel help-faq-escalation-mobile"><h2>Still need help?</h2><Link className="help-button" href={requestHref}>Raise a support request</Link></section>
+    </div>
+  </SupportPage>;
+}
+
+export async function SupportRequestExperience() {
+  const company = await getCompanyProfile();
+  return <SupportPage>
+    <SupportHero mode="request" />
+    <div className="help-width help-body help-overlap help-request-layout">
+      <SupportRequestForm emailHref={company.emailHref} />
+      <SupportContact company={company} request />
+    </div>
+  </SupportPage>;
 }

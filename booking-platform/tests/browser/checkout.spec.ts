@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import type { ProviderFixture } from './fixtures';
-import {toggleResultSearch, mainNavigation, test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
+import {continueToTravellerDetails, toggleResultSearch, hotelSearchNavigationLink, test, expect, bookingId, capture, departure, returning, expectNoHorizontalOverflow, expectFlightToolbarValuesFit, flight, flightResults, openFlightSearch, quoteId, reviewedQuote, searchId, syntheticSession } from './fixtures';
 
 async function selectVisibleFare(page: Page, label = 'Check fare & continue') {
   await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
@@ -11,9 +11,11 @@ async function openReviewedFlight(page: Page) {
   await openFlightSearch(page);
   await selectVisibleFare(page);
   await expect(page.getByRole('form', { name: 'Review and travellers' })).toBeVisible();
+  await continueToTravellerDetails(page);
 }
 
 async function fillDomesticTraveller(page: Page) {
+  await continueToTravellerDetails(page);
   const form = page.getByRole('form', { name: 'Review and travellers' });
   await form.getByLabel('First name', { exact: true }).fill('Aarav');
   await form.getByLabel('Last name', { exact: true }).fill('Example');
@@ -58,7 +60,7 @@ test('return journeys require one outbound and one return fare in canonical orde
   await expect(page.getByRole('button', { name: /^Review selected journey/ })).toHaveCount(0);
   await expect(page.getByRole('region',{name:'Selected flight context'})).toContainText('Choose this flight next');
   await selectVisibleFare(page, 'Choose this outbound fare');
-  await expect(page.getByRole('button', { name: /^Return/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Return', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: /^Review selected journey/ })).toHaveCount(0);
   await expect(page.getByRole('region',{name:'Selected flight context'})).toContainText('BOM → DEL');
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
@@ -313,7 +315,7 @@ test('unknown local-time duration is not guessed and COMBO journeys are not conn
   if(await filters.isVisible()){
     await filters.click();
     await expect(comboFilters.getByText('Check stops for each flight in the complete itinerary.')).toBeVisible();
-    await expect(comboFilters.getByRole('button',{name:'Filter by Non-stop',exact:true})).toHaveCount(0);
+    await expect(comboFilters.getByRole('button',{name:/^Direct only/})).toHaveCount(0);
     await comboFilters.getByRole('button',{name:'Close filters',exact:true}).click();
   }else await expect(page.getByText('Check stops for each flight in the complete itinerary.')).toBeVisible();
   await expect(page.locator('.combo-itinerary')).toContainText('BOM → DEL');
@@ -585,6 +587,7 @@ test('party selected in the collapsed search picker reaches traveller review int
   await expect(picker).not.toHaveAttribute('open');
   await search.getByRole('button', { name: 'Search flights', exact: true }).click();
   await selectVisibleFare(page);
+  await continueToTravellerDetails(page);
   const review = page.getByRole('form', { name: 'Review and travellers' });
   await expect(review.locator('.traveller-card')).toHaveCount(4);
   for (const name of ['Adult 1', 'Adult 2', 'Child 3', 'Infant 4']) {
@@ -613,11 +616,12 @@ test('flight review updates beside the editable details without a new step or an
  await expect(phone).toBeFocused();
  expect(await page.evaluate(()=>({url:location.href,history:history.length}))).toEqual(launch);
  expect(provider.requests('/api/payments/create')).toHaveLength(0);
- const details=await page.locator('.booking-details-column').boundingBox();
- const review=await page.locator('#booking-summary').boundingBox();
- expect(details).not.toBeNull();expect(review).not.toBeNull();
- if(page.viewportSize()!.width>1000)expect(review!.x).toBeGreaterThanOrEqual(details!.x+details!.width);
- else expect(review!.y).toBeGreaterThanOrEqual(details!.y+details!.height);
+ const layout=await page.locator('#booking-review .booking-inline-grid').evaluate(grid=>{
+  const details=grid.querySelector('.booking-details-column')!.getBoundingClientRect();
+  const review=grid.querySelector('#booking-summary')!.getBoundingClientRect();
+  return {sideBySide:review.left>=details.right,stacked:review.top>=details.bottom};
+ });
+ expect(page.viewportSize()!.width>1000?layout.sideBySide:layout.stacked).toBe(true);
  await expect(page.getByRole('region',{name:'Selected itinerary'})).toContainText('IndiGo');
  await expect(page.locator('.final-traveller-summary')).toContainText('Mr Aarav Example');
  await expect(page.locator('.final-traveller-summary')).toContainText('traveller@example.test');
@@ -705,7 +709,7 @@ test('mobile filters expand accessibly without replacing the visible sort or tri
   await expect(page.getByRole('button',{name:'Filter by IndiGo',exact:true})).toHaveCount(0);
   await filters.focus();await filters.press('Enter');await expect(page.locator('.flight-filter-trigger')).toHaveAttribute('aria-expanded','true');await expect(page.getByRole('dialog',{name:'Filter flights',exact:true})).toBeVisible();
   await page.getByRole('dialog',{name:'Filter flights',exact:true}).getByRole('button',{name:'Filter by IndiGo',exact:true}).click();
-  await expect(page.getByRole('dialog',{name:'Filter flights',exact:true}).getByRole('button',{name:'Filter by Non-stop',exact:true})).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'Filter flights',exact:true}).getByRole('button',{name:/^Direct only/})).toBeVisible();
   const dialog=page.getByRole('dialog',{name:'Filter flights',exact:true});
   await dialog.getByRole('button',{name:'Close filters',exact:true}).click();await expect(filters).toHaveAttribute('aria-expanded','false');await expect(filters).toBeFocused();
   await filters.focus();await filters.press('Enter');
@@ -867,7 +871,7 @@ test('flight verification dismisses on Back to flights and only the new fare rea
 test('same-book Next Link cannot reset a created payment or start another search',async({page,provider})=>{
  await openReviewedFlight(page);await showPaymentReview(page);await openSyntheticPayment(page);await page.evaluate('window.__syntheticGateway.dismiss()');
  const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
- await (await mainNavigation(page)).getByRole('link',{name:'Hotels',exact:true}).click();
+ await (await hotelSearchNavigationLink(page)).click();
  await expect(page.getByRole('alert').filter({hasText:'Finish checking your current payment before starting a different search.'})).toBeVisible();
  await expect(page.getByRole('form',{name:'Review and travellers',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Resume secure checkout',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);
@@ -880,7 +884,7 @@ test('same-book Next Link cannot reset unresolved checkout recovery or enable a 
  provider.overrides['GET /api/payments/status']={body:{found:false,quoteId,canResume:false,checkoutResolved:false,status:'OUTCOME_UNCONFIRMED',message:'An interrupted payment is unresolved. Do not create another payment.'}};
  await openFlightSearch(page,{auto:false});const recovery=page.getByRole('region',{name:'Interrupted checkout',exact:true});await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');
  const before=await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'));
- await (await mainNavigation(page)).getByRole('link',{name:'Hotels',exact:true}).click();
+ await (await hotelSearchNavigationLink(page)).click();
  await expect(page.getByRole('alert').filter({hasText:'Choose “Book a different trip” to start a new search and keep your previous checkout.'})).toBeVisible();
  await expect(recovery).toBeVisible();await expect(recovery).toContainText('unresolved');await expect(page.getByRole('button',{name:'Search flights',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Search stays',exact:true})).toHaveCount(0);
  expect(await page.evaluate(()=>sessionStorage.getItem('maxtravel.pending-checkout.v1'))).toBe(before);expect(provider.requests('/api/travel/search')).toHaveLength(0);expect(provider.requests('/api/travel/review')).toHaveLength(0);expect(provider.requests('/api/payments/create')).toHaveLength(0);expect(provider.requests('/api/payments/status')).toHaveLength(1);

@@ -1,0 +1,35 @@
+.booking-lookup-email > small { display: block; margin-top: 5px; color: #52635f; font-size: 11px; font-weight: 400; line-height: 1.45; }
+
+.booking-lookup-verification {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(100%, 420px);
+  height: 100dvh;
+  max-height: none;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #102b29;
+  background: #fffdf8;
+}
+
+.booking-lookup-verification::backdrop { background: #102b298a; backdrop-filter: blur(3px); }
+body:has(.booking-lookup-verification[open]) { overflow: hidden; }
+
+.booking-lookup-verification > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  color: #fff;
+  background: linear-gradient(110deg, #0c3532, #28665a);
+}
+
+.booking-lookup-verification > header h2 { margin: 0; color: inherit; font-size: 19px; }
+.booking-lookup-verification > header button { flex: 0 0 auto; min-width: 40px; min-height: 40px; padding: 0; border-radius: 50%; background: #ffffff24; color: #fff; font-size: 23px; }
+.booking-lookup-verification > .checkout-verification { margin: 0; padding: 22px; border: 0; border-radius: 0; background: transparent; }
+.booking-lookup-verification .checkout-verification-heading h3 { margin-bottom: 5px; font-size: 18px; }
+.booking-lookup-verification .checkout-verification-form { margin-block: 16px; }
+.booking-lookup-verification .checkout-verification-note { color: #52635f; font-size: 13px; line-height: 1.5; }

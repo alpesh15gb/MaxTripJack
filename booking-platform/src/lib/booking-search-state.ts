@@ -31,7 +31,7 @@ export function bookingSearchPrefill(query:Record<string,string|string[]|undefin
   if(result.flightSearch&&(!z.string().uuid().safeParse(result.flightSearch).success||result.product==='HOTEL'||result.browseSearch||result.stay))invalid=true;
   if(['flightStops','flightSort','flightAirlineQuery'].some(key=>result[key]!==undefined)&&(!result.flightSearch||result.product!=='FLIGHT'))invalid=true;
   if(result.flightStops!==undefined&&result.flightStops!=='0')invalid=true;
-  if(result.flightSort!==undefined&&!['price','duration','departure'].includes(result.flightSort))invalid=true;
+  if(result.flightSort!==undefined&&!['price','duration','departure','arrival'].includes(result.flightSort))invalid=true;
   if(result.flightAirlineQuery!==undefined){result.flightAirlineQuery=result.flightAirlineQuery.trim();if(result.flightAirlineQuery.length<2)invalid=true;}
   if(result.stay&&!/^\d{1,30}$/.test(result.stay))invalid=true;
   if(result.gallery&&result.gallery!=='1')invalid=true;

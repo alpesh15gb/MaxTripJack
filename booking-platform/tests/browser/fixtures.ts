@@ -182,7 +182,16 @@ export async function mainNavigation(page: Page) {
   return navigation;
 }
 
+export async function hotelSearchNavigationLink(page: Page) {
+  const navigation = await mainNavigation(page);
+  const drawerLink = navigation.getByRole('link', { name: 'Hotels', exact: true });
+  if (await drawerLink.isVisible()) return drawerLink;
+  await navigation.locator('summary').filter({ hasText: /^Hotels\b/ }).click();
+  return navigation.getByRole('link', { name: 'Search all hotels', exact: true });
+}
+
 export async function toggleResultSearch(page: Page) {
+  if (await page.locator('#booking-search.has-inline-flight-search').isVisible()) return;
   const summary = page.locator('#booking-search > summary');
   const edit = page.getByRole('button', {name: 'Edit search', exact: true});
   await expect(summary.locator('.booking-criteria-field').first()).toBeAttached();
@@ -190,11 +199,29 @@ export async function toggleResultSearch(page: Page) {
   else await edit.click();
 }
 
+export async function openNearbyFlightDates(page: Page) {
+  const panel = page.locator('.flight-nearby-comparison');
+  await expect(panel.locator('summary')).toBeVisible();
+  if ((await panel.getAttribute('open')) === null) await panel.locator('summary').click();
+  return page.getByRole('navigation', {name:'Nearby departure dates'});
+}
+
 export async function openFlightSearch(page: Page, options: { auto?: boolean; roundTrip?: boolean } = {}) {
   const query = new URLSearchParams({ product: 'FLIGHT', from: 'BOM', to: 'DEL', date: departure, adults: '1' });
   if (options.auto !== false) query.set('autoSearch', '1');
   if (options.roundTrip) query.set('returnDate', returning);
   await page.goto(`/book?${query}`);
+}
+
+export async function continueToTravellerDetails(page: Page) {
+  const review = page.locator('#booking-review');
+  await expect(review).toBeVisible();
+  if (await review.getAttribute('class').then(value => value?.includes('checkout-step-review'))) {
+    const contactEmail = review.getByRole('textbox', { name: 'Email', exact: true });
+    if (await contactEmail.isVisible() && !(await contactEmail.inputValue())) await contactEmail.fill('traveller@example.test');
+    await review.getByRole('button', { name: /^Continue to (travellers|guests)$/ }).click();
+  }
+  await expect(review.locator('#booking-traveller-details')).toBeVisible();
 }
 
 export async function capture(page: Page, testInfo: TestInfo, name: string) {
@@ -217,13 +244,13 @@ export async function expectFlightToolbarValuesFit(page: Page) {
   if(!(await filters.isVisible())){
     const sidebar=page.getByRole('complementary',{name:'Flight result controls'});
     await expect(sidebar.getByRole('combobox')).toHaveCount(0);
-    await expect(sidebar.getByRole('button',{name:'Filter by Non-stop'})).toBeVisible();
+    await expect(sidebar.getByRole('button',{name:/^Direct only/})).toBeVisible();
     return;
   }
   await filters.click();
   // Phones use the same one-click facets as the desktop sidebar, not dropdowns.
   await expect(dialog.getByRole('combobox')).toHaveCount(0);
-  await expect(dialog.getByRole('button',{name:'Filter by Non-stop'})).toBeVisible();
+  await expect(dialog.getByRole('button',{name:/^Direct only/})).toBeVisible();
   if(await dialog.isVisible())await dialog.getByRole('button',{name:'Close filters',exact:true}).click();
 }
 
@@ -234,6 +261,14 @@ export async function chooseFlightFilter(page: Page, field: 'Stops'|'Airline (an
   const toggle=page.getByRole('button',{name:/^Filters/});
   if(!(await dialog.isVisible())&&await toggle.isVisible())await toggle.click();
   const sidebar=await dialog.isVisible()?dialog:page.getByRole('complementary',{name:'Flight result controls'});
+  if(field==='Stops'&&(value==='0'||value==='ALL')){
+    await sidebar.getByRole('button',{name:value==='0'?/^Direct only/:/^All flights/}).click();
+    return;
+  }
+  if(field==='Stops'){
+    const more=sidebar.locator('.flight-more-stops');
+    if((await more.getAttribute('open'))===null)await more.locator('summary').click();
+  }
   const label=field==='Stops'?['Non-stop','1 stop','2 stops'][Number(value)]:value;
   const times:Record<string,string>={EARLY:'Early morning',MORNING:'Morning',AFTERNOON:'Afternoon',EVENING:'Evening'};
   const button=field==='Departure time'?sidebar.getByRole('button',{name:new RegExp(`^${times[value]} \\d`)}):sidebar.getByRole('button',{name:`Filter by ${label}`,exact:true});

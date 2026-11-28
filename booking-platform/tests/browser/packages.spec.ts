@@ -30,7 +30,10 @@ test('expired package estimates and unavailable travel cannot suggest a booking'
 
 test('home discovery uses published summaries and navigation fits narrow viewports',async({page,provider},testInfo)=>{
  provider.overrides['GET /api/packages']={body:{packages:[samplePackage],truncated:false,unavailableCount:0}};await page.goto('/');await expect(page.locator('.home-package-grid')).toContainText(samplePackage.title);
- const nav=page.getByRole('navigation',{name:'Main navigation'});await expect(nav.getByRole('link',{name:'Packages',exact:true})).toBeVisible();
+ if((page.viewportSize()?.width??1440)<=900) await page.getByRole('button',{name:'Open navigation',exact:true}).click();
+ const nav=page.getByRole('navigation',{name:'Main navigation'});
+ if((page.viewportSize()?.width??1440)>900) await nav.getByText('More',{exact:true}).click();
+ await expect(nav.getByRole('link',{name:'Packages',exact:true})).toBeVisible();
  const bounds=await nav.getByRole('link',{name:'Packages',exact:true}).evaluate(node=>{const r=node.getBoundingClientRect();return {left:r.left,right:r.right,width:innerWidth,height:r.height};});expect(bounds.left).toBeGreaterThanOrEqual(0);expect(bounds.right).toBeLessThanOrEqual(bounds.width);expect(bounds.height).toBeGreaterThanOrEqual(44);
  await page.locator('.home-package-plans').scrollIntoViewIfNeeded();await capture(page,testInfo,'home-published-packages');await expectNoHorizontalOverflow(page);
  await nav.getByRole('link',{name:'Packages',exact:true}).click();await expect(page.getByRole('heading',{name:'Holiday packages',exact:true})).toBeVisible();

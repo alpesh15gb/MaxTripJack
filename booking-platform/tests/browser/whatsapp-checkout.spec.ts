@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, capture, departure, returning, searchId, reviewedQuote, syntheticSession, openFlightSearch, expectNoHorizontalOverflow, type ProviderFixture } from './fixtures';
+import { test, expect, capture, departure, returning, searchId, reviewedQuote, syntheticSession, openFlightSearch, continueToTravellerDetails, expectNoHorizontalOverflow, type ProviderFixture } from './fixtures';
 
 const phone = '+919876543210';
 const alias = 'synthetic-phone-user@phone.maxtravel.invalid';
@@ -48,8 +48,9 @@ test('WhatsApp verifies a new flight customer inside checkout without presenting
   signedIn(provider);
   await verification.getByRole('button', { name: 'Verify & continue', exact: true }).click();
   const form = page.getByRole('form', { name: 'Review and travellers' });
-  await expect(form).toBeVisible();
   await expect(form.getByLabel('Email', { exact: true })).toHaveValue('');
+  await continueToTravellerDetails(page);
+  await expect(form).toBeVisible();
   await expect(form.getByLabel('Mobile number', { exact: true })).toHaveValue('9876543210');
   await expect(page.locator('body')).not.toContainText(alias);
   expect(provider.requests(verifyPath)[0].body).toEqual({ phoneNumber: phone, code: '123456' });

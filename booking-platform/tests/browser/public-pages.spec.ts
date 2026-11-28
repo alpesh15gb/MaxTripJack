@@ -56,7 +56,7 @@ test.describe('public content without client JavaScript', () => {
   test.use({ javaScriptEnabled: false });
   test('homepage identity and route guidance are server-rendered', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Find your next escape.');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Travel Made Simple');
     await expect(page.getByRole('heading', { name: 'Visit MaxTravel Secunderabad' })).toBeVisible();
     await page.getByText('Travel planning guides and directories',{exact:true}).click();
     await expect(page.locator('main a[href="/flights/hyderabad-to-delhi"]')).toBeVisible();

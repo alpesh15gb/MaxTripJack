@@ -1,10 +1,12 @@
-import {test,expect,capture,expectNoHorizontalOverflow,openFlightSearch} from './fixtures';
+import {test,expect,capture,expectNoHorizontalOverflow,openFlightSearch,continueToTravellerDetails} from './fixtures';
 
 test('the booking planner and destination cards keep searches accessible',async({page,provider},testInfo)=>{
   await page.goto('/');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('Find your next escape.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Travel Made Simple');
   const planner=page.getByRole('region',{name:'Plan your trip'});
-  await expect(planner).toHaveCSS('background-color','rgb(255, 254, 250)');
+  await expect(planner.getByRole('button',{name:'Stays',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(planner).toHaveCSS('background-color','rgb(255, 255, 255)');
+  await planner.getByRole('button',{name:'Flights',exact:true}).click();
   const submit=planner.getByRole('button',{name:'Search flights',exact:true});
   await expect(submit).toHaveCSS('background-color','rgb(169, 73, 36)');
   expect((await submit.boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -22,20 +24,16 @@ test('the booking planner and destination cards keep searches accessible',async(
 
 test('journey studio results and reviewed receipt share contrast and clear totals',async({page,provider},testInfo)=>{
  await openFlightSearch(page);
- const summary=page.locator('#booking-search>summary');
- const compact=(page.viewportSize()?.width??1440)<=700;
- const edit=compact?page.getByRole('button',{name:'Edit search',exact:true}):summary;
- await expect(edit).toBeVisible();
- if(!compact){await expect(summary).toHaveCSS('background-color','rgb(12, 53, 50)');await expect(summary.locator('.search-edit-label')).toHaveCSS('color','rgb(12, 53, 50)');}
- await edit.focus();await expect(edit).toBeFocused();await edit.click();
- await expect(page.getByRole('form',{name:'Search availability',exact:true})).toBeVisible();
- await summary.click();await expect(edit).toBeVisible();
+ const search=page.getByRole('form',{name:'Search availability',exact:true});
+ await expect(page.getByRole('heading',{name:'Flights from Mumbai to New Delhi',exact:true})).toBeVisible();
+ await expect(search).toBeVisible();
  await capture(page,testInfo,'studio-flight-results');await expectNoHorizontalOverflow(page);
  await page.locator('.fare-comparison-trigger').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();await expect(page.getByRole('form',{name:'Review and travellers'})).toBeVisible();
- await expect(summary).toBeHidden();
+ await expect(search).toBeHidden();
  const receipt=page.getByRole('complementary',{name:'Your journey summary'});await expect(receipt).toContainText('₹6,540');await capture(page,testInfo,'studio-traveller-review');
+ await continueToTravellerDetails(page);
  const form=page.getByRole('form',{name:'Review and travellers'});await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
- await expect(receipt.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(receipt.locator('.final-traveller-summary')).toContainText('traveller@example.test');await expect(form.getByLabel('First name',{exact:true})).toBeVisible();await expect(summary).toBeHidden();await capture(page,testInfo,'studio-final-review');await expectNoHorizontalOverflow(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
+ await expect(receipt.getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();await expect(receipt.locator('.final-traveller-summary')).toContainText('traveller@example.test');await expect(form.getByLabel('First name',{exact:true})).toBeVisible();await expect(search).toBeHidden();await capture(page,testInfo,'studio-final-review');await expectNoHorizontalOverflow(page);expect(provider.requests('/api/payments/create')).toHaveLength(0);
 });
 
 test('destination photos and labels stay legible at desktop and phone widths',async({page},testInfo)=>{
@@ -44,7 +42,7 @@ test('destination photos and labels stay legible at desktop and phone widths',as
     await page.setViewportSize({width,height:width<700?844:1000});
     const card=page.getByRole('link',{name:'Explore stays in Goa'}),photo=card.locator('.stitch-getaway-photo');
     await expect(photo).toHaveCSS('background-image',new RegExp(width<=700?'mobile-goa':'desktop-goa'));
-    await expect(card.getByRole('heading',{name:'Goa'})).toHaveCSS('color','rgb(16, 43, 41)');
+    await expect(card.getByRole('heading',{name:'Goa'})).toHaveCSS('color','rgb(255, 255, 255)');
     const fits=await card.evaluate(node=>{
       const parent=node.getBoundingClientRect();
       return [...node.querySelectorAll('h3,p,.stitch-getaway-tag')].every(item=>{
@@ -63,12 +61,14 @@ test('destination themes and recent searches keep their normal navigation', asyn
   await themes.getByRole('button', {name: 'City breaks'}).click();
   await expect(page.getByRole('link', {name: 'Explore stays in Goa'})).toHaveCount(0);
   await expect(page.getByRole('link', {name: 'Explore stays in Paris'})).toBeVisible();
-  await themes.getByRole('button', {name: 'All destinations'}).click();
+  await themes.getByRole('button', {name: 'All', exact: true}).click();
   await expect(page.getByRole('link', {name: 'Explore stays in Goa'})).toBeVisible();
-  await page.getByRole('region', {name: 'Plan your trip'}).getByRole('button', {name: 'Search flights', exact: true}).click();
+  const planner = page.getByRole('region', {name: 'Plan your trip'});
+  await planner.getByRole('button', {name: 'Flights', exact: true}).click();
+  await planner.getByRole('button', {name: 'Search flights', exact: true}).click();
   await expect(page).toHaveURL(/\/book\?.*(?:from=BOM|to=DEL)/);
   await page.goto('/');
-  const recent = page.getByRole('region', {name: 'Recent searches'});
+  const recent = page.getByRole('region', {name: 'Your recent searches'});
   await expect(recent.getByRole('link', {name: 'BOM → DEL'})).toHaveAttribute('href', /autoSearch=1/);
   await recent.getByRole('button', {name: 'Clear recent searches'}).click();
   await expect(recent).toHaveCount(0);

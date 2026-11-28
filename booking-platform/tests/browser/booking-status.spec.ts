@@ -79,6 +79,7 @@ for (const product of ["FLIGHT", "HOTEL"] as const) {
     expect(provider.requests(detailsPath).length).toBeGreaterThanOrEqual(2);
     expect(provider.calls.filter(call => call.method !== "GET")).toEqual([]);
     await expectNoHorizontalOverflow(page);
+    await page.screenshot({path:testInfo.outputPath(`booking-confirmation-${product.toLowerCase()}-viewport.png`),animations:'disabled'});
     await capture(page, testInfo, `booking-status-${product.toLowerCase()}-confirmed`);
   });
 }
@@ -101,6 +102,42 @@ test("a failed refresh preserves clearly labelled last-known details and then re
   await expect(page.locator(".booking-status-page").getByRole("alert")).toHaveCount(0);
   expect(provider.requests("/api/payments/create")).toHaveLength(0);
   await expectNoHorizontalOverflow(page);
+});
+
+test('a confirmed reservation without ticket numbers offers a booking record and direct after-sales',async({page,provider},info)=>{
+  const reservation = details('FLIGHT','TICKETED');
+  reservation.passengers[0].tickets=[];
+  provider.overrides[detailsKey]={body:reservation};
+  const cancellation = `/api/bookings/${bookingId}/cancellation-offer`;
+  provider.overrides[`GET ${cancellation}`]={body:{requests:[]}};
+  if(info.project.name.includes('mobile')) await page.setViewportSize({width:320,height:760});
+  await page.goto(statusPath);
+  await expect(page.getByRole('heading',{level:1,name:'Your flight booking is confirmed.'})).toBeVisible();
+  const confirmation = page.getByRole('region',{name:'Supplier confirmation'});
+  await expect(confirmation.getByRole('link',{name:'Download booking record (PDF)',exact:true})).toHaveAttribute('href',`/api/bookings/${bookingId}/document`);
+  await expect(confirmation.getByRole('link',{name:'Download confirmation PDF',exact:true})).toHaveCount(0);
+  expect(provider.requests(cancellation)).toHaveLength(0);
+  const management = page.getByRole('region',{name:'Manage this booking',exact:true});
+  await management.getByText('Changes, cancellation & refund updates',{exact:true}).click();
+  await expect(management.getByText('No cancellation request for this booking.',{exact:true})).toBeVisible();
+  await expect(management.getByRole('button',{name:'Request cancellation terms',exact:true})).toBeVisible();
+  if(info.project.name.includes('mobile')){
+    await page.evaluate(()=>document.fonts.ready);
+    for(const [name,panel] of [
+      ['Request cancellation terms','.trip-cancellation-request'],
+      ['Refresh cancellation progress','.private-cancellation-progress'],
+    ]){
+      const control=(await management.getByRole('button',{name,exact:true}).boundingBox())!;
+      const card=(await management.locator(panel).boundingBox())!;
+      expect(control.x).toBeGreaterThanOrEqual(card.x);
+      expect(control.x+control.width).toBeLessThanOrEqual(card.x+card.width);
+      expect(control.height).toBeGreaterThanOrEqual(44);
+    }
+  }
+  expect(provider.requests(cancellation).map(call=>call.method)).toEqual(['GET']);
+  expect(provider.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
+  await expectNoHorizontalOverflow(page);
+  await capture(page,info,'booking-status-after-sales');
 });
 
 for (const status of [401, 403]) {

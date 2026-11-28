@@ -15,7 +15,7 @@ test('reopening the same AI card reapplies its view without reloading the owned 
   const nonstop=page.getByRole('button',{name:'Non-stop',exact:true});
   await page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true}).click();
   await expect(nonstop).toHaveAttribute('aria-pressed','true');
-  await nonstop.click();
+  await nonstop.press('Enter');
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(3);
   await sorts.getByRole('button',{name:'Cheapest',exact:true}).click();
   const filters=page.getByRole('button',{name:/^Filters(?: \(\d+\))?$/});
@@ -35,7 +35,7 @@ test('reopening the same AI card reapplies its view without reloading the owned 
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toContainText('IndiGo');
   await expect(page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true})).toBeVisible();
   await expect(nonstop).toHaveAttribute('aria-pressed','true');
-  await expect(selectedSort).toHaveAccessibleName('Earliest');
+  await expect(selectedSort).toHaveAccessibleName('Earliest departure');
   expect(provider.requests('/api/travel/flight-search-snapshot')).toHaveLength(1);
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);

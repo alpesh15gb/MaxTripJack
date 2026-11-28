@@ -330,14 +330,6 @@ body.stitch-theme .revamp-trip-status :is(.booking-status-header,.booking-status
 }
 
 @media (min-width: 701px) {
-  body.stitch-theme .revamp-booking.results-only:not(.is-searching) > .booking-progress {
-    position: static;
-    width: auto;
-    height: auto;
-    clip-path: none;
-    overflow: visible;
-    margin: 0 0 12px;
-  }
   body.stitch-theme .revamp-booking #booking-review .checkout-stages { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
 }
 @media (max-width: 1100px) {
@@ -375,4 +367,270 @@ body.stitch-theme .revamp-trip-status :is(.booking-status-header,.booking-status
 }
 @media (max-width: 360px) {
   body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-progress li { gap: 4px; }
+}
+
+/* Shopping uses compact editable criteria above the results and a separate price rail. */
+body.stitch-theme .revamp-booking.results-only #booking-search:has(.booking-criteria-strip) {
+  position: relative;
+  isolation: isolate;
+  padding: 12px 0;
+  border-radius: 0;
+  background: transparent;
+}
+body.stitch-theme .revamp-booking.results-only #booking-search:has(.booking-criteria-strip)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(115deg, var(--journey-pine), #21544a);
+  box-shadow: 0 0 0 100vmax var(--journey-pine);
+  clip-path: inset(0 -100vmax round 0 0 22px 22px);
+}
+body.stitch-theme .revamp-booking #booking-search[open]:has(.booking-criteria-strip) { z-index: 3; }
+body.stitch-theme .revamp-booking.results-only #booking-search .booking-criteria-strip {
+  color: var(--journey-pine);
+  background: var(--journey-ivory);
+  border-color: var(--journey-line);
+  box-shadow: none;
+  min-height: 66px;
+}
+body.stitch-theme .revamp-booking #booking-search .booking-criteria-strip .booking-criteria-field small { color: var(--journey-muted); }
+body.stitch-theme .revamp-booking #booking-search .booking-criteria-strip .booking-criteria-field :is(strong,em) { color: var(--journey-ink); }
+body.stitch-theme .revamp-booking #booking-search .booking-criteria-strip .search-edit-label { background: var(--journey-sage); }
+body.stitch-theme .revamp-booking #booking-results > .revamp-booking-breadcrumb { margin: 14px 0 10px; }
+body.stitch-theme .revamp-booking #booking-results > .revamp-booking-breadcrumb a { color: inherit; }
+body.stitch-theme .revamp-booking #booking-results .booking-results-toolbar {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+body.stitch-theme .revamp-booking #booking-results .booking-results-heading h2 {
+  font: 750 clamp(20px, 3vw, 26px)/1.2 var(--font-stitch-display), sans-serif;
+  letter-spacing: -.035em;
+}
+body.stitch-theme .revamp-booking #booking-results .flight-shopping-controls {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-flight-facets > section {
+  background: var(--journey-ivory);
+  border: 1px solid var(--journey-line);
+  border-radius: 15px;
+  padding: 14px;
+  box-shadow: var(--journey-shadow);
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-flight-facets h4 { text-transform: none; letter-spacing: 0; font-size: .91rem; }
+body.stitch-theme .revamp-booking #booking-results .stitch-time-grid { grid-template-columns: 1fr; gap: 0; }
+body.stitch-theme .revamp-booking #booking-results .stitch-time-grid button {
+  grid-template-columns: 16px 18px minmax(0,1fr) auto;
+  justify-items: start;
+  align-items: center;
+  column-gap: 6px;
+  min-height: 36px;
+  padding: 4px 0;
+  text-align: start;
+  border: 0;
+  background: transparent;
+  color: var(--journey-pine);
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-time-grid button::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 1px solid #aabcb0;
+  border-radius: 4px;
+  background: #fff;
+}
+body.stitch-theme .revamp-booking #booking-results .stitch-time-grid button[aria-pressed=true]::before {
+  background: var(--journey-pine);
+  border-color: var(--journey-pine);
+  box-shadow: inset 0 0 0 3px var(--journey-ivory);
+}
+body.stitch-theme .revamp-booking #booking-results .flight-fares-dialog {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  width: min(100%, 565px);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: var(--journey-cream);
+  box-shadow: -12px 0 54px rgb(16 43 41 / 20%);
+}
+.revamp-booking .flight-fares-dialog::backdrop { background: rgb(16 43 41 / 55%); }
+.revamp-booking .flight-fares-dialog .flight-fares-header { background: linear-gradient(115deg, var(--journey-pine), #21544a); color: #fff; }
+.revamp-booking .flight-fares-dialog .flight-fares-header h3 { color: #fff; }
+.revamp-booking .flight-fares-dialog .flight-fares-close { order: -1; }
+.revamp-booking .flight-fares-dialog .flight-fares-route { color: var(--journey-pine); }
+
+/* The review is its own stage before entering guest or payment information. */
+body.stitch-theme .revamp-booking #booking-review .booking-checkout-hero {
+  background: linear-gradient(115deg, var(--journey-pine), #21544a);
+  color: var(--journey-ivory);
+  padding: 20px 0 28px;
+  margin-bottom: 12px;
+  box-shadow: 0 0 0 100vmax var(--journey-pine);
+  clip-path: inset(0 -100vmax round 0 0 22px 22px);
+}
+body.stitch-theme .revamp-booking #booking-review .booking-checkout-hero h1 { color: inherit; font: 750 clamp(25px,4vw,35px)/1.2 var(--font-stitch-display),sans-serif; margin: 10px 0 4px; }
+body.stitch-theme .revamp-booking #booking-review .booking-checkout-hero p { color: #d9e8df; margin: 0 0 12px; }
+.booking-checkout-progress { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 0; list-style: none; }
+.booking-checkout-progress li { display: inline-flex; gap: 6px; align-items: center; color: #d9e8df; font-size: .79rem; }
+.booking-checkout-progress li span { display: grid; place-items: center; width: 24px; height: 24px; background: #ffffff25; color: #fff; border-radius: 50%; font-weight: 750; }
+.booking-checkout-progress li[aria-current=step] { color: #fff; font-weight: 750; }
+.booking-checkout-progress li[aria-current=step] span { background: var(--journey-action); }
+.booking-review-context { display: flex; align-items: center; flex-wrap: wrap; width: max-content; max-width: 100%; gap: 8px; padding: 7px 12px; background: #ffffff22; border-radius: 99px; font-size: .82rem; }
+.booking-review-context button { appearance: none; min-height: 32px; padding: 0 5px; border: 0; background: transparent; color: #fff; text-decoration: underline; }
+body.stitch-theme .revamp-booking #booking-review .checkout-stages { display: block; }
+body.stitch-theme .revamp-booking #booking-review .checkout-stages .booking-expiry { margin: 0 0 14px; border-radius: 12px; }
+body.stitch-theme .revamp-booking #booking-review .booking-traveller-fields[hidden] { display: none; }
+body.stitch-theme .revamp-booking #booking-review .booking-travellers-next { width: 100%; border-radius: 999px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.booking-review-next-total { display: none; }
+body.stitch-theme .revamp-booking #booking-review .booking-review-column { border-top: 1px solid var(--journey-line); }
+body.stitch-theme .revamp-booking #booking-review .review-conditions { order: -1; }
+body.stitch-theme .revamp-booking #booking-review.checkout-step-review .review-conditions { order: 0; }
+
+@media (min-width: 1101px) {
+  body.stitch-theme .revamp-booking #booking-results :is(.flight-shopping,.hotel-shopping) { grid-template-columns: minmax(210px, 272px) minmax(0, 1fr); }
+  body.stitch-theme .revamp-booking #booking-results .flight-shopping-sort-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; }
+  body.stitch-theme .revamp-booking #booking-results .flight-shopping-sort-row .booking-results-heading { grid-column: 1 / -1; }
+  body.stitch-theme .revamp-booking #booking-results .stitch-sort-buttons { margin-inline-start: 0; }
+  body.stitch-theme .revamp-booking #booking-results .flight-shopping-sort-row .flight-result-shortcuts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); background: transparent; gap: 8px; padding: 0; }
+  body.stitch-theme .revamp-booking #booking-results .flight-shopping-sort-row .flight-sort-card { min-height: 64px; border-radius: 13px; background: var(--journey-ivory); border-color: var(--journey-line); box-shadow: var(--journey-shadow); }
+  body.stitch-theme .revamp-booking #booking-results .flight-shopping-sort-row .flight-sort-card[aria-pressed=true] { background: var(--journey-pine); color: #fff; }
+  body.stitch-theme .revamp-booking #booking-results .flight-shopping-sort-row .flight-sort-card[aria-pressed=true] :is(strong,small,span) { color: #fff; }
+  body.stitch-theme .revamp-booking #booking-results .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) {
+    grid-template-columns: minmax(0, 1fr) minmax(164px, 23%);
+    gap: 8px 16px;
+    padding: 14px 16px;
+  }
+  body.stitch-theme .revamp-booking #booking-results .live-flight-card .flight-result-top { grid-area: 1 / 1; }
+  body.stitch-theme .revamp-booking #booking-results .live-flight-card .flight-route-line { grid-area: 2 / 1; grid-template-columns: minmax(60px, auto) minmax(0,1fr) minmax(60px, auto); }
+  body.stitch-theme .revamp-booking #booking-results .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison { grid-area: 1 / 2 / 4; height: 100%; padding: 9px 0 9px 14px; border-inline-start: 1px dashed var(--journey-line); }
+  body.stitch-theme .revamp-booking #booking-results .live-flight-card:not(:has(.combo-itinerary)) .fare-comparison > .fare-comparison-trigger { display: flex; flex-direction: column; align-items: stretch; justify-content: center; height: 100%; gap: 10px; }
+  body.stitch-theme .revamp-booking #booking-results .live-flight-card .fare-comparison > .fare-comparison-trigger > span { width: 100%; text-align: center; }
+  body.stitch-theme .revamp-booking #booking-results .live-flight-card .flight-result-details { grid-area: 3 / 1; padding: 5px 0 0; border-top: 1px solid var(--journey-line); border-radius: 0; background: transparent; }
+  body.stitch-theme .revamp-booking #booking-results .live-flight-card .choose-fare-label { border-radius: 99px; }
+  body.stitch-theme .revamp-booking #booking-results .hotel-shopping-card { grid-template: 'photo content action' minmax(184px,auto) / minmax(155px,25%) minmax(0,1fr) minmax(151px,21%); gap: 0; padding: 0; overflow: hidden; }
+  body.stitch-theme .revamp-booking #booking-results .hotel-shopping-card .hotel-card-photo { height: 100%; min-height: 184px; border-radius: 0; }
+  body.stitch-theme .revamp-booking #booking-results .hotel-shopping-card .hotel-result-content { padding: 13px 15px; }
+  body.stitch-theme .revamp-booking #booking-results .hotel-shopping-card .hotel-result-action { display: flex; padding: 14px; justify-content: end; background: linear-gradient(#fff,var(--journey-cream)); border-inline-start: 1px dashed var(--journey-line); border-radius: 0; }
+  body.stitch-theme .revamp-booking #booking-results .hotel-shopping-card .hotel-result-action .primary { border-radius: 99px; }
+}
+@media (max-width: 760px) {
+  body.stitch-theme .revamp-booking.results-only #booking-search:has(.booking-criteria-strip):not([open]),
+  body.stitch-theme .revamp-booking #booking-results > .revamp-booking-breadcrumb { display: none; }
+  .booking-checkout-progress { gap: 7px 12px; }
+  .booking-checkout-progress li { gap: 4px; font-size: .72rem; }
+  .booking-checkout-progress li span { width: 21px; height: 21px; }
+  body.stitch-theme .revamp-booking #booking-review .booking-inline-grid { gap: 14px; }
+}
+@media (max-width: 700px) {
+  html:has(.booking-review-next-dock) { scroll-padding-bottom: 75px; }
+  .booking-review-next-dock {
+    position: fixed;
+    z-index: 22;
+    inset: auto 0 0;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,1.6fr);
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px max(8px,env(safe-area-inset-bottom));
+    border-top: 1px solid var(--journey-line);
+    background: var(--journey-ivory);
+    box-shadow: 0 -4px 16px rgb(16 43 41 / 10%);
+  }
+  .booking-review-next-dock .booking-review-next-total { display: grid; font-size: .84rem; }
+  .booking-review-next-total small { color: var(--journey-muted); }
+  .booking-review-next-total strong { font-size: 1rem; }
+  body.stitch-theme .revamp-booking #booking-review .booking-travellers-next { margin: 0; min-height: 44px; }
+}
+
+/* Property photos span the overview; room prices remain beside the room list. */
+body.stitch-theme .revamp-booking #booking-rooms { max-width: 1150px; margin-inline: auto; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-detail-heading { border: 0; padding: 0; background: transparent; box-shadow: none; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-detail-heading h2 { font-size: clamp(25px,3.4vw,34px); }
+body.stitch-theme .revamp-booking #booking-rooms .stay-photo-mosaic { height: clamp(190px,39vw,425px); }
+.stay-overview-amenities { display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 12px 0; margin: 12px 0; border-block: 1px solid var(--journey-line); list-style: none; }
+.stay-overview-amenities li { display: flex; align-items: center; gap: 5px; font-size: .83rem; color: var(--journey-pine); }
+.stay-room-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(220px,30%); align-items: start; gap: 24px; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-room-layout .stay-rooms-section { min-width: 0; margin-top: 0; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-room-layout .stay-rate-preview { top: var(--booking-header-offset, 82px); margin-top: 8px; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-rate-preview .stay-date-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 12px 0; box-shadow: none; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-rate-preview .stay-date-strip > div { padding: 4px; background: transparent; border: 0; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-rate-preview .stay-date-strip > div:last-child { grid-column: 1 / -1; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-rate-preview .primary { border-radius: 999px; }
+body.stitch-theme .revamp-booking #booking-rooms .stay-about { margin-top: 25px; }
+
+/* Guest trip lookup and account overview share a full-width support banner. */
+body.stitch-theme .revamp-trips.guest-trips-entry { width: min(calc(100% - 32px), 1296px); max-width: 1296px; padding-top: 0; }
+.revamp-trip-hero { padding: clamp(22px,4vw,45px) 0; margin-bottom: clamp(22px,4vw,45px); }
+.revamp-trip-hero, body.stitch-theme .revamp-account .account-shell.account-guest-overview > .page-heading {
+  background: linear-gradient(110deg,var(--journey-pine),#21544a);
+  color: #fff;
+  box-shadow: 0 0 0 100vmax var(--journey-pine);
+  clip-path: inset(0 -100vmax round 0 0 22px 22px);
+}
+.revamp-trip-hero nav { display: flex; flex-wrap: wrap; gap: 8px; font-size: .8rem; color: #e2ece5; }
+.revamp-trip-hero nav a { color: inherit; }
+.revamp-trip-hero h1 { margin: 10px 0 6px; color: #fff; font: 750 clamp(30px,4vw,43px)/1.2 var(--font-stitch-display),sans-serif; }
+.revamp-trip-hero p { margin: 0; color: #ddeae0; }
+body.stitch-theme .revamp-trips .revamp-trip-access { max-width: 520px; padding: clamp(20px,5vw,40px); border-top: 1px solid var(--journey-line); }
+.revamp-trip-lookup-icon,.account-overview-icon { display: inline-grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; color: var(--journey-pine); background: var(--journey-sage); }
+.revamp-trip-access h2 { margin: 13px 0 5px; color: var(--journey-pine); }
+.revamp-trip-access > p { margin-block: 0 15px; }
+.revamp-trip-access .support-compact-lookup form { display: grid; gap: 12px; }
+.revamp-trip-access .support-compact-lookup label { display: grid; gap: 5px; }
+.revamp-trip-access .support-compact-lookup input { min-height: 44px; width: 100%; }
+.revamp-trip-access .support-compact-lookup .primary { width: 100%; border-radius: 999px; }
+.revamp-trip-access .support-compact-lookup [role=status]:empty { display: none; }
+
+body.stitch-theme .revamp-account:has(.account-guest-overview) { padding-top: 0; }
+body.stitch-theme .revamp-account .account-shell.account-guest-overview > .page-heading { border-radius: 0; border: 0; padding-block: 26px 38px; }
+body.stitch-theme .revamp-account .account-shell.account-guest-overview > .page-heading :is(h1,p) { color: #fff; }
+body.stitch-theme .revamp-account .account-shell.account-guest-overview > .page-heading h1 { font: 750 clamp(28px,4vw,42px)/1.2 var(--font-stitch-display),sans-serif; }
+body.stitch-theme .revamp-account .account-overview-gate { grid-column: 1/-1; display: grid; justify-items: center; text-align: center; gap: 8px; }
+.account-overview-gate :is(h2,p) { margin: 0; }
+.account-overview-gate .primary { border-radius: 999px; margin-block: 8px; }
+body:has(.account-signin-drawer[open]) { overflow: hidden; }
+.revamp-account .account-signin-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  width: min(100%, 440px);
+  height: 100dvh;
+  max-height: none;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  color: var(--journey-ink);
+  background: var(--journey-ivory);
+  box-shadow: -12px 0 54px rgb(16 43 41 / 20%);
+}
+.revamp-account .account-signin-drawer::backdrop { background: rgb(16 43 41 / 55%); backdrop-filter: blur(3px); }
+.account-signin-drawer > header { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 18px 22px; color: #fff; background: linear-gradient(115deg,var(--journey-pine),#21544a); }
+.account-signin-drawer > header h2 { font-size: 1.25rem; color: inherit; margin: 0 0 3px; }
+.account-signin-drawer > header p { margin: 0; font-size: .86rem; color: #e3ede5; }
+.account-signin-drawer > header button { flex: 0 0 auto; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: #ffffff28; color: #fff; }
+body.stitch-theme .revamp-account .account-signin-drawer .account-drawer-body { padding: 20px 22px 28px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.account-signin-drawer .account-drawer-body form > .primary { border-radius: 999px; }
+
+@media (min-width: 751px) {
+  body.stitch-theme .revamp-account:has(.account-guest-overview) { row-gap: 20px; margin-top: 0; }
+  .revamp-account:has(.account-guest-overview) > .account-workspace-content,
+  .revamp-account .account-shell.account-guest-overview { display: contents; }
+  .revamp-account .account-shell.account-guest-overview > .page-heading { grid-area: 1 / 1 / 2 / -1; }
+  .revamp-account:has(.account-guest-overview) > .account-workspace-sidebar { grid-area: 2 / 1; }
+  .revamp-account .account-guest-overview > .account-experience-grid { grid-area: 2 / 2; }
+  .revamp-account .account-guest-overview > .account-environment-note { grid-column: 2; }
+}
+
+@media (max-width: 860px) {
+  .stay-room-layout { grid-template-columns: 1fr; gap: 10px; }
+  body.stitch-theme .revamp-booking #booking-rooms .stay-room-layout .stay-rate-preview { position: static; }
 }

@@ -1,10 +1,11 @@
-import { test, expect, openFlightSearch } from './fixtures';
+import {continueToTravellerDetails,  test, expect, openFlightSearch } from './fixtures';
 
 test('a signed-out guest goes from fare to payment without an email or WhatsApp code', async ({ page, provider }) => {
   provider.session = null;
   await openFlightSearch(page);
   await page.locator('.flight-shopping-list .fare-comparison-trigger').first().click();
   await page.getByRole('button', { name: 'Check fare & continue', exact: true }).first().click();
+  await continueToTravellerDetails(page);
   const form = page.getByRole('form', { name: 'Review and travellers' });
   await expect(form).toBeVisible();
   await expect(page.locator('#booking-signin-title')).toHaveCount(0);

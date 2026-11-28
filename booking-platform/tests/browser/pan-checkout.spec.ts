@@ -1,4 +1,4 @@
-import {test,expect,capture,departure,returning,reviewedQuote,searchId,expectNoHorizontalOverflow} from './fixtures';
+import {continueToTravellerDetails, test,expect,capture,departure,returning,reviewedQuote,searchId,expectNoHorizontalOverflow} from './fixtures';
 
 for(const panRequired of [false,true,'false'] as const)test(`hotel PAN ${JSON.stringify(panRequired)} respects the primary guest and keeps other documents optional`,async({page,provider},testInfo)=>{
  const option={optionId:'pan-room',roomInfo:[{name:'Deluxe room'}],mealBasis:'ROOM_ONLY',inclusions:['Wi-Fi'],pricing:{totalPrice:8000,currency:'INR'},compliance:{panRequired},cancellation:{policy:'Cancellation charges apply.'}};
@@ -8,6 +8,7 @@ for(const panRequired of [false,true,'false'] as const)test(`hotel PAN ${JSON.st
  await page.goto('/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'2',autoSearch:'1'}));
  await page.getByRole('button',{name:'Choose room',exact:true}).click();
  await page.getByRole('button',{name:'Continue with room',exact:true}).click();
+ await continueToTravellerDetails(page);
  const form=page.locator('#booking-review');
  for(let index=0;index<2;index++){
   await form.locator(`[name="first-${index}"]`).fill(index===0?'Primary':'Second');

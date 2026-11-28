@@ -1,4 +1,4 @@
-import {test,expect,openFlightSearch,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
+import {openNearbyFlightDates,continueToTravellerDetails, test,expect,openFlightSearch,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow,capture} from './fixtures';
 import {travelDateLabel} from '../../src/lib/travel-date';
 import {indiaToday} from '../../src/lib/booking-presentation';
 
@@ -6,7 +6,7 @@ function shiftedDate(date:string,days:number){const value=new Date(`${date}T12:0
 
 test('nearby departure dates use submitted criteria and never move the return',async({page,provider})=>{
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,returnDate:departure,adults:'2',children:'1',infants:'1',cabin:'BUSINESS',autoSearch:'1'}));
- const dates=page.getByRole('navigation',{name:'Nearby departure dates'});
+ const dates=await openNearbyFlightDates(page);
  const days=dates.locator('[data-flight-date-track] button[data-flight-date]');
  await expect(days).toHaveCount(15);
  await expect(dates.locator(`[data-flight-date="${departure}"]`)).toHaveAttribute('aria-current','date');
@@ -33,7 +33,7 @@ test('15-day flight timeline shows seven desktop dates and browses both ends wit
  provider.overrides['POST /api/travel/fare-calendar']={status:204,body:null};
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.setViewportSize({width:1440,height:1000});await openFlightSearch(page);
- const dates=page.getByRole('navigation',{name:'Nearby departure dates'}),track=dates.locator('[data-flight-date-track]'),days=track.locator('button[data-flight-date]');
+ const dates=await openNearbyFlightDates(page),track=dates.locator('[data-flight-date-track]'),days=track.locator('button[data-flight-date]');
  await expect(days).toHaveCount(15);
  const listed=await days.evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-flight-date')!));
  expect(listed[0]).toBe(shiftedDate(departure,-7));expect(listed[14]).toBe(shiftedDate(departure,7));
@@ -101,7 +101,7 @@ test('15-day flight timeline shows seven desktop dates and browses both ends wit
 
 test('flight date timeline supports keyboard browsing and restores focus after selection',async({page,provider})=>{
  await openFlightSearch(page);
- const dates=page.getByRole('navigation',{name:'Nearby departure dates'});
+ const dates=await openNearbyFlightDates(page);
  const selected=dates.locator(`[data-flight-date="${departure}"]`);
  const next=dates.locator(`[data-flight-date="${shiftedDate(departure,1)}"]`);
  await selected.focus();
@@ -117,7 +117,7 @@ test('flight date timeline supports keyboard browsing and restores focus after s
 test('flight timeline starts today instead of offering past departure dates',async({page,provider})=>{
  const today=indiaToday();
  await page.goto('/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:today,adults:'1',autoSearch:'1'}));
- const dates=page.getByRole('navigation',{name:'Nearby departure dates'}),days=dates.locator('[data-flight-date-track] button[data-flight-date]');
+ const dates=await openNearbyFlightDates(page),days=dates.locator('[data-flight-date-track] button[data-flight-date]');
  await expect(days).toHaveCount(15);await expect(days.first()).toHaveAttribute('data-flight-date',today);
  await expect(days.last()).toHaveAttribute('data-flight-date',shiftedDate(today,14));
  await expect(dates.locator('button[aria-current="date"]')).toHaveAttribute('data-flight-date',today);
@@ -130,13 +130,25 @@ test('checkout has one submit action on phones and keeps private details through
  await page.setViewportSize({width:390,height:844});await openFlightSearch(page);
  await page.locator('.fare-comparison-trigger').first().click();await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
  const form=page.getByRole('form',{name:'Review and travellers'});
+ await expect(form.getByRole('heading',{name:'Review your trip',exact:true})).toBeVisible();
+ await expect(form.getByRole('button',{name:/^Agree & pay /})).toHaveCount(0);
+ await expect(form.getByRole('textbox',{name:'First name',exact:true})).toHaveCount(0);
+ await continueToTravellerDetails(page);
+ await expect(form.getByRole('heading',{name:'Who’s travelling?',exact:true})).toBeFocused();
  await expect(form.getByRole('button',{name:/^Agree & pay /})).toHaveCount(1);
  await expect(form.getByRole('button',{name:'Choose flight extras',exact:true})).toBeHidden();
  await form.getByLabel('First name',{exact:true}).fill('Aarav');await form.getByLabel('Last name',{exact:true}).fill('Example');
  await form.getByLabel('Email',{exact:true}).fill('traveller@example.test');await form.getByLabel('Mobile number',{exact:true}).fill('9876543210');
+ await form.getByRole('button',{name:'Review trip',exact:true}).click();
+ await expect(form.getByRole('heading',{name:'Review your trip',exact:true})).toBeFocused();
+ await expect(form.getByRole('textbox',{name:'First name',exact:true})).toHaveCount(0);
+ await continueToTravellerDetails(page);
+ await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
+ expect(provider.requests('/api/travel/review')).toHaveLength(1);
  await form.getByRole('button',{name:'Change selection',exact:true}).click();
  await page.locator('.fare-comparison-trigger').first().click();
  await page.getByRole('button',{name:'Check fare & continue',exact:true}).first().click();
+ await continueToTravellerDetails(page);
  await expect(form.getByLabel('First name',{exact:true})).toHaveValue('Aarav');
  await expect(form.getByLabel('Email',{exact:true})).toHaveValue('traveller@example.test');
  await expect(page.locator('#booking-summary').getByRole('heading',{name:'Review your booking',exact:true})).toBeVisible();

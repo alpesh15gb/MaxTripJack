@@ -22,8 +22,12 @@ export async function warmSupplierSearch(criteria:Search,scope:WarmScope,intent:
   const track=(_status:unknown,until?:number)=>{freshUntil=until;};
   if(criteria.product==='FLIGHT'){
    const payload=flightSearch(criteria);
-   const data=await cachedFlightSearch(payload,()=>tripjack('FLIGHT',paths.FLIGHT.search,payload),undefined,undefined,track);
-   return {data,correlationId:randomUUID(),...(freshUntil!==undefined?{freshUntil}:{})};
+   let flightFetchedSince:number|undefined;
+   const data=await cachedFlightSearch(payload,()=>tripjack('FLIGHT',paths.FLIGHT.search,payload),undefined,undefined,(status,until,fetchedSince)=>{
+    track(status,until);
+    flightFetchedSince=fetchedSince;
+   });
+   return {data,correlationId:randomUUID(),...(freshUntil!==undefined?{freshUntil}:{}),flightFetchedSince};
   }
   const listing=await cachedHotelSearch(hotelSearch(criteria,randomUUID()),randomUUID(),id=>tripjack('HOTEL',paths.HOTEL.search,hotelSearch(criteria,id)),undefined,track);
   return {data:listing.data,correlationId:listing.correlationId,...(freshUntil!==undefined?{freshUntil}:{})};

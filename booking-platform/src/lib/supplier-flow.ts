@@ -14,6 +14,7 @@ import { mergeHotelPropertyDetails } from "./hotel-property-merge";
 import { hotelObject, hotelPropertyDetails } from "./hotel-presentation";
 import { SearchTiming } from "./search-timing";
 import { cachedFlightSearch, cachedHotelSearch } from "./flight-search-cache";
+import { flightSeatInventoryExpiry } from "./flight-seat-inventory";
 import { observeSearchFare } from "./fare-calendar";
 import {bookingPriceBreakdown} from './booking-price-breakdown';
 import { exactAirportGroups } from "./flight-airport-scope";
@@ -38,14 +39,14 @@ export function assertFresh(expires:Date|string){
 export async function searchSupplier(criteria:Search,actor:Actor,timing=new SearchTiming(),warm?:{intent:string;peer:string;sessionFingerprint?:string}){
  await timing.measure("limit",()=>requestLimit(actor.userId,"supplier-search",20));
  validateSearchCriteria(criteria);
- const id=randomUUID();let correlationId:string=randomUUID();
+ const id=randomUUID();let correlationId:string=randomUUID();let flightFetchedSince:number|undefined;
  const [data,rule]=await Promise.all([timing.measure('supplier',async()=>{
   if(warm&&process.env.SEARCH_PREWARM_ENABLED!=='false'){
    const adoption=searchWarmCache.take(warm.intent,criteria,{actor,peer:warm.peer,...(warm.sessionFingerprint?{sessionFingerprint:warm.sessionFingerprint}:{})});
    const prepared=await adoption.result;timing.warmCache(prepared?adoption.status:'miss');
-   if(prepared){correlationId=prepared.correlationId;return prepared.data as Awaited<ReturnType<typeof tripjack>>;}
+   if(prepared){correlationId=prepared.correlationId;flightFetchedSince=prepared.flightFetchedSince;return prepared.data as Awaited<ReturnType<typeof tripjack>>;}
   }
-  if(criteria.product==='FLIGHT'){const supplierRequest=flightSearch(criteria);return cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest),undefined,undefined,status=>timing.flightCache(status));}
+  if(criteria.product==='FLIGHT'){const supplierRequest=flightSearch(criteria);return cachedFlightSearch(supplierRequest,()=>tripjack(criteria.product,paths[criteria.product].search,supplierRequest),undefined,undefined,(status,_until,fetchedSince)=>{timing.flightCache(status);flightFetchedSince=fetchedSince;});}
   const listing=await cachedHotelSearch(hotelSearch(criteria,correlationId),correlationId,id=>tripjack('HOTEL',paths.HOTEL.search,hotelSearch(criteria,id)),undefined,status=>timing.hotelCache(status));
   correlationId=listing.correlationId;return listing.data;
  }),timing.measure("pricing",()=>pricingRule(criteria.product,actor))]);
@@ -53,7 +54,7 @@ export async function searchSupplier(criteria:Search,actor:Actor,timing=new Sear
  // later catalogue settings must never relabel historical test results as production.
  await timing.measure("persist",()=>database().query("INSERT INTO supplier_searches(id,user_id,company_id,product,criteria,results,correlation_id,expires_at,provider_environment) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '14 minutes','uat')",[id,actor.userId,actor.companyId,criteria.product,criteria,criteria.product==="HOTEL"?{...data,[HOTEL_REVIEW_SNAPSHOT_KEY]:{}}:data,correlationId]));
  return timing.sync("projection",()=>{
- if(criteria.product==="FLIGHT"){const results=customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule);observeSearchFare(criteria,results,actor.companyId);return {searchId:id,product:criteria.product,results};}
+ if(criteria.product==="FLIGHT"){const results=customerFlightResults({...data,searchResult:{...data.searchResult,tripInfos:exactAirportGroups(data.searchResult?.tripInfos,criteria)}},criteria,rule,flightSeatInventoryExpiry(flightFetchedSince,Date.now()));observeSearchFare(criteria,results,actor.companyId);return {searchId:id,product:criteria.product,results};}
  const results=customerHotelResults(data,rule);
  results.hotels=results.hotels.filter(hotel=>criteria.hotelIds.includes(hotel.tjHotelId));
  const properties=hotelContentForSearch.peek(results.hotels.map(hotel=>hotel.tjHotelId),criteria.hotelIds);

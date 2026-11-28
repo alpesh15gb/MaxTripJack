@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import DiscoveryPhoto from './discovery-photo';
+import ReferenceProductNav from './reference-product-nav';
 import type { HotelCatalogueRecord } from '@/lib/hotel-catalogue';
 import { hotelDirectoryPath, hotelPropertyPath } from '@/lib/hotel-public-path';
 import { hotelContactHref, hotelTestAvailabilityHref, HOTEL_DIRECTORY_PAGE_SIZE } from '@/lib/hotel-seo';
@@ -54,20 +54,20 @@ export function HotelPropertyContent({ hotel, emailHref }: { hotel: HotelCatalog
 }
 
 export function HotelCatalogueUnavailable({ property = false, query = '' }: { property?: boolean; query?: string }) {
-  return <main id="main-content" className="catalogue-main public-refresh revamp-discovery">
-    <CatalogueBreadcrumbs />
-    {property ? <section className="catalogue-empty">
+  return <main id="main-content" className="catalogue-main public-refresh revamp-discovery reference-catalogue-page">
+    {property ? <div className="reference-content"><CatalogueBreadcrumbs/><section className="catalogue-empty">
       <TravelIcon name="hotel" size={36}/>
       <h1>Property details are temporarily unavailable</h1>
       <p>Try searching by destination and date, or ask our team for help with your stay.</p>
       <div><Link href="/book?product=HOTEL" className="catalogue-button">Search stays</Link><Link href="/contact" className="catalogue-outline-button">Contact our team</Link></div>
-    </section> : <>
-      <header className="catalogue-directory-hero discovery-detail-hero">
+    </section></div> : <>
+      <header className="reference-editorial-hero reference-editorial-hero--catalogue"><div className="reference-content">
+        <CatalogueBreadcrumbs/>
         <h1>Explore your next hotel stay</h1>
         <p>The hotel directory is temporarily unavailable. Search room availability by destination and date.</p>
-        <Link href="/contact" className="catalogue-outline-button">Contact our team</Link>
-      </header>
-      <div className="discovery-hotel-tools is-single"><SearchStaysByDate query={query} /></div>
+      </div></header>
+      <div className="reference-content reference-catalogue-content"><section className="reference-product-panel" aria-label="Search travel"><ReferenceProductNav active="hotels"/><div className="discovery-hotel-tools is-single"><SearchStaysByDate query={query} /></div></section>
+      <Link href="/contact" className="catalogue-outline-button">Contact our team</Link></div>
     </>}
   </main>;
 }
@@ -97,30 +97,27 @@ export function HotelDirectoryContent({ hotels, total, page, query }: { hotels: 
   const totalPages = Math.max(1, Math.ceil(total / HOTEL_DIRECTORY_PAGE_SIZE));
   const href = (number: number) => hotelDirectoryPath(number) + (query ? `?${new URLSearchParams({ q: query })}` : '');
   const pageLinks = [...new Set([1, page - 1, page, page + 1, totalPages])].filter(number => number >= 1 && number <= totalPages).sort((a, b) => a - b);
-  return <main id="main-content" className="catalogue-main public-refresh revamp-discovery">
-    <CatalogueBreadcrumbs />
-    <header className="catalogue-directory-hero discovery-hero">
-      <div className="discovery-hotel-copy">
-        <span className="catalogue-eyebrow">Hotel directory</span>
+  return <main id="main-content" className="catalogue-main public-refresh revamp-discovery reference-catalogue-page">
+    <header className="reference-editorial-hero reference-editorial-hero--catalogue">
+      <div className="reference-content">
+        <CatalogueBreadcrumbs />
         <h1>{query ? 'Find a stay that feels right.' : 'Good stays. Great beginnings.'}</h1>
         <p>Get to know a property through its photos, location and amenities, then check rooms for your dates.</p>
-        <a className="discovery-hero-link" href="#stays-by-date">Check room availability <TravelIcon name="arrow" size={18} /></a>
-      </div>
-      <DiscoveryPhoto src="/travel/stitch/desktop-maldives.webp" />
-    </header>
-    <div className="discovery-hotel-tools">
-      <section aria-labelledby="stays-directory-title">
-        <h2 id="stays-directory-title">Find a property</h2>
-        <p>Look up a hotel or browse an area.</p>
-        <form action="/hotels" method="get" className="catalogue-search" role="search" aria-label="Hotel directory">
-          <label htmlFor="catalogue-query">Hotel name, city or area</label>
-          <div><input id="catalogue-query" name="q" type="search" defaultValue={query} placeholder="Try a hotel name or Mira Road" maxLength={80} /><button className="catalogue-button" type="submit"><TravelIcon name="search" size={18} />Find hotels</button></div>
+        <form action="/hotels" method="get" className="reference-search-pill" role="search" aria-label="Hotel directory">
+          <TravelIcon name="search" size={20}/>
+          <input name="q" type="search" aria-label="Hotel name, city or area" defaultValue={query} placeholder="Hotel name, city or area" maxLength={80}/>
+          <button type="submit">Find hotels</button>
         </form>
-      </section>
-      <SearchStaysByDate query={query} />
-    </div>
+      </div>
+    </header>
+    <div className="reference-content reference-catalogue-content">
+    <section className="reference-product-panel" aria-label="Search travel">
+      <ReferenceProductNav active="hotels"/>
+      <div className="discovery-hotel-tools is-single"><SearchStaysByDate query={query} /></div>
+    </section>
     <div className="catalogue-results-heading"><h2>{query ? `Hotels matching “${query}”` : 'Explore the hotel directory'}</h2><p>{total.toLocaleString('en-IN')} {total === 1 ? 'property' : 'properties'}{total > 0 ? ` · Page ${page} of ${totalPages}` : ''}</p>{query && <Link className="catalogue-text-link" href="/hotels">Clear search</Link>}</div>
     {hotels.length ? <div className="catalogue-grid">{hotels.map(hotel => <HotelCatalogueCard key={hotel.hotelId} hotel={hotel}/>)}</div> : <section className="catalogue-empty"><TravelIcon name="search" size={32} /><h2>{query ? 'No matching hotels in the directory yet' : 'Your next stay is worth exploring'}</h2><p>{query ? 'Try a shorter hotel name, a nearby city or a different spelling. Directory coverage can differ from date-based availability.' : 'Hotel details will appear here as the supplier catalogue is prepared. You can search available stays in the meantime.'}</p><Link className="catalogue-button" href="/book?product=HOTEL">Search stays</Link></section>}
     {totalPages > 1 && <nav className="catalogue-pagination" aria-label="Hotel directory pages">{page > 1 && <Link href={href(page - 1)}>← Previous</Link>}{pageLinks.map((number, index) => <span key={number}>{index > 0 && number - pageLinks[index - 1] > 1 && <span className="catalogue-page-gap" aria-hidden="true">…</span>}<Link href={href(number)} aria-current={number === page ? 'page' : undefined} aria-label={`Hotel directory page ${number}`}>{number}</Link></span>)}{page < totalPages && <Link href={href(page + 1)}>Next →</Link>}</nav>}
+    </div>
   </main>;
 }

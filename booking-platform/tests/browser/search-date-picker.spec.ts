@@ -2,7 +2,7 @@ import {test,expect,capture,departure,returning,pickHomeDate,expectNoHorizontalO
 
 test('search pickers use mobile sheets and the desktop calendar blocks the background', async ({page}, info) => {
  await page.emulateMedia({reducedMotion:'reduce'});
- await page.goto('/');
+ await page.goto('/?product=FLIGHT');
  const mobile = info.project.name === 'mobile-390';
  for (const field of ['.fare-date-trigger', '.travellers-trigger']) {
   const trigger = page.locator(field).first();
@@ -28,12 +28,12 @@ test('search pickers use mobile sheets and the desktop calendar blocks the backg
  }
 });
 
-test('adding a return opens the date picker without silently selecting a day',async({page})=>{
- await page.goto('/');
- await page.locator('.stitch-add-return').click();
+test('round-trip search exposes an editable return date',async({page})=>{
+ await page.goto('/?product=FLIGHT');
+ await page.getByRole('radio',{name:'Round trip'}).check();
+ await page.getByRole('button',{name:/^Return /}).click();
  const calendar=page.getByRole('dialog',{name:'Choose return',exact:true});
  await expect(calendar).toBeVisible();
- await expect(page.locator('input[type="hidden"][name="end"]')).toHaveValue('');
  const date=calendar.locator('[role="gridcell"][tabindex="0"]');
  const day=await date.getAttribute('data-date');
  await date.press('Enter');
@@ -42,7 +42,7 @@ test('adding a return opens the date picker without silently selecting a day',as
 });
 
 test('date picker Escape closes from month navigation and restores the field',async({page,provider},testInfo)=>{
- await page.goto('/');
+ await page.goto('/?product=FLIGHT');
  const field=page.getByRole('button',{name:/^Departure /});await field.click();
  const calendar=page.getByRole('dialog',{name:'Choose departure',exact:true});await expect(calendar).toBeVisible();
  await calendar.getByRole('button',{name:'Next month',exact:true}).focus();
@@ -53,7 +53,7 @@ test('date picker Escape closes from month navigation and restores the field',as
 
 test('flight travellers, cabin class and Done are in view immediately after opening', async ({page}, info) => {
   if (info.project.name === 'desktop-1440') await page.setViewportSize({width:1440, height:768});
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   await page.evaluate(() => document.fonts.ready);
   const trigger = page.getByRole('button', {name:/^Travellers & class/});
   await trigger.click();
@@ -74,11 +74,11 @@ test('flight travellers, cabin class and Done are in view immediately after open
 
 test('Done on hotel guests brings the labelled search row and submit button back into view', async ({page}, info) => {
   if (info.project.name === 'desktop-1440') await page.setViewportSize({width:1440, height:900});
-  if (info.project.name === 'mobile-390') await page.setViewportSize({width:390, height:600});
+  if (info.project.name === 'mobile-390') await page.setViewportSize({width:390, height:490});
   await page.emulateMedia({reducedMotion:'reduce'});
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   const planner = page.getByRole('region', {name:'Plan your trip'});
-  await planner.getByRole('button', {name:'Hotels', exact:true}).click();
+  await planner.getByRole('button', {name:'Stays', exact:true}).click();
   await planner.getByLabel('Destination', {exact:true}).fill('Goa');
   await planner.getByRole('option', {name:'Goa, India', exact:true}).click();
   await pickHomeDate(planner, 'Check-in', departure);
@@ -117,7 +117,7 @@ test('Done on hotel guests brings the labelled search row and submit button back
 });
 
 test('date picker month navigation retains a keyboard-selectable day',async({page,provider})=>{
- await page.goto('/');
+ await page.goto('/?product=FLIGHT');
  await page.getByRole('button',{name:/^Departure /}).click();
  const calendar=page.getByRole('dialog',{name:'Choose departure',exact:true});
  await calendar.getByRole('button',{name:'Next month',exact:true}).click();

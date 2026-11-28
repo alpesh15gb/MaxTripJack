@@ -1,0 +1,325 @@
+/* Flight comparison keeps the search controls above the results. */
+html body.stitch-theme:has(main.destina-flight-results) { background: #ecf1eb; }
+html body.stitch-theme main.destina-flight-results {
+  width: min(calc(100% - 32px), 1296px);
+  max-width: none;
+  margin: 0 auto 40px;
+  padding: 0;
+  background: transparent;
+}
+body:has(main.destina-flight-results) :is(.max-ai-launcher, .max-ai-mobile-clearance) { display: none; }
+body.stitch-theme .destina-flight-results #booking-search.has-inline-flight-search:has(> .flight-inline-search) {
+  position: relative;
+  isolation: isolate;
+  z-index: 4;
+  display: block;
+  margin: 0;
+  padding: 7px 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.stitch-theme .destina-flight-results #booking-search.has-inline-flight-search:has(> .flight-inline-search)::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -8px auto 0 50%;
+  width: 100vw;
+  background: linear-gradient(110deg, #0c3532, #23594b);
+  border-radius: 0 0 28px 28px;
+  box-shadow: none;
+  clip-path: none;
+  transform: translateX(-50%);
+}
+body.stitch-theme .destina-flight-results #booking-search.has-inline-flight-search > summary { display: none; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-search { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-search .live-search-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.flight-inline-journeys { grid-area: 1 / 1; display: flex; gap: 2px; width: 280px; min-width: 0; padding: 3px; border-radius: 26px; background: #ffffff1a; }
+.flight-inline-journeys button { flex: 1; white-space: nowrap; }
+body.stitch-theme .destina-flight-results .flight-inline-journeys button,
+body.stitch-theme .destina-flight-results .flight-inline-preferred > button { min-height: 34px; padding: 4px 12px; border: 0; border-radius: 24px; background: transparent; color: white; font: 700 13px/1.2 var(--font-stitch-body), sans-serif; cursor: pointer; }
+body.stitch-theme .destina-flight-results .flight-inline-journeys button[aria-pressed='true'] { background: white; color: var(--journey-ink); }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-search .booking-party-picker { grid-area: 1 / 2; position: relative; width: 209px; max-width: 100%; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-search .booking-party-picker > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 3px 11px;
+  border: 0;
+  border-radius: 24px;
+  color: white;
+  background: #ffffff1a;
+  font-size: 13px;
+  cursor: pointer;
+}
+.flight-inline-search .booking-party-picker > summary :is(strong, .party-edit) { display: none; }
+.flight-inline-search .booking-party-picker > summary small { margin: 0; color: white; font-size: inherit; font-weight: 650; }
+.flight-inline-search .booking-party-description { min-width: 0; }
+.flight-inline-search .booking-party-picker > summary::after { content: '⌄'; flex-shrink: 0; margin-inline-start: auto; }
+.flight-inline-search .booking-party-picker[open] { z-index: 3; }
+.flight-inline-search .booking-party-picker > .form-row { position: absolute; top: calc(100% + 6px); left: 0; min-width: min(410px, 86vw); display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; padding: 14px; border: 1px solid var(--journey-line); border-radius: 12px; background: white; box-shadow: 0 12px 34px #102b292d; }
+.flight-inline-search .booking-party-picker > p { display: none; }
+.flight-inline-preferred { display: contents; }
+body.stitch-theme .destina-flight-results .flight-inline-preferred > button { grid-area: 1 / 3; display: inline-flex; align-items: center; gap: 5px; min-height: 40px; background: #ffffff1a; }
+.flight-inline-airline-value { max-width: 110px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline-start: 6px; border-inline-start: 1px solid #ffffff55; }
+.flight-inline-preferred-field { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 13px; background: white; }
+.flight-inline-preferred-field[hidden] { display: none; }
+.flight-inline-preferred-field label { flex: none; color: var(--journey-muted); font-size: 13px; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-preferred-field input { min-width: 0; flex: 1; min-height: 42px; border: 0; background: white; }
+.flight-inline-preferred-field button { min-height: 40px; border: 1px solid var(--journey-line); border-radius: 8px; padding: 4px 12px; background: var(--journey-sage); color: var(--journey-ink); cursor: pointer; }
+.flight-inline-search .multi-city-legs { grid-column: 1 / -1; padding: 12px; background: white; border-radius: 13px; }
+.flight-inline-route { grid-area: 2 / 1 / 3 / -1; display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(190px, 1fr) 124px; align-items: stretch; min-height: 66px; border-radius: 15px; background: white; }
+.flight-inline-route:has(.flight-inline-dates > :nth-child(2)) { grid-template-columns: minmax(0, 1.8fr) minmax(295px, 1fr) 124px; }
+.flight-inline-airports { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.flight-inline-airports > div { position: relative; display: grid; align-content: center; padding: 4px 29px 4px 37px; border-right: 1px solid #e2e8e0; min-width: 0; }
+.flight-inline-airports > div > svg { position: absolute; left: 13px; top: 35px; color: #2b6c5a; }
+.flight-inline-airports > div:last-child { padding-left: 44px; }
+.flight-inline-airports > div:last-child > svg { left: 19px; }
+.flight-inline-airports label, .flight-inline-dates label { display: grid; gap: 2px; color: var(--journey-muted); font-size: 12px; font-weight: 550; }
+.flight-inline-airports .airport-hint { display: none; }
+.flight-inline-airport-field { position: relative; min-width: 0; display: block; }
+.flight-inline-airport-selection { position: absolute; inset: 0; display: flex; align-items: center; gap: 6px; min-width: 0; pointer-events: none; color: var(--journey-ink); font-size: 15px; font-weight: 700; }
+.flight-inline-airport-selection > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+.flight-inline-airport-field:focus-within .flight-inline-airport-selection { display: none; }
+.flight-inline-swap { position: absolute; z-index: 1; top: 50%; left: 50%; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; transform: translate(-50%,-50%); border: 0; border-radius: 50%; background: white; color: #2b6c5a; box-shadow: 0 2px 8px #102b2927; cursor: pointer; }
+.flight-inline-dates { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); border-right: 1px solid #e2e8e0; }
+.flight-inline-dates:has(> :nth-child(2)) { grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); }
+.flight-inline-dates > .booking-date-input { align-self: stretch; min-width: 0; padding: 4px 5px; }
+.flight-inline-dates > .booking-date-input + .booking-date-input { border-inline-start: 1px solid #e2e8e0; }
+.flight-inline-adjacent { display: grid; place-items: center; width: 30px; min-height: 44px; border: 0; padding: 0; background: transparent; color: #2b6c5a; cursor: pointer; }
+.flight-inline-adjacent--previous svg { transform: rotate(180deg); }
+.flight-inline-adjacent:disabled { color: #778a80; cursor: default; opacity: .5; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-route input:not([type='hidden']) { width: 100%; min-width: 0; height: 29px; min-height: 29px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--journey-ink); box-shadow: none; font-size: 15px; font-weight: 700; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-airport-field:has(.flight-inline-airport-selection):not(:focus-within) input { color: transparent; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .booking-date-input { display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: center; gap: 0; margin: 0; min-width: 0; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .booking-date-adjacent { grid-template-columns: 38px 30px minmax(0,1fr) 30px; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .booking-date-input label { position: relative; min-width: 0; }
+.flight-inline-dates .booking-date-readable { position: absolute; inset: auto 0 1px; display: flex; align-items: center; height: 27px; pointer-events: none; font-size: 15px; font-weight: 720; white-space: nowrap; }
+.flight-inline-dates .booking-date-narrow { display: none; }
+.flight-inline-dates .booking-date-compact label:focus-within .booking-date-readable { display: none; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .booking-date-compact label:has(.booking-date-readable):not(:focus-within) input { color: transparent; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .fare-date-icon-only { align-self: center; min-width: 0; padding: 0; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .fare-date-icon-only .fare-date-trigger { border: 0; min-width: 0; width: 100%; background: transparent; color: #286854; box-shadow: none; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-route .booking-search-submit { display: inline-flex; align-items: center; justify-content: center; gap: 7px; align-self: stretch; min-width: 0; min-height: 44px; width: auto; margin: 4px; padding: 5px 9px; background: white; color: var(--journey-ink); border: 0; border-radius: 10px; box-shadow: none; font-size: 15px; }
+body.stitch-theme .destina-flight-results #booking-search .flight-inline-route .booking-search-submit:hover { background: var(--journey-sage); }
+.destina-flight-results #booking-results { position: relative; }
+body.stitch-theme .destina-flight-results #booking-results .flight-results-breadcrumb-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 2px 10px;
+  min-height: 32px;
+  margin: 12px 0 8px;
+}
+.destina-flight-results .flight-results-breadcrumb-row .revamp-booking-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin: 0;
+  color: var(--journey-muted);
+}
+.destina-flight-results .flight-results-breadcrumb-row .revamp-booking-breadcrumb [aria-current] { font-weight: 550; }
+body.stitch-theme .destina-flight-results #booking-results .flight-results-breadcrumb-row .max-ai-inline-action {
+  justify-self: end;
+  min-height: 32px;
+  padding: 3px 8px;
+  gap: 5px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--journey-pine);
+  font-size: 12px;
+}
+.destina-flight-results .flight-results-breadcrumb-row .max-ai-inline-action svg { width: 15px; height: 15px; }
+.destina-flight-results .flight-results-breadcrumb-row .flight-nearby-comparison { margin: 0; }
+.destina-flight-results .flight-nearby-comparison > summary { min-height: 28px; padding-top: 4px; color: #3e6255; font-size: 12px; cursor: pointer; }
+.destina-flight-results .flight-nearby-comparison[open] { grid-area: 2 / 1 / 3 / -1; }
+.destina-flight-results .flight-results-breadcrumb-row .max-ai-inline-action { grid-column: 3; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row { display: block; }
+body.stitch-theme .destina-flight-results #booking-results #flight-results-title { margin: 0; color: var(--journey-ink); font: 800 clamp(22px,2.1vw,27px)/1.18 var(--font-stitch-display), sans-serif; letter-spacing: -.04em; }
+body.stitch-theme .destina-flight-results #booking-results .booking-results-context { margin: 0 0 12px; color: var(--journey-muted); font-size: 14px; }
+.destina-flight-results .booking-results-heading .results-count, .destina-flight-results .flight-sort-heading, .destina-flight-results .flight-comparison-bar .flight-nonstop-toggle { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.destina-flight-results .flight-comparison-bar .flight-nonstop-toggle:focus-visible { position: static; width: auto; height: auto; clip-path: none; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-result-shortcuts { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin: 0; padding: 0; border: 0; background: transparent; }
+.destina-flight-results .flight-more-sorts { position: relative; display: grid; min-width: 0; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-sort-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  min-height: 72px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid #e2e9e0;
+  border-radius: 16px;
+  background: white;
+  color: var(--journey-ink);
+  text-align: left;
+  box-shadow: 0 8px 24px #102b2914;
+}
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-sort-card[aria-pressed=true] {
+  background: #0c3532;
+  border-color: #0c3532;
+  color: white;
+}
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-card :is(.flight-sort-card-label,.flight-sort-card-value) {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font: 500 12.8px/1.5 var(--font-stitch-body), sans-serif;
+  color: var(--journey-muted);
+}
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-card .flight-sort-card-value { color: inherit; font-size: 16.8px; font-weight: 600; }
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-card .flight-sort-menu-current { display: flex; align-items: center; gap: 4px; }
+.destina-flight-results .flight-sort-menu-current span { min-width: 0; }
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-card[aria-pressed=true] .flight-sort-card-label { color: #ffffffc2; }
+.destina-flight-results .flight-sort-card-value small { font-size: .62em; opacity: .82; }
+.destina-flight-results .flight-sort-menu-trigger svg { display: inline-block; vertical-align: -.13em; transform: rotate(90deg); }
+.destina-flight-results .flight-sort-menu-trigger[aria-expanded=true] svg { transform: rotate(-90deg); }
+.destina-flight-results .flight-sort-menu {
+  position: absolute;
+  z-index: 8;
+  inset: 100% 0 auto auto;
+  width: 220px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 10px 30px #102b292e;
+}
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-menu button {
+  display: block;
+  width: 100%;
+  min-height: 39px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--journey-ink);
+  text-align: left;
+  font: 500 14.4px/1.5 var(--font-stitch-body), sans-serif;
+  cursor: pointer;
+}
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-menu button:not(:disabled):hover { background: var(--journey-sage); }
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-menu button[aria-checked=true] { background: #0c3532; color: white; }
+body.stitch-theme .destina-flight-results #booking-results .flight-sort-menu button:disabled { opacity: .5; cursor: default; }
+.flight-visible-count { margin: 13px 0 0; color: var(--journey-ink); font-size: 14px; }
+.flight-trip-ideas {
+  padding: 19px;
+  border: 1px solid var(--journey-line);
+  border-radius: 16px;
+  background: linear-gradient(140deg, #f7faf6, #e6efe8);
+  color: var(--journey-ink);
+}
+.flight-trip-ideas h2 { margin: 0 0 12px; font-size: 19px; }
+.flight-trip-ideas-links { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+body.stitch-theme .destina-flight-results #booking-results .flight-trip-ideas-links a {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 9px 12px;
+  border: 1px solid var(--journey-line);
+  border-radius: 11px;
+  background: white;
+  color: var(--journey-pine);
+  font-weight: 650;
+  text-decoration: none;
+}
+.flight-stop-options { display: grid; gap: 6px; }
+.flight-stop-options button { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 9px; border: 1px solid #dce6dc; border-radius: 11px; background: white; color: var(--journey-ink); text-align: left; cursor: pointer; }
+.flight-stop-options button[aria-pressed='true'] { border-color: #709486; background: #e7efe8; }
+.flight-stop-options small { margin-left: auto; font-weight: 650; }
+.flight-more-stops { margin-top: 5px; color: #3e6255; font-size: 12px; }
+.flight-more-stops summary { min-height: 26px; padding-block: 4px; cursor: pointer; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list { gap: 13px; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card { border: 1px solid #8aa99b; border-radius: 16px; background: white; box-shadow: 0 0 0 2px #38796022, 0 10px 20px #122c2810; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card .flight-result-top { display: flex; justify-content: start; flex-wrap: wrap; align-items: center; gap: 5px; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card .airline-identity { flex: 1 1 120px; min-width: 0; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card .flight-mobile-bag { display: none; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card .flight-route-line > div > small:not(.flight-total-duration,.flight-connection-note) { font-size: 11px; }
+.destina-flight-results #booking-results .live-flight-card:not([data-overnight=true]) .flight-route-line > div:not(.flight-route-track) > small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.destina-flight-departure, .destina-flight-cabin { display: inline-flex; width: max-content; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; background: #e9efe8; color: var(--journey-ink); font: 650 11px/1.3 var(--font-stitch-body), sans-serif; }
+.destina-flight-departure { margin-left: auto; }
+body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list > .flight-desk-link { display: none; }
+@media (min-width: 1101px) {
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping { grid-template-columns: minmax(225px, 272px) minmax(0, 1fr); gap: 24px; }
+  body.stitch-theme:has(main.destina-flight-results) .travel-navigation { padding-left: 45px; }
+  body.stitch-theme:has(main.destina-flight-results) .travel-navigation-trigger { display: none; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) { min-height: 176px; margin: 0; grid-template-rows: auto auto auto; gap: 4px 16px; padding: 12px 18px 10px; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card:not(:has(.combo-itinerary)) :is(.flight-result-top,.flight-route-line) { padding-block: 0; margin: 0; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card .flight-route-line :is(.time,strong) { font-size: 19px; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping-list .live-flight-card .flight-result-details { padding-top: 3px; }
+}
+@media (max-width: 800px) {
+  html body.stitch-theme main.destina-flight-results { width: calc(100% - 24px); }
+  body.stitch-theme .destina-flight-results #booking-search.has-inline-flight-search:has(> .flight-inline-search) { padding-bottom: 12px; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-search .live-search-controls { grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); gap: 7px; }
+  .flight-inline-journeys { width: 100%; max-width: 280px; }
+  body.stitch-theme .destina-flight-results .flight-inline-journeys button { min-width: 0; min-height: 41px; padding-inline: 5px; font-size: 12px; white-space: normal; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-search .booking-party-picker { grid-area: 1 / 2; justify-self: end; max-width: 100%; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-search .booking-party-picker > summary { min-height: 47px; padding-inline: 8px; font-size: 12px; }
+  .flight-inline-search .booking-party-picker > .form-row { left: auto; right: 0; width: min(410px,calc(100vw - 36px)); min-width: 0; }
+  body.stitch-theme .destina-flight-results .flight-inline-preferred > button { grid-area: auto / 1 / auto / -1; justify-self: start; min-height: 44px; }
+  .flight-inline-route, .flight-inline-route:has(.flight-inline-dates > :nth-child(2)) { grid-template-columns: minmax(0,1fr) minmax(74px,auto); }
+  .flight-inline-airports { grid-column: 1 / -1; border-bottom: 1px solid #e2e8e0; }
+  .flight-inline-airports > div { min-height: 53px; padding: 5px 25px 5px 32px; }
+  .flight-inline-airports > div:last-child { padding-inline: 42px 8px; border-right: 0; }
+  .flight-inline-airports > div > svg { top: 28px; }
+  .flight-inline-airport-selection { font-size: 14px; }
+  .flight-inline-swap { width: 40px; height: 40px; }
+  .flight-inline-dates { min-height: 50px; }
+  .flight-inline-dates .booking-date-readable { font-size: 13px; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-route .booking-search-submit { gap: 5px; padding-inline: 8px; font-size: 13px; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-route label { margin: 0; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-results-breadcrumb-row { grid-template-columns: minmax(0,1fr) auto; }
+  .destina-flight-results .flight-results-breadcrumb-row .revamp-booking-breadcrumb { grid-column: 1 / -1; }
+  .destina-flight-results .flight-results-breadcrumb-row .max-ai-inline-action { grid-area: 2 / 2; }
+  .destina-flight-results .flight-nearby-comparison[open] { grid-row: 3; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-result-shortcuts { gap: 8px; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-sort-card { min-height: 66px; padding: 10px; }
+  body.stitch-theme .destina-flight-results #booking-results .flight-sort-card .flight-sort-card-value { font-size: 15.2px; }
+  .flight-visible-count { margin-top: 9px; }
+}
+
+@media (max-width: 490px) {
+  .flight-inline-route:has(.flight-inline-dates > :nth-child(2)) .flight-inline-dates { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid #e2e8e0; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-route:has(.flight-inline-dates > :nth-child(2)) .booking-search-submit { grid-column: 1 / -1; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .booking-date-input { grid-template-columns: 34px minmax(0,1fr); }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-dates .booking-date-adjacent { grid-template-columns: 34px 28px minmax(0,1fr) 28px; }
+  .flight-inline-adjacent { width: 28px; }
+  .flight-inline-dates:has(> :nth-child(2)) .booking-date-wide { display: none; }
+  .flight-inline-dates:has(> :nth-child(2)) .booking-date-narrow { display: inline; }
+  .flight-inline-preferred-field { flex-wrap: wrap; }
+  body.stitch-theme .destina-flight-results #booking-search .flight-inline-preferred-field input { flex: 1 0 calc(100% - 100px); }
+}
+
+@media (max-width: 365px) {
+  body.stitch-theme .destina-flight-results .flight-inline-journeys button { padding-inline: 4px; }
+  .flight-inline-airports > div { padding-inline: 10px 24px; }
+  .flight-inline-airports > div:last-child { padding-inline: 24px 8px; }
+  .flight-inline-airports > div > svg { display: none; }
+  .flight-inline-dates .booking-date-wide { display: none; }
+  .flight-inline-dates .booking-date-narrow { display: inline; }
+}
+
+@media (max-width: 620px) {
+  body.stitch-theme .destina-flight-results #booking-results .flight-shopping-sort-row .flight-result-shortcuts { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .flight-trip-ideas-links { grid-template-columns: minmax(0,1fr); }
+}

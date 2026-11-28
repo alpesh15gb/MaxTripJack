@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import {toggleResultSearch,  test, expect, flight, departure, returning, searchId, expectNoHorizontalOverflow, capture, pickHomeDate, setHomeTravellers } from './fixtures';
+import {openNearbyFlightDates,toggleResultSearch,test, expect, flight, departure, returning, searchId, expectNoHorizontalOverflow, capture, pickHomeDate, setHomeTravellers } from './fixtures';
 import {travelDateLabel} from '../../src/lib/travel-date';
 
 const warmPath = '/api/travel/search/warm';
@@ -41,7 +41,7 @@ test.beforeEach(async ({ page }) => { await page.clock.install({ time: new Date(
 
 test('homepage starts its default flight before interaction and leaves an empty hotel search alone', async ({ page, provider }) => {
  const observed = observeSearches(page);
- await page.goto('/');
+ await page.goto('/?product=FLIGHT');
  const form = page.locator('.home-search-form');
  await expect(form.getByRole('button', { name: 'Search flights', exact: true })).toBeVisible();
  await expect.poll(()=>observed.preload.length).toBe(1);
@@ -50,7 +50,7 @@ test('homepage starts its default flight before interaction and leaves an empty 
  await form.getByLabel('From airport', { exact: true }).focus();
  await page.clock.fastForward(3000);
  expect(observed.warm).toHaveLength(0); expect(observed.search).toHaveLength(0);
- await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Hotels', exact: true }).click();
+ await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Stays', exact: true }).click();
  await form.getByLabel('Destination', { exact: true }).focus();
  await page.clock.fastForward(3000);
  expect(observed.preload).toHaveLength(1);
@@ -77,7 +77,7 @@ for (const product of ['FLIGHT', 'HOTEL'] as const) {
 
 test('flight warmups follow exact route and date edits without displaying speculative fares', async ({ page, provider }) => {
  const observed = observeSearches(page);
- await page.goto('/');
+ await page.goto('/?product=FLIGHT');
  const form = page.locator('.home-search-form');
  await pickHomeDate(form, 'Departure', departure);
  await warmAfterEdit(page, observed, 1);
@@ -148,7 +148,7 @@ test('nearby flight dates join the exact warm search without a page request', as
  });
  try {
   await page.goto(flightQuery() + '&autoSearch=1');
-  const dates = page.getByRole('navigation', { name: 'Nearby departure dates' });
+  const dates = await openNearbyFlightDates(page);
   await expect(dates).toBeVisible();
   page.on('request', request => {
    if (new URL(request.url()).pathname === '/book') pageRequests.push(request.url());
@@ -213,6 +213,7 @@ for (const product of ['FLIGHT', 'HOTEL'] as const) {
   try {
    await page.goto(product === 'FLIGHT' ? flightQuery() : hotelQuery());
    const form = page.getByRole('form', { name: 'Search availability' });
+   await expect.poll(() => observed.preload.length).toBe(1);
    await form.getByLabel(product === 'FLIGHT' ? 'Departure' : 'Check-in', { exact: true }).fill(nextDay(departure));
    await warmAfterEdit(page, observed, 1, false);
    expect(observed.warm[0].intent).toMatch(/^[a-f0-9-]{36}$/i);
@@ -256,9 +257,9 @@ test('homepage hotel warmup carries the selected property batch into Search acro
  // Hold the initial flight warmup too so selecting a hotel must start its own request.
  await page.route(`**${warmPath}`, async route => { await gate.promise; await route.fulfill({ json: { status: 'ready' } }).catch(() => {}); });
  try {
-  await page.goto('/');
+  await page.goto('/?product=FLIGHT');
   await expect.poll(()=>observed.preload.length).toBe(1);
-  await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Hotels', exact: true }).click();
+  await page.getByRole('region', { name: 'Plan your trip' }).getByRole('button', { name: 'Stays', exact: true }).click();
   const form = page.locator('.home-search-form');
   await pickHomeDate(form, 'Check-in', departure);
   await pickHomeDate(form, 'Check-out', returning);

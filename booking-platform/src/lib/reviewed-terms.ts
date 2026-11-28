@@ -1,5 +1,6 @@
 import {flightFareDetails} from './flight-fare-details';
 import {hotelCancellation,hotelObject} from './hotel-presentation';
+import {hasMixedHotelMealPlans,roomMealLabel} from './hotel-room-filters';
 import {refundLabel} from './booking-presentation';
 import {supplierInstant} from './supplier-time';
 import {hotelPolicyDateTime} from './hotel-cancellation-timeline';
@@ -26,7 +27,8 @@ export function reviewedTerms(product:'FLIGHT'|'HOTEL',source:unknown,observedAt
  if(product==='HOTEL'){
   const option=hotelObject(review.option),raw=hotelObject(option.cancellation),policy=hotelCancellation(raw);
   add('room','Room',completeList(option.roomInfo,4,item=>text(hotelObject(item).name))?.join(' + ')??null);
-  add('meal','Meal plan',text(option.mealBasis)?.replaceAll('_',' ')??null);
+  const meal={optionType:text(option.optionType)??undefined,mealBasis:text(option.mealBasis)??undefined};
+  add('meal','Meal plan',hasMixedHotelMealPlans(meal)?roomMealLabel(meal):meal.mealBasis?.replaceAll('_',' ')??null);
   add('inclusions','Inclusions',completeList(option.inclusions,40,text)?.sort().join(' · ')??null);
   add('refund','Refundability',typeof policy.isRefundable==='boolean'?policy.isRefundable?'Refundable · policy charges may apply':'Non-refundable':null);
   // Explicit canonical schedule, independent of array order and timestamp formatting.

@@ -15,6 +15,14 @@ test('account return rejects external, encoded protocol-relative, control and in
  for(const value of [null,{},'https://evil.test','//evil.test','/\\evil.test','/%2fevil.test','/book%0a','/book\n','/api/auth/sign-out','/account','/reset-password','/operations','javascript:alert(1)','/%ZZ','/book/../../api/auth',' /book'])assert.equal(safeAccountReturn(value),'/my-trips',String(value));
 });
 
+test('price alert sign-in can return to the exact account management section',()=>{
+ const path='/account#flight-price-alerts';
+ assert.equal(safeAccountReturn(path),path);
+ assert.equal(accountHref(path),'/account?returnTo=%2Faccount%23flight-price-alerts');
+ assert.equal(safeAccountReturn('/account?token=private#flight-price-alerts'),'/my-trips');
+ assert.equal(safeAccountReturn('/account#other'),'/my-trips');
+});
+
 test('booking status return accepts an exact UUID and strips query strings and fragments',()=>{
  const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  assert.equal(safeAccountReturn(`/my-trips/${id}?token=private&email=test%40example.test#receipt`),`/my-trips/${id}`);

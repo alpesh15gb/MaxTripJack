@@ -11,22 +11,22 @@ test('AI non-stop and IndiGo preferences filter the owned results and can be rem
   provider.overrides['POST /api/travel/flight-search-snapshot']={body:{...snapshot(),criteria:{...criteria(),adults:'1'},results:{searchResult:{tripInfos:{ONWARD:[connecting,other,direct]}}}}};
   await page.goto(`/book?product=FLIGHT&flightSearch=${searchId}&flightStops=0&flightAirlineQuery=IndiGo&flightSort=departure`);
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
-  await expect(page.locator('.results-count')).toContainText('1 of 3 options');
+  await expect(page.locator('.results-count')).toContainText('1 flight found');
   await expect(page.locator('#booking-search>summary')).toContainText('1 traveller');
   await expect(page.locator('#booking-search>summary')).not.toContainText('1 travellers');
   const selectedSort=page.getByRole('group',{name:'Sort flights',exact:true}).getByRole('button',{pressed:true});
   const nonstop=page.getByRole('button',{name:'Non-stop',exact:true});
-  await expect(selectedSort).toHaveAccessibleName('Earliest');
+  await expect(selectedSort).toHaveAccessibleName('Earliest departure');
   await expectNoHorizontalOverflow(page);await capture(page,info,'max-ai-flight-preferences-applied');
   await page.reload();
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(1);
   await expect(page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true})).toBeVisible();
   await expect(nonstop).toHaveAttribute('aria-pressed','true');
-  await expect(selectedSort).toHaveAccessibleName('Earliest');
+  await expect(selectedSort).toHaveAccessibleName('Earliest departure');
   await page.getByRole('button',{name:'Remove airline preference IndiGo',exact:true}).click();
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(2);
   await expect(page).not.toHaveURL(/flightAirlineQuery=/);
-  await nonstop.click();
+  await nonstop.press('Enter');
   await expect(page.locator('.flight-shopping-list .live-flight-card')).toHaveCount(3);
   await expect(page).not.toHaveURL(/flightStops=/);
   await page.reload();
@@ -34,7 +34,7 @@ test('AI non-stop and IndiGo preferences filter the owned results and can be rem
   await expect(page.getByRole('region',{name:'Active flight filters'}).getByRole('button',{name:/^Remove /})).toHaveCount(0);
   await expect(nonstop).toHaveAttribute('aria-pressed','false');
   await expect(page).not.toHaveURL(/flightStops=|flightAirlineQuery=/);
-  await expect(selectedSort).toHaveAccessibleName('Earliest');
+  await expect(selectedSort).toHaveAccessibleName('Earliest departure');
   expect(provider.requests('/api/travel/flight-search-snapshot')).toHaveLength(3);
   expect(provider.requests('/api/travel/search')).toHaveLength(0);
   expect(provider.requests('/api/travel/review')).toHaveLength(0);
@@ -103,7 +103,7 @@ test('an invalid new search stops a held AI snapshot and corrected input can sea
     await page.goto('/book?'+new URLSearchParams({...criteria(),flightSearch:searchId}));
     await expect(page.getByRole('status',{name:'Search and booking activity'}).getByText('Restoring your flight search…',{exact:true})).toBeVisible();
     await expect(page.getByLabel('Departure',{exact:true})).toBeEnabled();
-    await expect(page.getByRole('button',{name:'▤ Stays',exact:true})).toBeEnabled();
+    await expect(page.getByRole('button',{name:'Stays',exact:true})).toBeEnabled();
     await page.locator('.booking-party-picker>summary').click();
     await page.getByRole('combobox',{name:'Children · age 2–11',exact:true}).selectOption('8');
     await page.getByRole('button',{name:'Search flights',exact:true}).click();
@@ -129,7 +129,7 @@ test('switching product supersedes a held AI flight snapshot without restoring s
   try{
     await page.goto(`/book?product=FLIGHT&flightSearch=${searchId}`);
     await expect(page.getByRole('status',{name:'Search and booking activity'}).getByText('Restoring your flight search…',{exact:true})).toBeVisible();
-    await page.getByRole('button',{name:'▤ Stays',exact:true}).click();
+    await page.getByRole('button',{name:'Stays',exact:true}).click();
     release();
     await expect(page.getByRole('button',{name:'Search stays',exact:true})).toBeVisible();
     await expect(page).not.toHaveURL(/flightSearch=/);

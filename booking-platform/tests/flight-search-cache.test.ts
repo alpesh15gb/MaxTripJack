@@ -19,6 +19,22 @@ test("identical searches share one supplier call inside the window", async () =>
  assert.equal(calls, 2);
 });
 
+test("flight inventory provenance uses the original load time for coalesced and cached responses", async () => {
+ clearFlightSearchCache();
+ const supplier=deferred<string>();
+ const observed:[FlightSearchCacheStatus,number][]=[];
+ const record=(status:FlightSearchCacheStatus,_until:number,fetchedSince:number)=>observed.push([status,fetchedSince]);
+ const payload={route:"original seat inventory"};
+ const load=()=>supplier.promise;
+ const first=cachedFlightSearch(payload,load,300_000,10_000,record);
+ const coalesced=cachedFlightSearch(payload,load,300_000,20_000,record);
+ supplier.resolve("inventory");
+ await Promise.all([first,coalesced]);
+ await cachedFlightSearch(payload,load,300_000,65_000,record);
+ await cachedFlightSearch(payload,load,0,75_000,record);
+ assert.deepEqual(observed,[["miss",10_000],["coalesced",10_000],["hit",10_000],["disabled",75_000]]);
+});
+
 test("entries expire and failures are not cached", async () => {
  clearFlightSearchCache();
  let calls = 0;

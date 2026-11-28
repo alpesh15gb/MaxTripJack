@@ -4,8 +4,8 @@ import {useEffect,useRef,useState} from 'react';
 import {hotelPhotoCaption,safeHotelPhotoUrl,type HotelPropertyDetails} from '@/lib/hotel-presentation';
 import type {HotelMetadataStatus} from './hotel-property-media';
 
-type Props={name:string;photos?:HotelPropertyDetails['photos'];metadataStatus?:HotelMetadataStatus;emptyDescription?:string;open:boolean;onOpenChange:(open:boolean)=>void};
-export default function HotelGallery({name,photos,metadataStatus='ready',emptyDescription='You can still explore the available room options.',open,onOpenChange}:Props){
+type Props={name:string;photos?:HotelPropertyDetails['photos'];metadataStatus?:HotelMetadataStatus;emptyDescription?:string;open:boolean;onOpenChange:(open:boolean)=>void;expandedMosaic?:boolean};
+export default function HotelGallery({name,photos,metadataStatus='ready',emptyDescription='You can still explore the available room options.',open,onOpenChange,expandedMosaic=false}:Props){
  const [failed,setFailed]=useState<string[]>([]),[index,setIndex]=useState(0);
  const dialog=useRef<HTMLDialogElement>(null),opener=useRef<HTMLElement|null>(null);
  const valid=(photos??[]).filter((photo,i,all)=>safeHotelPhotoUrl(photo.url)&&!failed.includes(photo.url)&&all.findIndex(other=>other.url===photo.url)===i).sort((a,b)=>Number(b.isHero)-Number(a.isHero));
@@ -20,9 +20,10 @@ export default function HotelGallery({name,photos,metadataStatus='ready',emptyDe
  const move=(direction:number)=>setIndex((activeIndex+direction+valid.length)%valid.length);
  const show=(next:number,trigger:HTMLButtonElement)=>{opener.current=trigger;setIndex(next);onOpenChange(true);};
  const alt=(caption:unknown,i:number)=>hotelPhotoCaption(caption)?`${name} · ${hotelPhotoCaption(caption)}`:`${name} · property photo ${i+1}`;
+ const preview=valid.slice(0,expandedMosaic?5:3);
  return <div className="stay-gallery">
-  {valid.length?<div className={`stay-photo-mosaic${valid.length===1?' is-single':valid.length===2?' is-pair':''}`}>
-   {valid.slice(0,3).map((photo,i)=><button key={photo.url} type="button" className={`stay-photo-tile tile-${i}`} aria-label={`View photo ${i+1} of ${name}`} onClick={event=>show(i,event.currentTarget)}><img src={photo.url} alt={alt(photo.caption,i)} width={i===0?900:450} height={i===0?650:320} loading={i===0?'eager':'lazy'} referrerPolicy="no-referrer" onError={()=>fail(photo.url)}/>{i===0&&<span className="stay-photo-source">Supplier property photos</span>}</button>)}
+  {valid.length?<div className={`stay-photo-mosaic${valid.length===1?' is-single':valid.length===2?' is-pair':''}`} data-preview-count={expandedMosaic?preview.length:undefined}>
+   {preview.map((photo,i)=><button key={photo.url} type="button" className={`stay-photo-tile tile-${i}`} aria-label={`View photo ${i+1} of ${name}`} onClick={event=>show(i,event.currentTarget)}><img src={photo.url} alt={alt(photo.caption,i)} width={i===0?900:450} height={i===0?650:320} loading={i===0?'eager':'lazy'} referrerPolicy="no-referrer" onError={()=>fail(photo.url)}/>{!expandedMosaic&&i===0&&<span className="stay-photo-source">Supplier property photos</span>}{expandedMosaic&&i===preview.length-1&&valid.length>preview.length&&<span className="stay-photo-remainder" aria-hidden="true">+{valid.length-preview.length}</span>}</button>)}
    <button type="button" className="stay-all-photos" aria-haspopup="dialog" onClick={event=>show(0,event.currentTarget)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m3 17 6-6 4 4 3-3 5 5"/><circle cx="16" cy="8" r="1"/></svg><span>View all {valid.length} photo{valid.length===1?'':'s'}</span></button>
   </div>:<div className="stay-photo-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true"><path d="M3 21V7l9-4 9 4v14M8 21v-5h8v5M8 8v3m4-4v4m4-3v3"/></svg><strong>{metadataStatus==='loading'?'Property photos are loading':metadataStatus==='unavailable'?'Property photos unavailable right now':'No property photos supplied'}</strong><p>{emptyDescription}</p></div>}
   <dialog className="stay-gallery-dialog" ref={dialog} aria-labelledby="stay-gallery-title" onCancel={event=>{event.preventDefault();onOpenChange(false);}} onClick={event=>{if(event.target===event.currentTarget)onOpenChange(false);}} onKeyDown={event=>{if(valid.length>1&&event.key==='ArrowRight'){event.preventDefault();move(1);}if(valid.length>1&&event.key==='ArrowLeft'){event.preventDefault();move(-1);}}}>

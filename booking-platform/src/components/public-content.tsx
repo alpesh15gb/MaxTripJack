@@ -16,14 +16,8 @@ import type { ContentSection, PublicLink, PublicPage } from "@/lib/public-pages"
 import { editorialDiscoveryGraph, homeDiscoveryGraph, type Breadcrumb } from "@/lib/discovery-graph";
 import "./public-content.css";
 import "./public-refresh.css";
-import DiscoveryPhoto from "./discovery-photo";
-
-const publicHeroPhotos: Readonly<Partial<Record<string, string>>> = {
-  flights: "/travel/stitch/desktop-dubai.webp",
-  "domestic-flights": "/travel/stitch/desktop-goa.webp",
-  "international-flights": "/travel/stitch/desktop-paris.webp",
-  services: "/travel/stitch/desktop-bali.webp",
-};
+import SupportRequestForm, { type TravelEnquiryPrefill } from "./support-request-form";
+import "./support-experience.css";
 
 function Breadcrumbs({ items }: { items: readonly Breadcrumb[] }) {
   return <nav className="public-breadcrumbs" aria-label="Breadcrumb"><ol>{items.map((item, index) => <li key={item.href}>{index === items.length - 1 ? <span aria-current="page">{item.label}</span> : <Link href={item.href}>{item.label}</Link>}</li>)}</ol></nav>;
@@ -94,31 +88,71 @@ export function RouteGuideCards({ exclude }: { exclude?: string }) {
   </Link>)}</div>;
 }
 
-export async function PublicPageView({page, contactTopic}: {page: PublicPage; contactTopic?: OfficeEnquiryService}) {
+function InsuranceEnquiryOptions() {
+  return <section className="reference-insurance-choices" id="insurance-enquiry" aria-labelledby="insurance-enquiry-title">
+    <h2 id="insurance-enquiry-title">Did you book your trip with us?</h2>
+    <p>Choose where to start and speak to our team about the arrangements available for your trip.</p>
+    <div>
+      <Link href="/my-trips"><span><TravelIcon name="bag" size={24}/></span><div><strong>Yes, I have a booking</strong><small>Find your booking before contacting us.</small></div></Link>
+      <Link href="/contact?topic=insurance#office-enquiry"><span><TravelIcon name="shield" size={24}/></span><div><strong>No, I booked elsewhere</strong><small>Tell us about your trip.</small></div></Link>
+    </div>
+  </section>;
+}
+
+function InsuranceReviewRail() {
+  return <section className="reference-insurance-review" aria-labelledby="insurance-review-heading">
+    <h2 id="insurance-review-heading">What to check in your policy</h2>
+    <dl>
+      <dt>Trip cancellation or interruption</dt><dd>Look for the listed covered reasons, costs and exclusions.</dd>
+      <dt>Emergency medical cover</dt><dd>Check eligibility, limits and requirements for your destination.</dd>
+      <dt>Travel delay and baggage</dt><dd>Check which delays or losses qualify and what evidence is required.</dd>
+    </dl>
+  </section>;
+}
+
+export async function PublicPageView({page, contactTopic, travelEnquiry}: {page: PublicPage; contactTopic?: OfficeEnquiryService; travelEnquiry?: TravelEnquiryPrefill}) {
   const businessProfile=await getCompanyProfile();
   page=getPublicPage(page.slug,businessProfile)??page;
   const path = `/${page.slug}`;
-  const assisted = page.slug === "visa-guide" ? "visa" : page.slug === "travel-insurance-guide" ? "travel insurance" : null;
+  const insurance = page.slug === 'travel-insurance-guide';
+  const assisted = page.slug === "visa-guide" ? "visa" : insurance ? "travel insurance" : null;
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: page.slug === "flights" ? "Flights" : page.title.split(" | ")[0], href: path }];
   const schema = editorialDiscoveryGraph({ ...page, path }, breadcrumbs, { businessProfile, fullBusinessProfile: page.businessSchema });
-  const photo = publicHeroPhotos[page.slug];
   return <div className="public-site public-refresh">
     <TravelHeader active={page.slug === "flights" ? "flights" : undefined} />
-    <main id="main-content" className="public-main revamp-discovery">
-      <Breadcrumbs items={breadcrumbs} />
-      <header className={`public-hero public-hero--editorial ${photo ? "discovery-hero" : "discovery-detail-hero"}`}>
-        <div className="public-hero-copy"><p className="public-eyebrow">{assisted ? 'Assisted enquiry' : page.eyebrow}</p><h1>{page.heading}</h1><p className="public-intro">{page.intro}</p>{(page.slug === "contact" || assisted) && <a className="public-button" href="#contact-options">{assisted ? `Discuss your ${assisted} enquiry` : 'See contact options'}<TravelIcon name="arrow" size={18} /></a>}{page.cta && !assisted && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}{page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}
+    <main id="main-content" className={`public-main revamp-discovery reference-editorial-page ${page.slug === 'contact' || page.slug === 'travel-insurance-guide' ? 'reference-editorial-page--split' : ''}`}>
+      <header className="reference-editorial-hero">
+        <div className={`reference-content${insurance ? ' reference-insurance-hero' : ''}`}>
+          <Breadcrumbs items={breadcrumbs} />
+          <h1>{page.slug === 'about' ? 'About MaxTravel' : insurance ? 'Travel insurance' : page.heading}</h1><p>{page.intro}</p>
+          {insurance && <span className="reference-insurance-icon"><TravelIcon name="shield" size={56}/></span>}
+          <div className="reference-editorial-actions">
+          {(page.slug === "contact" || assisted && !insurance) && <a className="public-button" href={travelEnquiry ? '#office-enquiry' : '#contact-options'}>{assisted ? `Discuss your ${assisted} enquiry` : travelEnquiry ? 'Prepare your enquiry' : 'See contact options'}<TravelIcon name="arrow" size={18} /></a>}
+          {page.cta && !assisted && <Link className="public-button" href={page.cta.href}>{page.cta.label}<TravelIcon name="arrow" size={18} /></Link>}
+          {page.slug === "office" && <a className="public-button" href={businessProfile.mapsHref}>Get directions<TravelIcon name="pin" size={18}/></a>}
           {page.slug==="visa-guide"&&<MaxAiInlineAction label="Start a visa enquiry with Max AI" draft="I want to prepare a visa enquiry."/>}
-          {page.slug==="contact"&&!contactTopic&&<MaxAiInlineAction label="Start a travel enquiry with Max AI"/>}</div>
-        {photo ? <DiscoveryPhoto src={photo} /> : <SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} />}
+          {page.slug==="contact"&&!contactTopic&&!travelEnquiry&&<MaxAiInlineAction label="Start a travel enquiry with Max AI"/>}
+          </div>
+        </div>
       </header>
-      {photo && <div className="discovery-contents"><SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} /></div>}
+      {!insurance && <div className="reference-editorial-nav"><div className="reference-content"><SectionLinks sections={page.sections} hasQuestions={Boolean(page.questions?.length)} /></div></div>}
+      <div className="reference-content">
+      {insurance && <section className="reference-insurance-banner"><TravelIcon name="shield" size={28}/><div><h2>Assistance from the Max Travel desk</h2><p>Ask about insurer terms, eligibility and the documents you need to apply.</p></div><Link href="#contact-options">Contact our team <TravelIcon name="arrow" size={17}/></Link></section>}
       {page.slug==='flights'&&<p className="public-inline-links"><Link href="/my-trips?lookup=flight">Already booked? Find your flight by PNR <span aria-hidden="true">→</span></Link></p>}
-      <div className="public-layout"><article className="public-article">{contactTopic && <OfficeEnquiryForm key={contactTopic} service={contactTopic}/>}<PlanningNotice /><ContentSections sections={page.sections} />
+      <div className="public-layout"><article className="public-article">{contactTopic && <OfficeEnquiryForm key={contactTopic} service={contactTopic}/>}
+        {travelEnquiry && <div id="office-enquiry"><SupportRequestForm key={`${travelEnquiry.subject}:${travelEnquiry.message}`} emailHref={businessProfile.emailHref} travel={travelEnquiry}/></div>}
+        {insurance && <InsuranceEnquiryOptions/>}
+        {page.slug === 'contact' && !contactTopic && !travelEnquiry && <p><Link href="/customer-support/request">Raise a support request about an existing booking <span aria-hidden="true">→</span></Link></p>}
+        <PlanningNotice /><ContentSections sections={page.sections} />
         {page.showRoutes && <section className="public-section" aria-labelledby="route-guides-heading"><h2 id="route-guides-heading">Find your flight planning guide</h2><p><Link href="/flights/routes">Browse the flight route directory →</Link></p><RouteGuideCards /></section>}
         {page.questions && <Questions questions={page.questions} />}<ReviewDate value={page.reviewedAt} />
-      </article><aside className="public-rail"><OfficeContactCard compact={!page.contact} id={page.slug === "contact" || assisted ? "contact-options" : undefined} /><section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section></aside></div>
+      </article><aside className="public-rail">
+        {insurance && <InsuranceReviewRail/>}
+        <OfficeContactCard compact={!page.contact} id={page.slug === "contact" || assisted ? "contact-options" : undefined} />
+        {!insurance && <section className="public-rail-note"><h2>Clarity before checkout</h2><p>Check the full price, inclusions and supplier rules. Payment and supplier confirmation are separate steps.</p><Link href="/pricing-transparency">How pricing works →</Link></section>}
+      </aside></div>
       <RelatedLinks links={page.related} />
+      </div>
     </main><TravelFooter /><SeoJsonLd id="public-page-schema" data={schema} />
   </div>;
 }

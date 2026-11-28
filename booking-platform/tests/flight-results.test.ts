@@ -30,8 +30,10 @@ test('flight departure and budget filters use known group totals without new pri
 });
 test('departure windows use local times with OR between windows and AND with the budget',()=>{
  const departing=(time:string):Flight=>({...flight,sI:[{...flight.sI[0],dt:`2026-11-04T${time}:00+05:30`}]});
- for(const time of ['06:00','11:59','18:00','23:59'])assert.equal(matchesFlightRefinements(departing(time),'ONWARD',['MORNING','EVENING'],'12000'),true);
- for(const time of ['05:59','12:00','17:59','24:00'])assert.equal(matchesFlightRefinements(departing(time),'ONWARD',['MORNING','EVENING'],'12000'),false);
+ for(const time of ['05:00','11:59','18:00','23:59'])assert.equal(matchesFlightRefinements(departing(time),'ONWARD',['MORNING','EVENING'],'12000'),true);
+ for(const time of ['04:59','12:00','17:59','24:00'])assert.equal(matchesFlightRefinements(departing(time),'ONWARD',['MORNING','EVENING'],'12000'),false);
+ assert.equal(matchesFlightRefinements(departing('04:59'),'ONWARD',['EARLY'],''),true);
+ assert.equal(matchesFlightRefinements(departing('05:00'),'ONWARD',['EARLY'],''),false);
  assert.equal(matchesFlightRefinements(departing('18:00'),'ONWARD',['MORNING','EVENING'],'11999'),false);
  assert.equal(matchesFlightRefinements(departing('12:00'),'ONWARD',[],'12000'),true);
 });

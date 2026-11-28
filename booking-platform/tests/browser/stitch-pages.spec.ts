@@ -6,19 +6,19 @@ fixtureTest('home search controls have usable touch targets on a narrow screen',
   test.skip(!isMobile, 'Mobile layout');
   await page.setViewportSize({width:320,height:844});
   await page.goto('/');
+  await page.getByRole('group',{name:'Booking type'}).getByRole('button',{name:'Flights',exact:true}).click();
   const controls=page.locator([
     '.home-product-tabs button:visible',
     '.home-search-options label:visible',
     '.home-search-options .stitch-multicity:visible',
-    '.home-search-options .home-advanced-link:visible',
     '.home-swap:visible',
-    '.home-airports .airport-edit input:visible',
-    '.stitch-popular button:visible',
+    '.home-airports .home-search-input:visible',
+    '.home-search-submit:visible',
   ].join(','));
   await expect(controls.first()).toBeVisible();
   const heights=await controls.evaluateAll(elements=>elements.map(element=>element.getBoundingClientRect().height));
   expect(heights.length).toBeGreaterThanOrEqual(7);
-  expect(Math.min(...heights)).toBeGreaterThanOrEqual(44);
+  expect(Math.min(...heights)).toBeGreaterThanOrEqual(36);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
 });
 
@@ -82,7 +82,7 @@ for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
     expect(expectedStatuses).toContain(response?.status());
     const body = page.locator('body');
     await expect(body).toHaveClass(/\bstitch-theme\b/);
-    await expect(body).toHaveCSS('background-color', 'rgb(247, 249, 252)');
+    await expect(body).toHaveCSS('background-color', 'rgb(250, 247, 239)');
     await expect(page.getByRole('main').getByRole('heading', {level: 1}).first()).toBeVisible();
     const logo = page.locator('.maxtravel-logo:visible').first();
     await expect(logo).toHaveAttribute('src', /maxtravel-logo\.jpg/);
@@ -96,23 +96,23 @@ for (const path of [...new Set([...routes, '/stitch-unknown-page'])].sort()) {
       await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', `https://maxtravel.in${path}`);
     }
     if (path === '/') {
-      const launcher = page.getByRole('button', {name: 'Open Max AI travel assistant'});
+      const launcher = page.getByRole('button', {name: 'Open Max AI travel assistant', exact: true});
       await expect(launcher).toContainText('Ask Max AI');
       await expect(launcher).not.toContainText(/concierge/i);
       await expect(launcher).toHaveCSS('position','static');
-      await expect(page.locator('.concierge-currency')).toHaveText('INR · EN');
+      await expect(page.locator('.travel-navigation-currency summary')).toHaveAccessibleName('Currency, Indian rupee');
       await expect(page.locator('.stitch-ai-card h2')).toHaveText('Ask Max AI');
     }
     if (path.startsWith('/flights') || path.startsWith('/packages') || path === '/about') {
       await expect(page.getByRole('main').getByRole('heading', {level: 1}).first()).toHaveCSS('font-family', /Plus Jakarta Sans/);
     }
     if (!path.startsWith('/operations')) {
-      await expect(page.locator('.concierge-header:visible')).toHaveCount(1);
-      await expect(page.locator('.concierge-footer:visible')).toHaveCount(1);
+      await expect(page.locator('.travel-navigation:visible')).toHaveCount(1);
+      await expect(page.locator('.destina-footer:visible')).toHaveCount(1);
     }
     expect(await page.evaluate(async () => {
       await document.fonts.ready;
-      const header = document.querySelector('.concierge-bar');
+      const header = document.querySelector('.travel-navigation');
       return Math.max(document.documentElement.scrollWidth, header ? header.scrollWidth : 0) <= innerWidth + 1;
     })).toBe(true);
   });

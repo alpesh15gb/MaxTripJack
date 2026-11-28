@@ -4,7 +4,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {FlightActiveFilterChips,type FlightFilterProps} from '../src/components/flight-results-controls';
 
-const empty:FlightFilterProps={group:'ONWARD',airline:'ALL',stops:'ALL',departureWindows:[],connections:[],budget:'',disabled:false,onAirline:()=>{},onStops:()=>{},onDeparture:()=>{},onConnections:()=>{},onBudget:()=>{}};
+const empty:FlightFilterProps={group:'ONWARD',airlineFilters:[],allianceFilters:[],stops:'ALL',departureWindows:[],connections:[],budget:'',disabled:false,onAirlines:()=>{},onAlliances:()=>{},onStops:()=>{},onDeparture:()=>{},onConnections:()=>{},onBudget:()=>{}};
 test('filter chips do not advertise nonexistent filters or treat COMBO preferences as applied',()=>{
   assert.equal(renderToStaticMarkup(createElement(FlightActiveFilterChips,empty)),'');
   const combo=renderToStaticMarkup(createElement(FlightActiveFilterChips,{...empty,group:'COMBO',stops:'0',departureWindows:['MORNING']}));

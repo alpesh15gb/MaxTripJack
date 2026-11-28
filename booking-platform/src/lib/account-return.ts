@@ -1,6 +1,7 @@
 import {z} from 'zod';
 /** Allow only customer workspaces. Never send authentication to an external URL. */
 export function safeAccountReturn(value: unknown): string {
+  if (value === '/account#flight-price-alerts') return value;
   if (typeof value !== "string" || value.length > 2048 || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u0020\u007f]/.test(value)) return "/my-trips";
   try {
     const decoded = decodeURIComponent(value);

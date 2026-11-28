@@ -2,7 +2,10 @@ import { journeyMinutes, type Flight, type FlightFare } from './booking-presenta
 import { comparableFareEstimate } from './fare-display';
 import { travelTimeLabel } from './travel-date';
 
-export type FlightSort = 'price' | 'duration' | 'departure';
+export const flightSortChoices = [
+  ['price', 'Cheapest'], ['duration', 'Shortest'], ['departure', 'Earliest departure'], ['arrival', 'Earliest arrival'],
+] as const;
+export type FlightSort = typeof flightSortChoices[number][0];
 export type FlightShortcut = { priceMinor: number | null; durationMinutes: number | null; departureLabel: string | null };
 type FlightShortcuts = { lowest: FlightShortcut | null; fastest: FlightShortcut | null; earliest: FlightShortcut | null };
 
@@ -10,6 +13,11 @@ type FlightShortcuts = { lowest: FlightShortcut | null; fastest: FlightShortcut 
 export function flightDepartureKey(flight: Flight) {
   const departure = flight.sI[0]?.dt;
   return departure && travelTimeLabel(departure) !== 'Time unavailable' ? departure.slice(0, 16) : null;
+}
+
+export function flightArrivalKey(flight: Flight) {
+  const arrival = flight.sI.at(-1)?.at;
+  return arrival && travelTimeLabel(arrival) !== 'Time unavailable' ? arrival.slice(0, 16) : null;
 }
 
 export function flightResultShortcuts(

@@ -1,5 +1,5 @@
 import type {Locator,Page,TestInfo} from '@playwright/test';
-import {test,expect,openFlightSearch,departure,returning,searchId,syntheticSession,expectNoHorizontalOverflow,reviewedQuote} from './fixtures';
+import {continueToTravellerDetails, test,expect,openFlightSearch,departure,returning,searchId,syntheticSession,expectNoHorizontalOverflow,reviewedQuote} from './fixtures';
 
 const key='maxtravel:selection:v1';
 async function chooseFlight(page:Page){
@@ -120,7 +120,7 @@ test('legacy hotel account return retains property, room and meals but never a c
  expect(provider.requests('/api/travel/review')).toHaveLength(1);
  await page.reload();
  const saved=await savedSelection(page);
- await expect(saved).toContainText('Palm House');await expect(saved).toContainText('Deluxe twin room');await expect(saved).toContainText('BREAKFAST');
+ await expect(saved).toContainText('Palm House');await expect(saved).toContainText('Deluxe twin room');await expect(saved).toContainText('Breakfast included');
  await expect(saved).toBeFocused();
  await naturalViewportEvidence(page,info,'saved-hotel-recovery',[saved.getByRole('heading',{name:'Your saved selection',exact:true}),saved.getByRole('heading',{name:'Palm House',exact:true}),saved.getByText('Deluxe twin room',{exact:true}),saved.getByRole('heading',{name:'Continue with your email',exact:true})]);
  expect(provider.requests('/api/travel/search')).toHaveLength(1);
@@ -401,7 +401,7 @@ for(const product of ['FLIGHT','HOTEL'] as const){
    await page.getByRole('button',{name:'Continue with room',exact:true}).click();
   }
   const form=page.getByRole('form',{name:'Review and travellers'});
-  await expect(form).toBeVisible();
+  await continueToTravellerDetails(page);
   await form.getByLabel('First name',{exact:true}).fill('Aarav');
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('draft@example.test');
@@ -428,6 +428,7 @@ for(const incomplete of [false,true]){
  test(`inline review and browser return retain ${incomplete?'incomplete':'valid'} edits without restoring old traveller details`,async({page,provider})=>{
   await openFlightSearch(page);await chooseFlight(page);
   const form=page.getByRole('form',{name:'Review and travellers'});
+  await continueToTravellerDetails(page);
   await form.getByLabel('First name',{exact:true}).fill('Aarav');
   await form.getByLabel('Last name',{exact:true}).fill('Example');
   await form.getByLabel('Email',{exact:true}).fill('original@example.test');

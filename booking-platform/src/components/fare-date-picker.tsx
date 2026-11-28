@@ -10,6 +10,7 @@ const fullDate=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',mon
 const shortDay=new Intl.DateTimeFormat('en-GB',{weekday:'short',timeZone:'UTC'});
 const longDay=new Intl.DateTimeFormat('en-GB',{weekday:'long',timeZone:'UTC'});
 const selectedDay=new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+const compactDay=new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
 const iso=(time:number)=>new Date(time).toISOString().slice(0,10);
 const at=(date:string)=>Date.parse(`${date}T00:00:00Z`);
 const shift=(date:string,days:number)=>iso(at(date)+days*86_400_000);
@@ -18,9 +19,9 @@ function nextMonth(start:string,count=1){const d=new Date(at(start));d.setUTCMon
 
 /** Date field with an inline two-month calendar. Prices are indicative "from"
  * fares per adult; the hidden input keeps native form submission unchanged. */
-export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper,iconOnly=false,openOnMount=false,startAtMinimum=false}:{
+export default function FareDatePicker({name,label,value,min,max,onChange,fares,rangeStart,helper,iconOnly=false,openOnMount=false,startAtMinimum=false,compact=false}:{
  name?:string;label:string;value:string;min:string;max?:string;onChange:(value:string)=>void;iconOnly?:boolean;
- fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;openOnMount?:boolean;startAtMinimum?:boolean;
+ fares?:Record<string,FareCalendarDay>;rangeStart?:string;helper?:string;openOnMount?:boolean;startAtMinimum?:boolean;compact?:boolean;
 }){
  const id=useId(),root=useRef<HTMLDivElement>(null),grid=useRef<HTMLDivElement>(null);
  const firstMonth=monthStart(startAtMinimum?min:value||min);
@@ -67,7 +68,7 @@ export default function FareDatePicker({name,label,value,min,max,onChange,fares,
  return <div className={`home-search-input fare-date${iconOnly?' fare-date-icon-only':''}`} ref={root}>
   {!iconOnly&&<span id={`${id}-label`} className="stitch-picker-caption"><StitchSymbol name="calendar_today" size={15}/>{label}</span>}
   <button type="button" className="fare-date-trigger" aria-haspopup="dialog" aria-expanded={open} aria-controls={open?`${id}-panel`:undefined} aria-label={iconOnly?label:undefined} aria-labelledby={iconOnly?undefined:`${id}-label ${id}-value`} onClick={toggle}>
-   {iconOnly ? <StitchSymbol name="calendar_today" size={19}/> : <span id={`${id}-value`} className="fare-date-value">{value?<><strong>{formatBookingDate(value)}</strong><em className="stitch-wide-only">{shortDay.format(at(value))}</em><em className="stitch-phone-only">{longDay.format(at(value))}</em></>:'Choose a date'}</span>}
+   {iconOnly ? <StitchSymbol name="calendar_today" size={19}/> : <span id={`${id}-value`} className="fare-date-value">{value?<><strong>{compact ? compactDay.format(at(value)) : formatBookingDate(value)}</strong>{!compact&&<><em className="stitch-wide-only">{shortDay.format(at(value))}</em><em className="stitch-phone-only">{longDay.format(at(value))}</em></>}</>:'Choose a date'}</span>}
   </button>
   {name&&<input type="hidden" name={name} value={value}/>}
   {!iconOnly&&<small>{fare?<>from <b className={`fare-band-${fare.band}`}>₹{compactRupees(fare.minor)}</b></>:helper??' '}</small>}

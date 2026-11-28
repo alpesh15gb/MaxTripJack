@@ -50,7 +50,7 @@ export function isMaxAiActionHref(href: unknown): href is string {
       if (['flightStops','flightSort','flightAirlineQuery'].some(key => seen.has(key))) {
         if (url.searchParams.get('product') !== 'FLIGHT' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url.searchParams.get('flightSearch') ?? '')) return false;
         if (seen.has('flightStops') && url.searchParams.get('flightStops') !== '0') return false;
-        if (seen.has('flightSort') && !['price','duration','departure'].includes(url.searchParams.get('flightSort') ?? '')) return false;
+        if (seen.has('flightSort') && !['price','duration','departure','arrival'].includes(url.searchParams.get('flightSort') ?? '')) return false;
         const carrier = url.searchParams.get('flightAirlineQuery');
         if (carrier !== null && (carrier.trim().length < 2 || carrier.length > 80)) return false;
       }

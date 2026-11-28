@@ -1,10 +1,11 @@
-import { test, expect, capture, expectNoHorizontalOverflow, openFlightSearch, quoteId } from './fixtures';
+import {continueToTravellerDetails,  test, expect, capture, expectNoHorizontalOverflow, openFlightSearch, quoteId } from './fixtures';
 import type { Page } from '@playwright/test';
 
 async function reviewedCheckout(page: Page) {
   await openFlightSearch(page);
   await page.locator('.fare-comparison-trigger').first().click();
   await page.getByRole('button', {name: 'Check fare & continue', exact: true}).first().click();
+  await continueToTravellerDetails(page);
   const form = page.getByRole('form', {name: 'Review and travellers'});
   await form.getByLabel('First name', {exact: true}).fill('Aarav');
   await form.getByLabel('Last name', {exact: true}).fill('Example');

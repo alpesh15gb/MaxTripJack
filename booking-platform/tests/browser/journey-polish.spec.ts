@@ -1,4 +1,4 @@
-import {test,expect,flight,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow} from './fixtures';
+import {continueToTravellerDetails, test,expect,flight,departure,returning,searchId,reviewedQuote,expectNoHorizontalOverflow} from './fixtures';
 import type {Page,TestInfo,Locator} from '@playwright/test';
 const flightQuery=(auto=true)=>'/book?'+new URLSearchParams({product:'FLIGHT',from:'BOM',to:'DEL',date:departure,adults:'1',...(auto?{autoSearch:'1'}:{})});
 const hotelQuery=(auto=true)=>'/book?'+new URLSearchParams({product:'HOTEL',city:'Goa',hotelIds:'10001',date:departure,end:returning,adults:'1',...(auto?{autoSearch:'1'}:{})});
@@ -68,7 +68,9 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   await page.goto(flightQuery());await page.locator('.fare-comparison-trigger').press('Enter');
   const offers=page.locator('.flight-shopping-list .fare-option');await expect(offers).toHaveCount(2);
   const firstAction=offers.first().getByRole('button',{name:'Check fare & continue',exact:true}),secondAction=offers.nth(1).getByRole('button',{name:'Check fare & continue',exact:true});
-  await shot(page,info,'compact-fare-comparison',[firstAction]);await expect(firstAction).toBeInViewport({ratio:.95});
+  const pinnedAction=page.getByRole('button',{name:'Select & continue',exact:true});
+  await shot(page,info,'compact-fare-comparison',[pinnedAction]);await expect(pinnedAction).toBeInViewport({ratio:.95});
+  await firstAction.scrollIntoViewIfNeeded();await expect(firstAction).toBeInViewport({ratio:.95});
   const track=page.locator('.flight-shopping-list .fare-decision-grid'),overflow=await track.evaluate(node=>node.scrollWidth>node.clientWidth+1);
   if(overflow){await page.getByRole('button',{name:'Next fare options',exact:true}).click();await expect.poll(()=>track.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);}
   await secondAction.scrollIntoViewIfNeeded();await expect(secondAction).toBeInViewport({ratio:.95});
@@ -86,6 +88,7 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
    });
    expect(geometry).toEqual({copyInside:true,actionInside:true,separate:true,clockFits:true});
   }
+  await continueToTravellerDetails(page);
   const mobileAction=page.locator('.mobile-booking-action'),mobile=(page.viewportSize()?.width??1440)<=700;
   await expect(mobileAction.getByRole('button',{name:/^Agree & pay /})).toBeEnabled();
   if(mobile){
@@ -98,10 +101,10 @@ for(const width of [null,320])test.describe(width?'Polish320':'Polish project vi
   }
   // A narrow screen can show the reviewed context and persistent continuation
   // before the name fields; keyboard entry must scroll those fields clear of it.
-  await shot(page,info,'compact-traveller-entry',[mobile?mobileAction:page.locator('.selected-reviewed-total'),page.locator('.booking-expiry')]);
+  await shot(page,info,'compact-traveller-entry',[mobile?mobileAction:page.locator('#booking-summary .booking-total'),page.locator('.booking-expiry')]);
   const firstName=page.getByRole('textbox',{name:'First name',exact:true});
-  await expect(page.locator('#booking-review-title')).toBeFocused();
-  for(let tabs=0;tabs<12&&!await firstName.evaluate(node=>node===document.activeElement);tabs++)await page.keyboard.press('Tab');
+  await expect(page.locator('#checkout-stage-title')).toBeFocused();
+  for(let tabs=0;tabs<18&&!await firstName.evaluate(node=>node===document.activeElement);tabs++)await page.keyboard.press('Tab');
   await expect(firstName).toBeFocused();
   await shot(page,info,'compact-traveller-name-entry',[firstName]);
   const firstVisibility=await firstName.evaluate(node=>{const r=node.getBoundingClientRect(),view=visualViewport,action=document.querySelector('.mobile-booking-action'),sticky=action&&getComputedStyle(action).position==='fixed'?action.getBoundingClientRect():null;return {top:r.top,bottom:r.bottom,viewportTop:view?.offsetTop??0,viewportBottom:Math.min((view?.offsetTop??0)+(view?.height??innerHeight),sticky?.height?sticky.top:innerHeight),hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===node};});

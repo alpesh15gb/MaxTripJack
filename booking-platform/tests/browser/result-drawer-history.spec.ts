@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test';
-import {test,expect,departure,returning,searchId,openFlightSearch,reviewedQuote,type ProviderFixture} from './fixtures';
+import {continueToTravellerDetails, test,expect,departure,returning,searchId,openFlightSearch,reviewedQuote,type ProviderFixture} from './fixtures';
 
 function hotelFixture(provider:ProviderFixture){
  const option={optionId:'history-breakfast',roomInfo:[{id:'history-double',name:'History Double'}],mealBasis:'BREAKFAST',pricing:{totalPrice:6540,currency:'INR'}};
@@ -61,6 +61,7 @@ for(const product of ['FLIGHT','HOTEL'] as const)test(`${product} Forward into c
   await page.getByRole('button',{name:'Continue with room',exact:true}).click();
  }
  const form=page.getByRole('form',{name:'Review and travellers',exact:true});
+ await continueToTravellerDetails(page);
  await expect(form).toBeVisible();
  await form.getByLabel('First name',{exact:true}).fill('HistoryDraft');
  await form.getByLabel('Email',{exact:true}).fill('history-draft@example.test');

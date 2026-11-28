@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSyncExternalStore } from 'react';
+import { StitchSymbol } from './stitch-symbol';
 import { TravelIcon } from './travel-icon';
 
 const storageKey = 'maxtravel.recent-searches.v1';
@@ -44,6 +46,13 @@ function decode(value: string): RecentSearch[] {
   } catch { return []; }
 }
 
+const shortDate = new Intl.DateTimeFormat('en-IN', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+function displayDate(value: string | null) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? shortDate.format(date) : '';
+}
+
 export function rememberHomeSearch(params: URLSearchParams, label: string) {
   const saved = searchQuery(params);
   // A hotel destination can be resolved again from its city or region. Avoid
@@ -68,15 +77,22 @@ export default function HomeRecentSearches() {
   return (
     <section className="atlas-recent stitch-home-wrap" aria-labelledby="atlas-recent-title">
       <header>
-        <h2 id="atlas-recent-title">Recent searches</h2>
+        <h2 id="atlas-recent-title"><TravelIcon name="clock" size={19}/>Your recent searches</h2>
         <button type="button" onClick={clear}>Clear recent searches</button>
       </header>
       <div>
-        {recent.map(item => (
-          <Link key={item.query} prefetch={false} href={{ pathname: '/book', query: Object.fromEntries(searchQuery(new URLSearchParams(item.query))) }}>
-            <TravelIcon name="search" size={17} />{item.label}<TravelIcon name="arrow" size={16} />
-          </Link>
-        ))}
+        {recent.map(item => {
+          const params = searchQuery(new URLSearchParams(item.query));
+          const hotel = params.get('product') === 'HOTEL';
+          const start = displayDate(params.get('date'));
+          const end = displayDate(params.get(hotel ? 'end' : 'returnDate'));
+          const travellers = Number(params.get('adults') ?? 1) + Number(params.get('children') ?? 0) + Number(params.get('infants') ?? 0);
+          return <Link key={item.query} aria-label={item.label} prefetch={false} href={{ pathname: '/book', query: Object.fromEntries(params) }}>
+            <Image className="destina-recent-image" src={hotel ? '/travel/destina-perk-package.jpg' : '/travel/destina-hero.jpg'} width={440} height={248} alt="" sizes="221px"/>
+            <span className="destina-recent-tag"><StitchSymbol name={hotel ? 'hotel' : 'flight'} size={13}/>{hotel ? 'Hotel' : 'Flight'}</span>
+            <span className="destina-recent-label"><strong>{item.label}</strong><small>{[start && end ? `${start} – ${end}` : start, `${travellers} ${hotel ? 'guest' : 'traveller'}${travellers === 1 ? '' : 's'}`, !hotel && (end ? 'Round trip' : 'One way')].filter(Boolean).join(' · ')}</small></span>
+          </Link>;
+        })}
       </div>
     </section>
   );

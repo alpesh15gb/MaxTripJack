@@ -5,6 +5,7 @@
  */
 export type FlightSearchCacheStatus = "miss" | "hit" | "coalesced" | "disabled" | "bypass";
 type Entry = { at: number; ttl: number; pending: boolean; value: Promise<unknown> };
+type CacheLookup = (status: FlightSearchCacheStatus, freshUntil: number, fetchedSince: number) => void;
 const MAX_ENTRIES = 200;
 // Provider transport times out after 45s. A separate bounded pending window lets
 // a short configured cache TTL coalesce that request without retaining old fares.
@@ -65,22 +66,22 @@ export function hasCachedHotelSearch(payload: Record<string, unknown>) {
  * so the cached value keeps that ID and later room pricing uses the same one. */
 export function cachedHotelSearch<T>(
  payload: Record<string, unknown>, correlationId: string, load: (correlationId: string) => Promise<T>,
- ttl = hotelSearchCacheTtl(), onLookup?: (status: FlightSearchCacheStatus, freshUntil?: number) => void,
+ ttl = hotelSearchCacheTtl(), onLookup?: CacheLookup,
 ): Promise<HotelListing<T>> {
  return cachedFlightSearch(hotelListingKey(payload), async () => ({ data: await load(correlationId), correlationId }), ttl, undefined, onLookup);
 }
 
 export async function cachedFlightSearch<T>(
  payload: unknown, load: () => Promise<T>, ttl = flightSearchCacheTtl(), now = Date.now(),
- onLookup?: (status: FlightSearchCacheStatus, freshUntil?:number) => void,
+ onLookup?: CacheLookup,
 ): Promise<T> {
- if (ttl === 0) { onLookup?.("disabled",now); return load(); }
+ if (ttl === 0) { onLookup?.("disabled",now,now); return load(); }
  const key = JSON.stringify(payload);
  prune(now);
  const hit = freshEntry(key,ttl,now);
  if (hit) {
   entries.delete(key); entries.set(key, hit);
-  onLookup?.(hit.pending ? "coalesced" : "hit",hit.at+Math.min(ttl,hit.ttl));
+  onLookup?.(hit.pending ? "coalesced" : "hit",hit.at+Math.min(ttl,hit.ttl),hit.at);
   return hit.value as Promise<T>;
  }
  const stale = entries.get(key);
@@ -88,8 +89,8 @@ export async function cachedFlightSearch<T>(
  evictSettled(true);
  // All slots can be occupied by active requests. Stay bounded without evicting
  // them; this distinct search still runs normally and is simply not stored.
- if (entries.size >= MAX_ENTRIES) { onLookup?.("bypass",now+ttl); return load(); }
- onLookup?.("miss",now+ttl);
+ if (entries.size >= MAX_ENTRIES) { onLookup?.("bypass",now+ttl,now); return load(); }
+ onLookup?.("miss",now+ttl,now);
  const value = load();
  const entry: Entry = { at: now, ttl, pending: true, value };
  entries.set(key, entry);
